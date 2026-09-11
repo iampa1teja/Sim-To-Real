@@ -368,7 +368,7 @@ def main():
     # wrist starts at +90 degrees and then follows leader motion relatively.
     wrist_roll_index = 4
     leader_wrist_start = None
-    sim_wrist_start = -torch.pi / 2
+    sim_wrist_start = 0.0
 
 
     # ========================================================
