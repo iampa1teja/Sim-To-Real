@@ -44,7 +44,7 @@ SO101_CFG = ArticulationCfg(
             "Pitch": -0.6109,
             "Elbow": -0.0745,
             "Wrist_Pitch": 1.5148,
-            "Wrist_Roll": -1.6034,
+            "Wrist_Roll": -1.6034 + (np.pi / 2),
             "Jaw": -0.1465,
         },
         pos=(-0.05, 0.0, 0),

@@ -95,3 +95,12 @@ gym.register(
     },
 )
 
+
+gym.register(
+    id="Lerobot-So101-Teleop-MyRoom",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.my_room_env_cfg:MyRoomEnvCfg",
+    },
+)
