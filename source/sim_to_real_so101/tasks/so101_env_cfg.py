@@ -133,7 +133,7 @@ class EventCfg:
         func=randomize_robot_color,
         mode="reset",
         params={
-            "color_names": ["orange"],
+            "color_names": ["beige"],
         },
     )
 

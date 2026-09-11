@@ -33,6 +33,7 @@ from isaacsim.core.prims import XFormPrim
 # Robot color palette based on WowRobo and Seeed Studio offerings
 ROBOT_COLORS = {
     "orange": (0.876, 0.317, 0.132),
+    "beige": (0.960784, 0.960784, 0.862745),  # #F5F5DC
     "teal": (0.0, 0.8, 0.502),
     "white": (0.95, 0.95, 0.95),
     "black": (0.08, 0.08, 0.08),
