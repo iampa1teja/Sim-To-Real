@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import deque
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -31,7 +32,7 @@ from lerobot.datasets.pipeline_features import (
     create_initial_features,
 )
 from lerobot.datasets.utils import build_dataset_frame, combine_feature_dicts
-from lerobot.utils.constants import OBS_STR
+from lerobot.utils.constants import ACTION, OBS_STR
 from lerobot.utils.control_utils import predict_action
 from lerobot.utils.utils import get_safe_torch_device
 from lerobot.policies.utils import make_robot_action
@@ -95,16 +96,27 @@ class LeRobotSO101Interface:
 
     def make_cameras_cfg(self):
         cameras = {}
-        # need to rename cameras to match policy/feature config
-        for camera in self.cameras.keys():
-            camera_name = camera
+        # Camera dictionaries used by simulation only carry image dimensions.
+        # A physical follower additionally supplies the actual OpenCV device in
+        # ``index_or_path``.  Keep both forms supported for existing policy code.
+        for camera_name_from_config, camera in self.cameras.items():
+            camera_name = camera_name_from_config
             if self.rename_map:
-                camera_name = self.rename_map[camera]
+                camera_name = self.rename_map[camera_name_from_config]
+
+            index_or_path = camera.get("index_or_path", Path("null"))
+            if isinstance(index_or_path, str):
+                try:
+                    index_or_path = int(index_or_path)
+                except ValueError:
+                    index_or_path = Path(index_or_path)
+
             cameras[camera_name] = OpenCVCameraConfig(
-                index_or_path="null",  # we are in simulation :)
+                index_or_path=index_or_path,
                 fps=self.fps,
-                width=self.cameras[camera]["width"],
-                height=self.cameras[camera]["height"],
+                width=camera["width"],
+                height=camera["height"],
+                fourcc=camera.get("fourcc"),
             )
 
         return cameras
@@ -112,9 +124,10 @@ class LeRobotSO101Interface:
     def make_cfg(self):
         if self.kind == "leader":
             return SO101LeaderConfig(port=self.port, id=self.id)
-        elif self.kind == "follower":
+        if self.kind == "follower":
             cameras = self.make_cameras_cfg()
             return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras)
+        raise ValueError(f"Unsupported SO-101 interface kind: {self.kind!r}")
 
     def init_device(self, visualize: bool = False):
         self.cfg = self.make_cfg()
@@ -124,10 +137,97 @@ class LeRobotSO101Interface:
         if visualize:
             init_rerun(session_name=random_session_name)
 
-        print(f"[INFO]: Connected to the Arm at {self.port} with id {self.id}")
+        print(f"[INFO]: Initialized LeRobot device at {self.port} with id {self.id}")
 
-    def connect(self):
-        self.robot.connect()
+    def connect(self, calibrate: bool = True):
+        self.robot.connect(calibrate=calibrate)
+
+    @property
+    def is_connected(self) -> bool:
+        return bool(getattr(getattr(self, "robot", None), "is_connected", False))
+
+    def disconnect(self) -> None:
+        """Disconnect normal and partially connected LeRobot devices safely."""
+        robot = getattr(self, "robot", None)
+        if robot is None:
+            return
+        if robot.is_connected:
+            robot.disconnect()
+            return
+
+        # A camera can fail after the motor bus connected.  LeRobot's follower
+        # ``disconnect`` requires the aggregate ``is_connected`` property, so
+        # clean partial resources explicitly without changing motor settings.
+        for camera in getattr(robot, "cameras", {}).values():
+            if camera.is_connected:
+                camera.disconnect()
+        bus = getattr(robot, "bus", None)
+        if bus is not None and bus.is_connected:
+            if self.kind == "follower":
+                bus.disconnect(robot.config.disable_torque_on_disconnect)
+            else:
+                bus.disconnect()
+
+    def make_recording_features(self, use_videos: bool = True) -> dict:
+        """Build physical-follower dataset features with LeRobot 0.4.3.
+
+        This intentionally follows ``lerobot_record.py`` from the installed
+        package instead of maintaining a second hand-written real-robot schema.
+        """
+        if self.kind != "follower":
+            raise RuntimeError("Real recording features require a follower interface.")
+
+        (
+            self.teleop_action_processor,
+            self.robot_action_processor,
+            self.robot_observation_processor,
+        ) = make_default_processors()
+
+        self.recording_dataset_features = combine_feature_dicts(
+            aggregate_pipeline_dataset_features(
+                pipeline=self.teleop_action_processor,
+                initial_features=create_initial_features(
+                    action=self.robot.action_features
+                ),
+                use_videos=use_videos,
+            ),
+            aggregate_pipeline_dataset_features(
+                pipeline=self.robot_observation_processor,
+                initial_features=create_initial_features(
+                    observation=self.robot.observation_features
+                ),
+                use_videos=use_videos,
+            ),
+        )
+        return self.recording_dataset_features
+
+    def make_real_dataset_frame(
+        self,
+        leader_action: dict,
+        follower_observation: dict,
+        task_name: str,
+    ) -> dict:
+        """Convert one real control iteration to an official LeRobot frame."""
+        if not hasattr(self, "recording_dataset_features"):
+            raise RuntimeError("Call make_recording_features() before recording.")
+
+        processed_observation = self.robot_observation_processor(
+            follower_observation
+        )
+        processed_action = self.teleop_action_processor(
+            (leader_action, follower_observation)
+        )
+        observation_frame = build_dataset_frame(
+            self.recording_dataset_features,
+            processed_observation,
+            prefix=OBS_STR,
+        )
+        action_frame = build_dataset_frame(
+            self.recording_dataset_features,
+            processed_action,
+            prefix=ACTION,
+        )
+        return {**observation_frame, **action_frame, "task": task_name}
 
     def get_raw_actions_tensor(self, real_action):
         return torch.tensor(

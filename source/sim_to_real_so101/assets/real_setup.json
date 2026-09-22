@@ -1,0 +1,122 @@
+{
+  "description": "Photo-matched setup from env setup/setup.png, real.png, real_2.png and cam_pov.png. Metres, Z-up, quaternions wxyz. Camera height/FOV are visual estimates, not calibrated intrinsics.",
+  "robot": {
+    "position": [
+      0.7721351371539209,
+      -0.6016322531253074,
+      0.7637408306071112
+    ],
+    "yaw_degrees": 184.583662,
+    "table_normal": [
+      -0.001159014,
+      -0.01850508,
+      0.9998281
+    ],
+    "joint_positions": {
+      "Rotation": -0.2736,
+      "Pitch": -1.57,
+      "Elbow": 1.45,
+      "Wrist_Pitch": 0.9494,
+      "Wrist_Roll": -0.0326036732,
+      "Jaw": -0.1465
+    }
+  },
+  "realsense": {
+    "position": [
+      0.605208,
+      -0.042302,
+      1.179045
+    ],
+    "target": [
+      0.736406,
+      -0.410672,
+      0.805
+    ],
+    "focal_length": 25.380572,
+    "horizontal_aperture": 20.955,
+    "vertical_aperture": 15.71625,
+    "width": 640,
+    "height": 480
+  },
+  "wrist": {
+    "position": [
+      -0.005,
+      0.06,
+      -0.062
+    ],
+    "euler_degrees": [
+      -45.0,
+      0.0,
+      0.0
+    ],
+    "focal_length": 13.5,
+    "horizontal_aperture": 20.955,
+    "vertical_aperture": 15.71625,
+    "width": 640,
+    "height": 480
+  },
+  "viewer": {
+    "eye": [
+      1.8,
+      -1.8,
+      1.85
+    ],
+    "lookat": [
+      0.48,
+      -0.27,
+      1.02
+    ]
+  },
+  "appearance": {
+    "light_intensity_multiplier": 2.8,
+    "light_temperature_kelvin": 5600.0,
+    "table_texture_scale": [
+      0.74,
+      0.84,
+      0.94,
+      1.0
+    ],
+    "table_texture_bias": [
+      0.022,
+      0.026,
+      0.022,
+      0.0
+    ],
+    "wall_texture_scale": [
+      0.8,
+      0.82,
+      0.84,
+      1.0
+    ],
+    "wall_texture_bias": [
+      0.045,
+      0.041,
+      0.033,
+      0.0
+    ],
+    "table_roughness": 0.4,
+    "table_clearcoat": 0.24,
+    "robot_ivory": [
+      0.84,
+      0.79,
+      0.61
+    ],
+    "motor_charcoal": [
+      0.028,
+      0.03,
+      0.032
+    ],
+    "wrist_mount_yellow": [
+      0.95,
+      0.64,
+      0.018
+    ],
+    "table_albedo_scale": [
+      0.84,
+      1.04,
+      1.3,
+      1.0
+    ],
+    "ambient_intensity": 1.5
+  }
+}
