@@ -111,6 +111,12 @@ from sim_to_real_so101.utils.lerobot_recorder import (
     SynchronizedLeRobotRecorders,
 )
 
+try:
+    from lerobot.utils.utils import say
+except ImportError:
+    def say(text: str, blocking: bool = False) -> None:  # noqa: ARG001
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -162,6 +168,7 @@ def _save_episode_object_pose(
         }, indent=2)
     )
     print(f"[INFO]: Cube pose saved → {sidecar}")
+    say("Cube position saved, recording", blocking=False)
 
 
 def _log_rerun_frame(visual_obs: dict, real_observation: dict | None, action: dict) -> None:
@@ -351,6 +358,7 @@ def main():
                 reset_deadline = time.perf_counter() + args_cli.reset_wait_s
                 keyboard_control.set_recording(False)
                 print(f"\n🔄  Reset the env [{args_cli.reset_wait_s} SEC]")
+                say("Cube spawned, ready to start recording", blocking=False)
 
             # ── Countdown expired → start recording ───────────────────────
             if phase == "resetting" and time.perf_counter() >= reset_deadline:
