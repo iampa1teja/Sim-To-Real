@@ -142,6 +142,10 @@ You can either download them ahead of time, or as you get to them in the course.
 
 ## Commands
 
+The agent commands default to your photo-matched room setup with RealSense RGB/depth
+and wrist cameras. See [setup notes](env%20setup/README.md) for the USDZ, camera names
+and placement settings. Pass `--task` explicitly to use another workshop environment.
+
 - `list_envs` - List environments in this repo
 - `zero_agent` - Debug script with zero actions
 - `random_agent` - Debug script with random actions

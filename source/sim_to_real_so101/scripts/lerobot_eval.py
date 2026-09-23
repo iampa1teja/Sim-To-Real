@@ -30,7 +30,7 @@ parser.add_argument(
 parser.add_argument(
     "--num_envs", type=int, default=None, help="Number of environments to simulate."
 )
-parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-MyRoom", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=1984, help="Environment seed")
 parser.add_argument("--num_episodes", type=int, default=10, help="Number of episodes to evaluate")
 parser.add_argument(

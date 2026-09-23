@@ -1,106 +1,124 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
+"""Isaac Sim keyboard requests for the single master teleoperation loop."""
+
 import carb
 import omni.appwindow
-import omni.kit.app
 
-from carb.eventdispatcher import get_eventdispatcher, Event
 
 class KeyboardControl:
+    """Collect keyboard requests without owning recorder state.
 
-    START_RECORDING_EVENT: str = "lerobot_so101_teleop.start_recording"
-    STOP_RECORDING_EVENT: str = "lerobot_so101_teleop.stop_recording"
-    CANCEL_RECORDING_EVENT: str = "lerobot_so101_teleop.cancel_recording"
+    The master loop consumes these flags once per control iteration. This keeps
+    real and simulation episode transitions atomic from the application's point
+    of view instead of dispatching independent recorder callbacks.
+    """
 
     def __init__(self):
-        self.reset_world = False
         self.recording = False
+        self.start_episode_requested = False
+        self.end_episode_requested = False
+        self.rerecord_episode_requested = False
+        self.stop_requested = False
+        self.reset_world_requested = False
 
-        # Get the window to register keyboard callbacks
         self._window = omni.appwindow.get_default_app_window()
         self._input = carb.input.acquire_input_interface()
         self._keyboard = self._window.get_keyboard()
-
-        # Register keyboard callbacks
         self._sub_keyboard = self._input.subscribe_to_keyboard_events(
             self._keyboard, self._on_keyboard_event
         )
 
     def _on_keyboard_event(self, event, *args, **kwargs):
-        """Keyboard event handler"""
-        # Only process key press events
-        if event.type == carb.input.KeyboardEventType.KEY_PRESS:
-            if event.input.name == "R":
-                self.reset_world = True
-                self.stop_recording()
-                print(f"[INFO]: Reset world...")
-                return True
+        if event.type != carb.input.KeyboardEventType.KEY_PRESS:
+            return False
 
-            if event.input.name == "S":
-                if self.recording:
-                    self.stop_recording()
-                    return True
+        key = event.input
+        if key == carb.input.KeyboardInput.RIGHT:
+            if self.recording:
+                self.end_episode_requested = True
+                print("[INFO]: Right Arrow: end synchronized episode requested.")
+            return True
 
-                
-                self.start_recording()
-                return True
+        if key == carb.input.KeyboardInput.LEFT:
+            if self.recording:
+                self.rerecord_episode_requested = True
+                print("[INFO]: Left Arrow: re-record synchronized episode requested.")
+            return True
 
-            if event.input.name == "C":
-                if self.recording:
-                    self.cancel_recording()
-                    return True
+        if key == carb.input.KeyboardInput.ESCAPE:
+            self.stop_requested = True
+            print("[INFO]: Escape: clean stop requested.")
+            return True
+
+        if key == carb.input.KeyboardInput.R:
+            self.reset_world_requested = True
+            if self.recording:
+                self.end_episode_requested = True
+            print("[INFO]: Reset requested.")
+            return True
+
+        if key == carb.input.KeyboardInput.S:
+            if self.recording:
+                self.end_episode_requested = True
+                print("[INFO]: Stop/save synchronized episode requested.")
+            else:
+                self.start_episode_requested = True
+                print("[INFO]: Start synchronized episode requested.")
+            return True
+
+        if key == carb.input.KeyboardInput.C:
+            if self.recording:
+                self.rerecord_episode_requested = True
+                print("[INFO]: Cancel/re-record synchronized episode requested.")
+            return True
 
         return False
 
+    def consume_requests(self) -> dict[str, bool]:
+        requests = {
+            "start": self.start_episode_requested,
+            "end": self.end_episode_requested,
+            "rerecord": self.rerecord_episode_requested,
+            "stop": self.stop_requested,
+            "reset": self.reset_world_requested,
+        }
+        self.start_episode_requested = False
+        self.end_episode_requested = False
+        self.rerecord_episode_requested = False
+        self.stop_requested = False
+        self.reset_world_requested = False
+        return requests
 
+    def set_recording(self, recording: bool) -> None:
+        self.recording = recording
 
-    def cleanup(self):
-        """Cleanup the keyboard interface"""
+    # Compatibility helpers for callers that previously toggled recording
+    # through this object directly.
+    def start_recording(self) -> None:
+        if not self.recording:
+            self.start_episode_requested = True
+
+    def stop_recording(self) -> None:
+        if self.recording:
+            self.end_episode_requested = True
+
+    def cancel_recording(self) -> None:
+        if self.recording:
+            self.rerecord_episode_requested = True
+
+    @property
+    def reset_world(self) -> bool:
+        return self.reset_world_requested
+
+    @reset_world.setter
+    def reset_world(self, value: bool) -> None:
+        self.reset_world_requested = value
+
+    def cleanup(self) -> None:
         if self._sub_keyboard:
             self._input.unsubscribe_to_keyboard_events(
                 self._keyboard, self._sub_keyboard
             )
             self._sub_keyboard = None
-
-    # This should not live in this class, but it works for now
-    def start_recording(self):
-        if not self.recording:
-            print(f"[INFO]: Started recording.")
-            self.recording = True
-
-            omni.kit.app.queue_event(
-                self.START_RECORDING_EVENT, 
-                payload={}
-                )
-
-    def stop_recording(self):
-        if self.recording:
-            print(f"[INFO]: Stopped recording.")
-            self.recording = False
-
-            omni.kit.app.queue_event(
-                self.STOP_RECORDING_EVENT, 
-                payload={}
-                )
-
-    def cancel_recording(self):
-        if self.recording:
-            print(f"[INFO]: Cancelled recording.")
-            self.recording = False
-
-            omni.kit.app.queue_event(
-                self.CANCEL_RECORDING_EVENT, 
-                payload={}
-                )

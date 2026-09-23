@@ -61,14 +61,14 @@ manipulation_object_base = RigidObjectCfg(
 )
 
 vial = manipulation_object_base.replace()
-vial.spawn.usd_path = f"{assets_path}/usd/Vial_opaque.usda"
+vial.spawn.usd_path = f"{assets_path}/usd/Vial/Vial_opaque.usda"
 vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
 vial.spawn.rigid_props = sim_utils.RigidBodyPropertiesCfg(angular_damping=100.0)
 
 
 rack = manipulation_object_base.replace()
 rack.prim_path = "{ENV_REGEX_NS}/VialRack"
-rack.spawn.usd_path = f"{assets_path}/usd/Vial_rack_simple.usda"
+rack.spawn.usd_path = f"{assets_path}/usd/Vial/Vial_rack_simple.usda"
 rack.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.2)
 
 vial.spawn.mass_props = sim_utils.MassPropertiesCfg(mass=0.02)
