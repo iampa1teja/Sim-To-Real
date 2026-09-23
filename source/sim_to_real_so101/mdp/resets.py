@@ -25,15 +25,14 @@ import isaaclab.utils.math as math_utils
 from isaaclab.sim import get_current_stage
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.assets import Articulation, RigidObject
+from isaaclab.sensors import FrameTransformer
 from isaacsim.core.prims import XFormPrim
 
 
 
-
-# Robot color palette based on WowRobo and Seeed Studio offerings
 ROBOT_COLORS = {
     "orange": (0.876, 0.317, 0.132),
-    "beige": (0.960784, 0.960784, 0.862745),  # #F5F5DC
+    "beige": (0.960784, 0.960784, 0.862745),  
     "teal": (0.0, 0.8, 0.502),
     "white": (0.95, 0.95, 0.95),
     "black": (0.08, 0.08, 0.08),
@@ -45,7 +44,6 @@ def randomize_robot_color(env,
     color_names: list[str] = list(ROBOT_COLORS.keys()),
 ):
     """Randomly set robot color from predefined palette on each reset."""
-    # color_names = list(ROBOT_COLORS.keys())
     idx = torch.randint(0, len(color_names), (1,), device="cpu").item()
     selected_color = ROBOT_COLORS[color_names[idx]]
     
@@ -382,3 +380,70 @@ def reset_vials_rack(
             _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
             zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
             v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+
+def reset_object_pose(
+    env,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+    pose_range: dict[str, tuple[float, float]],
+    eef_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    side_offset_m: float = 0.05,
+) -> None:
+    """Place an object beside the live end-effector pose, then zero its velocity.
+
+    Reads the live EEF world pose from ``ee_frame`` (a FrameTransformer),
+    computes a position ``side_offset_m`` to the +X side in the gripper's
+    local frame (matching the lateral-offset convention in cube_spawner.py),
+    and writes that pose directly to sim. If ``pose_range`` is non-empty,
+    additional uniform jitter (x/y/z metres, roll/pitch/yaw radians) is
+    layered on top of the EEF-relative placement, using the same sampling
+    pattern as ``random_asset_pose``.
+
+    Args:
+        asset_cfg:      SceneEntityCfg naming the target rigid object (e.g. "blue_cube").
+        pose_range:     Optional per-axis (min, max) jitter on top of the EEF-relative
+                        placement; missing keys default to no jitter. Pass ``{}`` to
+                        disable jitter entirely.
+        eef_frame_cfg:  SceneEntityCfg for the FrameTransformer sensor that tracks
+                        the gripper tip (default: "ee_frame").
+        side_offset_m:  Lateral clearance in metres from the gripper frame origin to
+                        the object centre (default 0.05 m). This is a coarse
+                        approximation, not measured against the gripper mesh like
+                        cube_spawner.spawn_blue_cube — tune per object size/visually
+                        to avoid spawning inside the gripper.
+    """
+    asset = env.scene[asset_cfg.name]
+    ee_frame: FrameTransformer = env.scene[eef_frame_cfg.name]
+
+    eef_pos_w = ee_frame.data.target_pos_w[:, 0, :]
+    eef_quat_w = ee_frame.data.target_quat_w[:, 0, :]
+
+    local_offset = torch.zeros(len(env_ids), 3, device=asset.device)
+    local_offset[:, 0] = side_offset_m
+
+    world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
+    cube_pos_w = eef_pos_w[env_ids] + world_offset
+
+    cube_quat_w = torch.zeros(len(env_ids), 4, device=asset.device)
+    cube_quat_w[:, 0] = 1.0
+
+    if pose_range:
+        range_list = [
+            pose_range.get(key, (0.0, 0.0))
+            for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+        ]
+        ranges = torch.tensor(range_list, device=asset.device)
+        rand_samples = math_utils.sample_uniform(
+            ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device
+        )
+        cube_pos_w = cube_pos_w + rand_samples[:, 0:3]
+        jitter_quat = math_utils.quat_from_euler_xyz(
+            rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5]
+        )
+        cube_quat_w = math_utils.quat_mul(cube_quat_w, jitter_quat)
+
+    pose = torch.cat([cube_pos_w, cube_quat_w], dim=-1)
+    asset.write_root_pose_to_sim(pose, env_ids=env_ids)
+
+    zero_velocity = torch.zeros((len(env_ids), 6), device=asset.device)
+    asset.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)

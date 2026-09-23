@@ -104,3 +104,12 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.my_room_env_cfg:MyRoomEnvCfg",
     },
 )
+
+gym.register(
+    id="Lerobot-So101-Teleop-Pick-Place",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.pick_place_env_cfg:PickPlaceEnvCfg",
+    },
+)
