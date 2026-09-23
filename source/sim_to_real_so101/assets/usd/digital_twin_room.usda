@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c4f9bc0b0d2f033e4de695b3980bbb71891a19b18a6229c2adb305657d59f35c
-size 460
+#usda 1.0
+(
+    defaultPrim = "Room"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+# Compose out the preview robot/cameras BEFORE Isaac Lab registers callbacks.
+# The agent spawns one controlled articulation and three live camera sensors.
+def Xform "Room" (
+    prepend references = @digital_twin.usdz@</RealSetup>
+)
+{
+    over "Robot" (active = false) {}
+    over "realsense_camera_rgb" (active = false) {}
+    over "realsense_camera_depth" (active = false) {}
+}
