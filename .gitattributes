@@ -15,4 +15,4 @@
 *.blend1 filter=lfs diff=lfs merge=lfs -text
 *.exr filter=lfs diff=lfs merge=lfs -text
 
-source/sim_to_real_so101/assets/usd/real_setup.usdz filter=lfs diff=lfs merge=lfs -text
+source/sim_to_real_so101/assets/usd/digital_twin.usdz filter=lfs diff=lfs merge=lfs -text

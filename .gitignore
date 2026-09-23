@@ -263,5 +263,5 @@ real_robot/core
 
 docker/env
 # Personal default room package.
-!source/sim_to_real_so101/assets/usd/real_setup.usdz
+!source/sim_to_real_so101/assets/usd/digital_twin.usdz
 !env setup/mujoco/real_setup_room.xml
