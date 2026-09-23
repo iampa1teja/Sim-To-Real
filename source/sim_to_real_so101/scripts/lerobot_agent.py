@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import stat
 from pathlib import Path
 
 from isaaclab.app import AppLauncher
@@ -19,6 +20,11 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=None)
 parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-MyRoom")
+parser.add_argument("--spawn_port", type=int, default=6001,
+                    help="Local spawn.py listener port; 0 disables it.")
+parser.add_argument("--spawn_authkey", default="so101-spawn")
+parser.add_argument("--control_input", choices=("terminal", "keyboard"), default="terminal",
+                    help="Episode controls: Python input() commands or the original keyboard listener.")
 
 # Physical leader
 parser.add_argument(
@@ -138,9 +144,37 @@ if args_cli.fps <= 0:
     parser.error("--fps must be positive.")
 if args_cli.image_writer_threads_per_camera < 0:
     parser.error("--image_writer_threads_per_camera cannot be negative.")
-if args_cli.enable_real_follower and args_cli.port == args_cli.follower_port:
+if args_cli.enable_real_follower and os.path.realpath(args_cli.port) == os.path.realpath(args_cli.follower_port):
     parser.error("Leader and follower serial ports must be different.")
 
+
+def _validate_serial_ports():
+    """Check device paths without opening ports or commanding either arm."""
+    ports = [("leader", "--port / TELEOP_PORT", args_cli.port)]
+    if args_cli.enable_real_follower:
+        ports.append(("follower", "--follower_port / ROBOT_PORT", args_cli.follower_port))
+    for role, option, port in ports:
+        path = Path(port)
+        if not path.exists():
+            available = sorted(
+                str(p) for pattern in ("ttyACM*", "ttyUSB*", "serial/by-id/*")
+                for p in Path("/dev").glob(pattern) if p.exists()
+            )
+            parser.error(
+                f"Physical {role} serial port {port!r} does not exist. "
+                f"Available serial paths: {', '.join(available) or 'none'}. "
+                f"Reconnect the {role} USB cable and set {option} to its verified "
+                "device path (prefer /dev/serial/by-id/...). In Docker, ensure "
+                "the device is visible inside the container. Ports are not "
+                "automatically reassigned between leader and follower."
+            )
+        if not stat.S_ISCHR(path.stat().st_mode):
+            parser.error(f"Physical {role} port {port!r} is not a serial device.")
+        if not os.access(path, os.R_OK | os.W_OK):
+            parser.error(f"Physical {role} port {port!r} requires read/write permission.")
+
+
+_validate_serial_ports()
 args_cli.enable_cameras = True
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -155,7 +189,8 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
 import sim_to_real_so101.tasks  # noqa: F401
-from sim_to_real_so101.utils.keyboard import KeyboardControl
+from sim_to_real_so101.utils.terminal_control import TerminalInputControl
+from sim_to_real_so101.utils.cube_spawner import CubeSpawnServer, spawn_blue_cube
 from sim_to_real_so101.utils.lerobot_interface import LeRobotSO101Interface
 from sim_to_real_so101.utils.lerobot_recorder import (
     LeRobotRecorder,
@@ -251,16 +286,17 @@ def _disconnect(interface: LeRobotSO101Interface | None, label: str) -> None:
         print(f"[ERROR]: Failed to disconnect {label}: {exc}")
 
 
-def _reset_for_buffer(env, keyboard_control: KeyboardControl) -> None:
+def _reset_for_buffer(env, keyboard_control) -> None:
     env.reset()
     keyboard_control.set_recording(False)
     print(
         "[INFO]: RESET/BUFFER phase. Reposition the real scene and leader, "
-        "then press S to start the next synchronized episode."
+        "then use S (Enter in terminal mode) to start the next synchronized episode."
     )
 
 
 def main():
+    spawn_server = None
     keyboard_control = None
     env = None
     leader_iface = None
@@ -269,8 +305,6 @@ def main():
     recording = False
 
     try:
-        keyboard_control = KeyboardControl()
-
         # Use Fabric consistently with zero/eval agents so rendered links and
         # the attached wrist camera follow the live articulation.
         use_fabric = not args_cli.disable_fabric
@@ -285,11 +319,6 @@ def main():
 
         print(f"[INFO]: Gym observation space: {env.observation_space}")
         print(f"[INFO]: Gym action space: {env.action_space}")
-        print("[INFO]: S: start/end episode")
-        print("[INFO]: Right Arrow: save episode and enter reset/buffer")
-        print("[INFO]: Left Arrow or C: discard and re-record current episode")
-        print("[INFO]: R: save if recording, then reset")
-        print("[INFO]: Escape: save current episode and exit cleanly")
 
         env.reset()
 
@@ -430,10 +459,34 @@ def main():
         leader_wrist_start = None
         sim_wrist_start = 0.0
 
-        print("[INFO]: RESET/BUFFER phase. Press S when the scene is ready.")
+        # Start input only after device connection/calibration prompts finish.
+        if args_cli.control_input == "keyboard":
+            from sim_to_real_so101.utils.keyboard import KeyboardControl
+            keyboard_control = KeyboardControl()
+            print("[controls] S: start/save; Right: save; Left/C: discard; R: reset; Escape: quit.")
+        else:
+            keyboard_control = TerminalInputControl()
+        print("[INFO]: RESET/BUFFER phase. Use S (Enter in terminal mode) when ready.")
+
+        if args_cli.spawn_port:
+            try:
+                spawn_server = CubeSpawnServer(args_cli.spawn_port, args_cli.spawn_authkey)
+                print(f"[INFO]: spawn.py listener ready on localhost:{args_cli.spawn_port}.")
+            except OSError as exc:
+                print(f"[WARNING]: Cube spawner unavailable: {exc}. Use --spawn_port to select another port.")
+
+        def spawn_requested_cube():
+            eef = env.unwrapped.scene['ee_frame'].data
+            return spawn_blue_cube(
+                env.unwrapped.sim.stage,
+                eef.target_pos_w[0, 0].detach().cpu().tolist(),
+                eef.target_quat_w[0, 0].detach().cpu().tolist(),
+            )
 
         while simulation_app.is_running():
             loop_start = time.perf_counter()
+            if spawn_server is not None:
+                spawn_server.poll(spawn_requested_cube)
             requests = keyboard_control.consume_requests()
 
             if requests["stop"]:
@@ -585,6 +638,8 @@ def main():
             recording = False
         raise
     finally:
+        if spawn_server is not None:
+            spawn_server.close()
         if recorder_group is not None:
             try:
                 if recorder_group.frame_count:

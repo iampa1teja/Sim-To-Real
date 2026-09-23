@@ -1,5 +1,5 @@
 {
-  "description": "Photo-matched setup from env setup/setup.png, real.png, real_2.png and cam_pov.png. Metres, Z-up, quaternions wxyz. Camera height/FOV are visual estimates, not calibrated intrinsics.",
+  "description": "Dataset appearance fit using real external and gripper camera frames at 2.0\u20133.0 seconds (main reference 2.5 s). Metres, Z-up, quaternions wxyz. Camera pose/intrinsics are visual estimates, not measured calibration.",
   "robot": {
     "position": [
       0.7721351371539209,
@@ -23,20 +23,26 @@
   },
   "realsense": {
     "position": [
-      0.605208,
-      -0.042302,
-      1.179045
+      0.625,
+      -0.1,
+      1.18
     ],
     "target": [
-      0.736406,
-      -0.410672,
-      0.805
+      0.7542783268831391,
+      -0.42995415151273686,
+      0.7593845317896567
     ],
-    "focal_length": 25.380572,
+    "focal_length": 20.0,
     "horizontal_aperture": 20.955,
     "vertical_aperture": 15.71625,
     "width": 640,
-    "height": 480
+    "height": 480,
+    "euler_degrees": [
+      39.77121542,
+      5.73688215,
+      -165.45275565
+    ],
+    "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
   },
   "wrist": {
     "position": [
@@ -68,8 +74,6 @@
     ]
   },
   "appearance": {
-    "light_intensity_multiplier": 2.8,
-    "light_temperature_kelvin": 5600.0,
     "table_texture_scale": [
       0.74,
       0.84,
@@ -94,12 +98,12 @@
       0.033,
       0.0
     ],
-    "table_roughness": 0.4,
-    "table_clearcoat": 0.24,
-    "robot_ivory": [
-      0.84,
-      0.79,
-      0.61
+    "table_roughness": 0.62,
+    "table_clearcoat": 0.04,
+    "robot_beige": [
+      0.96862745,
+      0.96862745,
+      0.7372549
     ],
     "motor_charcoal": [
       0.028,
@@ -112,11 +116,80 @@
       0.018
     ],
     "table_albedo_scale": [
-      0.84,
-      1.04,
+      1.1,
       1.3,
+      1.55,
       1.0
     ],
-    "ambient_intensity": 1.5
+    "ambient_intensity": 0.0,
+    "table_texture": "textures/table_dataset_calibrated.png",
+    "backdrop_texture_scale": [
+      0.8,
+      0.82,
+      0.84,
+      1
+    ],
+    "backdrop_texture_bias": [
+      0.23,
+      0.45,
+      0.49,
+      0
+    ],
+    "robot_plastic_roughness": 0.68,
+    "motor_roughness": 0.72,
+    "wrist_mount_roughness": 0.6
+  },
+  "lighting": {
+    "description": "Only direct emitter: tube above the north-wall whiteboard, in front of the arm. Intensity is a fitted USD renderer value, not a measured lumen rating. Room bounce uses GI.",
+    "position": [
+      0.44,
+      1.85,
+      2.915
+    ],
+    "target": [
+      0.7,
+      -0.3,
+      0.77
+    ],
+    "length": 1.2,
+    "diffuser_width": 0.06,
+    "intensity": 600000.0,
+    "color": [
+      0.82,
+      0.93,
+      1.0
+    ]
+  },
+  "object_materials": {
+    "blue_cube": {
+      "color": [
+        0.012,
+        0.03,
+        0.42
+      ],
+      "roughness": 0.62,
+      "metallic": 0.0
+    },
+    "white_box": {
+      "color": [
+        0.88,
+        0.9,
+        0.9
+      ],
+      "roughness": 0.7,
+      "metallic": 0.0
+    },
+    "vial_cap": {
+      "roughness": 0.35
+    },
+    "opaque_vial": {
+      "roughness": 0.45
+    },
+    "vial_rack": {
+      "roughness": 0.55
+    },
+    "tray": {
+      "roughness": 0.6
+    }
   }
 }

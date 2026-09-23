@@ -30,6 +30,11 @@ setup(
     packages=find_packages(where=".."),
     package_dir={"": ".."},
     install_requires=INSTALL_REQUIRES,
-    package_data={"sim_to_real_so101.assets": ["real_setup.json", "usd/real_setup.usdz", "usd/real_setup_room.usda"]},
+    package_data={
+        "sim_to_real_so101.assets": [
+            "real_setup.json", "usd/digital_twin.usdz", "usd/digital_twin_room.usda",
+            "usd/Vial/*", "usd/Vial/tex/*", "usd/Pick-Place/*", "textures/*.png",
+        ],
+    },
     zip_safe=False,
 )

@@ -24,6 +24,9 @@ from .so101_env_cfg import (
     EventCfg, LerobotSo101BaseSceneCfg, ObservationsCfg, SO101TeleopEnvCfg,
 )
 
+# Share the fitted plastic color with the packaged preview robot.
+MY_ROOM_ARM_COLOR = tuple(SETUP["appearance"]["robot_beige"])
+
 
 def _resolve_room_usd_path() -> str:
     """Use the portable photo-matched setup unless explicitly overridden."""
@@ -137,12 +140,17 @@ def _configure_scene_updates(env, env_ids):
 
 
 def _set_real_robot_materials(env, env_ids):
-    apply_robot_appearance(env.sim.stage, '/World/envs/env_0/Robot')
+    apply_robot_appearance(
+        env.sim.stage,
+        '/World/envs/env_0/Robot',
+        arm_color=MY_ROOM_ARM_COLOR,
+    )
 
 
 @configclass
 class MyRoomEventsCfg(EventCfg):
     configure_scene_updates = EventTerm(func=_configure_scene_updates, mode="startup")
+    set_robot_visual_material = EventTerm(func=_set_real_robot_materials, mode='startup')
     reset_set_robot_visual_material = EventTerm(func=_set_real_robot_materials, mode='reset')
 
 
@@ -158,8 +166,13 @@ class MyRoomEnvCfg(SO101TeleopEnvCfg):
         self.scene.robot.init_state.rot = robot_rotation()
         self.scene.robot.init_state.joint_pos = SETUP["robot"]["joint_positions"].copy()
         self.sim.render.rendering_mode = "balanced"
+        self.sim.render.antialiasing_mode = "DLAA"
         self.sim.render.enable_ambient_occlusion = True
         self.sim.render.enable_global_illumination = True
-        self.sim.render.carb_settings = {"/rtx/sceneDb/ambientLightIntensity": SETUP["appearance"]["ambient_intensity"]}
+        self.sim.render.carb_settings = {
+            "/rtx/sceneDb/ambientLightIntensity": SETUP["appearance"]["ambient_intensity"],
+            "/rtx/post/histogram/enabled": False,
+            "/rtx-transient/dlssg/enabled": False,
+        }
         self.viewer.eye = tuple(SETUP["viewer"]["eye"])
         self.viewer.lookat = tuple(SETUP["viewer"]["lookat"])
