@@ -18,7 +18,8 @@ import glob
 import os
 import yaml
 
-from pxr import Gf, Sdf
+import numpy as np
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
@@ -381,36 +382,70 @@ def reset_vials_rack(
             zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
             v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
 
+def _gripper_tip_local_offset(stage, half_size: float, clearance_m: float) -> torch.Tensor:
+    """Measure the fixed jaw's mesh geometry and return a gripper-local offset.
+
+    Same measurement cube_spawner.spawn_blue_cube uses: finds the fixed-jaw
+    mesh, reads its tip band, and returns a point just beside the tip's +X
+    face with ``clearance_m`` clearance — i.e. genuinely flush against the
+    gripper, not an arbitrary constant offset.
+    """
+    gripper = next(
+        (p for p in stage.Traverse() if p.GetName() == "gripper" and p.GetChild("visuals").IsValid()),
+        None,
+    )
+    if gripper is None:
+        raise RuntimeError("Fixed-jaw gripper link not found; cannot place object beside it.")
+    mesh_prim = next(
+        (p for p in Usd.PrimRange(gripper, Usd.TraverseInstanceProxies())
+         if p.IsA(UsdGeom.Mesh) and "/visuals/wrist_roll_follower_so101_v1/" in str(p.GetPath())),
+        None,
+    )
+    if mesh_prim is None:
+        raise RuntimeError("Fixed-jaw mesh not found; cannot measure jaw tip.")
+
+    local_transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(mesh_prim, gripper)
+    jaw_points = np.array([
+        local_transform.Transform(Gf.Vec3d(*map(float, p)))
+        for p in UsdGeom.Mesh(mesh_prim).GetPointsAttr().Get()
+    ])
+    tip_z = jaw_points[:, 2].min()
+    tip_band = jaw_points[jaw_points[:, 2] <= tip_z + 2 * half_size]
+    return torch.tensor([
+        float(tip_band[:, 0].max() + half_size + clearance_m),
+        float((tip_band[:, 1].min() + tip_band[:, 1].max()) / 2),
+        float(tip_z + half_size),
+    ])
+
+
 def reset_object_pose(
     env,
     env_ids: torch.Tensor,
     asset_cfg: SceneEntityCfg,
     pose_range: dict[str, tuple[float, float]],
     eef_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
-    side_offset_m: float = 0.05,
+    side_clearance_m: float = 0.003,
 ) -> None:
-    """Place an object beside the live end-effector pose, then zero its velocity.
+    """Place an object flush beside the gripper's fixed jaw, then zero its velocity.
 
-    Reads the live EEF world pose from ``ee_frame`` (a FrameTransformer),
-    computes a position ``side_offset_m`` to the +X side in the gripper's
-    local frame (matching the lateral-offset convention in cube_spawner.py),
-    and writes that pose directly to sim. If ``pose_range`` is non-empty,
-    additional uniform jitter (x/y/z metres, roll/pitch/yaw radians) is
-    layered on top of the EEF-relative placement, using the same sampling
+    Measures the actual fixed-jaw mesh (same method as
+    cube_spawner.spawn_blue_cube) to place the object's centre just beside the
+    jaw tip with ``side_clearance_m`` clearance, oriented to match the live
+    end-effector pose — tight/adjacent placement, not an arbitrary offset. If
+    ``pose_range`` is non-empty, additional uniform jitter (x/y/z metres,
+    roll/pitch/yaw radians) is layered on top, using the same sampling
     pattern as ``random_asset_pose``.
 
     Args:
-        asset_cfg:      SceneEntityCfg naming the target rigid object (e.g. "blue_cube").
-        pose_range:     Optional per-axis (min, max) jitter on top of the EEF-relative
-                        placement; missing keys default to no jitter. Pass ``{}`` to
-                        disable jitter entirely.
-        eef_frame_cfg:  SceneEntityCfg for the FrameTransformer sensor that tracks
-                        the gripper tip (default: "ee_frame").
-        side_offset_m:  Lateral clearance in metres from the gripper frame origin to
-                        the object centre (default 0.05 m). This is a coarse
-                        approximation, not measured against the gripper mesh like
-                        cube_spawner.spawn_blue_cube — tune per object size/visually
-                        to avoid spawning inside the gripper.
+        asset_cfg:         SceneEntityCfg naming the target rigid object (e.g. "blue_cube").
+        pose_range:         Optional per-axis (min, max) jitter on top of the
+                            jaw-relative placement; missing keys default to no
+                            jitter. Pass ``{}`` to disable jitter entirely.
+        eef_frame_cfg:      SceneEntityCfg for the FrameTransformer sensor that
+                            tracks the gripper tip (default: "ee_frame").
+        side_clearance_m:   Extra clearance in metres beyond the object's own
+                            half-size when measuring the jaw tip (default
+                            0.003 m, matching cube_spawner.spawn_blue_cube).
     """
     asset = env.scene[asset_cfg.name]
     ee_frame: FrameTransformer = env.scene[eef_frame_cfg.name]
@@ -418,14 +453,16 @@ def reset_object_pose(
     eef_pos_w = ee_frame.data.target_pos_w[:, 0, :]
     eef_quat_w = ee_frame.data.target_quat_w[:, 0, :]
 
-    local_offset = torch.zeros(len(env_ids), 3, device=asset.device)
-    local_offset[:, 0] = side_offset_m
+    half_size = float(asset.cfg.spawn.size[0]) / 2.0 if hasattr(asset.cfg.spawn, "size") else 0.01
+    local_offset = _gripper_tip_local_offset(
+        get_current_stage(), half_size, side_clearance_m
+    ).to(asset.device).unsqueeze(0).repeat(len(env_ids), 1)
 
     world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
     cube_pos_w = eef_pos_w[env_ids] + world_offset
 
-    cube_quat_w = torch.zeros(len(env_ids), 4, device=asset.device)
-    cube_quat_w[:, 0] = 1.0
+    # Match the gripper's live orientation, same as spawn_blue_cube does.
+    cube_quat_w = eef_quat_w[env_ids].clone()
 
     if pose_range:
         range_list = [
