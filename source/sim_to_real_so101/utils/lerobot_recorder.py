@@ -56,6 +56,7 @@ class LeRobotRecorder:
         features: dict | None = None,
         robot_type: str = "so101_follower",
         image_writer_threads_per_camera: int = 4,
+        batch_encoding_size: int = 1,
     ):
         self.task_name = task_name
         self.repo_id = repo_id
@@ -69,6 +70,9 @@ class LeRobotRecorder:
         self.depth = depth
         self.instance_id_seg = instance_id_seg
         self.image_writer_threads_per_camera = image_writer_threads_per_camera
+        # >1 defers video encoding: saved episodes keep their PNG frames on disk
+        # and are encoded in batches, with the remainder encoded in finalize().
+        self.batch_encoding_size = batch_encoding_size
 
         self.dataset_features = features or self._make_sim_features(self.cameras)
         self.dataset: LeRobotDataset | None = None
@@ -140,7 +144,9 @@ class LeRobotRecorder:
         """Create or resume the dataset using the installed LeRobot 0.4.3 API."""
         info_path = self.dataset_root / "meta" / "info.json"
         if info_path.is_file():
-            self.dataset = LeRobotDataset(self.repo_id, root=self.dataset_root)
+            self.dataset = LeRobotDataset(
+                self.repo_id, root=self.dataset_root, batch_encoding_size=self.batch_encoding_size
+            )
             self._check_existing_dataset()
             camera_count = len(self.dataset.meta.camera_keys)
             if camera_count and self.image_writer_threads_per_camera:
@@ -174,7 +180,7 @@ class LeRobotRecorder:
                     if camera_count
                     else 0
                 ),
-                batch_encoding_size=1,
+                batch_encoding_size=self.batch_encoding_size,
             )
             print(f"[INFO]: New dataset initialized - {self.dataset.root}")
 
@@ -186,6 +192,13 @@ class LeRobotRecorder:
         if self.dataset is None:
             raise RuntimeError("Dataset has not been initialized.")
         return self.dataset.meta.total_episodes
+
+    @property
+    def pending_video_episodes(self) -> int:
+        """Saved episodes whose videos have not been encoded yet."""
+        if self.dataset is None:
+            return 0
+        return self.dataset.episodes_since_last_encoding
 
     @property
     def frame_count(self) -> int:
@@ -439,6 +452,10 @@ class SynchronizedLeRobotRecorders:
         if len(set(counts.values())) != 1:
             raise RuntimeError(f"Recorder frame counts diverged: {counts}")
         return next(iter(counts.values()))
+
+    @property
+    def pending_video_episodes(self) -> int:
+        return max(recorder.pending_video_episodes for recorder in self.recorders.values())
 
     def _assert_aligned(self, operation: str) -> None:
         episodes = {

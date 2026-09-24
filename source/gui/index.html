@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pick-Place Recorder</title>
+  <style>
+    :root {
+      --bg: #111418;
+      --panel: #1b1f24;
+      --border: #30363d;
+      --text: #e6e8eb;
+      --muted: #8b949e;
+      --start: #2ea043;
+      --stop: #1f6feb;
+      --discard: #da3633;
+      --spawn: #6e7681;
+      --rec: #ff5a52;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1400px; margin: 0 auto; padding: 16px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    h1 { font-size: 20px; margin: 0; }
+    .conn { font-size: 13px; }
+    .conn::before { content: "●"; margin-right: 6px; }
+    .conn.on { color: var(--start); }
+    .conn.off { color: var(--discard); }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 8px; }
+    .btn {
+      flex: 1 1 180px;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 8px;
+      color: #fff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.start { background: var(--start); }
+    .btn.stop { background: var(--stop); }
+    .btn.discard { background: var(--discard); }
+    .btn.spawn { background: var(--spawn); }
+    .btn:hover:not(:disabled) { filter: brightness(1.12); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .status { min-height: 1.4em; margin: 0 0 4px; color: var(--muted); }
+    .status.rec { color: var(--rec); font-weight: 600; }
+    .error { margin: 0 0 4px; color: var(--discard); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 12px auto 0;
+      /* Width at which two rows of 4:3 panes fit under the toolbar (~250px of
+         chrome), so all four cameras are visible without scrolling. */
+      width: max(320px, min(100%, calc((100vh - 250px) * 4 / 3 + 16px)));
+    }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; width: 100%; } }
+    .pane { margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .pane figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); }
+    .pane img, .no-signal { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; }
+    .no-signal { display: grid; place-items: center; color: var(--muted); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react" src="app.jsx"></script>
+</body>
+</html>

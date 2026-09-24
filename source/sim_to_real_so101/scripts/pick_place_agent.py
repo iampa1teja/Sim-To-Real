@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import stat
+import sys
 import traceback
 from pathlib import Path
 from isaaclab.app import AppLauncher
@@ -32,6 +33,11 @@ parser.add_argument("--save_mp4", action="store_true", default=False)
 parser.add_argument("--depth", action="store_true", default=False)
 parser.add_argument("--instance_id_seg", action="store_true", default=False)
 parser.add_argument("--image_writer_threads_per_camera", type=int, default=4)
+parser.add_argument(
+    "--encode_every", type=int, default=0,
+    help="Encode videos every N saved episodes (1 = right after each episode). "
+         "Default 0 defers all video encoding to exit, so saving returns quickly.",
+)
 
 # Real cameras
 parser.add_argument("--real_gripper_camera", type=str, default=os.getenv("CAMERA_GRIPPER"))
@@ -48,6 +54,15 @@ parser.add_argument("--rerun", action="store_true", default=False, help="Enable 
 parser.add_argument("--reset_wait_s", type=int, default=10,
                     help="Preparation seconds before recording begins (does not reset the scene).")
 
+# Browser GUI (camera feeds + Start/Stop/Discard/Spawn), alongside --control_input.
+parser.add_argument(
+    "--gui_host", type=str, default="127.0.0.1",
+    help="Interface for the recorder web GUI. It can drive the real robot, so keep "
+         "it on localhost unless you trust the network.",
+)
+parser.add_argument("--gui_port", type=int, default=8765)
+parser.add_argument("--gui_fps", type=float, default=15.0, help="Max camera refresh rate in the GUI.")
+
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
@@ -58,6 +73,8 @@ if (args_cli.real_repo_id or args_cli.real_repo_root) and not all(dataset_args):
     parser.error("Real dataset overrides require the base dataset arguments.")
 if args_cli.fps <= 0:
     parser.error("--fps must be positive.")
+if args_cli.encode_every < 0:
+    parser.error("--encode_every cannot be negative.")
 if args_cli.enable_real_follower and (
     os.path.realpath(args_cli.port) == os.path.realpath(args_cli.follower_port)
 ):
@@ -113,6 +130,13 @@ from sim_to_real_so101.utils.lerobot_recorder import (
     LeRobotRecorder,
     SynchronizedLeRobotRecorders,
 )
+from sim_to_real_so101.utils.recording_web_gui import RecordingWebGui
+
+# GUI pane titles, in display order (two per row).
+SIM_RGB, SIM_WRIST, REAL_RGB, REAL_WRIST = "Sim: realsense", "Sim: wrist", "Real: external", "Real: gripper"
+# GUI button -> episode request key used by every --control_input. The GUI's
+# "stop" means stop *recording* (save), which is "end"; "stop" here means quit.
+GUI_REQUESTS = {"start": "start", "stop": "end", "discard": "rerecord", "spawn": "spawn"}
 
 try:
     from lerobot.utils.utils import say as _lerobot_say
@@ -184,7 +208,35 @@ def _save_episode_object_pose(
         }, indent=2)
     )
     print(f"[INFO]: Cube pose saved → {sidecar}")
-    say("Cube position saved, recording", blocking=False)
+
+
+def _gui_frames(visual_obs: dict | None, real_observation: dict | None) -> dict:
+    visual_obs = visual_obs or {}
+    real_observation = real_observation or {}
+
+    def first_env(key):
+        images = visual_obs.get(key)
+        return None if images is None else images[0]
+
+    return {
+        SIM_RGB: first_env("rgb_realsense_rgb"),
+        SIM_WRIST: first_env("rgb_wrist_cam"),
+        REAL_RGB: real_observation.get("external"),
+        REAL_WRIST: real_observation.get("gripper"),
+    }
+
+
+def _gui_status(phase: str, reset_deadline: float | None, recorder_group, cube_visible: bool, note: str) -> str:
+    """Status line for the GUI; ``note`` reports the last save/discard between episodes."""
+    if phase == "resetting":
+        return f"● Recording starts in {max(0.0, reset_deadline - time.perf_counter()):.0f} s"
+    if phase == "recording":
+        if recorder_group is None:
+            return "● Episode active (dataset recording disabled)"
+        seconds = recorder_group.frame_count / args_cli.fps
+        return f"● Recording episode {recorder_group.episode_index}: {seconds:.1f} s"
+    hint = "Start recording when ready." if cube_visible else "Spawn the cube, then start recording."
+    return f"{note} {hint}" if note else hint
 
 
 def _log_rerun_frame(visual_obs: dict, real_observation: dict | None, action: dict) -> None:
@@ -239,6 +291,7 @@ def main():
     # Physics buffers updated during stepping may be inference tensors. Keep
     # keyboard-driven spawn/reset/save transitions in the same context.
     keyboard_control = None
+    gui = None
     env = None
     leader_iface = None
     follower_iface = None
@@ -290,7 +343,8 @@ def main():
 
         # ── Follower (optional) ───────────────────────────────────────────
         recording_mode = bool(all(dataset_args))
-        real_cameras = _real_camera_specs() if recording_mode else {}
+        # Opened whenever configured: the GUI shows them even when not recording.
+        real_cameras = _real_camera_specs()
 
         if args_cli.enable_real_follower:
             follower_iface = LeRobotSO101Interface(
@@ -311,6 +365,8 @@ def main():
 
         # ── Recorders ────────────────────────────────────────────────────
         if recording_mode:
+            # sys.maxsize never fills a batch, so every video is encoded in finalize().
+            batch_encoding_size = args_cli.encode_every or sys.maxsize
             sim_recorder = LeRobotRecorder(
                 task_name=args_cli.task_name,
                 repo_id=args_cli.repo_id,
@@ -322,6 +378,7 @@ def main():
                 depth=args_cli.depth,
                 instance_id_seg=args_cli.instance_id_seg,
                 image_writer_threads_per_camera=args_cli.image_writer_threads_per_camera,
+                batch_encoding_size=batch_encoding_size,
             )
             recorders = {"sim": sim_recorder}
 
@@ -341,6 +398,7 @@ def main():
                     features=real_features,
                     robot_type=follower_iface.robot.name,
                     image_writer_threads_per_camera=args_cli.image_writer_threads_per_camera,
+                    batch_encoding_size=batch_encoding_size,
                 )
 
             recorder_group = SynchronizedLeRobotRecorders(recorders)
@@ -369,21 +427,37 @@ def main():
             from sim_to_real_so101.utils.terminal_control import TerminalInputControl
             keyboard_control = TerminalInputControl(enable_spawn=True)
 
+        gui = RecordingWebGui(
+            [SIM_RGB, SIM_WRIST, REAL_RGB, REAL_WRIST],
+            host=args_cli.gui_host,
+            port=args_cli.gui_port,
+            max_fps=args_cli.gui_fps,
+        )
+        print(f"[INFO]: Recorder GUI running — open {gui.url} in a browser.")
+
         # ── Episode outer loop ────────────────────────────────────────────
         phase = "setup"   # "setup" | "resetting" | "recording"
         reset_deadline = None
+        # Captured when recording starts; written next to the episode only if it is saved.
+        pending_cube_pose = None
+        gui_note = ""
 
         print("\n[INFO]: Setup ready. Spawn a cube for practice, or start an episode.")
 
         while simulation_app.is_running():
             loop_start = time.perf_counter()
             requests = keyboard_control.consume_requests()
+            for button, pressed in gui.consume_requests().items():
+                if pressed:
+                    requests[GUI_REQUESTS[button]] = True
 
             # ── Quit ──────────────────────────────────────────────────────
             if requests["stop"]:
                 print("[INFO]: Quit requested; closing the teleoperation loop.")
                 if recording and recorder_group is not None:
-                    recorder_group.save_episode()
+                    episode_index = recorder_group.save_episode()
+                    if episode_index is not None and pending_cube_pose is not None:
+                        _save_episode_object_pose(args_cli.repo_root, episode_index, *pending_cube_pose)
                     recording = False
                 episode_cube.hide()
                 break
@@ -414,8 +488,21 @@ def main():
                 if recording and recorder_group is not None:
                     if requests["rerecord"]:
                         recorder_group.cancel_episode()
+                        gui_note = "Episode discarded."
+                        say("Episode discarded", blocking=False)
                     else:
-                        recorder_group.save_episode()
+                        episode_index = recorder_group.save_episode()
+                        if episode_index is None:
+                            gui_note = "Nothing recorded; episode not saved."
+                        else:
+                            if pending_cube_pose is not None:
+                                _save_episode_object_pose(args_cli.repo_root, episode_index, *pending_cube_pose)
+                            gui_note = (
+                                f"Saved episode {episode_index}; {recorder_group.pending_video_episodes} "
+                                "episode(s) will be video-encoded at exit."
+                            )
+                            say("Episode saved", blocking=False)
+                pending_cube_pose = None
                 recording = False
                 phase = "setup"
                 reset_deadline = None
@@ -429,15 +516,11 @@ def main():
             # ── Countdown expired → start recording ───────────────────────
             if phase == "resetting" and time.perf_counter() >= reset_deadline:
                 phase = "recording"
+                gui_note = ""
                 if recording_mode and recorder_group is not None:
-                    cube_pos, cube_quat = _cube_pose_relative_to_base(env)
-                    _save_episode_object_pose(
-                        args_cli.repo_root,
-                        recorder_group.episode_index,
-                        cube_pos,
-                        cube_quat,
-                    )
+                    pending_cube_pose = _cube_pose_relative_to_base(env)
                     recording = True
+                    say("Recording", blocking=False)
                 if recording:
                     print(f"\n[INFO]: Recording episode {recorder_group.episode_index}.")
                 else:
@@ -479,8 +562,17 @@ def main():
                 except Exception as exc:
                     raise RuntimeError(f"env.step() failed: {exc}") from exc
 
+                visual_obs = obs.get("visual")
+
+                # Read every tick: the GUI shows the real cameras even when not recording.
+                follower_observation = None
+                if follower_iface is not None:
+                    try:
+                        follower_observation = follower_iface.robot.get_observation()
+                    except Exception as exc:
+                        raise RuntimeError(f"Follower observation failed: {exc}") from exc
+
                 if recording and recorder_group is not None:
-                    visual_obs = obs.get("visual")
                     if visual_obs is None:
                         raise RuntimeError("No 'visual' observation group for recording.")
 
@@ -502,12 +594,7 @@ def main():
                         )
                     }
 
-                    follower_observation = None
-                    if follower_iface is not None:
-                        try:
-                            follower_observation = follower_iface.robot.get_observation()
-                        except Exception as exc:
-                            raise RuntimeError(f"Follower observation failed: {exc}") from exc
+                    if follower_observation is not None:
                         frames["real"] = follower_iface.make_real_dataset_frame(
                             leader_action, follower_observation, args_cli.task_name
                         )
@@ -516,6 +603,13 @@ def main():
 
                     if args_cli.rerun:
                         _log_rerun_frame(visual_obs, follower_observation, leader_action)
+
+                gui.set_state(
+                    active=phase != "setup",
+                    can_start=phase == "setup" and episode_cube.visible,
+                    status=_gui_status(phase, reset_deadline, recorder_group, episode_cube.visible, gui_note),
+                )
+                gui.update_images(_gui_frames(visual_obs, follower_observation))
 
             remaining = (1.0 / args_cli.fps) - (time.perf_counter() - loop_start)
             if remaining > 0:
@@ -537,10 +631,22 @@ def main():
                     recorder_group.cancel_episode()
             except Exception as exc:
                 print(f"[ERROR]: {exc}")
+            pending = recorder_group.pending_video_episodes
+            if pending:
+                message = (
+                    f"Encoding videos for {pending} saved episode(s). This can take a while; "
+                    "don't kill the process or those episodes lose their videos."
+                )
+                print(f"[INFO]: {message}")
+                if gui is not None:
+                    gui.set_state(active=False, can_start=False, status=message)
+                    gui.flush()
             try:
                 recorder_group.finalize()
             except Exception as exc:
                 print(f"[ERROR]: {exc}")
+        if gui is not None:
+            gui.destroy()
 
         if keyboard_control is not None:
             keyboard_control.cleanup()
