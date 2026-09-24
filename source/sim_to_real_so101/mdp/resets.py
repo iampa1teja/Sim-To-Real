@@ -450,6 +450,11 @@ def reset_object_pose(
     asset = env.scene[asset_cfg.name]
     ee_frame: FrameTransformer = env.scene[eef_frame_cfg.name]
 
+    # Joint reset events write DOFs before PhysX refreshes link transforms.
+    # Querying the sensor here without a forward update uses the previous
+    # pose (the USD bind pose on first reset), placing the cube in mid-air.
+    env.sim.forward()
+    ee_frame.reset(env_ids)
     eef_pos_w = ee_frame.data.target_pos_w[:, 0, :]
     eef_quat_w = ee_frame.data.target_quat_w[:, 0, :]
 

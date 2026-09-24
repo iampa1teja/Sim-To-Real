@@ -23,6 +23,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import traceback
 
 from isaaclab.app import AppLauncher
 
@@ -32,11 +33,14 @@ parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+parser.add_argument("--num_steps", type=int, default=None, help="Stop after this many steps (default: run until closed).")
 parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-MyRoom", help="Name of the task.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+if args_cli.num_steps is not None and args_cli.num_steps <= 0:
+    parser.error("--num_steps must be positive.")
 args_cli.enable_cameras = True
 
 
@@ -57,6 +61,21 @@ import sim_to_real_so101.tasks  # noqa: F401
 
 def main():
     """Zero actions agent with Isaac Lab environment."""
+    try:
+        _run_environment()
+    except Exception:
+        # Kit may exit the process during close(), before Python prints an
+        # uncaught exception. Preserve the diagnostic before releasing it.
+        traceback.print_exc()
+        raise
+    finally:
+        # Console entry points call main() directly, bypassing __main__ below.
+        # Release the renderer/CUDA context even when environment creation fails.
+        simulation_app.close()
+
+
+def _run_environment():
+    """Create, step, and close the environment."""
     # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
@@ -64,26 +83,23 @@ def main():
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
 
-    # print info (this is vectorized environment)
-    print(f"[INFO]: Gym observation space: {env.observation_space}")
-    print(f"[INFO]: Gym action space: {env.action_space}")
-    # reset environment
-    env.reset()
-    # simulate environment
-    while simulation_app.is_running():
-        # run everything in inference mode
+    try:
+        print(f"[INFO]: Gym observation space: {env.observation_space}")
+        print(f"[INFO]: Gym action space: {env.action_space}")
+        env.reset()
+        step_count = 0
         with torch.inference_mode():
-            # compute zero actions
             actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-            # apply actions
-            env.step(actions)
-
-    # close the simulator
-    env.close()
+            while simulation_app.is_running():
+                env.step(actions)
+                step_count += 1
+                if args_cli.num_steps is not None and step_count >= args_cli.num_steps:
+                    break
+        print(f"[INFO]: Completed {step_count} simulation steps.", flush=True)
+    finally:
+        env.close()
 
 
 if __name__ == "__main__":
     # run the main function
     main()
-    # close sim app
-    simulation_app.close()

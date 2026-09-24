@@ -10,7 +10,7 @@ from isaaclab.utils import configclass
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 
 from sim_to_real_so101 import assets as _assets_pkg
-from sim_to_real_so101.assets.real_setup import SETUP
+from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation
 
 from .my_room_env_cfg import (
     MyRoomSceneCfg,
@@ -24,13 +24,35 @@ from sim_to_real_so101.mdp import reset_object_pose
 
 assets_path = os.path.dirname(os.path.abspath(_assets_pkg.__file__))
 
-WHITE_BOX_USD = f"{assets_path}/usd/Pick-Place/White-Box.usd"
-WHITE_BOX_INITIAL_POSITION = (0.0, 0.0, 0.0)  # TODO: set to actual initial position
-WHITE_BOX_INITIAL_ORIENTATION = (0.0, 0.0, 0.0, 1.0)  # TODO: set to actual initial orientation
+WHITE_BOX_USD = f"{assets_path}/usd/Pick-Place/White-Box-Physics.usda"
+# Put the long side flush with the front edge, with the box inside the table
+# boundary and to the robot's right. Clearance is from the face, not centre.
+WHITE_BOX_FRONT_EDGE_CLEARANCE = 0.0
+WHITE_BOX_RIGHT_OFFSET = 0.25
+_BOX_HALF_DEPTH = 0.0425  # White-Box.usd is 0.135 x 0.085 x 0.045 m.
+_TABLE_NORMAL = np.array(SETUP["robot"]["table_normal"], dtype=float)
+_TABLE_NORMAL /= np.linalg.norm(_TABLE_NORMAL)
+_TABLE_RIGHT = np.array([0.996801706, 0.079914694, 0.00263459])
+_TABLE_RIGHT /= np.linalg.norm(_TABLE_RIGHT)
+_TABLE_INWARD = np.cross(_TABLE_NORMAL, _TABLE_RIGHT)
+_TABLE_INWARD /= np.linalg.norm(_TABLE_INWARD)
+# Minimum tabletop vertex projection on _TABLE_INWARD, in the packaged room.
+_TABLE_FRONT_EDGE = -0.6953624951871441
+# Measured from C_Tabletop_14: the robot's base origin is below the tabletop
+# collider and must not be used as its surface height.
+_TABLE_POINT = (0.65, -0.40, 0.797413)
+WHITE_BOX_INITIAL_POSITION = tuple(np.linalg.solve(
+    np.stack([_TABLE_RIGHT, _TABLE_INWARD, _TABLE_NORMAL]),
+    [
+        np.dot(SETUP["robot"]["position"], _TABLE_RIGHT) + WHITE_BOX_RIGHT_OFFSET,
+        _TABLE_FRONT_EDGE + WHITE_BOX_FRONT_EDGE_CLEARANCE + _BOX_HALF_DEPTH,
+        np.dot(_TABLE_POINT, _TABLE_NORMAL) + 0.001,
+    ],
+))
+WHITE_BOX_INITIAL_ORIENTATION = tuple(robot_rotation())  # wxyz, aligned to table
 
 # Cube pose is overwritten every reset by reset_object_pose; this is only the
-# spawn-time default before the first reset event fires. Kept distinct from
-# WHITE_BOX_INITIAL_POSITION so the two objects never co-locate at (0,0,0).
+# spawn-time default before the first reset event fires.
 BLUE_CUBE_INITIAL_POSITION = (0.0, 0.0, 0.05)
 
 CUBE_COLOR = (0.0, 0.0, 1.0)
@@ -49,19 +71,18 @@ _PICK_PLACE_REALSENSE_ROTATION = euler_angles_to_quat(
 
 @configclass
 class PickPlaceSceneCfg(MyRoomSceneCfg):
-    """ 
-    Extends the real room scene with a single rigid body pick target. 
-
-    Inherits:
-        room, camera_realsense_rgb, camera_realsense_depth, camera_wrist_cam, robot, ee_frame
-    Adds:
-        white_box: RigidObjectCfg for the pick target
-    """
+    """Real workbench with a fixed receiving tray and a dynamic blue cube."""
     camera_realsense_rgb = _camera(
         "{ENV_REGEX_NS}/realsense_camera_rgb",
         _PICK_PLACE_REALSENSE_VALUES,
         _PICK_PLACE_REALSENSE_ROTATION,
         ["rgb", "instance_id_segmentation_fast"],
+    )
+    realsense_depth = _camera(
+        "{ENV_REGEX_NS}/realsense_camera_depth",
+        _PICK_PLACE_REALSENSE_VALUES,
+        _PICK_PLACE_REALSENSE_ROTATION,
+        ["depth"],
     )
 
     white_box: RigidObjectCfg = RigidObjectCfg(
@@ -123,3 +144,10 @@ class PickPlaceEnvCfg(MyRoomEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
+        # This teleop scene has one arm and two objects. Avoid the training
+        # defaults' multi-million-contact buffers on a shared graphics GPU.
+        self.sim.physx.gpu_max_rigid_contact_count = 2**18
+        self.sim.physx.gpu_max_rigid_patch_count = 2**15
+        self.sim.physx.gpu_found_lost_pairs_capacity = 2**18
+        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**18
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 2**18
