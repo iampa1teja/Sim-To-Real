@@ -18,8 +18,12 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 
 from sim_to_real_so101.assets.real_setup import (
     DEFAULT_SETUP_USDZ, SETUP, camera_rotation, robot_rotation, apply_robot_appearance,
+    apply_room_appearance, apply_room_lighting,
 )
 from sim_to_real_so101.mdp import image, image_raw
+from sim_to_real_so101.utils.calibrated_camera import (
+    CalibratedPinholeCameraCfg, CalibratedTiledCamera, apply_opencv_intrinsics,
+)
 from .so101_env_cfg import (
     EventCfg, LerobotSo101BaseSceneCfg, ObservationsCfg, SO101TeleopEnvCfg,
 )
@@ -55,7 +59,9 @@ def _spawn_room_without_embedded_robot(prim_path, cfg, translation=None, orienta
 
 
 def _spawn_named_camera(prim_path, cfg, translation=None, orientation=None, **kwargs):
-    prim = spawn_camera(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
+    prim = spawn_camera(prim_path, cfg.replace(intrinsics=None), translation=translation, orientation=orientation, **kwargs)
+    if cfg.intrinsics is not None:
+        apply_opencv_intrinsics(prim, cfg.intrinsics)
     # USD identifiers use underscores; the viewport menu shows the requested labels.
     prim.SetDisplayName({
         "realsense_camera_rgb": "realsense_camera-rgb",
@@ -67,13 +73,16 @@ def _spawn_named_camera(prim_path, cfg, translation=None, orientation=None, **kw
 
 def _camera(path, values, rotation, data_types):
     return TiledCameraCfg(
+        class_type=CalibratedTiledCamera,
         prim_path=path,
         update_period=0.0,
         height=values["height"], width=values["width"],
         data_types=data_types,
         colorize_instance_segmentation=True,
-        spawn=sim_utils.PinholeCameraCfg(
+        spawn=CalibratedPinholeCameraCfg(
             func=_spawn_named_camera,
+            intrinsics=({**values["calibration"], "width": values["width"], "height": values["height"]}
+                        if "calibration" in values else None),
             focal_length=values["focal_length"],
             horizontal_aperture=values["horizontal_aperture"],
             vertical_aperture=values["vertical_aperture"],
@@ -137,6 +146,21 @@ def _configure_scene_updates(env, env_ids):
     for path in ("/OmniverseKit_Front", "/OmniverseKit_Top", "/OmniverseKit_Right"):
         prim = env.sim.stage.GetPrimAtPath(path)
         if prim.IsValid(): prim.SetActive(False)
+    # Use the actual calibrated sensor, including its native lens model, for
+    # the GUI view. An independent Perspective camera has a different lens.
+    if env.sim.has_gui():
+        from omni.kit.viewport.utility import get_active_viewport
+        viewport = get_active_viewport()
+        if viewport is not None:
+            viewport.camera_path = env.cfg.viewer.cam_prim_path
+            viewport.fill_frame = False
+            viewport.set_texture_resolution(env.cfg.viewer.resolution)
+    # Apply the same material settings as the portable USDZ.
+    # Custom room overrides can have unrelated materials and lighting.
+    if env.cfg.scene.room.spawn.usd_path == DEFAULT_SETUP_USDZ:
+        for root in env.scene.env_prim_paths:
+            apply_room_appearance(env.sim.stage, root + "/Room/Room")
+            apply_room_lighting(env.sim.stage, root + "/Room/Room")
 
 
 def _set_real_robot_materials(env, env_ids):
@@ -174,5 +198,7 @@ class MyRoomEnvCfg(SO101TeleopEnvCfg):
             "/rtx/post/histogram/enabled": False,
             "/rtx-transient/dlssg/enabled": False,
         }
+        self.viewer.cam_prim_path = "/World/envs/env_0/realsense_camera_rgb"
+        self.viewer.resolution = (SETUP["realsense"]["width"], SETUP["realsense"]["height"])
         self.viewer.eye = tuple(SETUP["viewer"]["eye"])
         self.viewer.lookat = tuple(SETUP["viewer"]["lookat"])

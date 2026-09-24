@@ -11,11 +11,9 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
-from isaacsim.core.utils.rotations import euler_angles_to_quat
 
 from sim_to_real_so101 import assets as _assets_pkg
-from sim_to_real_so101.assets.real_setup import SETUP
-from sim_to_real_so101.assets.so101 import S0101_CONTACT_GRASP_CFG
+from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation, camera_rotation
 
 from .my_room_env_cfg import (
     MyRoomSceneCfg,
@@ -35,26 +33,45 @@ from sim_to_real_so101.mdp import (
 
 assets_path = os.path.dirname(os.path.abspath(_assets_pkg.__file__))
 
-WHITE_BOX_USD = f"{assets_path}/usd/Pick-Place/White-Box.usd"
-WHITE_BOX_INITIAL_POSITION = (0.0, 0.0, 0.0)  # TODO: set to actual initial position
-WHITE_BOX_INITIAL_ORIENTATION = (0.0, 0.0, 0.0, 1.0)  # TODO: set to actual initial orientation
+WHITE_BOX_USD = f"{assets_path}/usd/Pick-Place/White-Box-Physics.usda"
+# Put the long side flush with the front edge, with the box inside the table
+# boundary and to the robot's right. Clearance is from the face, not centre.
+WHITE_BOX_FRONT_EDGE_CLEARANCE = 0.0
+WHITE_BOX_RIGHT_OFFSET = 0.25
+_BOX_HALF_DEPTH = 0.0425  # White-Box.usd is 0.135 x 0.085 x 0.045 m.
+_TABLE_NORMAL = np.array(SETUP["robot"]["table_normal"], dtype=float)
+_TABLE_NORMAL /= np.linalg.norm(_TABLE_NORMAL)
+_TABLE_RIGHT = np.array([0.996801706, 0.079914694, 0.00263459])
+_TABLE_RIGHT /= np.linalg.norm(_TABLE_RIGHT)
+_TABLE_INWARD = np.cross(_TABLE_NORMAL, _TABLE_RIGHT)
+_TABLE_INWARD /= np.linalg.norm(_TABLE_INWARD)
+# Minimum tabletop vertex projection on _TABLE_INWARD, in the packaged room.
+_TABLE_FRONT_EDGE = -0.6953624951871441
+# Measured from C_Tabletop_14: the robot's base origin is below the tabletop
+# collider and must not be used as its surface height.
+_TABLE_POINT = (0.65, -0.40, 0.797413)
+WHITE_BOX_INITIAL_POSITION = tuple(np.linalg.solve(
+    np.stack([_TABLE_RIGHT, _TABLE_INWARD, _TABLE_NORMAL]),
+    [
+        np.dot(SETUP["robot"]["position"], _TABLE_RIGHT) + WHITE_BOX_RIGHT_OFFSET,
+        _TABLE_FRONT_EDGE + WHITE_BOX_FRONT_EDGE_CLEARANCE + _BOX_HALF_DEPTH,
+        np.dot(_TABLE_POINT, _TABLE_NORMAL) + 0.001,
+    ],
+))
+WHITE_BOX_INITIAL_ORIENTATION = tuple(robot_rotation())  # wxyz, aligned to table
 
 # Cube pose is overwritten every reset by reset_object_pose; this is only the
-# spawn-time default before the first reset event fires. Kept distinct from
-# WHITE_BOX_INITIAL_POSITION so the two objects never co-locate at (0,0,0).
+# spawn-time default before the first reset event fires.
 BLUE_CUBE_INITIAL_POSITION = (0.0, 0.0, 0.05)
 
-CUBE_COLOR = (0.0, 0.0, 1.0)
-CUBE_ROUGHNESS = 0.75
+CUBE_COLOR = tuple(SETUP["object_materials"]["blue_cube"]["color"])
+CUBE_ROUGHNESS = SETUP["object_materials"]["blue_cube"]["roughness"]
 CUBE_SIZE = 0.02
 CUBE_MASS = 0.008
 
-# Pick-Place framing: slightly wider FOV / re-aimed vs. the stock MyRoom
-# realsense values so the box + cube both stay in frame.
-_PICK_PLACE_REALSENSE_VALUES = {**SETUP["realsense"], "focal_length": 18.0}
-_PICK_PLACE_REALSENSE_ROTATION = euler_angles_to_quat(
-    np.array([40.0, 6.0, -165.0]), degrees=True
-)
+# RGB and depth share the measured external-camera field of view and fitted pose.
+_PICK_PLACE_REALSENSE_VALUES = SETUP["realsense"]
+_PICK_PLACE_REALSENSE_ROTATION = camera_rotation()
 
 # White-Box.usd geometry, in its own frame: origin at the centre of the outer
 # bottom face, +Z up; X spans +/-6.75 cm, Y +/-4.25 cm, Z 0 to 4.5 cm. The box's
@@ -70,24 +87,22 @@ class PickPlaceSceneCfg(MyRoomSceneCfg):
     Extends the real room scene with a single rigid body pick target. 
 
     Inherits:
-        room, camera_realsense_rgb, camera_realsense_depth, camera_wrist_cam, ee_frame
-    Overrides:
-        robot: swapped to the contact-sensor-enabled variant so the jaw can
-            report contact forces (needed for grasp/placement detection)
+        room, camera_realsense_rgb, camera_realsense_depth, camera_wrist_cam, robot, ee_frame
     Adds:
         white_box: RigidObjectCfg for the pick target
-        blue_cube: RigidObjectCfg for the pick object
-        contact_grasp: ContactSensorCfg on the jaw, filtered to blue_cube
     """
-    robot = S0101_CONTACT_GRASP_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
     camera_realsense_rgb = _camera(
         "{ENV_REGEX_NS}/realsense_camera_rgb",
         _PICK_PLACE_REALSENSE_VALUES,
         _PICK_PLACE_REALSENSE_ROTATION,
         ["rgb", "instance_id_segmentation_fast"],
     )
-
+    realsense_depth = _camera(
+        "{ENV_REGEX_NS}/realsense_camera_depth",
+        _PICK_PLACE_REALSENSE_VALUES,
+        _PICK_PLACE_REALSENSE_ROTATION,
+        ["depth"],
+    )
     contact_grasp = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/jaw",
         update_period=0.0,
@@ -100,6 +115,11 @@ class PickPlaceSceneCfg(MyRoomSceneCfg):
         prim_path="{ENV_REGEX_NS}/WhiteBox",
         spawn=sim_utils.UsdFileCfg(
             usd_path=WHITE_BOX_USD,
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=tuple(SETUP["object_materials"]["white_box"]["color"]),
+                roughness=SETUP["object_materials"]["white_box"]["roughness"],
+                metallic=0.0,
+            ),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=WHITE_BOX_INITIAL_POSITION,
@@ -226,16 +246,22 @@ class PickPlaceEnvCfg(MyRoomEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
+        self.scene.robot.spawn.activate_contact_sensors = True
+        # Single-arm teleop does not need multi-million-contact training buffers.
+        self.sim.physx.gpu_max_rigid_contact_count = 2**18
+        self.sim.physx.gpu_max_rigid_patch_count = 2**15
+        self.sim.physx.gpu_found_lost_pairs_capacity = 2**18
+        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**18
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 2**18
 
 
 @configclass
 class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
-    """
-    Eval config — adds success/timeout terminations so a rollout ends when
-    the cube is placed in the box (or time runs out).
-    """
+    """Evaluate grasp-and-place success, with bounded episodes."""
+
     terminations: PickPlaceTerminationsCfg = PickPlaceTerminationsCfg()
 
-    def __post_init__(self) -> None:
+    def __post_init__(self):
         super().__post_init__()
-        self.episode_length_s = 450 / 60.0  # matches VialsToRackEvalEnvCfg; tune per task
+        # Match the existing vial evaluation task's 450 control-step horizon.
+        self.episode_length_s = 450 / 60.0

@@ -1,0 +1,28 @@
+#usda 1.0
+(
+    defaultPrim = "WhiteBox"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+# Fixed receiving tray. Triangle collision preserves the open cavity; a
+# convex hull would seal the top and prevent placing the cube inside.
+def Xform "WhiteBox" (
+    prepend references = @White-Box.usd@
+    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+)
+{
+    bool physics:rigidBodyEnabled = true
+    bool physics:kinematicEnabled = true
+
+    over "node_"
+    {
+        over "mesh_" (
+            prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+        )
+        {
+            bool physics:collisionEnabled = true
+            token physics:approximation = "none"
+        }
+    }
+}

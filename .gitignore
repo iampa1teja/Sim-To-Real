@@ -13,6 +13,7 @@
 # limitations under the License.
 
 ### Environments & Dependencies ###
+visual_matching/
 .env
 .venv
 env/
