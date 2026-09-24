@@ -11,10 +11,9 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
-from isaacsim.core.utils.rotations import euler_angles_to_quat
 
 from sim_to_real_so101 import assets as _assets_pkg
-from sim_to_real_so101.assets.real_setup import SETUP
+from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation, camera_rotation
 
 from .my_room_env_cfg import (
     MyRoomSceneCfg,
@@ -65,17 +64,14 @@ WHITE_BOX_INITIAL_ORIENTATION = tuple(robot_rotation())  # wxyz, aligned to tabl
 # spawn-time default before the first reset event fires.
 BLUE_CUBE_INITIAL_POSITION = (0.0, 0.0, 0.05)
 
-CUBE_COLOR = (0.0, 0.0, 1.0)
-CUBE_ROUGHNESS = 0.75
+CUBE_COLOR = tuple(SETUP["object_materials"]["blue_cube"]["color"])
+CUBE_ROUGHNESS = SETUP["object_materials"]["blue_cube"]["roughness"]
 CUBE_SIZE = 0.02
 CUBE_MASS = 0.008
 
-# Pick-Place framing: slightly wider FOV / re-aimed vs. the stock MyRoom
-# realsense values so the box + cube both stay in frame.
-_PICK_PLACE_REALSENSE_VALUES = {**SETUP["realsense"], "focal_length": 18.0}
-_PICK_PLACE_REALSENSE_ROTATION = euler_angles_to_quat(
-    np.array([40.0, 6.0, -165.0]), degrees=True
-)
+# RGB and depth share the measured external-camera field of view and fitted pose.
+_PICK_PLACE_REALSENSE_VALUES = SETUP["realsense"]
+_PICK_PLACE_REALSENSE_ROTATION = camera_rotation()
 
 # White-Box.usd geometry, in its own frame: origin at the centre of the outer
 # bottom face, +Z up; X spans +/-6.75 cm, Y +/-4.25 cm, Z 0 to 4.5 cm. The box's
@@ -101,11 +97,29 @@ class PickPlaceSceneCfg(MyRoomSceneCfg):
         _PICK_PLACE_REALSENSE_ROTATION,
         ["rgb", "instance_id_segmentation_fast"],
     )
+    realsense_depth = _camera(
+        "{ENV_REGEX_NS}/realsense_camera_depth",
+        _PICK_PLACE_REALSENSE_VALUES,
+        _PICK_PLACE_REALSENSE_ROTATION,
+        ["depth"],
+    )
+    contact_grasp = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/jaw",
+        update_period=0.0,
+        history_length=1,
+        debug_vis=False,
+        filter_prim_paths_expr=["{ENV_REGEX_NS}/CUBE"],
+    )
 
     white_box: RigidObjectCfg = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/WhiteBox",
         spawn=sim_utils.UsdFileCfg(
             usd_path=WHITE_BOX_USD,
+            visual_material=sim_utils.PreviewSurfaceCfg(
+                diffuse_color=tuple(SETUP["object_materials"]["white_box"]["color"]),
+                roughness=SETUP["object_materials"]["white_box"]["roughness"],
+                metallic=0.0,
+            ),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(
             pos=WHITE_BOX_INITIAL_POSITION,
@@ -232,3 +246,22 @@ class PickPlaceEnvCfg(MyRoomEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
+        self.scene.robot.spawn.activate_contact_sensors = True
+        # Single-arm teleop does not need multi-million-contact training buffers.
+        self.sim.physx.gpu_max_rigid_contact_count = 2**18
+        self.sim.physx.gpu_max_rigid_patch_count = 2**15
+        self.sim.physx.gpu_found_lost_pairs_capacity = 2**18
+        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**18
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 2**18
+
+
+@configclass
+class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
+    """Evaluate grasp-and-place success, with bounded episodes."""
+
+    terminations: PickPlaceTerminationsCfg = PickPlaceTerminationsCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        # Match the existing vial evaluation task's 450 control-step horizon.
+        self.episode_length_s = 450 / 60.0

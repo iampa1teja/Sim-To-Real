@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import stat
+import traceback
 from pathlib import Path
 from isaaclab.app import AppLauncher
 
@@ -9,6 +10,8 @@ parser = argparse.ArgumentParser(description="SO-101 pick-and-place agent.")
 parser.add_argument("--disable_fabric", action="store_true", default=False)
 parser.add_argument("--num_envs", type=int, default=None)
 parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-Pick-Place")
+parser.add_argument("--control_input", choices=("lerobot", "terminal", "isaac"), default="lerobot",
+                    help="Episode controls; LeRobot arrows by default, terminal fallback if unavailable.")
 
 # Leader
 parser.add_argument("--port", type=str, default=os.getenv("TELEOP_PORT", "/dev/ttyACM0"))
@@ -41,9 +44,9 @@ parser.add_argument("--fps", type=int, default=int(os.getenv("CONTROL_FPS", "30"
 parser.add_argument("--seed", type=int, default=101)
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
 
-# Countdown duration (seconds) between env.reset() and start of recording
+# Preparation countdown before recording; starting does not reset the scene.
 parser.add_argument("--reset_wait_s", type=int, default=10,
-                    help="Seconds to wait after env.reset() before recording begins.")
+                    help="Preparation seconds before recording begins (does not reset the scene).")
 
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
@@ -104,7 +107,7 @@ from isaaclab_tasks.utils import parse_env_cfg
 from isaacsim.core.prims import XFormPrim
 
 import sim_to_real_so101.tasks  # noqa: F401
-from sim_to_real_so101.utils.keyboard import KeyboardControl
+from sim_to_real_so101.utils.episode_cube import EpisodeCube
 from sim_to_real_so101.utils.lerobot_interface import LeRobotSO101Interface
 from sim_to_real_so101.utils.lerobot_recorder import (
     LeRobotRecorder,
@@ -112,10 +115,23 @@ from sim_to_real_so101.utils.lerobot_recorder import (
 )
 
 try:
-    from lerobot.utils.utils import say
+    from lerobot.utils.utils import say as _lerobot_say
 except ImportError:
-    def say(text: str, blocking: bool = False) -> None:  # noqa: ARG001
-        pass
+    _lerobot_say = None
+
+
+def say(text: str, blocking: bool = False) -> None:
+    """Use LeRobot speech when available; audio must not abort an episode."""
+    global _lerobot_say
+    if _lerobot_say is None:
+        return
+    try:
+        _lerobot_say(text, blocking=blocking)
+    except OSError as exc:
+        # LeRobot delegates to spd-say on Linux; minimal containers may not
+        # include it. Warn once and retain the normal on-screen status messages.
+        print(f"[WARNING]: LeRobot speech unavailable ({exc}); continuing without audio.")
+        _lerobot_say = None
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +234,10 @@ def _real_camera_specs() -> dict:
 # main()
 # ---------------------------------------------------------------------------
 
+@torch.inference_mode()
 def main():
+    # Physics buffers updated during stepping may be inference tensors. Keep
+    # keyboard-driven spawn/reset/save transitions in the same context.
     keyboard_control = None
     env = None
     leader_iface = None
@@ -236,8 +255,14 @@ def main():
             use_fabric=use_fabric,
         )
         env_cfg.seed = args_cli.seed
+        # The manual episode loop owns cube spawning, not env.reset().
+        env_cfg.events.spawn_cube = None
+        env_cfg.scene.blue_cube.init_state.pos = (0.0, 0.0, -10.0)
+        env_cfg.scene.blue_cube.spawn.visible = False
         env = gym.make(args_cli.task, cfg=env_cfg)
         env.reset()
+        episode_cube = EpisodeCube(env)
+        episode_cube.hide()
 
         # ── Sim camera discovery ──────────────────────────────────────────
         sim_cameras = {}
@@ -330,14 +355,25 @@ def main():
         leader_wrist_start = None
         sim_wrist_start    = 0.0
 
-        keyboard_control = KeyboardControl()
-        print("[controls] S: start/save  →: save  ←/C: discard  R: reset  Esc: quit")
+        if args_cli.control_input == "isaac":
+            from sim_to_real_so101.utils.keyboard import KeyboardControl
+            keyboard_control = KeyboardControl(enable_spawn=True)
+            print("[controls] Focus the Isaac viewport: S spawn cube, Right start/save, Left discard, R reset, Esc quit")
+        elif args_cli.control_input == "lerobot":
+            from sim_to_real_so101.utils.lerobot_keyboard import LeRobotKeyboardControl
+            try:
+                keyboard_control = LeRobotKeyboardControl()
+            except Exception as exc:
+                print(f"[controls] LeRobot listener unavailable ({exc}); using terminal commands.")
+        if keyboard_control is None:
+            from sim_to_real_so101.utils.terminal_control import TerminalInputControl
+            keyboard_control = TerminalInputControl(enable_spawn=True)
 
         # ── Episode outer loop ────────────────────────────────────────────
         phase = "setup"   # "setup" | "resetting" | "recording"
         reset_deadline = None
 
-        print("\n⏳  Setup the cube position")
+        print("\n[INFO]: Setup ready. Spawn a cube for practice, or start an episode.")
 
         while simulation_app.is_running():
             loop_start = time.perf_counter()
@@ -345,20 +381,50 @@ def main():
 
             # ── Quit ──────────────────────────────────────────────────────
             if requests["stop"]:
+                print("[INFO]: Quit requested; closing the teleoperation loop.")
                 if recording and recorder_group is not None:
                     recorder_group.save_episode()
                     recording = False
+                episode_cube.hide()
                 break
 
-            # ── S pressed in setup phase → trigger env.reset() countdown ─
-            if requests["start"] and phase == "setup":
-                env.reset()
-                leader_wrist_start = None
-                phase = "resetting"
-                reset_deadline = time.perf_counter() + args_cli.reset_wait_s
+            # Practice/position the cube without resetting the arm, starting
+            # a countdown, or touching dataset buffers.
+            if requests.get("spawn"):
+                if phase == "setup":
+                    episode_cube.show()
+                    print("[INFO]: Cube spawned for practice; recording remains off.")
+                else:
+                    print("[INFO]: Finish the active episode before respawning the cube.")
+
+            # Right starts from the current scene; only R resets and S spawns.
+            if requests["start"] and phase == "setup" and not requests["reset"]:
+                if not episode_cube.visible:
+                    print("[INFO]: Spawn the cube with S before starting an episode.")
+                else:
+                    phase = "resetting"
+                    reset_deadline = time.perf_counter() + args_cli.reset_wait_s
+                    keyboard_control.set_recording(True)
+                    print(f"\n[INFO]: Recording starts in {args_cli.reset_wait_s} seconds; keeping the current cube pose.")
+                    say("Ready to start recording", blocking=False)
+
+            # Save/discard/reset during countdown cancels preparation. During
+            # an episode it finishes exactly once, before recording another frame.
+            if requests["end"] or requests["rerecord"] or requests["reset"]:
+                if recording and recorder_group is not None:
+                    if requests["rerecord"]:
+                        recorder_group.cancel_episode()
+                    else:
+                        recorder_group.save_episode()
+                recording = False
+                phase = "setup"
+                reset_deadline = None
                 keyboard_control.set_recording(False)
-                print(f"\n🔄  Reset the env [{args_cli.reset_wait_s} SEC]")
-                say("Cube spawned, ready to start recording", blocking=False)
+                if requests["reset"]:
+                    env.reset()
+                    leader_wrist_start = None
+                episode_cube.hide()
+                print("\n[INFO]: Setup ready; cube cleared. Start the next episode when ready.")
 
             # ── Countdown expired → start recording ───────────────────────
             if phase == "resetting" and time.perf_counter() >= reset_deadline:
@@ -372,35 +438,10 @@ def main():
                         cube_quat,
                     )
                     recording = True
-                    keyboard_control.set_recording(True)
-                print(f"\n🎬  Recording episode {recorder_group.episode_index if recorder_group else '—'}…")
-
-            # ── Save episode ──────────────────────────────────────────────
-            if requests["end"] and phase == "recording":
-                if recorder_group is not None:
-                    recorder_group.save_episode()
-                recording = False
-                phase = "setup"
-                keyboard_control.set_recording(False)
-                print("\n⏳  Setup the cube position")
-
-            # ── Discard / re-record ───────────────────────────────────────
-            if requests["rerecord"] and phase == "recording":
-                if recorder_group is not None:
-                    recorder_group.cancel_episode()
-                recording = False
-                phase = "setup"
-                keyboard_control.set_recording(False)
-                print("\n⏳  Setup the cube position")
-
-            # ── Mid-episode reset (save + go back to setup) ────────────────
-            if requests["reset"] and phase == "recording":
-                if recorder_group is not None:
-                    recorder_group.save_episode()
-                recording = False
-                phase = "setup"
-                keyboard_control.set_recording(False)
-                print("\n⏳  Setup the cube position")
+                if recording:
+                    print(f"\n[INFO]: Recording episode {recorder_group.episode_index}.")
+                else:
+                    print("\n[INFO]: Episode active (dataset recording disabled).")
 
             # ── Control tick (runs in all phases) ─────────────────────────
             with torch.inference_mode():
@@ -432,6 +473,7 @@ def main():
                 )
 
                 actions[:] = mapped_action
+                episode_cube.park()
                 try:
                     obs, _, _, _, _ = env.step(actions)
                 except Exception as exc:
@@ -482,6 +524,8 @@ def main():
     except KeyboardInterrupt:
         print("[INFO]: Interrupted; shutting down cleanly.")
     except Exception:
+        # Kit shutdown may exit before Python reports an uncaught exception.
+        traceback.print_exc()
         if recorder_group is not None and recording:
             recorder_group.cancel_episode()
             recording = False

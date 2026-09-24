@@ -18,8 +18,14 @@ class TerminalInputControl:
         'exit': 'stop', 'escape': 'stop',
     }
 
-    def __init__(self):
+    def __init__(self, enable_spawn=False):
         self.recording = False
+        self._aliases = dict(self.ALIASES)
+        if enable_spawn:
+            self._aliases.update(spawn="spawn", s="spawn", right="toggle")
+            self.HELP = ('[controls] Type and press Enter: s/spawn = spawn cube, '
+                         'start = start episode, save = save, right = start/save, '
+                         'left/c = discard, r = reset, q = quit, help = commands.')
         self._commands = Queue()
         self._closed = Event()
         print(self.HELP)
@@ -42,7 +48,7 @@ class TerminalInputControl:
             if command in ('help', '?'):
                 print(self.HELP)
                 continue
-            action = self.ALIASES.get(command)
+            action = self._aliases.get(command)
             if action is None:
                 print(f'[controls] Unknown command: {command!r}. Type help.')
                 continue

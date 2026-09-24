@@ -56,9 +56,6 @@ import torch
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import parse_env_cfg
 
-import sim_to_real_so101.tasks  # noqa: F401
-
-
 def main():
     """Zero actions agent with Isaac Lab environment."""
     try:
@@ -76,6 +73,10 @@ def main():
 
 def _run_environment():
     """Create, step, and close the environment."""
+    # Keep task imports inside main's cleanup guard: configuration import
+    # errors must also release the simulator and its GPU allocations.
+    import sim_to_real_so101.tasks  # noqa: F401
+
     # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric

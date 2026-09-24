@@ -15,13 +15,15 @@ class KeyboardControl:
     of view instead of dispatching independent recorder callbacks.
     """
 
-    def __init__(self):
+    def __init__(self, enable_spawn=False):
+        self.enable_spawn = enable_spawn
         self.recording = False
         self.start_episode_requested = False
         self.end_episode_requested = False
         self.rerecord_episode_requested = False
         self.stop_requested = False
         self.reset_world_requested = False
+        self.spawn_requested = False
 
         self._window = omni.appwindow.get_default_app_window()
         self._input = carb.input.acquire_input_interface()
@@ -35,10 +37,15 @@ class KeyboardControl:
             return False
 
         key = event.input
+        if self.enable_spawn and key == carb.input.KeyboardInput.S:
+            self.spawn_requested = not self.recording
+            return True
         if key == carb.input.KeyboardInput.RIGHT:
             if self.recording:
                 self.end_episode_requested = True
                 print("[INFO]: Right Arrow: end synchronized episode requested.")
+            elif self.enable_spawn:
+                self.start_episode_requested = True
             return True
 
         if key == carb.input.KeyboardInput.LEFT:
@@ -83,12 +90,14 @@ class KeyboardControl:
             "rerecord": self.rerecord_episode_requested,
             "stop": self.stop_requested,
             "reset": self.reset_world_requested,
+            "spawn": self.spawn_requested,
         }
         self.start_episode_requested = False
         self.end_episode_requested = False
         self.rerecord_episode_requested = False
         self.stop_requested = False
         self.reset_world_requested = False
+        self.spawn_requested = False
         return requests
 
     def set_recording(self, recording: bool) -> None:
