@@ -5,12 +5,16 @@ import numpy as np
 import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 
 from sim_to_real_so101 import assets as _assets_pkg
-from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation
+from sim_to_real_so101.assets.real_setup import SETUP
 
 from .my_room_env_cfg import (
     MyRoomSceneCfg,
@@ -20,7 +24,13 @@ from .my_room_env_cfg import (
     _camera,
 )
 
-from sim_to_real_so101.mdp import reset_object_pose
+from sim_to_real_so101.mdp import (
+    reset_object_pose,
+    object_grasped,
+    object_placed_in_container,
+    object_placed_in_container_termination,
+    time_out,
+)
 
 assets_path = os.path.dirname(os.path.abspath(_assets_pkg.__file__))
 
@@ -67,22 +77,29 @@ _PICK_PLACE_REALSENSE_ROTATION = euler_angles_to_quat(
     np.array([40.0, 6.0, -165.0]), degrees=True
 )
 
+# White-Box.usd geometry, in its own frame: origin at the centre of the outer
+# bottom face, +Z up; X spans +/-6.75 cm, Y +/-4.25 cm, Z 0 to 4.5 cm. The box's
+# pose is read live from the scene, so these stay valid wherever it is placed.
+WHITE_BOX_SIZE = (0.135, 0.085, 0.045)  # length (X), width (Y), height (Z), metres
+WHITE_BOX_FLOOR_Z = 0.0018  # inside floor height above the origin, metres
+
 
 
 @configclass
 class PickPlaceSceneCfg(MyRoomSceneCfg):
-    """Real workbench with a fixed receiving tray and a dynamic blue cube."""
+    """ 
+    Extends the real room scene with a single rigid body pick target. 
+
+    Inherits:
+        room, camera_realsense_rgb, camera_realsense_depth, camera_wrist_cam, robot, ee_frame
+    Adds:
+        white_box: RigidObjectCfg for the pick target
+    """
     camera_realsense_rgb = _camera(
         "{ENV_REGEX_NS}/realsense_camera_rgb",
         _PICK_PLACE_REALSENSE_VALUES,
         _PICK_PLACE_REALSENSE_ROTATION,
         ["rgb", "instance_id_segmentation_fast"],
-    )
-    realsense_depth = _camera(
-        "{ENV_REGEX_NS}/realsense_camera_depth",
-        _PICK_PLACE_REALSENSE_VALUES,
-        _PICK_PLACE_REALSENSE_ROTATION,
-        ["depth"],
     )
 
     white_box: RigidObjectCfg = RigidObjectCfg(
@@ -136,18 +153,82 @@ class PickPlaceEventsCfg(MyRoomEventsCfg):
     )
 
 
-@configclass 
+@configclass
+class PickPlaceObservationsCfg(MyRoomObservationsCfg):
+    """Adds grasp/placement subtask labels on top of MyRoom's visual observations."""
+
+    @configclass
+    class SubtaskCfg(ObsGroup):
+        """Observations for subtask tracking."""
+
+        cube_grasped = ObsTerm(
+            func=object_grasped,
+            params={
+                "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
+                "object_name": "blue_cube",
+                "min_lift": 0.01,  # m above resting height
+                "warmup_steps": 30,
+                "force_threshold": 2,  # N
+            },
+        )
+
+        cube_placed = ObsTerm(
+            func=object_placed_in_container,
+            params={
+                "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
+                "object_name": "blue_cube",
+                "container_name": "white_box",
+                "container_size": WHITE_BOX_SIZE,
+                "container_floor_z": WHITE_BOX_FLOOR_Z,
+                "min_lift": 0.01,
+                "warmup_steps": 30,
+                "force_threshold": 2,  # N
+            },
+        )
+
+        def __post_init__(self) -> None:
+            self.enable_corruption = False
+            self.concatenate_terms = False
+
+    subtask_terms: SubtaskCfg = SubtaskCfg()
+
+
+@configclass
+class PickPlaceTerminationsCfg:
+    """Termination terms for the pick-place evaluation task."""
+
+    time_out = DoneTerm(
+        func=time_out,
+        time_out=True,
+    )
+
+    success = DoneTerm(
+        func=object_placed_in_container_termination,
+        time_out=False,
+        params={
+            "contact_sensor_cfg": SceneEntityCfg("contact_grasp"),
+            "object_name": "blue_cube",
+            "container_name": "white_box",
+            "container_size": WHITE_BOX_SIZE,
+            "container_floor_z": WHITE_BOX_FLOOR_Z,
+            "min_lift": 0.01,
+            "warmup_steps": 30,
+            "force_threshold": 2,  # N
+            "confirm_steps": 25,
+        },
+    )
+
+
+@configclass
 class PickPlaceEnvCfg(MyRoomEnvCfg):
+    """
+    Base config — teleop/data-collection. subtask_terms give grasp/placement
+    labels in the recorded dataset, but no auto-termination (matches how
+    SO101TeleopEnvCfg leaves terminations=None for teleop).
+    """
     scene: PickPlaceSceneCfg = PickPlaceSceneCfg()
-    events: PickPlaceEventsCfg = PickPlaceEventsCfg() 
-    observations: MyRoomObservationsCfg = MyRoomObservationsCfg()
+    events: PickPlaceEventsCfg = PickPlaceEventsCfg()
+    observations: PickPlaceObservationsCfg = PickPlaceObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
-        # This teleop scene has one arm and two objects. Avoid the training
-        # defaults' multi-million-contact buffers on a shared graphics GPU.
-        self.sim.physx.gpu_max_rigid_contact_count = 2**18
-        self.sim.physx.gpu_max_rigid_patch_count = 2**15
-        self.sim.physx.gpu_found_lost_pairs_capacity = 2**18
-        self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 2**18
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 2**18
