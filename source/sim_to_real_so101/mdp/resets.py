@@ -18,22 +18,22 @@ import glob
 import os
 import yaml
 
-from pxr import Gf, Sdf
+import numpy as np
+from pxr import Gf, Sdf, Usd, UsdGeom
 
 import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 from isaaclab.sim import get_current_stage
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.assets import Articulation, RigidObject
+from isaaclab.sensors import FrameTransformer
 from isaacsim.core.prims import XFormPrim
 
 
 
-
-# Robot color palette based on WowRobo and Seeed Studio offerings
 ROBOT_COLORS = {
     "orange": (0.876, 0.317, 0.132),
-    "beige": (0.960784, 0.960784, 0.862745),  # #F5F5DC
+    "beige": (0.960784, 0.960784, 0.862745),  
     "teal": (0.0, 0.8, 0.502),
     "white": (0.95, 0.95, 0.95),
     "black": (0.08, 0.08, 0.08),
@@ -45,7 +45,6 @@ def randomize_robot_color(env,
     color_names: list[str] = list(ROBOT_COLORS.keys()),
 ):
     """Randomly set robot color from predefined palette on each reset."""
-    # color_names = list(ROBOT_COLORS.keys())
     idx = torch.randint(0, len(color_names), (1,), device="cpu").item()
     selected_color = ROBOT_COLORS[color_names[idx]]
     
@@ -382,3 +381,106 @@ def reset_vials_rack(
             _, _ = random_asset_pose(env, env_ids, v, pose_range_z_fixed, pos_offset)
             zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
             v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+
+def _gripper_tip_local_offset(stage, half_size: float, clearance_m: float) -> torch.Tensor:
+    """Measure the fixed jaw's mesh geometry and return a gripper-local offset.
+
+    Same measurement cube_spawner.spawn_blue_cube uses: finds the fixed-jaw
+    mesh, reads its tip band, and returns a point just beside the tip's +X
+    face with ``clearance_m`` clearance — i.e. genuinely flush against the
+    gripper, not an arbitrary constant offset.
+    """
+    gripper = next(
+        (p for p in stage.Traverse() if p.GetName() == "gripper" and p.GetChild("visuals").IsValid()),
+        None,
+    )
+    if gripper is None:
+        raise RuntimeError("Fixed-jaw gripper link not found; cannot place object beside it.")
+    mesh_prim = next(
+        (p for p in Usd.PrimRange(gripper, Usd.TraverseInstanceProxies())
+         if p.IsA(UsdGeom.Mesh) and "/visuals/wrist_roll_follower_so101_v1/" in str(p.GetPath())),
+        None,
+    )
+    if mesh_prim is None:
+        raise RuntimeError("Fixed-jaw mesh not found; cannot measure jaw tip.")
+
+    local_transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(mesh_prim, gripper)
+    jaw_points = np.array([
+        local_transform.Transform(Gf.Vec3d(*map(float, p)))
+        for p in UsdGeom.Mesh(mesh_prim).GetPointsAttr().Get()
+    ])
+    tip_z = jaw_points[:, 2].min()
+    tip_band = jaw_points[jaw_points[:, 2] <= tip_z + 2 * half_size]
+    return torch.tensor([
+        float(tip_band[:, 0].max() + half_size + clearance_m),
+        float((tip_band[:, 1].min() + tip_band[:, 1].max()) / 2),
+        float(tip_z + half_size),
+    ])
+
+
+def reset_object_pose(
+    env,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg,
+    pose_range: dict[str, tuple[float, float]],
+    eef_frame_cfg: SceneEntityCfg = SceneEntityCfg("ee_frame"),
+    side_clearance_m: float = 0.003,
+) -> None:
+    """Place an object flush beside the gripper's fixed jaw, then zero its velocity.
+
+    Measures the actual fixed-jaw mesh (same method as
+    cube_spawner.spawn_blue_cube) to place the object's centre just beside the
+    jaw tip with ``side_clearance_m`` clearance, oriented to match the live
+    end-effector pose — tight/adjacent placement, not an arbitrary offset. If
+    ``pose_range`` is non-empty, additional uniform jitter (x/y/z metres,
+    roll/pitch/yaw radians) is layered on top, using the same sampling
+    pattern as ``random_asset_pose``.
+
+    Args:
+        asset_cfg:         SceneEntityCfg naming the target rigid object (e.g. "blue_cube").
+        pose_range:         Optional per-axis (min, max) jitter on top of the
+                            jaw-relative placement; missing keys default to no
+                            jitter. Pass ``{}`` to disable jitter entirely.
+        eef_frame_cfg:      SceneEntityCfg for the FrameTransformer sensor that
+                            tracks the gripper tip (default: "ee_frame").
+        side_clearance_m:   Extra clearance in metres beyond the object's own
+                            half-size when measuring the jaw tip (default
+                            0.003 m, matching cube_spawner.spawn_blue_cube).
+    """
+    asset = env.scene[asset_cfg.name]
+    ee_frame: FrameTransformer = env.scene[eef_frame_cfg.name]
+
+    eef_pos_w = ee_frame.data.target_pos_w[:, 0, :]
+    eef_quat_w = ee_frame.data.target_quat_w[:, 0, :]
+
+    half_size = float(asset.cfg.spawn.size[0]) / 2.0 if hasattr(asset.cfg.spawn, "size") else 0.01
+    local_offset = _gripper_tip_local_offset(
+        get_current_stage(), half_size, side_clearance_m
+    ).to(asset.device).unsqueeze(0).repeat(len(env_ids), 1)
+
+    world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
+    cube_pos_w = eef_pos_w[env_ids] + world_offset
+
+    # Match the gripper's live orientation, same as spawn_blue_cube does.
+    cube_quat_w = eef_quat_w[env_ids].clone()
+
+    if pose_range:
+        range_list = [
+            pose_range.get(key, (0.0, 0.0))
+            for key in ["x", "y", "z", "roll", "pitch", "yaw"]
+        ]
+        ranges = torch.tensor(range_list, device=asset.device)
+        rand_samples = math_utils.sample_uniform(
+            ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device
+        )
+        cube_pos_w = cube_pos_w + rand_samples[:, 0:3]
+        jitter_quat = math_utils.quat_from_euler_xyz(
+            rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5]
+        )
+        cube_quat_w = math_utils.quat_mul(cube_quat_w, jitter_quat)
+
+    pose = torch.cat([cube_pos_w, cube_quat_w], dim=-1)
+    asset.write_root_pose_to_sim(pose, env_ids=env_ids)
+
+    zero_velocity = torch.zeros((len(env_ids), 6), device=asset.device)
+    asset.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)

@@ -401,3 +401,168 @@ def vial_placed_on_rack_termination(
 
     return confirmed
 
+
+def _grasp_state(
+    env: ManagerBasedRLEnv,
+    contact_sensor_cfg: SceneEntityCfg,
+    object_name: str,
+    min_lift: float,
+    force_threshold: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Update and return ``(holding, ever_grasped)`` for ``object_name``.
+
+    Shared by the grasp observation and the placement checks. Calling it more
+    than once in the same step gives the same result, so the observation and
+    termination managers can both use it.
+
+    Lift is measured from the object's lowest height since reset, not an
+    absolute world Z: the MyRoom table is ~0.76 m up, so a world-Z threshold
+    would read "lifted" while the cube is still on the table.
+    """
+    num_envs, device = env.num_envs, env.device
+    obj: RigidObject = env.scene[object_name]
+    z = obj.data.root_pos_w[:, 2]
+
+    if not hasattr(env, "_pick_place_holding"):
+        env._pick_place_holding = torch.zeros(num_envs, dtype=torch.bool, device=device)
+        env._pick_place_ever_grasped = torch.zeros(num_envs, dtype=torch.bool, device=device)
+        env._pick_place_rest_z = z.clone()
+
+    just_reset = env.episode_length_buf <= 1
+    env._pick_place_holding[just_reset] = False
+    env._pick_place_ever_grasped[just_reset] = False
+    env._pick_place_rest_z[just_reset] = z[just_reset]
+    env._pick_place_rest_z = torch.minimum(env._pick_place_rest_z, z)
+
+    contact_sensor: ContactSensor = env.scene[contact_sensor_cfg.name]
+    # force_matrix_w is (num_envs, num_bodies, num_filters, 3); the sole filter is the object.
+    contact_force = torch.linalg.vector_norm(contact_sensor.data.force_matrix_w, dim=-1).sum(dim=1)[:, 0]
+    has_contact = contact_force > force_threshold
+    is_lifted = (z - env._pick_place_rest_z) > min_lift
+
+    # Start holding on contact while lifted; keep holding only while contact lasts.
+    env._pick_place_holding = (env._pick_place_holding & has_contact) | (has_contact & is_lifted)
+    env._pick_place_ever_grasped = env._pick_place_ever_grasped | env._pick_place_holding
+    return env._pick_place_holding, env._pick_place_ever_grasped
+
+
+def object_grasped(
+    env: ManagerBasedRLEnv,
+    contact_sensor_cfg: SceneEntityCfg,
+    object_name: str,
+    min_lift: float = 0.01,
+    warmup_steps: int = 30,
+    force_threshold: float = 2.0,
+) -> torch.Tensor:
+    """Grasp success: the jaw is in contact with the object and has lifted it.
+
+    Args:
+        contact_sensor_cfg: Jaw contact sensor whose only filter is ``object_name``.
+        object_name: Scene name of the object (e.g. "blue_cube").
+        min_lift: Metres above its resting height the object must rise to count as lifted.
+        warmup_steps: Steps after reset during which nothing is reported.
+        force_threshold: Minimum jaw-object contact force (N).
+
+    Returns:
+        Float tensor of shape (num_envs, 1): 1.0 while held, else 0.0.
+    """
+    holding, _ = _grasp_state(env, contact_sensor_cfg, object_name, min_lift, force_threshold)
+    in_warmup = env.episode_length_buf < warmup_steps
+    return (holding & ~in_warmup).float().unsqueeze(-1)
+
+
+def _object_inside_container(
+    obj: RigidObject,
+    container: RigidObject,
+    container_size: tuple[float, float, float],
+    container_floor_z: float,
+) -> torch.Tensor:
+    """True where the object's centre is inside the container.
+
+    Container frame (White-Box.usd): origin at the centre of the outer bottom
+    face, +Z up, so the box spans X in [-L/2, L/2], Y in [-W/2, W/2],
+    Z in [0, H]. The container's pose is read live from the scene, so this
+    follows the box wherever it is moved or rotated.
+    """
+    half_l, half_w, rim_z = container_size[0] / 2, container_size[1] / 2, container_size[2]
+    rel = math_utils.quat_apply(
+        math_utils.quat_inv(container.data.root_quat_w),
+        obj.data.root_pos_w - container.data.root_pos_w,
+    )
+    within_xy = (rel[:, 0].abs() <= half_l) & (rel[:, 1].abs() <= half_w)
+    # Between the inside floor and the rim: a cube resting on the rim has its
+    # centre above rim_z, and one leaning on an outer wall is outside the XY footprint.
+    within_z = (rel[:, 2] >= container_floor_z) & (rel[:, 2] <= rim_z)
+    return within_xy & within_z
+
+
+def object_placed_in_container(
+    env: ManagerBasedRLEnv,
+    contact_sensor_cfg: SceneEntityCfg,
+    object_name: str,
+    container_name: str,
+    container_size: tuple[float, float, float],
+    container_floor_z: float,
+    min_lift: float = 0.01,
+    warmup_steps: int = 30,
+    force_threshold: float = 2.0,
+) -> torch.Tensor:
+    """Place success: the object was grasped earlier this episode, is now inside
+    the container, and has been released.
+
+    Not latched; it reports the current state each step.
+    ``object_placed_in_container_termination`` requires it to hold for several steps.
+
+    Args:
+        container_size: (length, width, height) of the container in metres, along its local X, Y, Z.
+        container_floor_z: Height of the inside floor above the container's origin, in metres.
+
+    Returns:
+        Float tensor of shape (num_envs, 1) indicating placement status.
+    """
+    holding, ever_grasped = _grasp_state(env, contact_sensor_cfg, object_name, min_lift, force_threshold)
+    inside = _object_inside_container(
+        env.scene[object_name], env.scene[container_name], container_size, container_floor_z
+    )
+    in_warmup = env.episode_length_buf < warmup_steps
+    return (ever_grasped & inside & ~holding & ~in_warmup).float().unsqueeze(-1)
+
+
+def object_placed_in_container_termination(
+    env: ManagerBasedRLEnv,
+    contact_sensor_cfg: SceneEntityCfg,
+    object_name: str,
+    container_name: str,
+    container_size: tuple[float, float, float],
+    container_floor_z: float,
+    min_lift: float = 0.01,
+    warmup_steps: int = 30,
+    force_threshold: float = 2.0,
+    confirm_steps: int = 25,
+) -> torch.Tensor:
+    """Task success: grasp then place, held for ``confirm_steps`` consecutive steps.
+
+    The hold requirement stops a cube bouncing through the box from counting.
+
+    Returns:
+        Boolean tensor of shape (num_envs,) for termination.
+    """
+    placed = object_placed_in_container(
+        env,
+        contact_sensor_cfg,
+        object_name,
+        container_name,
+        container_size,
+        container_floor_z,
+        min_lift,
+        warmup_steps,
+        force_threshold,
+    ).squeeze(-1).bool()
+
+    if not hasattr(env, "_pick_place_placed_steps"):
+        env._pick_place_placed_steps = torch.zeros(env.num_envs, dtype=torch.long, device=env.device)
+    # Counter restarts whenever placement is false, including the warmup after each reset.
+    env._pick_place_placed_steps = torch.where(
+        placed, env._pick_place_placed_steps + 1, torch.zeros_like(env._pick_place_placed_steps)
+    )
+    return env._pick_place_placed_steps >= confirm_steps
