@@ -172,42 +172,47 @@ def _disconnect(interface: LeRobotSO101Interface | None, label: str) -> None:
         print(f"[ERROR]: Failed to disconnect {label}: {exc}")
 
 
-def _cube_pose_relative_to_base(env) -> tuple[list, list]:
-    """Return blue cube pose expressed in robot-base frame."""
+def _cube_pose_in_base(env, base_body_id: int) -> torch.Tensor:
+    """Cube pose in the robot's base link frame (env 0) as (x, y, z, qw, qx, qy, qz)."""
     scene = env.unwrapped.scene
-    cube = scene["blue_cube"]
-    robot = scene["robot"]
-
-    cube_pos_w  = cube.data.root_pos_w    # (1, 3)
-    cube_quat_w = cube.data.root_quat_w   # (1, 4) wxyz
-
-    robot_pos_w  = robot.data.root_pos_w
-    robot_quat_w = robot.data.root_quat_w
-
-    pos_base, quat_base = math_utils.subtract_frame_transforms(
-        robot_pos_w, robot_quat_w, cube_pos_w, cube_quat_w
+    cube, robot = scene["blue_cube"], scene["robot"]
+    pos, quat = math_utils.subtract_frame_transforms(
+        robot.data.body_pos_w[:, base_body_id],
+        robot.data.body_quat_w[:, base_body_id],
+        cube.data.root_pos_w,
+        cube.data.root_quat_w,
     )
-    return pos_base[0].tolist(), quat_base[0].tolist()
+    # Kept on-device; converted once at save to avoid a GPU sync every tick.
+    return torch.cat([pos, quat], dim=-1)[0].clone()
 
 
-def _save_episode_object_pose(
+def _save_cube_trajectory(
     repo_root: str,
     episode_index: int,
-    position: list,
-    orientation: list,
+    trajectory: list[torch.Tensor],
+    cube_size: tuple[float, float, float],
 ) -> None:
-    """Write cube pose JSON sidecar at <repo_root>/pick_place_meta/episode_N.json."""
+    """Write <repo_root>/pick_place_meta/episode_N.json with the cube pose for every frame.
+
+    Entry i matches the dataset's frame_index i, and poses are relative to the
+    robot's base link, so the sim episode can be re-rendered with a different
+    cube (e.g. another colour) by replaying them.
+    """
+    poses = [[round(v, 6) for v in pose] for pose in torch.stack(trajectory).cpu().tolist()]
     meta_dir = Path(repo_root) / "pick_place_meta"
     meta_dir.mkdir(parents=True, exist_ok=True)
     sidecar = meta_dir / f"episode_{episode_index:06d}.json"
-    sidecar.write_text(
-        json.dumps({
-            "episode_index": episode_index,
-            "cube_position_robot_base": position,
-            "cube_orientation_robot_base_wxyz": orientation,
-        }, indent=2)
-    )
-    print(f"[INFO]: Cube pose saved → {sidecar}")
+    sidecar.write_text(json.dumps({
+        "episode_index": episode_index,
+        "reference_frame": "robot base link (base)",
+        "units": "m",
+        "fps": args_cli.fps,
+        "num_frames": len(poses),
+        "cube_size_m": list(cube_size),
+        "position": [pose[:3] for pose in poses],
+        "orientation_wxyz": [pose[3:] for pose in poses],
+    }))
+    print(f"[INFO]: Cube trajectory ({len(poses)} frames) saved → {sidecar}")
 
 
 def _gui_frames(visual_obs: dict | None, real_observation: dict | None) -> dict:
@@ -438,8 +443,10 @@ def main():
         # ── Episode outer loop ────────────────────────────────────────────
         phase = "setup"   # "setup" | "resetting" | "recording"
         reset_deadline = None
-        # Captured when recording starts; written next to the episode only if it is saved.
-        pending_cube_pose = None
+        # Cube pose for each recorded frame; written next to the episode only if it is saved.
+        cube_trajectory: list[torch.Tensor] = []
+        base_body_id = env.unwrapped.scene["robot"].find_bodies("base")[0][0]
+        cube_size = tuple(env.unwrapped.scene["blue_cube"].cfg.spawn.size)
         gui_note = ""
 
         print("\n[INFO]: Setup ready. Spawn a cube for practice, or start an episode.")
@@ -456,8 +463,8 @@ def main():
                 print("[INFO]: Quit requested; closing the teleoperation loop.")
                 if recording and recorder_group is not None:
                     episode_index = recorder_group.save_episode()
-                    if episode_index is not None and pending_cube_pose is not None:
-                        _save_episode_object_pose(args_cli.repo_root, episode_index, *pending_cube_pose)
+                    if episode_index is not None and cube_trajectory:
+                        _save_cube_trajectory(args_cli.repo_root, episode_index, cube_trajectory, cube_size)
                     recording = False
                 episode_cube.hide()
                 break
@@ -495,14 +502,14 @@ def main():
                         if episode_index is None:
                             gui_note = "Nothing recorded; episode not saved."
                         else:
-                            if pending_cube_pose is not None:
-                                _save_episode_object_pose(args_cli.repo_root, episode_index, *pending_cube_pose)
+                            if cube_trajectory:
+                                _save_cube_trajectory(args_cli.repo_root, episode_index, cube_trajectory, cube_size)
                             gui_note = (
                                 f"Saved episode {episode_index}; {recorder_group.pending_video_episodes} "
                                 "episode(s) will be video-encoded at exit."
                             )
                             say("Episode saved", blocking=False)
-                pending_cube_pose = None
+                cube_trajectory = []
                 recording = False
                 phase = "setup"
                 reset_deadline = None
@@ -518,7 +525,7 @@ def main():
                 phase = "recording"
                 gui_note = ""
                 if recording_mode and recorder_group is not None:
-                    pending_cube_pose = _cube_pose_relative_to_base(env)
+                    cube_trajectory = []
                     recording = True
                     say("Recording", blocking=False)
                 if recording:
@@ -600,6 +607,9 @@ def main():
                         )
 
                     recorder_group.add_frames(frames, auxiliary)
+                    # Same post-step state as the images just recorded, so entry i
+                    # lines up with dataset frame_index i.
+                    cube_trajectory.append(_cube_pose_in_base(env, base_body_id))
 
                     if args_cli.rerun:
                         _log_rerun_frame(visual_obs, follower_observation, leader_action)
