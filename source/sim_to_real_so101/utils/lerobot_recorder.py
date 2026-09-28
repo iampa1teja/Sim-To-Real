@@ -4,9 +4,8 @@
 """LeRobot 0.4.3 dataset recording helpers.
 
 Frame and episode ownership deliberately stay in the caller's control loop. The
-only asynchronous work used here is LeRobot's own image writer. In particular,
-there is no per-dataset episode-processing thread, so a real and simulated
-dataset cannot advance on independent timelines.
+episode timeline stays synchronous. A group worker can encode saved PNGs in a
+child process; only publication takes the dataset recording lock.
 """
 
 from __future__ import annotations
@@ -14,14 +13,17 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import subprocess
+import sys
+import threading
 from typing import Any
 
 import numpy as np
 import torch
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.datasets.utils import validate_episode_buffer
-from lerobot.datasets.video_utils import VideoEncodingManager
+from lerobot.datasets.utils import DEFAULT_FEATURES, validate_episode_buffer
+
+from .recording_dataset import EncodingCancelled, RecordingDataset
 
 
 class LeRobotRecorder:
@@ -76,8 +78,9 @@ class LeRobotRecorder:
 
         self.dataset_features = features or self._make_sim_features(self.cameras)
         self.dataset: LeRobotDataset | None = None
-        self._video_manager: VideoEncodingManager | None = None
         self._closed = False
+        self._save_failed = False
+        self._frame_count = 0
         self._aux_frames: dict[str, dict[str, list[np.ndarray]]] = {
             "rgb": {},
             "depth": {},
@@ -132,7 +135,7 @@ class LeRobotRecorder:
         actual = {
             key: self._feature_signature(value)
             for key, value in self.dataset.features.items()
-            if key in expected
+            if key not in DEFAULT_FEATURES
         }
         if actual != expected or not set(expected).issubset(self.dataset.features):
             raise ValueError(
@@ -144,10 +147,18 @@ class LeRobotRecorder:
         """Create or resume the dataset using the installed LeRobot 0.4.3 API."""
         info_path = self.dataset_root / "meta" / "info.json"
         if info_path.is_file():
-            self.dataset = LeRobotDataset(
+            self.dataset = RecordingDataset(
                 self.repo_id, root=self.dataset_root, batch_encoding_size=self.batch_encoding_size
             )
             self._check_existing_dataset()
+            lengths = self.episode_lengths()
+            frame_episodes = np.asarray(self.dataset.hf_dataset["episode_index"])
+            expected_episodes = np.repeat(np.arange(len(lengths)), lengths)
+            if not np.array_equal(frame_episodes, expected_episodes):
+                raise ValueError(f"Frame data and episode lengths disagree at {self.dataset_root}.")
+            recovered = self.dataset.queue_unencoded_episodes()
+            if recovered:
+                print(f"[INFO]: Recovered {recovered} unencoded episode(s); they will be encoded with this session's.")
             camera_count = len(self.dataset.meta.camera_keys)
             if camera_count and self.image_writer_threads_per_camera:
                 self.dataset.start_image_writer(
@@ -167,7 +178,7 @@ class LeRobotRecorder:
                 feature.get("dtype") in ("image", "video")
                 for feature in self.dataset_features.values()
             )
-            self.dataset = LeRobotDataset.create(
+            self.dataset = RecordingDataset.create(
                 self.repo_id,
                 fps=self.fps,
                 features=self.dataset_features,
@@ -184,8 +195,19 @@ class LeRobotRecorder:
             )
             print(f"[INFO]: New dataset initialized - {self.dataset.root}")
 
-        self._video_manager = VideoEncodingManager(self.dataset)
-        self._video_manager.__enter__()
+    def episode_lengths(self) -> list[int]:
+        """Return committed episode lengths in index order for resume checks."""
+        if self.dataset is None:
+            raise RuntimeError("Dataset has not been initialized.")
+        episodes = self.dataset.meta.episodes
+        if episodes is None:
+            if self.episode_index:
+                raise ValueError(f"Missing episode metadata at {self.dataset_root}.")
+            return []
+        rows = list(episodes)
+        if [row["episode_index"] for row in rows] != list(range(self.episode_index)):
+            raise ValueError(f"Incomplete episode metadata at {self.dataset_root}.")
+        return [int(row["length"]) for row in rows]
 
     @property
     def episode_index(self) -> int:
@@ -198,20 +220,19 @@ class LeRobotRecorder:
         """Saved episodes whose videos have not been encoded yet."""
         if self.dataset is None:
             return 0
-        return self.dataset.episodes_since_last_encoding
+        return len(self.dataset.pending_video_indices)
 
     @property
     def frame_count(self) -> int:
-        if self.dataset is None or self.dataset.episode_buffer is None:
-            return 0
-        return int(self.dataset.episode_buffer["size"])
+        return self._frame_count
 
     @staticmethod
     def _as_numpy(value: Any, *, dtype=None) -> np.ndarray:
         if isinstance(value, torch.Tensor):
             value = value.detach().cpu().numpy()
         array = np.asarray(value)
-        return array.astype(dtype, copy=False) if dtype is not None else array
+        # Async writers must own their pixels even when simulation runs on CPU.
+        return array.astype(dtype, copy=True) if dtype is not None else array.copy()
 
     def make_sim_frame(
         self,
@@ -259,26 +280,14 @@ class LeRobotRecorder:
     def add_frame(self, frame: dict, auxiliary: dict | None = None) -> None:
         if self.dataset is None:
             raise RuntimeError("Dataset has not been initialized.")
+        if self._closed or self._save_failed:
+            raise RuntimeError("Cannot append after shutdown or a failed episode save.")
         self.dataset.add_frame(frame)
+        self._frame_count += 1
         if auxiliary:
             for data_type, camera_frames in auxiliary.items():
                 for camera_name, image in camera_frames.items():
                     self._aux_frames[data_type].setdefault(camera_name, []).append(image)
-
-    def push_frame_to_buffer(
-        self,
-        action,
-        observation,
-        visual_buffers,
-        depth_buffers,
-        instance_id_seg_buffers,
-    ) -> None:
-        """Backward-compatible wrapper used by older workshop callers."""
-        frame = self.make_sim_frame(action, observation, visual_buffers)
-        auxiliary = self.make_auxiliary_frame(
-            visual_buffers, depth_buffers, instance_id_seg_buffers
-        )
-        self.add_frame(frame, auxiliary)
 
     def validate_episode(self) -> None:
         if self.dataset is None:
@@ -302,7 +311,14 @@ class LeRobotRecorder:
             self._save_auxiliary_videos(episode_index)
 
         # False keeps LeRobot's multi-camera encoding in this process.
-        self.dataset.save_episode(parallel_encoding=False)
+        try:
+            self.dataset.save_episode(parallel_encoding=False)
+        except BaseException:
+            # LeRobot mutates the buffer and may have committed metadata already.
+            # Preserve its images even if interrupted before save_episode returns.
+            self._save_failed = True
+            raise
+        self._frame_count = 0
         self._clear_auxiliary_frames()
         print(
             f"[INFO]: Saved episode {episode_index} to {self.dataset_root} "
@@ -312,7 +328,8 @@ class LeRobotRecorder:
 
     def clear_episode_buffer(self) -> None:
         if self.dataset is not None and self.dataset.episode_buffer is not None:
-            self.dataset.clear_episode_buffer()
+            self.dataset.clear_episode_buffer(delete_images=not self._save_failed)
+        self._frame_count = 0
         self._clear_auxiliary_frames()
 
     def _clear_auxiliary_frames(self) -> None:
@@ -404,28 +421,28 @@ class LeRobotRecorder:
             np.stack([gray] * 3, axis=-1), camera_name, "depth", episode_index
         )
 
-    def finalize(self) -> None:
+    def finalize(self, encode: bool = True) -> None:
         if self._closed:
             return
-        self._closed = True
         if self.dataset is None:
             return
-
-        # An incomplete episode is never silently committed at shutdown.
-        if self.frame_count:
-            print(
-                f"[WARNING]: Discarding {self.frame_count} unsaved frames from "
-                f"{self.dataset_root} during shutdown."
-            )
-            self.clear_episode_buffer()
-
         try:
-            if self._video_manager is not None:
-                self._video_manager.__exit__(None, None, None)
-            else:
-                self.dataset.finalize()
+            try:
+                if self.frame_count:
+                    print(f"[WARNING]: Discarding {self.frame_count} unsaved frames at {self.dataset_root}.")
+                    self.clear_episode_buffer()
+            finally:
+                pending = self.pending_video_episodes
+                if encode and pending:
+                    self.dataset._batch_save_episode_video(0, self.episode_index)
         finally:
-            self.dataset.stop_image_writer()
+            try:
+                self.dataset.finalize()
+            finally:
+                try:
+                    self.dataset.stop_image_writer()
+                finally:
+                    self._closed = True
 
 
 class SynchronizedLeRobotRecorders:
@@ -435,11 +452,95 @@ class SynchronizedLeRobotRecorders:
         if not recorders:
             raise ValueError("At least one recorder is required.")
         self.recorders = recorders
+        self._work_lock = threading.RLock()
+        self._worker = None
+        self._stop_encoding = threading.Event()
+        self._closing = False
+        self._background = False
+        self._encoding = False
+        self._encode_error = ""
+        self._encoded_count = 0
+        self._encode_total = 0
+
+    def enable_background_encoding(self) -> None:
+        """Opt in for pick_place_agent; lerobot_agent retains immediate saves."""
+        self._background = True
+
+    @property
+    def pending_video_indices(self) -> list[int]:
+        return sorted({index for recorder in self.recorders.values() if recorder.dataset is not None
+                       for index in recorder.dataset.pending_video_indices})
+
+    @property
+    def encoding(self) -> bool:
+        return self._encoding
+
+    @property
+    def encode_progress(self) -> str:
+        if self._encode_error:
+            return self._encode_error
+        if self.encoding:
+            return f"Encoding in background: {self._encoded_count}/{self._encode_total} episodes"
+        pending = self.pending_video_episodes
+        return (f"{pending} saved episode(s) not yet encoded" if pending
+                else "All saved episodes are encoded")
+
+    def start_encoding(self) -> bool:
+        with self._work_lock:
+            if self._closing or self._encoding or not self.pending_video_episodes:
+                return False
+            self._stop_encoding.clear()
+            self._start_encoder()
+            return True
+
+    def _start_encoder(self) -> None:
+        self._encode_error = ""
+        self._encoded_count = 0
+        self._encode_total = self.pending_video_episodes
+        self._encoding = True
+        self._worker = threading.Thread(target=self._encode_pending, name="recording-encoder", daemon=True)
+        self._worker.start()
+
+    def _encode_pending(self) -> None:
+        index = None
+        try:
+            while not self._stop_encoding.is_set():
+                with self._work_lock:
+                    pending = self.pending_video_indices
+                    if not pending:
+                        # Serialized with save_episode, including the transition
+                        # to idle, so a save cannot fall through a drain race.
+                        self._encoding = False
+                        return
+                    index = pending[0]
+                    self._encode_total = self._encoded_count + len(pending)
+                for recorder in self.recorders.values():
+                    if recorder.dataset is not None and index in recorder.dataset.pending_video_indices:
+                        recorder.dataset.encode_episode(index, self._stop_encoding)
+                self._encoded_count += 1
+        except EncodingCancelled:
+            pass
+        except BaseException as exc:
+            reason = str(exc).strip().splitlines()[-1][:160] if str(exc).strip() else type(exc).__name__
+            self._encode_error = f"Encoding failed for episode {index}: {reason} — press Encode videos to retry"
+            print(f"[ERROR]: {self._encode_error}")
+        finally:
+            with self._work_lock:
+                if self._worker is threading.current_thread():
+                    self._encoding = False
 
     def init_datasets(self) -> None:
         for recorder in self.recorders.values():
             recorder.init_dataset()
+            if self._background:
+                recorder.dataset.batch_encoding_size = sys.maxsize
         self._assert_aligned("initialization")
+        lengths = {name: recorder.episode_lengths() for name, recorder in self.recorders.items()}
+        if len({tuple(value) for value in lengths.values()}) != 1:
+            raise ValueError(f"Existing datasets have different per-episode frame counts: {lengths}")
+
+        if self._background and self.pending_video_episodes:
+            self.start_encoding()
 
     @property
     def episode_index(self) -> int:
@@ -455,7 +556,7 @@ class SynchronizedLeRobotRecorders:
 
     @property
     def pending_video_episodes(self) -> int:
-        return max(recorder.pending_video_episodes for recorder in self.recorders.values())
+        return len(self.pending_video_indices)
 
     def _assert_aligned(self, operation: str) -> None:
         episodes = {
@@ -491,6 +592,14 @@ class SynchronizedLeRobotRecorders:
             ) from exc
 
     def save_episode(self) -> int | None:
+        with self._work_lock:
+            result = self._save_episode()
+            threshold = min(recorder.batch_encoding_size for recorder in self.recorders.values())
+            if self._background and not self._encode_error and self.pending_video_episodes >= threshold:
+                self.start_encoding()
+            return result
+
+    def _save_episode(self) -> int | None:
         self._assert_aligned("episode save")
         count = self.frame_count
         if count == 0:
@@ -529,18 +638,54 @@ class SynchronizedLeRobotRecorders:
 
     def cancel_episode(self) -> None:
         counts = {name: recorder.frame_count for name, recorder in self.recorders.items()}
-        for recorder in self.recorders.values():
-            recorder.clear_episode_buffer()
-        if any(counts.values()):
-            print(f"[INFO]: Discarded synchronized episode buffers: {counts}")
-
-    def finalize(self) -> None:
         errors = []
         for name, recorder in self.recorders.items():
             try:
-                recorder.finalize()
-            except Exception as exc:
+                recorder.clear_episode_buffer()
+            except BaseException as exc:
                 errors.append((name, exc))
         if errors:
-            details = "; ".join(f"{name}: {exc}" for name, exc in errors)
-            raise RuntimeError(f"Dataset finalization failed: {details}")
+            raise RuntimeError(f"Episode cancellation failed: {errors}")
+        if any(counts.values()):
+            print(f"[INFO]: Discarded synchronized episode buffers: {counts}")
+
+    def begin_shutdown(self, encode: bool) -> None:
+        """Reject new encode requests and cancel promptly for Exit without encoding."""
+        with self._work_lock:
+            self._closing = True
+            if not encode:
+                self._stop_encoding.set()
+
+    def finalize(self, encode: bool = True, progress=None) -> None:
+        """Drain or cancel safely, then always close every recorder resource."""
+        try:
+            self.begin_shutdown(encode)
+            with self._work_lock:
+                if encode and not self._stop_encoding.is_set() and not self._encoding and self.pending_video_episodes:
+                    self._start_encoder()
+            while self._worker is not None and self._worker.is_alive():
+                if progress is not None:
+                    progress(self.pending_video_episodes)
+                self._worker.join(timeout=0.1)
+        except BaseException:
+            # Signals during exit encoding cancel the child, never the commit.
+            # Repeated signals must not skip image-writer/resource cleanup.
+            self._stop_encoding.set()
+        finally:
+            while self._worker is not None and self._worker.is_alive():
+                try:
+                    self._worker.join(timeout=0.1)
+                except BaseException:
+                    self._stop_encoding.set()
+            errors = []
+            for name, recorder in self.recorders.items():
+                try:
+                    recorder.finalize(encode=False)
+                except BaseException as exc:
+                    errors.append((name, exc))
+            pending = self.pending_video_episodes
+            if pending:
+                print(f"[INFO]: {pending} episode(s) left unencoded; they will be encoded next session.")
+            if errors:
+                details = "; ".join(f"{name}: {exc}" for name, exc in errors)
+                raise RuntimeError(f"Dataset finalization failed: {details}")

@@ -19,7 +19,7 @@ import os
 import yaml
 
 import numpy as np
-from pxr import Gf, Sdf, Usd, UsdGeom
+from pxr import Gf, Sdf
 
 import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
@@ -28,6 +28,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.sensors import FrameTransformer
 from isaacsim.core.prims import XFormPrim
+from sim_to_real_so101.utils.gripper_geometry import gripper_tip_local_offset, table_plane
 
 
 
@@ -97,7 +98,6 @@ def randomize_camera_focal_length(
         focal_length_range: Range of focal lengths in mm (default 12-15mm).
             Lower = wider FOV, higher = narrower FOV.
     """
-    stage = get_current_stage()
     camera = env.scene[asset_cfg.name]
     camera_prim_path = camera.cfg.prim_path.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
     
@@ -138,7 +138,6 @@ def randomize_camera_pose(
     if rot_range is None:
         rot_range = {}
     
-    stage = get_current_stage()
     prim_path = prim_path_pattern.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
     prims = sim_utils.find_matching_prims(prim_path)
     
@@ -197,7 +196,9 @@ def randomize_camera_pose(
                 # Set orientation
                 orient_attr = prim.GetAttribute("xformOp:orient")
                 if orient_attr.IsValid():
-                    orient_attr.Set(Gf.Quatd(final_quat[0].item(), final_quat[1].item(), final_quat[2].item(), final_quat[3].item()))
+                    orient_attr.Set(Gf.Quatd(
+                        final_quat[0].item(), final_quat[1].item(), final_quat[2].item(), final_quat[3].item()
+                    ))
 
 
 def randomize_light_exposure(
@@ -382,41 +383,6 @@ def reset_vials_rack(
             zero_velocity = torch.zeros((len(env_ids), 6), device=v.device)
             v.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
 
-def _gripper_tip_local_offset(stage, half_size: float, clearance_m: float) -> torch.Tensor:
-    """Measure the fixed jaw's mesh geometry and return a gripper-local offset.
-
-    Same measurement cube_spawner.spawn_blue_cube uses: finds the fixed-jaw
-    mesh, reads its tip band, and returns a point just beside the tip's +X
-    face with ``clearance_m`` clearance — i.e. genuinely flush against the
-    gripper, not an arbitrary constant offset.
-    """
-    gripper = next(
-        (p for p in stage.Traverse() if p.GetName() == "gripper" and p.GetChild("visuals").IsValid()),
-        None,
-    )
-    if gripper is None:
-        raise RuntimeError("Fixed-jaw gripper link not found; cannot place object beside it.")
-    mesh_prim = next(
-        (p for p in Usd.PrimRange(gripper, Usd.TraverseInstanceProxies())
-         if p.IsA(UsdGeom.Mesh) and "/visuals/wrist_roll_follower_so101_v1/" in str(p.GetPath())),
-        None,
-    )
-    if mesh_prim is None:
-        raise RuntimeError("Fixed-jaw mesh not found; cannot measure jaw tip.")
-
-    local_transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(mesh_prim, gripper)
-    jaw_points = np.array([
-        local_transform.Transform(Gf.Vec3d(*map(float, p)))
-        for p in UsdGeom.Mesh(mesh_prim).GetPointsAttr().Get()
-    ])
-    tip_z = jaw_points[:, 2].min()
-    tip_band = jaw_points[jaw_points[:, 2] <= tip_z + 2 * half_size]
-    return torch.tensor([
-        float(tip_band[:, 0].max() + half_size + clearance_m),
-        float((tip_band[:, 1].min() + tip_band[:, 1].max()) / 2),
-        float(tip_z + half_size),
-    ])
-
 
 def reset_object_pose(
     env,
@@ -447,6 +413,10 @@ def reset_object_pose(
                             half-size when measuring the jaw tip (default
                             0.003 m, matching cube_spawner.spawn_blue_cube).
     """
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    if len(env_ids) == 0:
+        return
     asset = env.scene[asset_cfg.name]
     ee_frame: FrameTransformer = env.scene[eef_frame_cfg.name]
 
@@ -458,10 +428,18 @@ def reset_object_pose(
     eef_pos_w = ee_frame.data.target_pos_w[:, 0, :]
     eef_quat_w = ee_frame.data.target_quat_w[:, 0, :]
 
-    half_size = float(asset.cfg.spawn.size[0]) / 2.0 if hasattr(asset.cfg.spawn, "size") else 0.01
-    local_offset = _gripper_tip_local_offset(
-        get_current_stage(), half_size, side_clearance_m
-    ).to(asset.device).unsqueeze(0).repeat(len(env_ids), 1)
+    size = getattr(asset.cfg.spawn, "size", None)
+    if size is None or len(size) != 3 or len(set(size)) != 1:
+        raise ValueError("Jaw-relative placement requires a cuboid with an explicit cubic size.")
+    half_size = float(size[0]) / 2.0
+    stage = get_current_stage()
+    target_path = ee_frame.cfg.target_frames[0].prim_path
+    gripper_prims = sim_utils.find_matching_prims(target_path)
+    if not gripper_prims:
+        raise RuntimeError(f"Gripper frame not found: {target_path}")
+    local_offset = eef_pos_w.new_tensor(gripper_tip_local_offset(
+        stage, half_size, side_clearance_m, str(gripper_prims[0].GetPath())
+    )).unsqueeze(0).repeat(len(env_ids), 1)
 
     world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
     cube_pos_w = eef_pos_w[env_ids] + world_offset
@@ -484,8 +462,24 @@ def reset_object_pose(
         )
         cube_quat_w = math_utils.quat_mul(cube_quat_w, jitter_quat)
 
+    # Fit each environment's actual tabletop in world metres. Raising Z alone
+    # preserves the requested position directly beside the gripper.
+    planes = [table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]))
+              for index in env_ids.tolist()]
+    plane = cube_pos_w.new_tensor(np.array(planes))
+    normal = torch.cat((-plane[:, :2], torch.ones_like(plane[:, 2:])), dim=-1)
+    rotation = math_utils.matrix_from_quat(cube_quat_w)
+    support = half_size * torch.einsum("bi,bij->bj", normal, rotation).abs().sum(dim=-1)
+    table_height = (plane[:, :2] * cube_pos_w[:, :2]).sum(dim=-1) + plane[:, 2]
+    cube_pos_w[:, 2] = torch.maximum(cube_pos_w[:, 2], table_height + support + 0.0002)
+
     pose = torch.cat([cube_pos_w, cube_quat_w], dim=-1)
     asset.write_root_pose_to_sim(pose, env_ids=env_ids)
 
-    zero_velocity = torch.zeros((len(env_ids), 6), device=asset.device)
+    zero_velocity = cube_pos_w.new_zeros((len(env_ids), 6))
     asset.write_root_velocity_to_sim(zero_velocity, env_ids=env_ids)
+    if asset_cfg.name == "blue_cube":
+        from .terms import reset_pick_place_state
+        reset_pick_place_state(env, env_ids, asset_cfg.name)
+        if "contact_grasp" in env.scene.keys():
+            env.scene["contact_grasp"].reset(env_ids)

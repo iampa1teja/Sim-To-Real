@@ -151,22 +151,24 @@ class LeRobotSO101Interface:
         robot = getattr(self, "robot", None)
         if robot is None:
             return
-        if robot.is_connected:
-            robot.disconnect()
-            return
-
-        # A camera can fail after the motor bus connected.  LeRobot's follower
-        # ``disconnect`` requires the aggregate ``is_connected`` property, so
-        # clean partial resources explicitly without changing motor settings.
-        for camera in getattr(robot, "cameras", {}).values():
-            if camera.is_connected:
-                camera.disconnect()
+        errors = []
         bus = getattr(robot, "bus", None)
-        if bus is not None and bus.is_connected:
-            if self.kind == "follower":
-                bus.disconnect(robot.config.disable_torque_on_disconnect)
-            else:
-                bus.disconnect()
+        try:
+            if bus is not None and bus.is_connected:
+                if self.kind == "follower":
+                    bus.disconnect(robot.config.disable_torque_on_disconnect)
+                else:
+                    bus.disconnect()
+        except BaseException as exc:
+            errors.append(exc)
+        for camera in getattr(robot, "cameras", {}).values():
+            try:
+                if camera.is_connected:
+                    camera.disconnect()
+            except BaseException as exc:
+                errors.append(exc)
+        if errors:
+            raise RuntimeError(f"Device disconnection failed: {errors}") from errors[0]
 
     def make_recording_features(self, use_videos: bool = True) -> dict:
         """Build physical-follower dataset features with LeRobot 0.4.3.
@@ -303,7 +305,7 @@ class LeRobotSO101Interface:
 
         self.policy = make_policy(policy_config, ds_meta=self.dataset_meta)
 
-        print(f"[INFO]: Policy loaded")
+        print("[INFO]: Policy loaded")
 
         self.preprocessor, self.postprocessor = make_pre_post_processors(
             policy_cfg=policy_config,
@@ -314,7 +316,7 @@ class LeRobotSO101Interface:
             },
         )
 
-        print(f"[INFO]: Preprocessor and postprocessor loaded")
+        print("[INFO]: Preprocessor and postprocessor loaded")
 
     def sim_obs_to_policy_processor(self, sim_observation: torch.Tensor, visual_obs: dict) -> dict:
         # TODO: makes no sense to copy to host here, but this is whay predict_action expects
@@ -585,13 +587,3 @@ class DummyDatasetMeta:
         self.features = features
         self.stats = {}
         self.robot_type = robot_type
-
-
-if __name__ == "__main__":
-    lerobot_cfg = {"port": "/dev/ttyACM0", "id": "leader_arm_1"}
-    lerobot_interface = LeRobotSO101Interface(cfg=lerobot_cfg)
-    while True:
-        real_action = lerobot_interface.teleop_dev.get_action()
-        print(type(real_action))
-        print(real_action)
-        print(list(real_action.keys()))

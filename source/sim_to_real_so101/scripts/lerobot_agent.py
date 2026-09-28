@@ -4,11 +4,19 @@
 """Single-process SO-101 real + simulation teleoperation and recording."""
 
 import argparse
+from importlib import import_module
 import os
-import stat
-from pathlib import Path
 
 from isaaclab.app import AppLauncher
+from sim_to_real_so101.utils.recording_setup import (
+    cleanup as _cleanup,
+    connect_interface,
+    exit_cleanly_on_termination,
+    disconnect as _disconnect,
+    make_recorders,
+    real_camera_specs,
+    validate_serial_ports,
+)
 
 
 parser = argparse.ArgumentParser(description="Isaac Lab SO-101 teleoperation agent.")
@@ -148,87 +156,28 @@ if args_cli.enable_real_follower and os.path.realpath(args_cli.port) == os.path.
     parser.error("Leader and follower serial ports must be different.")
 
 
-def _validate_serial_ports():
-    """Check device paths without opening ports or commanding either arm."""
-    ports = [("leader", "--port / TELEOP_PORT", args_cli.port)]
-    if args_cli.enable_real_follower:
-        ports.append(("follower", "--follower_port / ROBOT_PORT", args_cli.follower_port))
-    for role, option, port in ports:
-        path = Path(port)
-        if not path.exists():
-            available = sorted(
-                str(p) for pattern in ("ttyACM*", "ttyUSB*", "serial/by-id/*")
-                for p in Path("/dev").glob(pattern) if p.exists()
-            )
-            parser.error(
-                f"Physical {role} serial port {port!r} does not exist. "
-                f"Available serial paths: {', '.join(available) or 'none'}. "
-                f"Reconnect the {role} USB cable and set {option} to its verified "
-                "device path (prefer /dev/serial/by-id/...). In Docker, ensure "
-                "the device is visible inside the container. Ports are not "
-                "automatically reassigned between leader and follower."
-            )
-        if not stat.S_ISCHR(path.stat().st_mode):
-            parser.error(f"Physical {role} port {port!r} is not a serial device.")
-        if not os.access(path, os.R_OK | os.W_OK):
-            parser.error(f"Physical {role} port {port!r} requires read/write permission.")
-
-
-_validate_serial_ports()
+validate_serial_ports(args_cli, parser)
 args_cli.enable_cameras = True
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 
-import time
+try:
+    import time
 
-import gymnasium as gym
-import torch
+    import gymnasium as gym
+    import torch
 
-import isaaclab_tasks  # noqa: F401
-from isaaclab_tasks.utils import parse_env_cfg
+    import_module("isaaclab_tasks")  # Registers Isaac Lab tasks.
+    from isaaclab_tasks.utils import parse_env_cfg
 
-import sim_to_real_so101.tasks  # noqa: F401
-from sim_to_real_so101.utils.terminal_control import TerminalInputControl
-from sim_to_real_so101.utils.cube_spawner import CubeSpawnServer, spawn_blue_cube
-from sim_to_real_so101.utils.lerobot_interface import LeRobotSO101Interface
-from sim_to_real_so101.utils.lerobot_recorder import (
-    LeRobotRecorder,
-    SynchronizedLeRobotRecorders,
-)
+    import_module("sim_to_real_so101.tasks")  # Registers workshop tasks.
+    from sim_to_real_so101.utils.terminal_control import TerminalInputControl
+    from sim_to_real_so101.utils.cube_spawner import CubeSpawnServer, spawn_blue_cube
 
-
-def _derived_real_repo_id(sim_repo_id: str) -> str:
-    if "/" in sim_repo_id:
-        namespace, name = sim_repo_id.rsplit("/", 1)
-        return f"{namespace}/{name}-real"
-    return f"{sim_repo_id}-real"
-
-
-def _derived_real_root(sim_root: str) -> str:
-    path = Path(sim_root)
-    return os.fspath(path.with_name(f"{path.name}-real"))
-
-
-def _real_camera_specs() -> dict:
-    cameras = {}
-    common = {
-        "fps": args_cli.fps,
-        "width": args_cli.real_camera_width,
-        "height": args_cli.real_camera_height,
-        "fourcc": args_cli.real_camera_fourcc,
-    }
-    if args_cli.real_gripper_camera:
-        cameras["gripper"] = {
-            **common,
-            "index_or_path": args_cli.real_gripper_camera,
-        }
-    if args_cli.real_external_camera:
-        cameras["external"] = {
-            **common,
-            "index_or_path": args_cli.real_external_camera,
-        }
-    return cameras
+except BaseException:
+    simulation_app.close()
+    raise
 
 
 def _place_configured_object_near_ee(env) -> bool:
@@ -276,16 +225,6 @@ def _place_configured_object_near_ee(env) -> bool:
     return True
 
 
-def _disconnect(interface: LeRobotSO101Interface | None, label: str) -> None:
-    if interface is None:
-        return
-    try:
-        interface.disconnect()
-        print(f"[INFO]: {label} disconnected.")
-    except Exception as exc:
-        print(f"[ERROR]: Failed to disconnect {label}: {exc}")
-
-
 def _reset_for_buffer(env, keyboard_control) -> None:
     env.reset()
     keyboard_control.set_recording(False)
@@ -295,6 +234,7 @@ def _reset_for_buffer(env, keyboard_control) -> None:
     )
 
 
+@torch.inference_mode()
 def main():
     spawn_server = None
     keyboard_control = None
@@ -305,6 +245,7 @@ def main():
     recording = False
 
     try:
+        exit_cleanly_on_termination()
         # Use Fabric consistently with zero/eval agents so rendered links and
         # the attached wrist camera follow the live articulation.
         use_fabric = not args_cli.disable_fabric
@@ -315,6 +256,17 @@ def main():
             use_fabric=use_fabric,
         )
         env_cfg.seed = args_cli.seed
+        if env_cfg.scene.num_envs != 1:
+            raise ValueError("Manual recorder scripts require num_envs == 1.")
+        if env_cfg.terminations is not None and any(
+            value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
+        ):
+            raise ValueError("Manual recording requires a teleop task without automatic terminations.")
+        physics_steps = 1.0 / (args_cli.fps * env_cfg.sim.dt)
+        if abs(physics_steps - round(physics_steps)) > 1e-6 or physics_steps < 1:
+            raise ValueError("--fps must divide the physics rate exactly.")
+        env_cfg.decimation = round(physics_steps)
+        env_cfg.sim.render_interval = env_cfg.decimation
         env = gym.make(args_cli.task, cfg=env_cfg)
 
         print(f"[INFO]: Gym observation space: {env.observation_space}")
@@ -335,103 +287,26 @@ def main():
         if not sim_cameras:
             print("[WARNING]: No simulation cameras found.")
 
-        leader_iface = LeRobotSO101Interface(
-            device=env.unwrapped.device,
-            port=args_cli.port,
-            id=args_cli.robot_id,
-            # The leader device has no cameras, but this interface also owns
-            # the existing simulation observation conversion and therefore
-            # needs the discovered Isaac camera names/dimensions.
-            cameras=sim_cameras,
-            fps=args_cli.fps,
-            kind="leader",
-        )
-        leader_iface.init_device()
-        leader_iface.connect()
-        print(
-            f"[INFO]: Physical leader connected: port={args_cli.port}, "
-            f"id={args_cli.robot_id}"
+        leader_iface = connect_interface(
+            args_cli, env.unwrapped.device, sim_cameras, "leader"
         )
 
         recording_mode = bool(all(dataset_args))
         # Preserve follower-only teleoperation: physical cameras are opened
         # only when a real dataset will actually consume them.
-        real_cameras = _real_camera_specs() if recording_mode else {}
+        real_cameras = real_camera_specs(args_cli) if recording_mode else {}
         if args_cli.enable_real_follower:
-            print(
-                f"[INFO]: Connecting physical follower: port={args_cli.follower_port}, "
-                f"id={args_cli.follower_id}, cameras={list(real_cameras)}"
-            )
-            follower_iface = LeRobotSO101Interface(
-                device=env.unwrapped.device,
-                port=args_cli.follower_port,
-                id=args_cli.follower_id,
-                cameras=real_cameras,
-                fps=args_cli.fps,
-                kind="follower",
-            )
-            follower_iface.init_device()
-            try:
-                follower_iface.connect()
-            except Exception as exc:
-                _disconnect(follower_iface, "partially connected physical follower")
-                raise RuntimeError(
-                    "Physical follower connection failed. No teleoperation or "
-                    f"recording was started: {exc}"
-                ) from exc
-            print("[INFO]: Physical follower connected.")
+            follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower")
 
         if recording_mode:
-            sim_recorder = LeRobotRecorder(
-                task_name=args_cli.task_name,
-                repo_id=args_cli.repo_id,
-                dataset_root=args_cli.repo_root,
-                fps=args_cli.fps,
-                device=env.unwrapped.device,
-                cameras=sim_cameras,
-                save_mp4=args_cli.save_mp4,
-                depth=args_cli.depth,
-                instance_id_seg=args_cli.instance_id_seg,
-                image_writer_threads_per_camera=(
-                    args_cli.image_writer_threads_per_camera
-                ),
+            recorder_group = make_recorders(
+                args_cli, env.unwrapped.device, sim_cameras, follower_iface, real_cameras,
             )
-            recorders = {"sim": sim_recorder}
-
-            if follower_iface is not None:
-                real_features = follower_iface.make_recording_features(
-                    use_videos=True
-                )
-                real_repo_id = (
-                    args_cli.real_repo_id
-                    or _derived_real_repo_id(args_cli.repo_id)
-                )
-                real_repo_root = (
-                    args_cli.real_repo_root
-                    or _derived_real_root(args_cli.repo_root)
-                )
-                if Path(real_repo_root).resolve() == Path(args_cli.repo_root).resolve():
-                    raise ValueError("Real and simulation dataset roots must differ.")
-                recorders["real"] = LeRobotRecorder(
-                    task_name=args_cli.task_name,
-                    repo_id=real_repo_id,
-                    dataset_root=real_repo_root,
-                    fps=args_cli.fps,
-                    device=env.unwrapped.device,
-                    cameras=real_cameras,
-                    features=real_features,
-                    robot_type=follower_iface.robot.name,
-                    image_writer_threads_per_camera=(
-                        args_cli.image_writer_threads_per_camera
-                    ),
-                )
-
-            recorder_group = SynchronizedLeRobotRecorders(recorders)
             recorder_group.init_datasets()
             print(
                 f"[INFO]: Recording ready at synchronized episode "
                 f"{recorder_group.episode_index}: "
-                f"{ {name: os.fspath(rec.dataset_root) for name, rec in recorders.items()} }"
+                f"{ {name: os.fspath(rec.dataset_root) for name, rec in recorder_group.recorders.items()} }"
             )
         else:
             print(
@@ -457,7 +332,6 @@ def main():
         )
         wrist_roll_index = 4
         leader_wrist_start = None
-        sim_wrist_start = 0.0
 
         # Start input only after device connection/calibration prompts finish.
         if args_cli.control_input == "keyboard":
@@ -491,7 +365,10 @@ def main():
 
             if requests["stop"]:
                 if recording and recorder_group is not None:
-                    recorder_group.save_episode()
+                    if requests["rerecord"]:
+                        recorder_group.cancel_episode()
+                    else:
+                        recorder_group.save_episode()
                     recording = False
                     keyboard_control.set_recording(False)
                 break
@@ -511,10 +388,14 @@ def main():
                 leader_wrist_start = None
 
             elif requests["reset"]:
+                if recording and recorder_group is not None:
+                    recorder_group.save_episode()
+                recording = False
                 _reset_for_buffer(env, keyboard_control)
                 leader_wrist_start = None
 
-            if requests["start"] and not recording:
+            if (requests["start"] and not recording
+                    and not any(requests[key] for key in ("end", "rerecord", "reset"))):
                 if recorder_group is None:
                     print(
                         "[WARNING]: Recording is disabled; restart with dataset "
@@ -529,102 +410,106 @@ def main():
                         f"{recorder_group.episode_index}."
                     )
 
-            with torch.inference_mode():
-                try:
-                    # Keep this dictionary unchanged for the physical follower
-                    # and the real LeRobot action frame.
-                    leader_action = leader_iface.robot.get_action()
-                except Exception as exc:
+            try:
+                # Keep this dictionary unchanged for the physical follower
+                # and the real LeRobot action frame.
+                leader_action = leader_iface.robot.get_action()
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Failed to read the physical leader: {exc}"
+                ) from exc
+
+            _, mapped_action = (
+                leader_iface.real_to_sim_obs_processor(leader_action)
+            )
+            if leader_wrist_start is None:
+                leader_wrist_start = mapped_action[wrist_roll_index].clone()
+                sim_wrist_start = env.unwrapped.observation_manager.compute()["policy"]["joint_pos_obs"][
+                    0, wrist_roll_index
+                ].clone()
+            mapped_action[wrist_roll_index] = (
+                sim_wrist_start
+                + mapped_action[wrist_roll_index]
+                - leader_wrist_start
+            )
+            mapped_action[wrist_roll_index] = torch.clamp(
+                mapped_action[wrist_roll_index],
+                leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
+                leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
+            )
+
+            obs = env.unwrapped.observation_manager.compute()
+
+            if recording and recorder_group is not None:
+                visual_obs = obs.get("visual")
+                if visual_obs is None:
                     raise RuntimeError(
-                        f"Failed to read the physical leader: {exc}"
-                    ) from exc
+                        "The task has no 'visual' observation group required "
+                        "for simulation recording."
+                    )
 
-                if follower_iface is not None:
-                    try:
-                        # Critical invariant: this is the original LeRobot
-                        # action, not the mapped Isaac Sim tensor.
-                        follower_iface.robot.send_action(leader_action)
-                    except Exception as exc:
-                        raise RuntimeError(
-                            "Physical follower action write failed; the current "
-                            f"synchronized episode will be discarded: {exc}"
-                        ) from exc
-
-                raw_action, mapped_action = (
-                    leader_iface.real_to_sim_obs_processor(leader_action)
+                joint_pos_obs = obs["policy"]["joint_pos_obs"][0]
+                (
+                    sim_observation,
+                    visual_buffers,
+                    depth_buffers,
+                    instance_id_seg_buffers,
+                ) = leader_iface.sim_to_real_dataset_processor(
+                    joint_pos_obs,
+                    visual_obs,
                 )
-                if leader_wrist_start is None:
-                    leader_wrist_start = mapped_action[wrist_roll_index].clone()
-                mapped_action[wrist_roll_index] = (
-                    sim_wrist_start
-                    + mapped_action[wrist_roll_index]
-                    - leader_wrist_start
-                )
-                mapped_action[wrist_roll_index] = torch.clamp(
-                    mapped_action[wrist_roll_index],
-                    leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
-                    leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
-                )
-
-                actions[:] = mapped_action
-                try:
-                    obs, _, _, _, _ = env.step(actions)
-                except Exception as exc:
-                    raise RuntimeError(
-                        f"Isaac Sim action application failed: {exc}"
-                    ) from exc
-
-                if recording and recorder_group is not None:
-                    visual_obs = obs.get("visual")
-                    if visual_obs is None:
-                        raise RuntimeError(
-                            "The task has no 'visual' observation group required "
-                            "for simulation recording."
-                        )
-
-                    joint_pos_obs = obs["policy"]["joint_pos_obs"][0]
-                    (
+                sim_recorder = recorder_group.recorders["sim"]
+                frames = {
+                    "sim": sim_recorder.make_sim_frame(
+                        leader_iface.get_raw_actions_from_radians(mapped_action),
                         sim_observation,
+                        visual_buffers,
+                    )
+                }
+                auxiliary = {
+                    "sim": sim_recorder.make_auxiliary_frame(
                         visual_buffers,
                         depth_buffers,
                         instance_id_seg_buffers,
-                    ) = leader_iface.sim_to_real_dataset_processor(
-                        joint_pos_obs,
-                        visual_obs,
                     )
-                    sim_recorder = recorder_group.recorders["sim"]
-                    frames = {
-                        "sim": sim_recorder.make_sim_frame(
-                            raw_action,
-                            sim_observation,
-                            visual_buffers,
-                        )
-                    }
-                    auxiliary = {
-                        "sim": sim_recorder.make_auxiliary_frame(
-                            visual_buffers,
-                            depth_buffers,
-                            instance_id_seg_buffers,
-                        )
-                    }
+                }
 
-                    if follower_iface is not None:
-                        try:
-                            follower_observation = (
-                                follower_iface.robot.get_observation()
-                            )
-                        except Exception as exc:
-                            raise RuntimeError(
-                                "Physical follower observation failed; the current "
-                                f"synchronized episode will be discarded: {exc}"
-                            ) from exc
-                        frames["real"] = follower_iface.make_real_dataset_frame(
-                            leader_action,
-                            follower_observation,
-                            args_cli.task_name,
+                if follower_iface is not None:
+                    try:
+                        follower_observation = (
+                            follower_iface.robot.get_observation()
                         )
+                    except Exception as exc:
+                        raise RuntimeError(
+                            "Physical follower observation failed; the current "
+                            f"synchronized episode will be discarded: {exc}"
+                        ) from exc
+                    frames["real"] = follower_iface.make_real_dataset_frame(
+                        leader_action,
+                        follower_observation,
+                        args_cli.task_name,
+                    )
 
-                    recorder_group.add_frames(frames, auxiliary)
+                recorder_group.add_frames(frames, auxiliary)
+
+            if follower_iface is not None:
+                try:
+                    # Critical invariant: this is the original LeRobot
+                    # action, not the mapped Isaac Sim tensor.
+                    follower_iface.robot.send_action(leader_action)
+                except Exception as exc:
+                    raise RuntimeError(
+                        "Physical follower action write failed; the current "
+                        f"synchronized episode will be discarded: {exc}"
+                    ) from exc
+
+            actions[:] = mapped_action
+            try:
+                obs, _, _, _, _ = env.step(actions)
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Isaac Sim action application failed: {exc}"
+                ) from exc
 
             remaining = (1.0 / args_cli.fps) - (time.perf_counter() - loop_start)
             if remaining > 0:
@@ -632,32 +517,18 @@ def main():
 
     except KeyboardInterrupt:
         print("[INFO]: Interrupted; shutting down cleanly.")
-    except Exception:
-        if recorder_group is not None and recording:
-            recorder_group.cancel_episode()
-            recording = False
-        raise
     finally:
-        if spawn_server is not None:
-            spawn_server.close()
-        if recorder_group is not None:
-            try:
-                if recorder_group.frame_count:
-                    recorder_group.cancel_episode()
-            except Exception as exc:
-                print(f"[ERROR]: {exc}")
-            try:
-                recorder_group.finalize()
-            except Exception as exc:
-                print(f"[ERROR]: {exc}")
-
         if keyboard_control is not None:
-            keyboard_control.cleanup()
-        _disconnect(follower_iface, "physical follower")
-        _disconnect(leader_iface, "physical leader")
+            _cleanup("Keyboard cleanup", keyboard_control.cleanup)
+        _cleanup("Follower disconnect", lambda: _disconnect(follower_iface, "physical follower"))
+        _cleanup("Leader disconnect", lambda: _disconnect(leader_iface, "physical leader"))
+        if spawn_server is not None:
+            _cleanup("Spawn server shutdown", spawn_server.close)
+        if recorder_group is not None:
+            _cleanup("Dataset finalization", recorder_group.finalize)
         if env is not None:
-            env.close()
-        simulation_app.close()
+            _cleanup("Environment close", env.close)
+        _cleanup("Simulation app close", simulation_app.close)
 
 
 if __name__ == "__main__":

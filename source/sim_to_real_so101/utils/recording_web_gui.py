@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Browser recording GUI: live camera feeds plus Start / Stop / Discard / Spawn.
+"""Browser recording GUI: live cameras, episode controls, encoding, and exit.
 
 Serves the React page in ``source/gui/``, streams camera frames and recording
 state over one Server-Sent Events connection, and accepts button clicks as
@@ -28,7 +28,7 @@ STATIC_FILES = {
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/app.jsx": ("app.jsx", "text/javascript; charset=utf-8"),
 }
-COMMANDS = ("start", "stop", "discard", "spawn")
+COMMANDS = ("start", "stop", "discard", "spawn", "save", "encode", "exit")
 
 
 class RecordingWebGui:
@@ -49,18 +49,20 @@ class RecordingWebGui:
         self._cond = threading.Condition()
         self._closed = False
         self._requests = dict.fromkeys(COMMANDS, False)
-        self._state = {"active": False, "can_start": False, "status": ""}
+        self._state = {"active": False, "can_start": False, "busy": False, "pending": False, "status": "",
+                       "recording": False, "pending_videos": 0, "encoding": False,
+                       "encode_progress": "All saved episodes are encoded", "closed": False}
         self._frames: dict[str, str | None] = dict.fromkeys(self._camera_names)
         self._payload = ""
         self._seq = 0
         self._last_publish = 0.0
         self.flush()  # so a browser that connects before the first frame gets valid state
 
-        self._server =ThreadingHTTPServer((host, port), self._make_handler())
+        self._server = ThreadingHTTPServer((host, port), self._make_handler())
         self._server.daemon_threads = True
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
-        self.url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}/"
+        self.url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{self._server.server_port}/"
 
     # ── Control-loop API ─────────────────────────────────────────────────────
 
@@ -70,11 +72,25 @@ class RecordingWebGui:
             self._requests = dict.fromkeys(COMMANDS, False)
         return requests
 
-    def set_state(self, active: bool, can_start: bool, status: str) -> None:
+    def set_state(self, active: bool, can_start: bool, status: str, busy: bool = False,
+                  *, recording: bool = False, pending_videos: int = 0,
+                  encoding: bool = False, encode_progress: str = "") -> None:
         """``active``: an episode is running (countdown or recording).
         ``can_start``: Start is allowed (e.g. a cube has been spawned)."""
         with self._cond:
-            self._state = {"active": active, "can_start": can_start, "status": status}
+            transition = (active, can_start, busy) != tuple(
+                self._state[key] for key in ("active", "can_start", "busy")
+            )
+            if busy or transition:
+                self._requests = dict.fromkeys(COMMANDS, False)
+            pending = any(self._requests.values())
+            previous = self._state
+            self._state = {"active": active, "can_start": can_start, "busy": busy,
+                           "pending": pending, "status": status, "recording": recording,
+                           "pending_videos": pending_videos, "encoding": encoding,
+                           "encode_progress": encode_progress, "closed": False}
+            if self._state != previous:
+                self.flush()
 
     def update_images(self, frames: dict[str, np.ndarray | torch.Tensor | None]) -> None:
         """Publish HxWx3 uint8 RGB frames, at most ``max_fps`` times a second."""
@@ -96,10 +112,15 @@ class RecordingWebGui:
 
     def destroy(self) -> None:
         with self._cond:
+            if self._closed:
+                return
+            self._state.update(closed=True, busy=True, recording=False, active=False, status="Recorder closed.")
+            self.flush()
             self._closed = True
             self._cond.notify_all()
         self._server.shutdown()
         self._server.server_close()
+        self._thread.join(timeout=1.0)
 
     # ── Internals ────────────────────────────────────────────────────────────
 
@@ -121,23 +142,43 @@ class RecordingWebGui:
         """Block until there is a newer payload; (seq, None) means send a keepalive."""
         with self._cond:
             self._cond.wait_for(lambda: self._closed or self._seq != last_seq, timeout=5.0)
-            if self._closed:
+            if self._closed and self._seq == last_seq:
                 raise ConnectionAbortedError
             if self._seq == last_seq:
                 return last_seq, None
             return self._seq, self._payload
 
-    def _command(self, name: str) -> bool:
+    def _command(self, name: str, encode: bool | None = None) -> bool:
         if name not in COMMANDS:
             return False
         with self._cond:
+            state = self._state
+            allowed = {
+                "start": state["can_start"] and not state["active"],
+                "spawn": not state["active"],
+                "stop": state["active"],
+                "discard": state["active"],
+                "save": state["recording"],
+                "encode": state["pending_videos"] > 0 and not state["encoding"],
+                "exit": True,
+            }
+            if self._closed or state["busy"] or state["pending"] or not allowed[name]:
+                return False
             self._requests[name] = True
+            if name == "exit":
+                self._requests["exit_encode"] = encode
+            state["pending"] = True
+            self.flush()
         return True
 
     def _make_handler(self):
         gui = self
 
         class Handler(BaseHTTPRequestHandler):
+            def setup(self):
+                super().setup()
+                self.connection.settimeout(10.0)
+
             def do_GET(self):
                 if self.path == "/events":
                     self._stream_events()
@@ -161,12 +202,15 @@ class RecordingWebGui:
                     length = int(self.headers.get("Content-Length", "0"))
                     if not 0 < length < 256:
                         raise ValueError("bad request size")
-                    command = json.loads(self.rfile.read(length)).get("cmd")
+                    body = json.loads(self.rfile.read(length))
+                    command = body.get("cmd")
+                    if command == "exit" and type(body.get("encode")) is not bool:
+                        raise ValueError("exit requires boolean encode")
                 except (ValueError, AttributeError):
                     self.send_error(400, "Expected JSON body {\"cmd\": ...}")
                     return
-                if not gui._command(command):
-                    self.send_error(400, f"Unknown command; expected one of {COMMANDS}")
+                if not gui._command(command, body.get("encode")):
+                    self.send_error(409, "Command is unavailable in the current recorder state")
                     return
                 self.send_response(204)
                 self.end_headers()

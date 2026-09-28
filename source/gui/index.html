@@ -56,11 +56,23 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
       margin: 12px auto 0;
-      /* Width at which two rows of 4:3 panes fit under the toolbar (~250px of
+      /* Width at which two rows of 4:3 panes fit under the toolbar (~352px of
          chrome), so all four cameras are visible without scrolling. */
-      width: max(320px, min(100%, calc((100vh - 250px) * 4 / 3 + 16px)));
+      width: max(320px, min(100%, calc((100vh - 352px) * 4 / 3 + 16px)));
     }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; width: 100%; } }
+    .bottom-bar, .dialog-actions { display: flex; gap: 10px; margin: 12px 0 8px; }
+    .encoding-status { color: var(--muted); font-size: 13px; margin: 0; min-height: 1.4em; overflow-wrap: anywhere; }
+    dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; max-width: min(680px, calc(100% - 32px)); }
+    dialog::backdrop { background: #000a; }
+    dialog h2 { font-size: 19px; margin-top: 0; }
+    .dialog-actions { flex-wrap: wrap; }
+    .bottom-bar .btn:focus-visible, .dialog-actions .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+    @media (max-width: 700px) {
+      .bottom-bar, .dialog-actions { flex-direction: column; }
+      .bottom-bar .btn, .dialog-actions .btn { flex-basis: auto; }
+    }
     .pane { margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
     .pane figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); }
     .pane img, .no-signal { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; }

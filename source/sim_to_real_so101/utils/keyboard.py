@@ -103,20 +103,6 @@ class KeyboardControl:
     def set_recording(self, recording: bool) -> None:
         self.recording = recording
 
-    # Compatibility helpers for callers that previously toggled recording
-    # through this object directly.
-    def start_recording(self) -> None:
-        if not self.recording:
-            self.start_episode_requested = True
-
-    def stop_recording(self) -> None:
-        if self.recording:
-            self.end_episode_requested = True
-
-    def cancel_recording(self) -> None:
-        if self.recording:
-            self.rerecord_episode_requested = True
-
     @property
     def reset_world(self) -> bool:
         return self.reset_world_requested

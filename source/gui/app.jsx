@@ -2,7 +2,7 @@
 // state + camera frames arrive on GET /events (Server-Sent Events),
 // button clicks go to POST /command.
 
-const { useEffect, useState } = React;
+const { useEffect, useState, useRef } = React;
 
 // "active" = an episode is running, including its pre-recording countdown.
 const BUTTONS = [
@@ -23,7 +23,9 @@ function useRecorderState() {
     events.onopen = () => setConnected(true);
     events.onerror = () => setConnected(false);
     events.onmessage = (event) => {
-      setState(JSON.parse(event.data));
+      const next = JSON.parse(event.data);
+      setState(next);
+      if (next.closed) events.close();
       setConnected(true);
     };
     return () => events.close();
@@ -32,11 +34,11 @@ function useRecorderState() {
   return [state, connected];
 }
 
-async function sendCommand(cmd) {
+async function sendCommand(cmd, options = {}) {
   const response = await fetch("/command", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cmd }),
+    body: JSON.stringify({ cmd, ...options }),
   });
   if (!response.ok) {
     throw new Error(`"${cmd}" was rejected (HTTP ${response.status})`);
@@ -56,14 +58,56 @@ function CameraPane({ name, frame }) {
   );
 }
 
+function ExitDialog({ state, disabled, onExit, onCancel }) {
+  const dialog = useRef(null);
+  const cancel = useRef(null);
+  const count = state.pending_videos + (state.recording ? 1 : 0);
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current.showModal();
+    cancel.current.focus();
+    return () => previous?.focus();
+  }, []);
+  return (
+    <dialog ref={dialog} aria-labelledby="exit-title" onCancel={(event) => {
+      event.preventDefault();
+      onCancel();
+    }} onClick={(event) => {
+      const bounds = dialog.current.getBoundingClientRect();
+      if (event.target === dialog.current && (event.clientX < bounds.left || event.clientX > bounds.right ||
+          event.clientY < bounds.top || event.clientY > bounds.bottom)) onCancel();
+    }}>
+      <h2 id="exit-title">{count > 0
+        ? `${count} episode(s) are not encoded yet. Do you want to encode them before exiting?`
+        : "Exit the recorder?"}</h2>
+      {state.recording && <p>The episode being recorded will be saved first.</p>}
+      {count > 0 && <p className="status">Unencoded episodes stay as PNGs and are encoded automatically
+        the next time this dataset is opened.</p>}
+      <div className="dialog-actions">
+        <button className="btn stop" disabled={disabled} onClick={() => onExit(true)}>
+          {count > 0 ? "Encode & Exit" : "Exit"}
+        </button>
+        {count > 0 && <button className="btn discard" disabled={disabled} onClick={() => onExit(false)}>
+          Exit without encoding
+        </button>}
+        <button ref={cancel} className="btn spawn" onClick={onCancel}>Cancel</button>
+      </div>
+    </dialog>
+  );
+}
+
 function App() {
   const [state, connected] = useRecorderState();
   const [error, setError] = useState(null);
-  const live = connected && state !== null;
+  const [pending, setPending] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
+  const live = connected && state !== null && !state.closed;
+  const disabled = !live || pending || state?.busy || state?.pending;
 
-  const onClick = (cmd) => {
+  const onClick = (cmd, options) => {
     setError(null);
-    sendCommand(cmd).catch((err) => setError(err.message));
+    setPending(true);
+    sendCommand(cmd, options).catch((err) => setError(err.message)).finally(() => setPending(false));
   };
 
   return (
@@ -71,7 +115,7 @@ function App() {
       <header>
         <h1>Pick-Place Recorder</h1>
         <span className={`conn ${connected ? "on" : "off"}`}>
-          {connected ? "Connected" : "Disconnected: is pick_place_agent running?"}
+          {state?.closed ? "Recorder closed" : connected ? "Connected" : "Disconnected: is pick_place_agent running?"}
         </span>
       </header>
 
@@ -80,7 +124,7 @@ function App() {
           <button
             key={cmd}
             className={`btn ${tone}`}
-            disabled={!live || !enabled(state)}
+            disabled={!live || pending || state.busy || state.pending || !enabled(state)}
             onClick={() => onClick(cmd)}
           >
             {label}
@@ -98,6 +142,18 @@ function App() {
           <CameraPane key={name} name={name} frame={state.frames[name]} />
         ))}
       </section>
+      <section className="bottom-bar" aria-label="Recording actions">
+        <button className="btn stop" disabled={disabled || !state?.recording} onClick={() => onClick("save")}>Save</button>
+        <button className="btn start" disabled={disabled || !state?.pending_videos || state?.encoding}
+          onClick={() => onClick("encode")}>Encode videos</button>
+        <button className="btn discard" disabled={disabled} onClick={() => setExitOpen(true)}>Exit</button>
+      </section>
+      <p className="encoding-status" role="status">{state?.closed ? "Recorder closed." : state?.encode_progress}</p>
+      {exitOpen && !state?.closed && <ExitDialog state={state} disabled={disabled}
+        onCancel={() => setExitOpen(false)} onExit={(encode) => {
+          setExitOpen(false);
+          onClick("exit", { encode });
+        }} />}
     </main>
   );
 }

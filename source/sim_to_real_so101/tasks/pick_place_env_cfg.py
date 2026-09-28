@@ -13,18 +13,18 @@ from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 
 from sim_to_real_so101 import assets as _assets_pkg
-from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation, camera_rotation
+from sim_to_real_so101.assets.real_setup import SETUP, robot_rotation
 
 from .my_room_env_cfg import (
     MyRoomSceneCfg,
     MyRoomEventsCfg,
     MyRoomEnvCfg,
     MyRoomObservationsCfg,
-    _camera,
 )
 
 from sim_to_real_so101.mdp import (
     reset_object_pose,
+    reset_pick_place_state,
     object_grasped,
     object_placed_in_container,
     object_placed_in_container_termination,
@@ -69,14 +69,11 @@ CUBE_ROUGHNESS = SETUP["object_materials"]["blue_cube"]["roughness"]
 CUBE_SIZE = 0.02
 CUBE_MASS = 0.008
 
-# RGB and depth share the measured external-camera field of view and fitted pose.
-_PICK_PLACE_REALSENSE_VALUES = SETUP["realsense"]
-_PICK_PLACE_REALSENSE_ROTATION = camera_rotation()
-
 # White-Box.usd geometry, in its own frame: origin at the centre of the outer
 # bottom face, +Z up; X spans +/-6.75 cm, Y +/-4.25 cm, Z 0 to 4.5 cm. The box's
 # pose is read live from the scene, so these stay valid wherever it is placed.
 WHITE_BOX_SIZE = (0.135, 0.085, 0.045)  # length (X), width (Y), height (Z), metres
+WHITE_BOX_INNER_HALF_SIZE = (0.065625, 0.04064896)  # measured USD inner walls, metres
 WHITE_BOX_FLOOR_Z = 0.0018  # inside floor height above the origin, metres
 
 
@@ -84,25 +81,13 @@ WHITE_BOX_FLOOR_Z = 0.0018  # inside floor height above the origin, metres
 @configclass
 class PickPlaceSceneCfg(MyRoomSceneCfg):
     """ 
-    Extends the real room scene with a single rigid body pick target. 
+    Extends the real room scene with a cube, container, and grasp contact sensor.
 
     Inherits:
-        room, camera_realsense_rgb, camera_realsense_depth, camera_wrist_cam, robot, ee_frame
+        room, camera_realsense_rgb, realsense_depth, camera_wrist_cam, robot, ee_frame
     Adds:
-        white_box: RigidObjectCfg for the pick target
+        white_box, blue_cube, contact_grasp
     """
-    camera_realsense_rgb = _camera(
-        "{ENV_REGEX_NS}/realsense_camera_rgb",
-        _PICK_PLACE_REALSENSE_VALUES,
-        _PICK_PLACE_REALSENSE_ROTATION,
-        ["rgb", "instance_id_segmentation_fast"],
-    )
-    realsense_depth = _camera(
-        "{ENV_REGEX_NS}/realsense_camera_depth",
-        _PICK_PLACE_REALSENSE_VALUES,
-        _PICK_PLACE_REALSENSE_ROTATION,
-        ["depth"],
-    )
     contact_grasp = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/jaw",
         update_period=0.0,
@@ -149,7 +134,7 @@ class PickPlaceSceneCfg(MyRoomSceneCfg):
 @configclass
 class PickPlaceEventsCfg(MyRoomEventsCfg):
     """
-    Extends MyRoomEventsCfg with a pre-reset box pose randomization term. 
+    Extends MyRoomEventsCfg with cube placement and per-episode tracking resets.
 
     Inherits:
         all events from configure_scene_updates (mode = "startup") 
@@ -165,6 +150,8 @@ class PickPlaceEventsCfg(MyRoomEventsCfg):
             "pose_range": {},
         },
     )
+
+    reset_tracking = EventTerm(func=reset_pick_place_state, mode="reset")
 
 
 @configclass
@@ -194,6 +181,7 @@ class PickPlaceObservationsCfg(MyRoomObservationsCfg):
                 "container_name": "white_box",
                 "container_size": WHITE_BOX_SIZE,
                 "container_floor_z": WHITE_BOX_FLOOR_Z,
+                "container_inner_half_size": WHITE_BOX_INNER_HALF_SIZE,
                 "min_lift": 0.01,
                 "warmup_steps": 30,
                 "force_threshold": 2,  # N
@@ -225,6 +213,7 @@ class PickPlaceTerminationsCfg:
             "container_name": "white_box",
             "container_size": WHITE_BOX_SIZE,
             "container_floor_z": WHITE_BOX_FLOOR_Z,
+            "container_inner_half_size": WHITE_BOX_INNER_HALF_SIZE,
             "min_lift": 0.01,
             "warmup_steps": 30,
             "force_threshold": 2,  # N
@@ -237,7 +226,7 @@ class PickPlaceTerminationsCfg:
 class PickPlaceEnvCfg(MyRoomEnvCfg):
     """
     Base config — teleop/data-collection. subtask_terms give grasp/placement
-    labels in the recorded dataset, but no auto-termination (matches how
+    observations (not included in the dataset schema), but no auto-termination (matches how
     SO101TeleopEnvCfg leaves terminations=None for teleop).
     """
     scene: PickPlaceSceneCfg = PickPlaceSceneCfg()
@@ -246,6 +235,8 @@ class PickPlaceEnvCfg(MyRoomEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
+        self.decimation = 4  # 120 Hz physics, 30 Hz pick-place control.
+        self.sim.render_interval = self.decimation
         self.scene.robot.spawn.activate_contact_sensors = True
         # Single-arm teleop does not need multi-million-contact training buffers.
         self.sim.physx.gpu_max_rigid_contact_count = 2**18
@@ -264,4 +255,4 @@ class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         # Match the existing vial evaluation task's 450 control-step horizon.
-        self.episode_length_s = 450 / 60.0
+        self.episode_length_s = 450 * self.decimation * self.sim.dt

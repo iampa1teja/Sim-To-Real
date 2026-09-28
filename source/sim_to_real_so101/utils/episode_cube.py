@@ -4,7 +4,7 @@ import torch
 from pxr import UsdGeom
 
 from isaaclab.managers import SceneEntityCfg
-from sim_to_real_so101.mdp import reset_object_pose
+from sim_to_real_so101.mdp import reset_object_pose, reset_pick_place_state
 
 
 class EpisodeCube:
@@ -23,6 +23,8 @@ class EpisodeCube:
         for image in self.images:
             image.MakeInvisible()
         self.park()
+        reset_pick_place_state(self.env, None)
+        self.env.scene["contact_grasp"].reset()
 
     @torch.inference_mode()
     def park(self):
@@ -40,14 +42,11 @@ class EpisodeCube:
     def show(self):
         ids = torch.arange(self.env.num_envs, device=self.env.device)
         reset_object_pose(self.env, ids, SceneEntityCfg("blue_cube"), {})
-        # Observation setup/reset may have sampled the parked body's height.
-        # Start grasp tracking from the visible episode pose instead.
-        if hasattr(self.env, "_pick_place_rest_z"):
-            self.env._pick_place_rest_z[:] = self.asset.data.root_pos_w[:, 2]
-            self.env._pick_place_holding[:] = False
-            self.env._pick_place_ever_grasped[:] = False
-        if hasattr(self.env, "_pick_place_placed_steps"):
-            self.env._pick_place_placed_steps[:] = 0
         for image in self.images:
             image.MakeVisible()
         self.visible = True
+        # Refresh cameras before a zero-countdown episode records its first frame.
+        self.env.sim.render()
+        for sensor in self.env.scene.sensors.values():
+            if hasattr(sensor.cfg, "data_types"):
+                sensor.update(0.0, force_recompute=True)
