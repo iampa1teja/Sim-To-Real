@@ -293,7 +293,8 @@ def main():
 
         # ── Leader ────────────────────────────────────────────────────────
         leader_iface = connect_interface(
-            args_cli, env.unwrapped.device, sim_cameras, "leader", visualize=args_cli.rerun
+            args_cli, env.unwrapped.device, sim_cameras, "leader", visualize=args_cli.rerun,
+            joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
         )
 
         recording_mode = bool(all(dataset_args))

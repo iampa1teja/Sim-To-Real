@@ -180,6 +180,7 @@ class MyRoomEventsCfg(EventCfg):
 
 @configclass
 class MyRoomEnvCfg(SO101TeleopEnvCfg):
+    sim_joint_mapping: dict = SETUP.get("sim_joint_mapping", {})
     scene: MyRoomSceneCfg = MyRoomSceneCfg()
     events: MyRoomEventsCfg = MyRoomEventsCfg()
     observations: MyRoomObservationsCfg = MyRoomObservationsCfg()

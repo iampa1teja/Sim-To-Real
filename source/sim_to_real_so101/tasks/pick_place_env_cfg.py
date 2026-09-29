@@ -37,7 +37,9 @@ WHITE_BOX_USD = f"{assets_path}/usd/Pick-Place/White-Box-Physics.usda"
 # Put the long side flush with the front edge, with the box inside the table
 # boundary and to the robot's right. Clearance is from the face, not centre.
 WHITE_BOX_FRONT_EDGE_CLEARANCE = 0.0
-WHITE_BOX_RIGHT_OFFSET = 0.25
+# With the measured base extent and real_setup.json robot position, this gives
+# 14.5 cm base-to-box and 30 cm box-to-right-table-edge clearance.
+WHITE_BOX_RIGHT_OFFSET = 0.247172813204101
 _BOX_HALF_DEPTH = 0.0425  # White-Box.usd is 0.135 x 0.085 x 0.045 m.
 _TABLE_NORMAL = np.array(SETUP["robot"]["table_normal"], dtype=float)
 _TABLE_NORMAL /= np.linalg.norm(_TABLE_NORMAL)

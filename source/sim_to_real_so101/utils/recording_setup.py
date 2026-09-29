@@ -97,7 +97,7 @@ def disconnect(interface, label: str) -> None:
         print(f"[ERROR]: Failed to disconnect {label}: {exc}")
 
 
-def connect_interface(args, device, cameras, kind, visualize=False):
+def connect_interface(args, device, cameras, kind, visualize=False, joint_mapping=None):
     """Connect a leader/follower, cleaning partial resources on failure."""
     from .lerobot_interface import LeRobotSO101Interface
 
@@ -109,6 +109,7 @@ def connect_interface(args, device, cameras, kind, visualize=False):
         cameras=cameras,
         fps=args.fps,
         kind=kind,
+        joint_mapping=joint_mapping,
     )
     try:
         interface.init_device(visualize=visualize)

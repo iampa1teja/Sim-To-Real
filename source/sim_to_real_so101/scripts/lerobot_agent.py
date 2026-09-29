@@ -288,7 +288,8 @@ def main():
             print("[WARNING]: No simulation cameras found.")
 
         leader_iface = connect_interface(
-            args_cli, env.unwrapped.device, sim_cameras, "leader"
+            args_cli, env.unwrapped.device, sim_cameras, "leader",
+            joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
         )
 
         recording_mode = bool(all(dataset_args))

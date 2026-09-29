@@ -2,9 +2,9 @@
   "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up, wxyz quaternions.",
   "robot": {
     "position": [
-      0.7721351371539209,
-      -0.6016322531253074,
-      0.7637408306071112
+      0.697253387506893,
+      -0.6076356057211214,
+      0.7635429149057084
     ],
     "yaw_degrees": 184.583662,
     "table_normal": [
@@ -23,14 +23,14 @@
   },
   "realsense": {
     "position": [
-      0.7476643503745797,
-      -0.005184263622112693,
-      1.3076557759405634
+      0.6126433133993302,
+      0.02722969879939067,
+      1.2632924467358662
     ],
     "target": [
-      0.7824749576718132,
-      -0.38192637066968765,
-      0.7979010781878794
+      0.6834827335143593,
+      -0.38741113186690607,
+      0.7878442333770308
     ],
     "focal_length": 20.0,
     "horizontal_aperture": 21.126721118736548,
@@ -38,9 +38,9 @@
     "width": 640,
     "height": 480,
     "euler_degrees": [
-      36.56055373602888,
-      1.3908763962152262,
-      -176.5955741519623
+      41.42908406743631,
+      2.6888161367161794,
+      -173.34765404106238
     ],
     "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees",
     "calibration": {
@@ -58,7 +58,7 @@
         0.0
       ],
       "model": "distortion.inverse_brown_conrady",
-      "extrinsics_source": "Aligned RealSense depth plane and four box rim corners; user confirmed box placement matches simulation."
+      "extrinsics_source": "Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
     }
   },
   "wrist": {
@@ -257,5 +257,20 @@
     "tray": {
       "roughness": 0.6
     }
+  },
+  "sim_joint_mapping": {
+    "shoulder_pan": {
+      "joint_min": -116.279296875,
+      "joint_max": 119.794921875
+    }
+  },
+  "sim_joint_mapping_source": {
+    "follower_id": "rpd_robot",
+    "joint": "shoulder_pan",
+    "range_min": 725,
+    "range_max": 3411,
+    "encoder_counts_per_turn": 4096,
+    "zero_count": 2048,
+    "note": "Simulation-only conversion of normalized follower commands to radians. Pan bounds derived from the connected follower calibration and its half-turn home. Verified with first encoded pick/place episode (index 0); cube lands in unchanged box. Other joints retain their existing mapping. USD joint limits remain enforced."
   }
 }

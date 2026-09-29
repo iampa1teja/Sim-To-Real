@@ -136,6 +136,7 @@ def main():
         fps=30,
         kind="follower",
         rename_map=rename_map,
+        joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
     )
     print(f"[INFO]: Initializing device with Rerun visualization: {args_cli.rerun}")
     robot_iface.init_device(visualize=args_cli.rerun)

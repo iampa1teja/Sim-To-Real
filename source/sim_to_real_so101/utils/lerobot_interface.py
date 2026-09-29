@@ -72,6 +72,7 @@ class LeRobotSO101Interface:
         fps: int,
         kind: str = "leader",
         rename_map: dict = None,
+        joint_mapping: dict | None = None,
     ):
 
         self.port = port
@@ -93,6 +94,25 @@ class LeRobotSO101Interface:
             dtype=torch.float32,
             device=self.device,
         )
+        # Physical calibration spans need not equal the USD joint limits.
+        # Use the calibrated transform in both directions, including recorded
+        # observations and policy input; keep the USD limits for clamping.
+        mapping = {**self.SO101_USD_MAPPING, **(joint_mapping or {})}
+        unknown = mapping.keys() - self.SO101_USD_MAPPING.keys()
+        if unknown:
+            raise ValueError(f"Unknown joint mapping: {sorted(unknown)}")
+        self.mapping_joint_mins = torch.tensor(
+            [mapping[name]["joint_min"] for name in self.joint_names],
+            dtype=torch.float32, device=self.device,
+        )
+        self.mapping_joint_maxs = torch.tensor(
+            [mapping[name]["joint_max"] for name in self.joint_names],
+            dtype=torch.float32, device=self.device,
+        )
+        if not (torch.isfinite(self.mapping_joint_mins).all()
+                and torch.isfinite(self.mapping_joint_maxs).all()
+                and (self.mapping_joint_maxs > self.mapping_joint_mins).all()):
+            raise ValueError("Joint mapping bounds must be finite and increasing")
 
     def make_cameras_cfg(self):
         cameras = {}
@@ -246,7 +266,10 @@ class LeRobotSO101Interface:
         normalized[-1] = raw_values[-1] / 100.0  # gripper: 0-100 -> 0-1
 
         # Map to joint ranges (degrees)
-        mapped_deg = self.joint_mins + normalized * (self.joint_maxs - self.joint_mins)
+        mapped_deg = self.mapping_joint_mins + normalized * (
+            self.mapping_joint_maxs - self.mapping_joint_mins
+        )
+        mapped_deg = torch.clamp(mapped_deg, min=self.joint_mins, max=self.joint_maxs)
 
         # Convert to radians
         return mapped_deg * torch.pi / 180
@@ -256,8 +279,8 @@ class LeRobotSO101Interface:
         mapped_deg = raw_values * 180 / torch.pi
 
         # Reverse the joint range mapping
-        normalized = (mapped_deg - self.joint_mins) / (
-            self.joint_maxs - self.joint_mins
+        normalized = (mapped_deg - self.mapping_joint_mins) / (
+            self.mapping_joint_maxs - self.mapping_joint_mins
         )
 
         # Reverse the normalization
