@@ -149,10 +149,11 @@ is weak evidence of coverage.
   --lang_by_color '{"blue":"Pick up the blue cube and place it in the white box","red":"Pick up the red cube and place it in the white box"}'
 ```
 
-DR reuses the workshop camera focal/pose ranges from `TaskEventCfg` on external
-RGB, aligned depth and wrist, then synchronizes calibrated lens intrinsics. It
-randomizes robot colour, blue/red cube colour and the measured room tube-light
-exposure when that light exists. MyRoom has no LightStudio/sky-light HDRI/mat;
+DR randomizes robot colour, blue/red cube colour and the measured room tube-light
+exposure when that light exists. Cameras are **not** randomized: the sim cameras are
+calibrated to the real ones (`real_setup.json`), so the external and wrist views
+stay identical to the real robot's. The domain-randomized training replay
+(`lerobot_dr_replay`) follows the same rule. MyRoom has no LightStudio/sky-light HDRI/mat;
 those DR targets are skipped. A custom room without the measured tube light also
 skips that exposure term. Inspect the source ranges for your scene rather than
 assuming they model your hardware variation.

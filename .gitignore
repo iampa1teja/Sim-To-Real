@@ -274,3 +274,11 @@ docker/env
 !/tests/test_eval_pick_place_script.py
 !/tests/test_lerobot_eval_rollout.py
 !/tests/test_prepare_pick_place_gr00t.py
+# Domain-randomized replay tests.
+!/tests/_fakes.py
+!/tests/test_resets_dr.py
+!/tests/test_dr_variants.py
+!/tests/test_replay_source.py
+!/tests/test_replay_math.py
+!/tests/test_replay_scene.py
+!/tests/test_dr_replay_script.py

@@ -30,9 +30,6 @@ from sim_to_real_so101.mdp import (
     check_pick_place_eval_event_order,
     randomize_robot_color,
     ROBOT_COLORS,
-    randomize_camera_pose,
-    randomize_camera_focal_length,
-    sync_pick_place_camera_intrinsics,
     reset_pick_place_state,
     object_grasped,
     object_placed_in_container,
@@ -284,7 +281,7 @@ class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
 
 @configclass
 class PickPlaceEvalDREnvCfg(PickPlaceEvalEnvCfg):
-    """Recorded-start evaluation with the workshop's existing DR ranges."""
+    """Recorded-start evaluation with room-light, robot-colour and cube-colour DR (cameras fixed)."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -292,7 +289,6 @@ class PickPlaceEvalDREnvCfg(PickPlaceEvalEnvCfg):
         # Skip lightbox exposure, HDRI and mat rotation rather than spawn new
         # scene geometry/lights. The measured room tube light is handled below.
         from .task_env_cfg import TaskEventCfg
-        from copy import deepcopy
         reference_events = TaskEventCfg()
         # These events append AFTER MyRoom's reset_set_robot_visual_material.
         self.events.eval_room_light = EventTerm(
@@ -307,16 +303,5 @@ class PickPlaceEvalDREnvCfg(PickPlaceEvalEnvCfg):
             func=randomize_cube_color, mode="reset",
             params={"colors": {"blue": CUBE_COLOR, "red": (0.8, 0.05, 0.05)}},
         )
-        for name in ("camera_realsense_rgb", "camera_wrist_cam", "realsense_depth"):
-            camera = getattr(self.scene, name)
-            pose = deepcopy(reference_events.reset_camera_external_pose.params)
-            pose["prim_path_pattern"] = camera.prim_path
-            setattr(self.events, "eval_pose_" + name,
-                    EventTerm(func=randomize_camera_pose, mode="reset", params=pose))
-            focal = deepcopy(reference_events.reset_camera_ego_fov.params)
-            focal["asset_cfg"] = SceneEntityCfg(name)
-            setattr(self.events, "eval_focal_" + name,
-                    EventTerm(func=randomize_camera_focal_length, mode="reset", params=focal))
-        self.events.eval_sync_camera_intrinsics = EventTerm(
-            func=sync_pick_place_camera_intrinsics, mode="reset",
-        )
+        # Cameras are deliberately NOT randomized: the sim cameras are calibrated to the real
+        # ones (real_setup.json), so the view the policy sees stays identical to the robot's.

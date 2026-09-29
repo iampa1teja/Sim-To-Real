@@ -47,13 +47,10 @@ def randomize_robot_color(env,
 ):
     """Randomly set robot color from predefined palette on each reset."""
     idx = torch.randint(0, len(color_names), (1,), device="cpu").item()
-    selected_color = ROBOT_COLORS[color_names[idx]]
-    
-    with Sdf.ChangeBlock():
-        robot = env.scene["robot"]
-        material_prim_path = robot.cfg.prim_path + "/Looks/material_a_3d_printed/Shader"
-        material_prim = sim_utils.find_matching_prims(material_prim_path)[0]
-        material_prim.GetAttribute("inputs:diffuse_color_constant").Set(selected_color)
+    selected_name = color_names[idx]
+    selected_color = ROBOT_COLORS[selected_name]
+    set_robot_color(env, selected_color)
+    return selected_name
 
 def randomize_mat_rotation(
     env,
@@ -98,21 +95,11 @@ def randomize_camera_focal_length(
         focal_length_range: Range of focal lengths in mm (default 12-15mm).
             Lower = wider FOV, higher = narrower FOV.
     """
-    camera = env.scene[asset_cfg.name]
-    camera_prim_path = camera.cfg.prim_path.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
-    
     focal_length = math_utils.sample_uniform(
         focal_length_range[0], focal_length_range[1], (1,), device="cpu"
     ).item()
-    
-    camera_prims = sim_utils.find_matching_prims(camera_prim_path)
-    
-    with Sdf.ChangeBlock():
-        for prim in camera_prims:
-            if prim.IsValid():
-                focal_attr = prim.GetAttribute("focalLength")
-                if focal_attr.IsValid():
-                    focal_attr.Set(focal_length)
+    set_camera_focal_length(env, asset_cfg, focal_length)
+    return float(focal_length)
 
 
 # Cache for storing default poses read from USD
@@ -144,61 +131,17 @@ def randomize_camera_pose(
     if not prims:
         return
     
-    # Read and cache default pose from first prim on first call
-    if prim_path_pattern not in _default_poses_cache:
-        prim = prims[0]
-        translate_attr = prim.GetAttribute("xformOp:translate")
-        orient_attr = prim.GetAttribute("xformOp:orient")
-        
-        default_pos = (0.0, 0.0, 0.0)
-        default_quat = (1.0, 0.0, 0.0, 0.0)  # wxyz identity
-        
-        if translate_attr.IsValid():
-            val = translate_attr.Get()
-            if val is not None:
-                default_pos = (val[0], val[1], val[2])
-        
-        if orient_attr.IsValid():
-            val = orient_attr.Get()
-            if val is not None:
-                default_quat = (val.GetReal(), val.GetImaginary()[0], val.GetImaginary()[1], val.GetImaginary()[2])
-        
-        _default_poses_cache[prim_path_pattern] = {"pos": default_pos, "quat": default_quat}
-    
-    base_pos = _default_poses_cache[prim_path_pattern]["pos"]
-    base_quat = _default_poses_cache[prim_path_pattern]["quat"]
-    
     # Sample random offsets
-    x = base_pos[0] + math_utils.sample_uniform(*pos_range.get("x", (0, 0)), (1,), device="cpu").item()
-    y = base_pos[1] + math_utils.sample_uniform(*pos_range.get("y", (0, 0)), (1,), device="cpu").item()
-    z = base_pos[2] + math_utils.sample_uniform(*pos_range.get("z", (0, 0)), (1,), device="cpu").item()
-    
-    # Sample rotation offsets and combine with base quaternion
-    roll = math_utils.sample_uniform(*rot_range.get("roll", (0, 0)), (1,), device="cpu").item()
-    pitch = math_utils.sample_uniform(*rot_range.get("pitch", (0, 0)), (1,), device="cpu").item()
-    yaw = math_utils.sample_uniform(*rot_range.get("yaw", (0, 0)), (1,), device="cpu").item()
-    
-    delta_quat = math_utils.quat_from_euler_xyz(
-        torch.tensor([roll]), torch.tensor([pitch]), torch.tensor([yaw])
-    )[0]
-    
-    # Combine base quaternion with delta
-    base_quat_tensor = torch.tensor([base_quat])
-    final_quat = math_utils.quat_mul(base_quat_tensor, delta_quat.unsqueeze(0))[0]
-    
-    with Sdf.ChangeBlock():
-        for prim in prims:
-            if prim.IsValid():
-                # Set translation
-                translate_attr = prim.GetAttribute("xformOp:translate")
-                if translate_attr.IsValid():
-                    translate_attr.Set(Gf.Vec3d(x, y, z))
-                # Set orientation
-                orient_attr = prim.GetAttribute("xformOp:orient")
-                if orient_attr.IsValid():
-                    orient_attr.Set(Gf.Quatd(
-                        final_quat[0].item(), final_quat[1].item(), final_quat[2].item(), final_quat[3].item()
-                    ))
+    pos_offset = {
+        axis: math_utils.sample_uniform(*pos_range.get(axis, (0, 0)), (1,), device="cpu").item()
+        for axis in ("x", "y", "z")
+    }
+    rot_offset = {
+        axis: math_utils.sample_uniform(*rot_range.get(axis, (0, 0)), (1,), device="cpu").item()
+        for axis in ("roll", "pitch", "yaw")
+    }
+    set_camera_pose_offset(env, prim_path_pattern, pos_offset, rot_offset)
+    return pos_offset, rot_offset
 
 
 def randomize_light_exposure(
@@ -208,16 +151,9 @@ def randomize_light_exposure(
     asset_cfg: SceneEntityCfg = None,
 ):
 
-    stage = get_current_stage()
-    asset = env.scene[asset_cfg.name]
-    asset_prim_path = asset.prim_paths[0]
-
     exposure = math_utils.sample_uniform(*exposure_range, (1,), device="cpu").item()
-
-    with Sdf.ChangeBlock():
-        prim = stage.GetPrimAtPath(asset_prim_path)
-        if prim.IsValid():
-            prim.GetAttribute("inputs:exposure").Set(exposure)
+    set_light_exposure(env, env_ids, exposure, asset_cfg)
+    return float(exposure)
 
 
 def randomize_sky_light(
@@ -554,51 +490,27 @@ def reset_cube_from_recorded_starts(
 
 
 def randomize_cube_color(env, env_ids, colors):
-    """Set the bound live cube surface shader; remember the rendered colour."""
-    from pxr import Usd, UsdShade
-
+    """Pick a random palette colour per env, apply it, and return the chosen names."""
     if env_ids is None:
         env_ids = torch.arange(env.num_envs, device=env.device)
-    asset = env.scene["blue_cube"]
-    stage = get_current_stage()
     names = list(colors)
     if not names:
         raise ValueError('Cube colour palette must not be empty')
     if not hasattr(env, "_pick_place_cube_color"):
         env._pick_place_cube_color = ["blue"] * env.num_envs
+    selected_names = []
     for index in env_ids.tolist():
         name = names[torch.randint(len(names), (1,)).item()]
-        path = asset.root_physx_view.prim_paths[index]
-        root = stage.GetPrimAtPath(path)
-        shaders = {}
-        for prim in Usd.PrimRange(root):
-            material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
-            if material:
-                shader, _, _ = material.ComputeSurfaceSource()
-                if shader:
-                    shaders[str(shader.GetPath())] = shader
-        if not shaders:
-            raise RuntimeError(f'No bound surface shader found for cube at {path}')
-        for shader in shaders.values():
-            diffuse = shader.GetInput('diffuseColor')
-            if not diffuse:
-                raise RuntimeError(f'Cube shader {shader.GetPath()} has no diffuseColor input')
-            diffuse.Set(Gf.Vec3f(*colors[name]))
-        env._pick_place_cube_color[index] = name
+        set_cube_color(env, torch.tensor([index], device=env.device), colors[name], name)
+        selected_names.append(name)
+    return selected_names
 
 
 def randomize_pick_place_room_light(env, env_ids, exposure_range):
     """Reuse light exposure DR on MyRoom's startup-created measured tube light."""
-    from types import SimpleNamespace
-
-    stage = get_current_stage()
-    for index in env_ids.tolist():
-        path = env.scene["room"].prim_paths[index] + "/Room/Lighting/Tubelight"
-        if not stage.GetPrimAtPath(path).IsValid():
-            # Custom ROOM_USD_PATH may not have the measured room's tube light.
-            continue
-        view = SimpleNamespace(scene={"light": SimpleNamespace(prim_paths=[path])})
-        randomize_light_exposure(view, env_ids, exposure_range, SceneEntityCfg("light"))
+    exposure = math_utils.sample_uniform(*exposure_range, (1,), device="cpu").item()
+    set_pick_place_room_light(env, env_ids, exposure)
+    return float(exposure)
 
 
 def check_pick_place_eval_event_order(env, env_ids):
@@ -630,3 +542,131 @@ def sync_pick_place_camera_intrinsics(env, env_ids):
             scale = prim.GetAttribute('focalLength').Get() / camera.cfg.spawn.focal_length
             for axis in ('fx', 'fy'):
                 prim.GetAttribute('omni:lensdistortion:opencvPinhole:' + axis).Set(calibration[axis] * scale)
+
+def set_robot_color(env, rgb: tuple[float, float, float]):
+    """Set color of the arm to a desired RGB value.(for domain randomization)"""
+    with Sdf.ChangeBlock():
+        robot = env.scene["robot"] 
+        material_prim_path = robot.cfg.prim_path + "/Looks/material_a_3d_printed/Shader" 
+        material_prim = sim_utils.find_matching_prims(material_prim_path)[0]
+        material_prim.GetAttribute("inputs:diffuse_color_constant").Set(rgb)
+
+
+def set_cube_color(env, env_ids, rgb: tuple[float, float, float], name):
+    from pxr import Usd, UsdShade
+
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    asset = env.scene["blue_cube"]
+    stage = get_current_stage()
+    if not hasattr(env, "_pick_place_cube_color"):
+        env._pick_place_cube_color = ["blue"] * env.num_envs
+
+    for index in env_ids.tolist():
+        path = asset.root_physx_view.prim_paths[index]
+        root = stage.GetPrimAtPath(path)
+        shaders = {}
+        for prim in Usd.PrimRange(root):
+            material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+            if material:
+                shader, _, _ = material.ComputeSurfaceSource()
+                if shader:
+                    shaders[str(shader.GetPath())] = shader
+        if not shaders:
+            raise RuntimeError(f"No bound surface shader found for cube at {path}")
+        for shader in shaders.values():
+            diffuse = shader.GetInput("diffuseColor")
+            if not diffuse:
+                raise RuntimeError(f"Cube shader {shader.GetPath()} has no diffuseColor input")
+            diffuse.Set(Gf.Vec3f(*rgb))
+        env._pick_place_cube_color[index] = name
+
+
+def set_light_exposure(env, env_ids, exposure, asset_cfg: SceneEntityCfg):
+    """Set one exposure value on the configured light."""
+    stage = get_current_stage()
+    asset = env.scene[asset_cfg.name]
+    for asset_prim_path in asset.prim_paths:
+        prim = stage.GetPrimAtPath(asset_prim_path)
+        if prim.IsValid():
+            prim.GetAttribute("inputs:exposure").Set(exposure)
+
+
+def set_pick_place_room_light(env, env_ids, exposure):
+    """Set exposure on each measured room tube light that exists."""
+    from types import SimpleNamespace
+
+    stage = get_current_stage()
+    room = env.scene["room"]
+    for index in env_ids.tolist():
+        path = room.prim_paths[index] + "/Room/Lighting/Tubelight"
+        if stage.GetPrimAtPath(path).IsValid():
+            view = SimpleNamespace(scene={"light": SimpleNamespace(prim_paths=[path])})
+            set_light_exposure(view, env_ids, exposure, SceneEntityCfg("light"))
+
+
+def get_camera_base_pose(env, prim_path_pattern):
+    """Read and cache the original camera pose for an offset randomizer."""
+    if prim_path_pattern not in _default_poses_cache:
+        prim_path = prim_path_pattern.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
+        prims = sim_utils.find_matching_prims(prim_path)
+        if not prims:
+            return None
+        prim = prims[0]
+        translate_attr = prim.GetAttribute("xformOp:translate")
+        orient_attr = prim.GetAttribute("xformOp:orient")
+        default_pos = (0.0, 0.0, 0.0)
+        default_quat = (1.0, 0.0, 0.0, 0.0)
+        if translate_attr.IsValid() and translate_attr.Get() is not None:
+            value = translate_attr.Get()
+            default_pos = (value[0], value[1], value[2])
+        if orient_attr.IsValid() and orient_attr.Get() is not None:
+            value = orient_attr.Get()
+            default_quat = (
+                value.GetReal(), value.GetImaginary()[0],
+                value.GetImaginary()[1], value.GetImaginary()[2],
+            )
+        _default_poses_cache[prim_path_pattern] = {"pos": default_pos, "quat": default_quat}
+    return _default_poses_cache[prim_path_pattern]
+
+
+def set_camera_pose_offset(env, prim_path_pattern, pos_offset: dict, rot_offset: dict):
+    """Apply a position and Euler-angle offset to the camera's base pose."""
+    prim_path = prim_path_pattern.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
+    prims = sim_utils.find_matching_prims(prim_path)
+    base_pose = get_camera_base_pose(env, prim_path_pattern)
+    if not prims or base_pose is None:
+        return
+    base_pos = base_pose["pos"]
+    base_quat = base_pose["quat"]
+    position = tuple(
+        base_pos[index] + pos_offset.get(axis, 0.0)
+        for index, axis in enumerate(("x", "y", "z"))
+    )
+    delta_quat = math_utils.quat_from_euler_xyz(
+        torch.tensor([rot_offset.get("roll", 0.0)]),
+        torch.tensor([rot_offset.get("pitch", 0.0)]),
+        torch.tensor([rot_offset.get("yaw", 0.0)]),
+    )[0]
+    final_quat = math_utils.quat_mul(torch.tensor([base_quat]), delta_quat.unsqueeze(0))[0]
+    with Sdf.ChangeBlock():
+        for prim in prims:
+            if prim.IsValid():
+                translate_attr = prim.GetAttribute("xformOp:translate")
+                if translate_attr.IsValid():
+                    translate_attr.Set(Gf.Vec3d(*position))
+                orient_attr = prim.GetAttribute("xformOp:orient")
+                if orient_attr.IsValid():
+                    orient_attr.Set(Gf.Quatd(*[final_quat[index].item() for index in range(4)]))
+
+
+def set_camera_focal_length(env, asset_cfg: SceneEntityCfg, focal_length):
+    """Set one focal length on every matching camera prim."""
+    camera = env.scene[asset_cfg.name]
+    camera_prim_path = camera.cfg.prim_path.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
+    with Sdf.ChangeBlock():
+        for prim in sim_utils.find_matching_prims(camera_prim_path):
+            if prim.IsValid():
+                focal_attr = prim.GetAttribute("focalLength")
+                if focal_attr.IsValid():
+                    focal_attr.Set(focal_length)
