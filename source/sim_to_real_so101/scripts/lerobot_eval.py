@@ -60,6 +60,9 @@ parser.add_argument("--rerun", action="store_true", default=False, help="Enable 
 parser.add_argument("--cube_starts", help="Directory containing episode_*.json cube trajectories")
 parser.add_argument("--start_mode", choices=("cycle", "random"), default="cycle")
 parser.add_argument("--random_fraction", type=float, default=0.0)
+parser.add_argument("--robot_start", choices=("recorded", "default"), default="recorded",
+                    help="recorded: arm starts at each episode's recorded first-frame state (demo start pose); "
+                         "default: the scene's calibrated reset pose")
 parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON colour to instruction map")
 parser.add_argument("--results_json", type=Path)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
@@ -113,7 +116,8 @@ def _evaluate():
         if env_cfg.scene.num_envs != 1:
             raise ValueError("Pick-place policy evaluation requires --num_envs 1 (one remote policy state)")
         params = env_cfg.events.spawn_cube.params
-        params.update(mode=args_cli.start_mode, random_fraction=args_cli.random_fraction, seed=args_cli.seed)
+        params.update(mode=args_cli.start_mode, random_fraction=args_cli.random_fraction, seed=args_cli.seed,
+                      reset_robot=args_cli.robot_start == "recorded")
         if args_cli.cube_starts:
             params["starts_dir"] = args_cli.cube_starts
     elif args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:

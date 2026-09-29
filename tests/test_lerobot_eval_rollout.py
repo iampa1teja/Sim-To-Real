@@ -73,7 +73,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
         cfg = SimpleNamespace(scene=SimpleNamespace(num_envs=1), events=SimpleNamespace(spawn_cube=SimpleNamespace(params={})))
         args = SimpleNamespace(task='Lerobot-So101-Teleop-Pick-Place-Eval', device='cpu', num_envs=1,
                                disable_fabric=False, seed=17, num_episodes=3, random_fraction=0.,
-                               start_mode='cycle', cube_starts='/fake/metadata', rename_map=None,
+                               start_mode='cycle', robot_start='recorded', cube_starts='/fake/metadata', rename_map=None,
                                lang_instruction_by_color={'blue': 'blue task', 'red': 'red task'},
                                lang_instruction='fallback', results_json=path, checkpoint='checkpoint-10',
                                rerun=False, policy_host='localhost', policy_port=5555, action_horizon=16)
@@ -106,6 +106,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(env.explicit_resets, 1)
         self.assertEqual(env.episode, 3)
         self.assertEqual(cfg.events.spawn_cube.params['starts_dir'], '/fake/metadata')
+        self.assertIs(cfg.events.spawn_cube.params['reset_robot'], True)
         self.assertEqual([row['start_index'] for row in report['episodes']], [0, 1, 2])
         self.assertEqual([row['instruction'] for row in report['episodes']], ['blue task', 'red task', 'blue task'])
         self.assertEqual([row['success'] for row in report['episodes']], [True, False, True])

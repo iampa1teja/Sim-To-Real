@@ -132,6 +132,15 @@ fraction of a small run. Recorded Z is discarded: the live table support is solv
 along base Z while preserving recorded XY/orientation. Overlap with the box fails
 explicitly for recorded starts; random candidates are rejected (limit 10,000 tries).
 
+**Arm start pose.** By default (`--robot_start recorded`) the arm is also reset to the
+same episode's recorded first-frame `observation.state`, read from the dataset that owns
+`pick_place_meta/` (its `data/*/*.parquet`) and converted to sim radians with the same
+calibrated joint mapping the recorder used; random starts use the mean recorded state.
+This matters: teleoperated demos start wherever the leader arm rested, which can be far
+from the scene's calibrated reset pose, and a policy started off its training
+distribution moves erratically. `--robot_start default` restores the calibrated reset
+pose. On the real robot, start the arm from the same rest pose as the demonstrations.
+
 Zones divide recorded XY bounds into thirds. N/M/F means near/middle/far from the
 base; L/C/R is left/centre/right when looking away from the base. The away axis is
 derived from the bounding-box centre, not assumed to be world X. Degenerate axes
@@ -194,7 +203,7 @@ lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
 ```
 
 The direct parser additionally accepts `--disable_fabric`, `--rerun`,
-`--start_mode` (cycle), `--random_fraction` (0.0), `--lang_instruction_by_color`
+`--start_mode` (cycle), `--random_fraction` (0.0), `--robot_start` (recorded), `--lang_instruction_by_color`
 (JSON), and the inherited [Isaac launcher flags](04-recording.md#inherited-isaac-launcher-options).
 Its defaults differ from the host runner: MyRoom task, 10 episodes, seed 1984,
 no rename map/results path/cube-start directory, `num_envs=None`, and language

@@ -262,7 +262,9 @@ class PickPlaceEvalEventsCfg(PickPlaceEventsCfg):
     spawn_cube = EventTerm(
         func=reset_cube_from_recorded_starts, mode="reset",
         params={"asset_cfg": SceneEntityCfg("blue_cube"), "starts_dir": None,
-                "mode": "cycle", "random_fraction": 0.0, "seed": None},
+                "mode": "cycle", "random_fraction": 0.0, "seed": None,
+                # Start the arm at each episode's recorded first-frame state (demo start pose).
+                "reset_robot": True},
     )
 
 

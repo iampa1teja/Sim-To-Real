@@ -44,13 +44,87 @@ def load_starts(directory):
     return starts
 
 
+def start_episode_ids(directory):
+    """Episode index of each recorded start, in the same order as load_starts()."""
+    ids = []
+    for path in sorted(Path(directory).glob("episode_*.json")):
+        try:
+            ids.append(int(path.stem.split("_", 1)[1]))
+        except ValueError as exc:
+            raise ValueError(f"Cannot read the episode index from {path.name}") from exc
+    return ids
+
+
+# LeRobot joint order and the USD joint limits (degrees) used by LeRobotSO101Interface.
+SO101_JOINTS = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
+SO101_USD_JOINTS = ("Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "Jaw")
+SO101_USD_LIMITS_DEG = {
+    "shoulder_pan": (-110.0, 110.0), "shoulder_lift": (-100.0, 100.0), "elbow_flex": (-100.0, 90.0),
+    "wrist_flex": (-95.0, 95.0), "wrist_roll": (-160.0, 160.0), "gripper": (-10.0, 100.0),
+}
+
+
+def dataset_state_to_radians(state, joint_mapping=None):
+    """Dataset units (observation.state) -> sim joint radians, in SO101_JOINTS order.
+
+    Same maths as LeRobotSO101Interface.get_mapped_actions_vectorized: arm joints map
+    -100..100 and the gripper 0..100 onto the calibrated mapping span (joint_mapping
+    overrides the USD span per joint), then clamp to the USD limits.
+    """
+    state = np.asarray(state, dtype=float)
+    if state.shape != (6,) or not np.isfinite(state).all():
+        raise ValueError(f"Robot state must be six finite values, got {state!r}")
+    mapping = {name: SO101_USD_LIMITS_DEG[name] for name in SO101_JOINTS}
+    for name, span in (joint_mapping or {}).items():
+        if name not in mapping:
+            raise ValueError(f"Unknown joint mapping: {name}")
+        mapping[name] = (float(span["joint_min"]), float(span["joint_max"]))
+    radians = np.empty(6)
+    for i, name in enumerate(SO101_JOINTS):
+        normalized = state[i] / 100.0 if name == "gripper" else (state[i] + 100.0) / 200.0
+        low, high = mapping[name]
+        usd_low, usd_high = SO101_USD_LIMITS_DEG[name]
+        degrees = np.clip(low + normalized * (high - low), usd_low, usd_high)
+        radians[i] = np.deg2rad(degrees)
+    return radians
+
+
+def load_robot_starts(dataset_root, episode_ids):
+    """First-frame observation.state of each episode, read from the dataset parquet files."""
+    import pyarrow.parquet as pq
+
+    paths = sorted(Path(dataset_root).glob("data/*/*.parquet"))
+    if not paths:
+        raise ValueError(f"No data parquet files under {dataset_root}; cannot read recorded robot starts")
+    first = {}
+    for path in paths:
+        table = pq.read_table(path, columns=["episode_index", "frame_index", "observation.state"])
+        episodes = table.column("episode_index").to_pylist()
+        frames = table.column("frame_index").to_pylist()
+        states = table.column("observation.state").to_pylist()
+        for episode, frame, state in zip(episodes, frames, states):
+            if frame == 0:
+                first[int(episode)] = np.asarray(state, dtype=float)
+    missing = [e for e in episode_ids if e not in first]
+    if missing:
+        raise ValueError(f"No first-frame robot state in {dataset_root} for episodes {missing}")
+    for episode in episode_ids:
+        if first[episode].shape != (6,) or not np.isfinite(first[episode]).all():
+            raise ValueError(f"Invalid first-frame robot state for episode {episode}")
+    return [first[e] for e in episode_ids]
+
+
 class RecordedStarts:
-    def __init__(self, directory, mode='cycle', random_fraction=0.0, seed=None):
+    def __init__(self, directory, mode='cycle', random_fraction=0.0, seed=None, robot_states_root=None):
         if mode not in ('cycle', 'random'):
             raise ValueError('start mode must be cycle or random')
         if not 0 <= random_fraction <= 1:
             raise ValueError('random_fraction must be in [0, 1]')
         self.starts = load_starts(directory)
+        self.episode_ids = start_episode_ids(directory)
+        # Optional: the arm's recorded first-frame state, paired with each cube start.
+        self.robot_states = (load_robot_starts(robot_states_root, self.episode_ids)
+                             if robot_states_root is not None else None)
         xy = np.array([p[:2] for p, _ in self.starts])
         self.low, self.high = xy.min(axis=0), xy.max(axis=0)
         # The axis with the largest displacement of the bounding-box centre
@@ -94,6 +168,14 @@ class RecordedStarts:
             index = self.order.pop()
         position, orientation = self.starts[index]
         return index, position.copy(), orientation.copy(), self.zone(position[:2])
+
+    def robot_state(self, index):
+        """Recorded first-frame arm state (dataset units) for start `index`; -1 (random) -> mean."""
+        if self.robot_states is None:
+            raise ValueError('Recorded robot starts were not loaded (robot_states_root is None)')
+        if index == -1:
+            return np.mean(self.robot_states, axis=0)
+        return self.robot_states[index].copy()
 
 
 def upright_orientation(base_orientation, plane, yaw_orientation):
