@@ -273,3 +273,4 @@ docker/env
 !/tests/test_pick_place_eval.py
 !/tests/test_eval_pick_place_script.py
 !/tests/test_lerobot_eval_rollout.py
+!/tests/test_prepare_pick_place_gr00t.py
