@@ -122,3 +122,12 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.pick_place_env_cfg:PickPlaceEvalEnvCfg",
     },
 )
+
+gym.register(
+    id="Lerobot-So101-Teleop-Pick-Place-DR-Eval",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.pick_place_env_cfg:PickPlaceEvalDREnvCfg",
+    },
+)

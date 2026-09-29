@@ -483,3 +483,150 @@ def reset_object_pose(
         reset_pick_place_state(env, env_ids, asset_cfg.name)
         if "contact_grasp" in env.scene.keys():
             env.scene["contact_grasp"].reset(env_ids)
+
+
+def reset_cube_from_recorded_starts(
+    env, env_ids, asset_cfg, starts_dir, mode="cycle", random_fraction=0.0, seed=None,
+):
+    """Evaluation-only placement from base-link frame trajectory starts."""
+    from sim_to_real_so101.utils.pick_place_eval import (
+        RecordedStarts, resting_pose, rotation_matrix, footprint, footprints_overlap, upright_orientation,
+    )
+    from sim_to_real_so101.tasks.pick_place_env_cfg import WHITE_BOX_SIZE
+    from .terms import reset_pick_place_state
+
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    if not len(env_ids):
+        return
+    starts_dir = starts_dir or os.environ.get("PICK_PLACE_EVAL_STARTS")
+    seed = seed if seed is not None else env.cfg.seed
+    key = (starts_dir, mode, random_fraction, seed)
+    if getattr(env, "_pick_place_starts_key", None) != key:
+        env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed)
+        env._pick_place_starts_key = key
+    sampler = env._pick_place_starts
+    asset, robot, box = env.scene[asset_cfg.name], env.scene["robot"], env.scene["white_box"]
+    env.sim.forward()
+    base_ids, _ = robot.find_bodies("base")
+    if len(base_ids) != 1:
+        raise ValueError('Recorded starts require exactly one robot body named base')
+    base_id = base_ids[0]
+    size = asset.cfg.spawn.size
+    stage = get_current_stage()
+    if not hasattr(env, "_pick_place_start_index"):
+        env._pick_place_start_index = [-1] * env.num_envs
+        env._pick_place_start_zone = [None] * env.num_envs
+        env._pick_place_cube_color = ["blue"] * env.num_envs
+    positions, orientations = [], []
+    for index in env_ids.tolist():
+        base_p = robot.data.body_pos_w[index, base_id].detach().cpu().numpy()
+        base_q = robot.data.body_quat_w[index, base_id].detach().cpu().numpy()
+        plane = table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]))
+        box_p = box.data.root_pos_w[index].detach().cpu().numpy()
+        box_q = box.data.root_quat_w[index].detach().cpu().numpy()
+        box_polygon = footprint(box_p, rotation_matrix(box_q), WHITE_BOX_SIZE, bottom_origin=True)
+
+        def accepts_random(p, q):
+            q = upright_orientation(base_q, plane, q)
+            world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
+            return not footprints_overlap(footprint(world, rotation, size), box_polygon)
+
+        start, p, q, zone = sampler.sample(accepts_random)
+        if start == -1:
+            q = upright_orientation(base_q, plane, q)
+        world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
+        if start != -1 and footprints_overlap(footprint(world, rotation, size), box_polygon):
+            raise ValueError(f"Recorded start {start} overlaps the live white box; verify the dataset and box pose")
+        positions.append(world)
+        orientations.append(math_utils.quat_mul(
+            torch.as_tensor(base_q, device=env.device),
+            torch.as_tensor(q, device=env.device, dtype=robot.data.body_quat_w.dtype),
+        ))
+        env._pick_place_start_index[index] = start
+        env._pick_place_start_zone[index] = zone
+    pose = torch.cat((torch.as_tensor(np.array(positions), device=env.device, dtype=asset.data.root_pos_w.dtype),
+                      torch.stack(orientations)), dim=-1)
+    asset.write_root_pose_to_sim(pose, env_ids=env_ids)
+    asset.write_root_velocity_to_sim(torch.zeros((len(env_ids), 6), device=env.device), env_ids=env_ids)
+    reset_pick_place_state(env, env_ids, asset_cfg.name)
+    env.scene["contact_grasp"].reset(env_ids)
+
+
+def randomize_cube_color(env, env_ids, colors):
+    """Set the bound live cube surface shader; remember the rendered colour."""
+    from pxr import Usd, UsdShade
+
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+    asset = env.scene["blue_cube"]
+    stage = get_current_stage()
+    names = list(colors)
+    if not names:
+        raise ValueError('Cube colour palette must not be empty')
+    if not hasattr(env, "_pick_place_cube_color"):
+        env._pick_place_cube_color = ["blue"] * env.num_envs
+    for index in env_ids.tolist():
+        name = names[torch.randint(len(names), (1,)).item()]
+        path = asset.root_physx_view.prim_paths[index]
+        root = stage.GetPrimAtPath(path)
+        shaders = {}
+        for prim in Usd.PrimRange(root):
+            material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+            if material:
+                shader, _, _ = material.ComputeSurfaceSource()
+                if shader:
+                    shaders[str(shader.GetPath())] = shader
+        if not shaders:
+            raise RuntimeError(f'No bound surface shader found for cube at {path}')
+        for shader in shaders.values():
+            diffuse = shader.GetInput('diffuseColor')
+            if not diffuse:
+                raise RuntimeError(f'Cube shader {shader.GetPath()} has no diffuseColor input')
+            diffuse.Set(Gf.Vec3f(*colors[name]))
+        env._pick_place_cube_color[index] = name
+
+
+def randomize_pick_place_room_light(env, env_ids, exposure_range):
+    """Reuse light exposure DR on MyRoom's startup-created measured tube light."""
+    from types import SimpleNamespace
+
+    stage = get_current_stage()
+    for index in env_ids.tolist():
+        path = env.scene["room"].prim_paths[index] + "/Room/Lighting/Tubelight"
+        if not stage.GetPrimAtPath(path).IsValid():
+            # Custom ROOM_USD_PATH may not have the measured room's tube light.
+            continue
+        view = SimpleNamespace(scene={"light": SimpleNamespace(prim_paths=[path])})
+        randomize_light_exposure(view, env_ids, exposure_range, SceneEntityCfg("light"))
+
+
+def check_pick_place_eval_event_order(env, env_ids):
+    """Check the actual manager's prepared reset order at environment creation."""
+    from sim_to_real_so101.utils.pick_place_eval import RecordedStarts
+
+    params = env.event_manager.get_term_cfg("spawn_cube").params
+    directory = params["starts_dir"] or os.environ.get("PICK_PLACE_EVAL_STARTS")
+    seed = params["seed"] if params["seed"] is not None else env.cfg.seed
+    params["starts_dir"], params["seed"] = directory, seed
+    env._pick_place_starts = RecordedStarts(directory, params["mode"], params["random_fraction"], seed)
+    env._pick_place_starts_key = (directory, params["mode"], params["random_fraction"], seed)
+    names = env.event_manager.active_terms['reset']
+    if not names.index('reset_robot_position') < names.index('spawn_cube') < names.index('reset_tracking'):
+        raise RuntimeError(f'Invalid pick-place reset order: {names}')
+    if 'eval_robot_color' in names and not names.index('reset_set_robot_visual_material') < names.index('eval_robot_color'):
+        raise RuntimeError(f'Robot colour DR would be overwritten: {names}')
+    print(f'[Pick-place eval] Reset event order: {names}')
+
+
+def sync_pick_place_camera_intrinsics(env, env_ids):
+    """Make reused focal-length DR affect MyRoom's OpenCV RTX lens model too."""
+    for name in ("camera_realsense_rgb", "camera_wrist_cam", "realsense_depth"):
+        camera = env.scene[name]
+        calibration = camera.cfg.spawn.intrinsics
+        if calibration is None:
+            continue
+        for prim in sim_utils.find_matching_prims(camera.cfg.prim_path):
+            scale = prim.GetAttribute('focalLength').Get() / camera.cfg.spawn.focal_length
+            for axis in ('fx', 'fy'):
+                prim.GetAttribute('omni:lensdistortion:opencvPinhole:' + axis).Set(calibration[axis] * scale)

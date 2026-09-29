@@ -12,8 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib
 import argparse
 import json
+import os
+from pathlib import Path
 import random
 from tqdm import tqdm
 
@@ -54,6 +57,13 @@ parser.add_argument(
 )
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
 
+parser.add_argument("--cube_starts", help="Directory containing episode_*.json cube trajectories")
+parser.add_argument("--start_mode", choices=("cycle", "random"), default="cycle")
+parser.add_argument("--random_fraction", type=float, default=0.0)
+parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON colour to instruction map")
+parser.add_argument("--results_json", type=Path)
+parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -74,10 +84,10 @@ import gymnasium as gym
 import numpy as np
 import torch
 
-import isaaclab_tasks  # noqa: F401
+importlib.import_module("isaaclab_tasks")
 from isaaclab_tasks.utils import parse_env_cfg
 
-import sim_to_real_so101.tasks  # noqa: F401
+importlib.import_module("sim_to_real_so101.tasks")
 from sim_to_real_so101.utils.keyboard import KeyboardControl
 from sim_to_real_so101.utils.lerobot_interface import (
     LeRobotSO101Interface,
@@ -85,7 +95,7 @@ from sim_to_real_so101.utils.lerobot_interface import (
 )
 
 
-def main():
+def _evaluate():
     keyboard_control = KeyboardControl()
 
     # parse configuration
@@ -96,6 +106,18 @@ def main():
         use_fabric=not args_cli.disable_fabric
     )
     env_cfg.seed = args_cli.seed
+    pick_place = args_cli.task in ("Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")
+    if args_cli.num_episodes < 1 or not 0 <= args_cli.random_fraction <= 1:
+        raise ValueError("num_episodes must be positive and random_fraction must be in [0, 1]")
+    if pick_place:
+        if env_cfg.scene.num_envs != 1:
+            raise ValueError("Pick-place policy evaluation requires --num_envs 1 (one remote policy state)")
+        params = env_cfg.events.spawn_cube.params
+        params.update(mode=args_cli.start_mode, random_fraction=args_cli.random_fraction, seed=args_cli.seed)
+        if args_cli.cube_starts:
+            params["starts_dir"] = args_cli.cube_starts
+    elif args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
+        raise ValueError("Cube starts and colour instructions require a pick-place Eval task")
 
     # Seed all RNGs for reproducible episode resets
     random.seed(args_cli.seed)
@@ -111,7 +133,7 @@ def main():
     # print info (this is vectorized environment)
     print(f"[INFO]: Gym observation space: {env.observation_space}")
     print(f"[INFO]: Gym action space: {env.action_space}")
-    print(f"[INFO]: Click 'R' to reset the world")
+    print("[INFO]: Click 'R' to reset the world")
 
     # cameras
     cameras = {}
@@ -124,7 +146,7 @@ def main():
             }
             print(f"[INFO]: Found Camera: {obj.replace('camera_', '')}")
     if len(cameras) == 0:
-        print(f"[Info]: No cameras found - videos will not be recorded")
+        print("[Info]: No cameras found - videos will not be recorded")
 
     # lerobot interface (provides sim↔real coordinate transforms)
     rename_map = json.loads(args_cli.rename_map) if args_cli.rename_map else None
@@ -151,105 +173,93 @@ def main():
     )
     policy.connect()
 
-    # reset environment
-    obs, _ = env.reset()
-    policy.reset()
+    from sim_to_real_so101.utils.pick_place_eval import select_instruction, results_report
 
-    # simulate environment
-    actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-    initial_action = torch.tensor(
-        [-0.2736, -0.6109, -0.0745, 1.5148, -1.6034, -0.1465],
-        device=env.unwrapped.device,
-    )
+    def episode_metadata():
+        raw = env.unwrapped
+        index = getattr(raw, "_pick_place_start_index", [None])[0]
+        color = getattr(raw, "_pick_place_cube_color", ["unknown"])[0]
+        instruction = select_instruction(color, args_cli.lang_instruction, args_cli.lang_instruction_by_color)
+        policy._lang_instruction = instruction
+        return {"start_index": index,
+                "start_kind": "random" if index == -1 else "recorded" if index is not None else "unknown",
+                "zone": getattr(raw, "_pick_place_start_zone", ["unknown"])[0],
+                "cube_color": color, "instruction": instruction}
 
-    step = 0
-    num_episodes = 0
-    num_successes = 0
-    success_rate = 0.0
-
+    # ManagerBasedRLEnv auto-resets on termination. Snapshot metadata BEFORE
+    # stepping, then use the returned reset observation for the next episode.
+    episodes = []
     pbar = None
-
-    while simulation_app.is_running():
-        # run everything in inference mode
-        with torch.inference_mode():
-
-            if step == 0:
-                pbar = tqdm(
-                    total=env.unwrapped.max_episode_length,
-                    desc=f"Rollout (ep {num_episodes + 1}, success: {success_rate:.1f}%)",
-                    unit="step",
-                    bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]'
-                )
-
-            if step < 10:  # warmup, not critical but helps
-                actions[:] = initial_action
-
-            else:
-                joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
-                actions[:] = policy.get_action(joint_positions, obs["visual"], log=True)
-
-            obs, rewards, terminated, truncated, info = env.step(actions)
-
-            step += 1
-
-            # Update progress bar
-            if pbar is not None:
+    try:
+        obs, _ = env.reset()
+        policy.reset()
+        metadata = episode_metadata()
+        actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
+        initial_action = torch.tensor(
+            [-0.2736, -0.6109, -0.0745, 1.5148, -1.6034, -0.1465],
+            device=env.unwrapped.device,
+        )
+        step = 0
+        while simulation_app.is_running() and len(episodes) < args_cli.num_episodes:
+            with torch.inference_mode():
+                if step == 0:
+                    pbar = tqdm(total=env.unwrapped.max_episode_length,
+                                desc=f"Rollout (ep {len(episodes) + 1})", unit="step")
+                if step < 10:
+                    actions[:] = initial_action
+                else:
+                    joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
+                    actions[:] = policy.get_action(joint_positions, obs["visual"], log=True)
+                obs, _, terminated, truncated, _ = env.step(actions)
+                step += 1
                 pbar.update(1)
-
-            # Check for episode termination
-            is_terminated = terminated.item() if terminated.numel() == 1 else terminated.any().item()
-            is_truncated = truncated.item() if truncated.numel() == 1 else truncated.any().item()
-
-            if is_terminated or is_truncated:
-                if pbar is not None:
+                is_terminated = bool(terminated.any().item())
+                is_truncated = bool(truncated.any().item())
+                if is_terminated or is_truncated:
                     pbar.close()
                     pbar = None
-
-                num_episodes += 1
-
-                if is_terminated and not is_truncated:
-                    num_successes += 1
-
-                success_rate = (num_successes / num_episodes) * 100
-
-                # Reset for next episode
-                obs, _ = env.reset()
-                policy.reset()
-                step = 0
-
-                continue
-
-            # Manual reset with 'R' key
-            if keyboard_control.reset_world:
-                keyboard_control.reset_world = False
-                if pbar is not None:
+                    row = {**metadata, "episode": len(episodes), "steps": step,
+                           "success": is_terminated and not is_truncated}
+                    episodes.append(row)
+                    start = "random" if row['start_index'] == -1 else row['start_index']
+                    print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
+                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}")
+                    if len(episodes) == args_cli.num_episodes:
+                        break
+                    policy.reset()
+                    metadata = episode_metadata()
+                    step = 0
+                elif keyboard_control.reset_world:
+                    keyboard_control.reset_world = False
                     pbar.close()
                     pbar = None
+                    print(f"[MANUAL RESET] Episode interrupted at step {step}; excluded from results")
+                    obs, _ = env.reset()
+                    policy.reset()
+                    metadata = episode_metadata()
+                    step = 0
+    finally:
+        if pbar is not None:
+            pbar.close()
+        report = results_report(episodes, args_cli.task, args_cli.checkpoint, args_cli.seed)
+        report['requested_episodes'] = args_cli.num_episodes
+        report['complete'] = len(episodes) == args_cli.num_episodes
+        print(json.dumps(report, indent=2))
+        if args_cli.results_json:
+            args_cli.results_json.parent.mkdir(parents=True, exist_ok=True)
+            args_cli.results_json.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
+            print(f"Results JSON: {args_cli.results_json}")
+        env.close()
+    if len(episodes) != args_cli.num_episodes:
+        raise RuntimeError(f"Evaluation stopped after {len(episodes)}/{args_cli.num_episodes} episodes")
 
-                print(f"[MANUAL RESET] Episode interrupted at step {step}")
-                obs, _ = env.reset()
-                policy.reset()
-                step = 0
-                continue
 
-            if num_episodes >= args_cli.num_episodes:
-                # Close progress bar if still open
-                if pbar is not None:
-                    pbar.close()
-                    pbar = None
-                print(f"[INFO]: Evaluated {args_cli.num_episodes} episodes")
-                print(f"[INFO]: Success Rate: {num_successes}/{args_cli.num_episodes} ({success_rate:.1f}%)")
-                env.close()
-                simulation_app.close()
-
-    env.close()
+def main():
+    try:
+        _evaluate()
+    finally:
+        simulation_app.close()
 
 
 if __name__ == "__main__":
-
     main()
-
-    while True:
-        simulation_app.update()
-
-    simulation_app.close()

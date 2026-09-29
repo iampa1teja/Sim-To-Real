@@ -24,6 +24,15 @@ from .my_room_env_cfg import (
 
 from sim_to_real_so101.mdp import (
     reset_object_pose,
+    reset_cube_from_recorded_starts,
+    randomize_cube_color,
+    randomize_pick_place_room_light,
+    check_pick_place_eval_event_order,
+    randomize_robot_color,
+    ROBOT_COLORS,
+    randomize_camera_pose,
+    randomize_camera_focal_length,
+    sync_pick_place_camera_intrinsics,
     reset_pick_place_state,
     object_grasped,
     object_placed_in_container,
@@ -249,12 +258,65 @@ class PickPlaceEnvCfg(MyRoomEnvCfg):
 
 
 @configclass
+class PickPlaceEvalEventsCfg(PickPlaceEventsCfg):
+    check_eval_order = EventTerm(func=check_pick_place_eval_event_order, mode="startup")
+    # Replacing the inherited field preserves its manager insertion order:
+    # reset_robot_position -> spawn_cube -> reset_tracking.
+    spawn_cube = EventTerm(
+        func=reset_cube_from_recorded_starts, mode="reset",
+        params={"asset_cfg": SceneEntityCfg("blue_cube"), "starts_dir": None,
+                "mode": "cycle", "random_fraction": 0.0, "seed": None},
+    )
+
+
+@configclass
 class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
     """Evaluate grasp-and-place success, with bounded episodes."""
 
+    events: PickPlaceEvalEventsCfg = PickPlaceEvalEventsCfg()
     terminations: PickPlaceTerminationsCfg = PickPlaceTerminationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
         # Match the existing vial evaluation task's 450 control-step horizon.
         self.episode_length_s = 450 * self.decimation * self.sim.dt
+
+
+@configclass
+class PickPlaceEvalDREnvCfg(PickPlaceEvalEnvCfg):
+    """Recorded-start evaluation with the workshop's existing DR ranges."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        # MyRoom has no LightStudio/lightbox_light, sky_light or mat assets.
+        # Skip lightbox exposure, HDRI and mat rotation rather than spawn new
+        # scene geometry/lights. The measured room tube light is handled below.
+        from .task_env_cfg import TaskEventCfg
+        from copy import deepcopy
+        reference_events = TaskEventCfg()
+        # These events append AFTER MyRoom's reset_set_robot_visual_material.
+        self.events.eval_room_light = EventTerm(
+            func=randomize_pick_place_room_light, mode="reset",
+            params={"exposure_range": reference_events.reset_lightbox_light_exposure.params["exposure_range"]},
+        )
+        self.events.eval_robot_color = EventTerm(
+            func=randomize_robot_color, mode="reset",
+            params={"color_names": list(ROBOT_COLORS)},
+        )
+        self.events.eval_cube_color = EventTerm(
+            func=randomize_cube_color, mode="reset",
+            params={"colors": {"blue": CUBE_COLOR, "red": (0.8, 0.05, 0.05)}},
+        )
+        for name in ("camera_realsense_rgb", "camera_wrist_cam", "realsense_depth"):
+            camera = getattr(self.scene, name)
+            pose = deepcopy(reference_events.reset_camera_external_pose.params)
+            pose["prim_path_pattern"] = camera.prim_path
+            setattr(self.events, "eval_pose_" + name,
+                    EventTerm(func=randomize_camera_pose, mode="reset", params=pose))
+            focal = deepcopy(reference_events.reset_camera_ego_fov.params)
+            focal["asset_cfg"] = SceneEntityCfg(name)
+            setattr(self.events, "eval_focal_" + name,
+                    EventTerm(func=randomize_camera_focal_length, mode="reset", params=focal))
+        self.events.eval_sync_camera_intrinsics = EventTerm(
+            func=sync_pick_place_camera_intrinsics, mode="reset",
+        )

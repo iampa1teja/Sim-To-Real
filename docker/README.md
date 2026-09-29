@@ -286,3 +286,41 @@ Warnings are raised if:
 > ![Calibration stats box-and-whisker plot](./calibration_stats.png)
 >
 > *Figure: Per-joint motion range (encoder counts) — median, spread, and outliers across calibration files.*
+
+## Sim evaluation
+
+From the repo root on the robot machine's **host** (Python 3 required):
+
+```bash
+./docker/eval_pick_place.sh --model so101_pick_place_v1/checkpoint-10000 --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 --episodes 20
+```
+
+Prerequisites: the `teleop` container is running using the mounts above, the
+`real-robot` image is built, and the checkpoint is under `MODELS_DIR` (defaults
+here to `~/models`, as in the NVIDIA sim-evaluation course; override with
+`--models_dir ~/sim2real/models`). The dataset needs saved `pick_place_meta`
+sidecars. The script starts a uniquely named GR00T server, waits for port 5555,
+runs evaluation, prints grouped results, and removes its server on exit.
+
+Add `--dr` for camera, lighting, robot-colour and blue/red cube randomization;
+add `--random_fraction 0.25` for held-out random starts. `--gui` enables the
+simulator window. `--dry_run` prints commands without running Docker. To match
+instructions to the rendered cube, pass
+`--lang_by_color '{"blue":"Pick up the blue cube and place it in the white box","red":"Pick up the red cube and place it in the white box"}'`.
+Results are stored in `<dataset>/../eval_results/` (under the existing dataset
+mount for the example above). The console reports the exact container path.
+
+The pinned GR00T revision `ead52833afbbf4243f8cd5e7664f48a94de03b19` uses
+`tyro.cli(ServerConfig)`, with a `port` field, so `--port` is supported:
+[server source](https://github.com/NVIDIA/Isaac-GR00T/blob/ead52833afbbf4243f8cd5e7664f48a94de03b19/gr00t/eval/run_gr00t_server.py).
+The GPU, host-network, privileged, display and volume settings match the
+[course](https://docs.nvidia.com/learning/physical-ai/sim-to-real-so-101/latest/11-sim-evaluation.html)
+and this README. Lifecycle flags use `-d`, `--rm` and a unique name. Server logs are streamed
+to a temporary host file while it runs, so failures remain diagnosable after
+automatic removal; the cleanup trap removes that file as well as the server.
+The client uses the documented Isaac Python wrapper to run the `lerobot_eval`
+module because `docker exec` does not inherit the entrypoint's exported library
+environment. No extra mounts are added.
+
+See [validation and container checks](eval_pick_place_validation.md) for test
+results, both dry runs, and the three checks to run on your GPU machine.

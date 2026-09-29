@@ -266,3 +266,10 @@ docker/env
 # Personal default room package.
 !source/sim_to_real_so101/assets/usd/digital_twin.usdz
 !env setup/mujoco/real_setup_room.xml
+
+# Evaluation contract tests are source artifacts.
+!/tests/
+/tests/*
+!/tests/test_pick_place_eval.py
+!/tests/test_eval_pick_place_script.py
+!/tests/test_lerobot_eval_rollout.py
