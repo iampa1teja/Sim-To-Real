@@ -8,6 +8,9 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+
+from gr00t_model_profiles import PROFILES
 
 import av
 import numpy as np
@@ -16,17 +19,26 @@ from gr00t.data.dataset.lerobot_episode_loader import LeRobotEpisodeLoader
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--dataset', type=Path, default=Path('datasets/pick_place_v1_gr00t'))
 root = parser.parse_args().dataset.resolve()
+report = json.loads((root / 'preparation_report.json').read_text())
+profile_name = report.get('model_profile', 'so100_n16')
+profile = PROFILES[profile_name]
+import gr00t
+groot_root = Path(gr00t.__file__).resolve().parents[1]
+revision = subprocess.check_output(['git', '-C', str(groot_root), 'rev-parse', 'HEAD'], text=True).strip()
+assert revision == profile['revision'] == report['groot_revision'], 'GR00T runtime/profile revision differs'
 for name, expected in json.loads((root / 'prepared_sha256.json').read_text()).items():
     assert hashlib.sha256((root / name).read_bytes()).hexdigest() == expected, name
 spec = importlib.util.spec_from_file_location('pick_place_modality', root / 'so100_config.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
-loader = LeRobotEpisodeLoader(root, module.so100_config, video_backend='ffmpeg')
+loader_kwargs = {'video_backend': 'ffmpeg'} if profile_name == 'so100_n16' else {}
+loader = LeRobotEpisodeLoader(root, module.so100_config, **loader_kwargs)
 
 def check_episode(ep):
     length = loader.get_episode_length(ep)
     indices = [0, length // 2, length - 1]
     frames = loader._load_video_data(ep, np.array(indices))
+    assert set(frames) == set(profile['cameras'])
     max_difference = 0
     for key, actual in frames.items():
         original = loader.modality_meta['video'][key]['original_key']

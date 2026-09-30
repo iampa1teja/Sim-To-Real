@@ -135,18 +135,67 @@ class RecordedStartTests(unittest.TestCase):
 
     def test_results_json_schema_and_rates(self):
         rows = [{'episode': i, 'start_index': index, 'start_kind': kind, 'zone': zone,
-                 'cube_color': color, 'steps': 450, 'success': success, 'instruction': 'task'}
+                 'cube_color': color, 'steps': 450, 'success': success, 'instruction': 'task',
+                 'success_step': 450 if success else None}
                 for i, (index, kind, zone, color, success) in enumerate([
                     (0, 'recorded', 'NL', 'blue', True), (-1, 'random', 'FR', 'red', False),
                     (1, 'recorded', 'NL', 'red', False)])]
-        report = json.loads(json.dumps(eval_utils.results_report(rows, 'task', 'checkpoint', 42), allow_nan=False))
+        report = json.loads(json.dumps(eval_utils.results_report(
+            rows, 'task', 'checkpoint', 42, random_fraction=.25, episode_length_s=30.,
+            action_horizon=8, step_dt=1/30), allow_nan=False))
         self.assertEqual(set(report), {'schema_version', 'task', 'checkpoint', 'seed', 'time',
-                                      'overall', 'by_start', 'by_zone', 'by_cube_color', 'episodes'})
-        self.assertEqual(report['overall'], {'episodes': 3, 'successes': 1, 'success_rate': 1/3})
+                                      'overall', 'by_start', 'by_zone', 'by_cube_color', 'episodes',
+                                      'random_fraction', 'episode_length_s', 'action_horizon', 'step_dt'})
+        self.assertEqual(report['schema_version'], 1)
+        self.assertEqual(report['random_fraction'], .25)
+        self.assertEqual(report['episode_length_s'], 30.)
+        self.assertEqual(report['action_horizon'], 8)
+        self.assertEqual(report['step_dt'], 1/30)
+        self.assertEqual(report['overall'], {'episodes': 3, 'successes': 1, 'success_rate': 1/3,
+                                            'successes_within_15s': 1, 'success_rate_within_15s': 1/3,
+                                            'median_time_to_success_s': 15.})
         self.assertEqual(report['by_start']['recorded']['success_rate'], .5)
         self.assertEqual(report['by_zone']['FR']['success_rate'], 0)
         self.assertEqual(report['by_cube_color']['blue']['success_rate'], 1)
         self.assertIsNone(eval_utils.results_report([], 't', 'c', 0)['overall']['success_rate'])
+
+    def test_timing_boundary_late_successes_and_median_exclude_timeouts(self):
+        rows = [{'success': success, 'success_step': step if success else None,
+                 'steps': step, 'start_kind': 'recorded', 'zone': 'NL', 'cube_color': 'blue'}
+                for step, success in ((449, True), (450, True), (451, True), (900, True), (900, False))]
+        report = eval_utils.results_report(rows, 'task', 'checkpoint', 42,
+                                           episode_length_s=30., action_horizon=8, step_dt=1/30)
+        self.assertEqual(report['overall']['success_rate'], 4/5)
+        self.assertEqual(report['overall']['success_rate_within_15s'], 2/5)
+        self.assertEqual(report['overall']['successes_within_15s'], 2)
+        self.assertAlmostEqual(report['overall']['median_time_to_success_s'], (450 + 451) / 60)
+        self.assertEqual(report['by_start']['recorded'], report['overall'])
+        self.assertEqual(report['by_zone']['NL'], report['overall'])
+        self.assertEqual(report['by_cube_color']['blue'], report['overall'])
+
+    def test_float_rounding_at_15_seconds_does_not_discard_boundary_success(self):
+        rows = [{'success': True, 'success_step': 50, 'steps': 50,
+                 'start_kind': 'recorded', 'zone': 'NL', 'cube_color': 'blue'}]
+        report = eval_utils.results_report(rows, 'task', 'checkpoint', 42, step_dt=.1 + .2)
+        self.assertEqual(report['overall']['success_rate_within_15s'], 1.)
+
+    def test_timing_empty_failed_and_legacy_reports_are_json_safe(self):
+        timeout = {'success': False, 'success_step': None, 'steps': 900,
+                   'start_kind': 'recorded', 'zone': 'NL', 'cube_color': 'blue'}
+        legacy = {key: value for key, value in timeout.items() if key != 'success_step'}
+        legacy['success'] = True
+        for rows, options in (([], {'step_dt': 1/30}), ([timeout], {'step_dt': 1/30}), ([legacy], {})):
+            with self.subTest(rows=rows, options=options):
+                report = eval_utils.results_report(rows, 'task', 'checkpoint', 42, **options)
+                json.dumps(report, allow_nan=False)
+                self.assertIsNone(report['overall']['median_time_to_success_s'])
+                if rows and options:
+                    self.assertEqual(report['overall']['success_rate_within_15s'], 0.)
+                else:
+                    self.assertIsNone(report['overall']['success_rate_within_15s'])
+                    if rows:
+                        self.assertEqual(report['overall']['success_rate'], 1.)
+                self.assertIsNone(report['by_start']['random']['success_rate_within_15s'])
 
 
 if __name__ == '__main__':

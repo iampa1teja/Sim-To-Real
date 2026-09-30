@@ -2,7 +2,9 @@
 
 from datetime import datetime, timezone
 import json
+import math
 from pathlib import Path
+from statistics import median
 
 import numpy as np
 
@@ -241,17 +243,34 @@ def select_instruction(color, default, by_color=None):
     return by_color[color]
 
 
-def results_report(episodes, task, checkpoint, seed):
+def results_report(episodes, task, checkpoint, seed, *, random_fraction=0.0,
+                   episode_length_s=None, action_horizon=16, step_dt=None):
+    """Add simulated success timing without changing existing schema-1 fields.
+
+    Success steps count control transitions from the episode reset, including
+    settling steps. Median time includes successful episodes only; the 15-second
+    rate uses every completed episode as its denominator. Without step_dt, old
+    callers retain their rates and receive null timing metrics.
+    """
     def summarize(rows):
         successes = sum(bool(row['success']) for row in rows)
+        success_times = ([row['success_step'] * step_dt for row in rows if row['success']]
+                         if step_dt is not None else None)
+        within_15 = (sum(time <= 15 or math.isclose(time, 15, rel_tol=0, abs_tol=1e-12)
+                         for time in success_times) if success_times is not None else None)
         return {'episodes': len(rows), 'successes': successes,
-                'success_rate': successes / len(rows) if rows else None}
+                'success_rate': successes / len(rows) if rows else None,
+                'successes_within_15s': within_15,
+                'success_rate_within_15s': within_15 / len(rows) if rows and within_15 is not None else None,
+                'median_time_to_success_s': median(success_times) if success_times else None}
 
     def grouped(key):
         return {value: summarize([row for row in episodes if row[key] == value])
                 for value in sorted({row[key] for row in episodes})}
 
     return {'schema_version': 1, 'task': task, 'checkpoint': checkpoint, 'seed': seed,
+            'random_fraction': random_fraction, 'episode_length_s': episode_length_s,
+            'action_horizon': action_horizon, 'step_dt': step_dt,
             'time': datetime.now(timezone.utc).isoformat(), 'overall': summarize(episodes),
             'by_start': {kind: summarize([row for row in episodes if row['start_kind'] == kind])
                          for kind in ('recorded', 'random')},

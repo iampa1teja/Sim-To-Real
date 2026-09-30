@@ -4,14 +4,28 @@ set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 model='' dataset='' dr=nodr episodes=20 random_fraction=0.0 start_mode=cycle
+episode_length_s='' action_horizon=16 embodiment_tag=${EMBODIMENT_TAG:-NEW_EMBODIMENT}
+server_image=${SERVER_IMAGE:-real-robot:n1.7}
+rename_map=${RENAME_MAP:-'{"realsense_rgb":"room","wrist_cam":"wrist"}'}
 lang='Pick up the blue cube and place it in the white box'
-lang_by_color='' models_dir=${MODELS_DIR:-$HOME/models} port=5555 gui=false dry_run=false
+lang_by_color='' models_dir=${MODELS_DIR:-$HOME/models} port=5555 gui=false rerun=false dry_run=false
 usage() {
     cat <<'EOF'
 Usage: ./docker/eval_pick_place.sh --model <relative checkpoint> --dataset <container dataset root>
-  [--dr] [--episodes 20] [--random_fraction 0.25] [--start_mode cycle|random]
+  [--dr] [--episodes 20] [--random_fraction 0.0] [--start_mode cycle|random]
+  [--episode_length_s <seconds>] [--action_horizon 16] [--embodiment_tag NEW_EMBODIMENT]
+  [--server_image real-robot:n1.7] [--rename_map <camera-name JSON>]
   [--lang <instruction>] [--lang_by_color <json>] [--models_dir ~/models]
-  [--port 5555] [--gui] [--dry_run]
+  [--port 5555] [--gui] [--rerun] [--dry_run]
+
+Defaults: recorded cube and arm starts only; --random_fraction 0.25 opts into random starts.
+Episode length uses the task's configured value (15 s for Pick-Place-Eval).
+--episode_length_s must be finite and positive; --action_horizon must be 1..16.
+The serving tag uses EMBODIMENT_TAG or NEW_EMBODIMENT; match the training checkpoint.
+Serving uses SERVER_IMAGE or real-robot:n1.7 (build: ./docker/real/build.sh ada n17).
+Camera names use RENAME_MAP or realsense_rgb->room, wrist_cam->wrist for the SO-arm N1.7 model.
+For older N1.6 checkpoints use --server_image real-robot and
+  --rename_map '{"realsense_rgb":"front","wrist_cam":"wrist"}'.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -19,10 +33,12 @@ while (($#)); do
     case "$1" in
         --dr) dr=dr; shift ;;
         --gui) gui=true; shift ;;
+        --rerun) rerun=true; shift ;;
         --dry_run) dry_run=true; shift ;;
         --help|-h) usage; exit 0 ;;
-        --model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port)
+        --model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map)
             (($# >= 2)) || fail "Missing value for $1; see --help."
+            [[ $1 != --episode_length_s || -n $2 ]] || fail '--episode_length_s must be finite and positive.'
             key=${1#--}; printf -v "$key" '%s' "$2"; shift 2 ;;
         *) fail "Unknown option $1; see --help." ;;
     esac
@@ -35,9 +51,11 @@ done
 port=$((10#$port))
 ((port > 0 && port <= 65535)) || fail '--port must be from 1 to 65535.'
 [[ $start_mode == cycle || $start_mode == random ]] || fail '--start_mode must be cycle or random.'
+[[ -n $embodiment_tag ]] || fail "--embodiment_tag must be the checkpoint's embodiment tag."
+[[ -n $server_image && $server_image != -* && $server_image != *[[:space:]]* ]] || fail '--server_image must be a Docker image name.'
 command -v python3 >/dev/null || fail 'Install python3 on the host for path, JSON and TCP checks.'
-python3 - "$random_fraction" "$lang_by_color" "$dr" <<'PY'
-import json, sys
+python3 - "$random_fraction" "$lang_by_color" "$dr" "$episode_length_s" "$action_horizon" "$rename_map" <<'PY'
+import json, math, sys
 try:
     assert 0 <= float(sys.argv[1]) <= 1
     if sys.argv[2]:
@@ -47,6 +65,24 @@ try:
         assert all(isinstance(mapping.get(c), str) and mapping[c].strip() for c in required)
 except (ValueError, AssertionError):
     sys.exit('Use --random_fraction in [0,1] and --lang_by_color JSON with a blue instruction (and red with --dr).')
+try:
+    if sys.argv[4]:
+        length = float(sys.argv[4])
+        assert math.isfinite(length) and length > 0
+except (ValueError, AssertionError):
+    sys.exit('--episode_length_s must be finite and positive.')
+try:
+    assert 1 <= int(sys.argv[5]) <= 16
+except (ValueError, AssertionError):
+    sys.exit('--action_horizon must be an integer in 1..16 (the model chunk length).')
+try:
+    mapping = json.loads(sys.argv[6])
+    assert isinstance(mapping, dict)
+    assert all(isinstance(mapping.get(camera), str) and mapping[camera].strip()
+               for camera in ('realsense_rgb', 'wrist_cam'))
+    assert mapping['realsense_rgb'] != mapping['wrist_cam']
+except (ValueError, AssertionError):
+    sys.exit('--rename_map must map realsense_rgb and wrist_cam to distinct nonempty camera names.')
 PY
 models_dir=$(python3 -c 'import os,sys; print(os.path.abspath(os.path.expanduser(sys.argv[1])))' "$models_dir")
 model=${model%/}
@@ -78,10 +114,12 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 if "$dry_run"; then
+    printf '# Evaluation: random_fraction=%s, episode_length_s=%s, action_horizon=%s, robot_start=recorded\n' \
+        "$random_fraction" "${episode_length_s:-task default (15 s)}" "$action_horizon"
     printf '# Preflight (checks printed, not executed)\n'
     print_command docker info
     print_command docker inspect -f '{{.State.Running}}' teleop
-    print_command docker image inspect real-robot
+    print_command docker image inspect "$server_image"
     printf '# Check checkpoint files under %q\n' "$models_dir/$model"
 else
     command -v docker >/dev/null || fail 'Install Docker and NVIDIA Container Toolkit; see docker/README.md.'
@@ -96,7 +134,7 @@ print(text[start:text.index('```', start)])
 PY
         fail 'The teleop container must be running before evaluation.'
     fi
-    docker image inspect real-robot >/dev/null 2>&1 || fail 'Build the real-robot image: ./docker/real/build.sh ada (or blackwell).'
+    docker image inspect "$server_image" >/dev/null 2>&1 || fail "Build the serving image ($server_image): ./docker/real/build.sh ada n17 (or blackwell n17); use n16 for legacy real-robot."
     python3 - "$models_dir" "$model" <<'PY'
 from pathlib import Path
 import sys
@@ -121,19 +159,19 @@ except OSError as error:
     sys.exit(f'Port {sys.argv[1]} is unavailable ({error}); stop the listener or choose --port.')
 PY
 fi
-# Pinned GR00T ead52833 uses tyro.cli(ServerConfig); its port field supports --port.
+# Pinned GR00T uses tyro.cli(ServerConfig): --embodiment-tag accepts a tag name/value.
 server_cmd=(docker run -d --rm --name "$server_name" --network host --privileged --gpus all
     -e DISPLAY
     -v /dev:/dev
     -v /run/udev:/run/udev:ro
     -v "$HOME/.Xauthority:/root/.Xauthority"
     -v /tmp/.X11-unix:/tmp/.X11-unix
-    -v "$HOME/.cache/huggingface/lerobot/calibration:/root/.cache/huggingface/lerobot/calibration"
+    -v "${HF_HOME:-$HOME/.cache/huggingface}:/root/.cache/huggingface"
     -v ./docker/env:/root/env
     -v "$models_dir:/workspace/models"
     -v "$repo_dir/docker/real/scripts:/Isaac-GR00T/gr00t/eval/real_robot/SO100"
-    real-robot python /Isaac-GR00T/gr00t/eval/run_gr00t_server.py
-    --model-path "/workspace/models/$model" --port "$port")
+    "$server_image" python /Isaac-GR00T/gr00t/eval/run_gr00t_server.py
+    --model-path "/workspace/models/$model" --embodiment-tag "$embodiment_tag" --port "$port")
 # Arm cleanup before launching so a signal during docker run cannot orphan it.
 server_started=true
 run "${server_cmd[@]}"
@@ -186,11 +224,14 @@ task=Lerobot-So101-Teleop-Pick-Place-Eval
 # environment exported by the container entrypoint. Run the lerobot_eval module.
 eval_cmd=(docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m sim_to_real_so101.scripts.lerobot_eval --task "$task" --num_envs 1
     --cube_starts "$dataset/pick_place_meta" --start_mode "$start_mode" --random_fraction "$random_fraction"
-    --rename_map '{"realsense_rgb": "front", "wrist_cam": "wrist"}' --action_horizon 16
+    --robot_start recorded
+    --rename_map "$rename_map" --action_horizon "$action_horizon"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
     --num_episodes "$episodes" --checkpoint "$model" --results_json "$results")
+[[ -z $episode_length_s ]] || eval_cmd+=(--episode_length_s "$episode_length_s")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)
+"$rerun" && eval_cmd+=(--rerun)
 run "${eval_cmd[@]}"
 # The client prints the grouped summary; also retrieve the saved report.
 run docker exec teleop cat "$results"

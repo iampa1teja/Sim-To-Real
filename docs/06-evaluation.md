@@ -8,7 +8,7 @@
 sequenceDiagram
   participant S as Isaac Lab / lerobot_eval
   participant P as GR00T policy server
-  S->>P: front/wrist images + joint state + instruction
+  S->>P: room/wrist images + joint state + instruction
   P-->>S: action chunk
   S->>S: Execute action_horizon actions
   S->>P: Updated observation
@@ -18,14 +18,23 @@ sequenceDiagram
 `lerobot_eval` uses `GR00TRemotePolicy` and the SO101 interface to convert between
 normalized LeRobot joints and simulation radians, including `sim_joint_mapping`.
 Its `rename_map` translates sim camera names to checkpoint keys. For the prepared
-MyRoom dataset use `{"realsense_rgb":"front","wrist_cam":"wrist"}`. Both RGB
-views and language must match training. `--action_horizon` defaults to 16 executed
-actions before another query; it does not change the checkpoint's training horizon.
+v2 N1.7 starter profile use `{"realsense_rgb":"room","wrist_cam":"wrist"}`.
+Both RGB views and language must match training. Legacy N1.6 front/wrist
+checkpoints need their original rename map. `--action_horizon` defaults to 16
+executed actions before another query and accepts integers **1–16**. Setting it
+to 8 executes the first eight actions and replans; it does not change the
+checkpoint's 16-step SO-arm training horizon or its padded model capacity.
 
-The first ten steps of each rollout command a hard-coded `initial_action` in
-[lerobot_eval.py](../source/sim_to_real_so101/scripts/lerobot_eval.py). This is a
-setup-specific pose, not automatically taken from your demonstration. Check it
-when adapting a scene. After that the policy provides actions.
+`--episode_length_s` overrides the task config before the environment is created.
+When omitted, it uses the task's value (**15 s for Pick-Place-Eval**). Explicit
+values must be finite and greater than zero. A 30 s run reports success within
+15 s as well as success within the full 30 s window.
+
+For recorded PickPlace starts, the first ten control steps hold the actual reset
+joint pose from the same demo's first frame. This settling interval is refreshed
+after each automatic or manual reset; policy actions begin on step 11. With
+`--robot_start default`, or other tasks, the existing calibrated warmup pose is
+used instead. Success timing includes these ten settling steps.
 
 For PickPlace, success is termination **without** timeout. Timeout counts as
 failure even if success also fires on that step. Isaac's done step already resets
@@ -36,7 +45,20 @@ incomplete report and raises an error. See [success logic](03-define-a-task.md).
 
 ## Host runner
 
-Start the teleop container and build `real-robot` using [Setup](01-setup.md). Put
+Start the teleop container using [Setup](01-setup.md), and build the N1.7 serving
+image for the RTX 4090:
+
+```bash
+./docker/real/build.sh ada n17
+```
+
+This creates `real-robot:n1.7` from GR00T GA revision
+`51d4c89f72fda44cbf77285c6a8114b52676b8a1`, in a separate serving environment.
+N1.7 requires access to the Cosmos-Reason2 backbone; complete the
+[training setup and authentication](05-training.md#fine-tune) on the host so the
+mounted Hugging Face cache is complete and available to serving. The N1.7 image
+sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`; it requires prefetched Cosmos
+files and does not download missing backbone artifacts. Put
 the checkpoint under your **host** models directory. `--dataset` is an absolute
 path **inside teleop**, pointing at the original dataset with saved cube sidecars;
 model paths are relative to the host models directory.
@@ -45,21 +67,25 @@ model paths are relative to the host models directory.
 
 ```bash
 ./docker/eval_pick_place.sh \
-  --model so101_pick_place_v1/checkpoint-10000 \
+  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
   --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --episodes 20 --dry_run
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
+  --episodes 20 --episode_length_s 30 --action_horizon 8 --dry_run
 ```
 
 **Host**, repository root, run the plain evaluation:
 
 ```bash
 ./docker/eval_pick_place.sh \
-  --model so101_pick_place_v1/checkpoint-10000 \
+  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
   --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --episodes 20
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
+  --episodes 20 --episode_length_s 30 --action_horizon 8
 ```
+
+Run the same command with `checkpoint-9000` to compare both saved checkpoints.
+These commands use recorded cube starts and the corresponding recorded arm
+poses. Keep the dataset, seed and other options identical for the comparison.
 
 Every flag from [eval_pick_place.sh](../docker/eval_pick_place.sh):
 
@@ -70,16 +96,27 @@ Every flag from [eval_pick_place.sh](../docker/eval_pick_place.sh):
 | `--models_dir` | `MODELS_DIR` or `$HOME/models` on host |
 | `--episodes` | 20, positive integer |
 | `--dr` | Off; choose `Lerobot-So101-Teleop-Pick-Place-DR-Eval` instead of plain Eval |
-| `--random_fraction` | 0.0; fraction/probability of held-out random starts, in [0,1] |
+| `--random_fraction` | 0.0; recorded cube starts only; `0.25` explicitly opts into random XY/yaws |
 | `--start_mode` | `cycle`; alternative `random` for recorded-start selection |
+| `--episode_length_s` | Task default (15 s); override with finite positive seconds |
+| `--action_horizon` | 16; integer in 1–16, executed actions before replanning |
+| `--embodiment_tag` | `EMBODIMENT_TAG` or `NEW_EMBODIMENT`; passed to the server as `--embodiment-tag` |
+| `--server_image` | `SERVER_IMAGE` or `real-robot:n1.7` |
+| `--rename_map` | `RENAME_MAP` or `{"realsense_rgb":"room","wrist_cam":"wrist"}` |
 | `--lang` | `Pick up the blue cube and place it in the white box` |
 | `--lang_by_color` | Empty; JSON with blue instruction, and red too with DR |
 | `--port` | 5555; host TCP port, 1–65535 |
 | `--gui` | Off; omit the client's headless flag when enabled |
+| `--rerun` | Off; pass the client's Rerun visualization flag |
 | `--dry_run` | Off; print Docker commands/preflight rather than execute Docker |
 | `--help`, `-h` | Usage |
 
-Preflight checks Docker access without sudo, running `teleop`, the `real-robot`
+For a legacy N1.6 checkpoint, build with `./docker/real/build.sh ada n16` and add
+`--server_image real-robot --rename_map '{"realsense_rgb":"front","wrist_cam":"wrist"}'`.
+Keep the checkpoint's own action/modality configuration; changing camera names
+does not convert a model between N1.6 and N1.7.
+
+Preflight checks Docker access without sudo, running `teleop`, the chosen server
 image, checkpoint containment/existence, `config.json` and weight files, sidecar
 directory existence, valid arguments/colour JSON, and a free host port. Dry-run
 still validates arguments and needs host Python 3, but does not perform those
@@ -107,14 +144,23 @@ paths need their own persistence. The console prints the exact output path.
 | `schema_version` | 1 |
 | `task`, `checkpoint`, `seed`, `time` | Run identity; `time` is UTC ISO text |
 | `requested_episodes`, `complete` | Requested count and whether it was reached |
-| `episodes` | Rows with `episode`, `steps`, `success`, `start_index`, `start_kind`, `zone`, `cube_color`, `instruction` |
-| `overall` | `episodes`, `successes`, `success_rate` |
+| `random_fraction` | Actual probability of random cube starts used by this run |
+| `episode_length_s`, `action_horizon`, `step_dt` | Configured episode seconds, executed chunk length and simulation seconds per control step |
+| `episodes` | Existing row fields plus `success_step`: 1-based control step where success fired, or null for timeout |
+| `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
 | `by_start` | Aggregates for `recorded` and `random` (not individual ID groups) |
 | `by_zone`, `by_cube_color` | Aggregates for observed zones/colours |
 
 Rates are in [0,1], or null for an empty aggregate. `start_index=-1` means a random
 start; recorded indices refer to the sorted input sidecar list. If you pass a
 filtered copy, use its preparation mapping to recover source IDs.
+
+The 15 s rate counts successes whose `success_step × step_dt` is at most 15 s,
+using all completed episodes as the denominator. The ordinary success rate uses
+the configured full episode window. Median time-to-success uses successful
+episodes only and is null when there are none. Start/zone/colour aggregates carry
+the same added metrics, and the printed JSON summary includes the run options.
+These fields are additive, so `schema_version` remains 1.
 
 ## Recorded starts and DR
 
@@ -126,6 +172,8 @@ uses only frame zero for starts, not later trajectory frames.
 
 Cycle mode reshuffles all recorded starts using the seed and consumes each once
 before reshuffling. Random mode samples recorded starts uniformly with replacement.
+With the default `random_fraction=0`, only saved cube poses are used. Keep this
+setting for the yaw-aligned option B protocol. An explicit nonzero
 `random_fraction` chooses random XY within recorded bounds and yaw in [0,π/2),
 standing upright on the live table plane. This is probabilistic, not an exact
 fraction of a small run. Recorded Z is discarded: the live table support is solved
@@ -151,10 +199,10 @@ is weak evidence of coverage.
 
 ```bash
 ./docker/eval_pick_place.sh \
-  --model so101_pick_place_v1/checkpoint-10000 \
+  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
   --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --episodes 20 --dr --random_fraction 0.25 --start_mode cycle \
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
+  --episodes 20 --dr --random_fraction 0 --start_mode cycle \
   --lang_by_color '{"blue":"Pick up the blue cube and place it in the white box","red":"Pick up the red cube and place it in the white box"}'
 ```
 
@@ -177,7 +225,7 @@ a guarantee on the real robot. The current fork has no PickPlace DR teleop ID.
 **Teleop container**, no policy server needed, preview recorded starts and DR:
 
 ```bash
-export PICK_PLACE_EVAL_STARTS=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1/pick_place_meta
+export PICK_PLACE_EVAL_STARTS=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2/pick_place_meta
 zero_agent --task Lerobot-So101-Teleop-Pick-Place-Eval --num_steps 2250
 zero_agent --task Lerobot-So101-Teleop-Pick-Place-DR-Eval --num_steps 4500
 ```
@@ -192,12 +240,12 @@ that rendering was tested on your hardware.
 
 ```bash
 lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
-  --cube_starts /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1/pick_place_meta \
-  --rename_map '{"realsense_rgb":"front","wrist_cam":"wrist"}' \
-  --policy_host localhost --policy_port 5555 --action_horizon 16 \
+  --cube_starts /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2/pick_place_meta \
+  --rename_map '{"realsense_rgb":"room","wrist_cam":"wrist"}' \
+  --policy_host localhost --policy_port 5555 --episode_length_s 30 --action_horizon 8 \
   --lang_instruction 'Pick up the blue cube and place it in the white box' \
   --num_episodes 20 --seed 1984 \
-  --checkpoint so101_pick_place_v1/checkpoint-10000 \
+  --checkpoint so101_pick_place_v2_nvinit/checkpoint-10000 \
   --results_json /workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_results/manual.json \
   --headless
 ```
@@ -213,7 +261,11 @@ MyRoom has no success/timeout terminations. Checkpoint metadata falls back to
 
 ## Real-robot rollout
 
-Use [Setup](01-setup.md) to start the real-robot container and calibrate hardware.
+The commands below retain the legacy N1.6 real-robot workflow. Build its image
+with `./docker/real/build.sh ada n16`, then use [Setup](01-setup.md) to start the
+real-robot container and calibrate hardware. The new N1.7 image supplies policy
+serving for the simulation runner; it does not include this physical LeRobot
+client environment.
 Validate the script's `SO101Control.initial_pose`/`home_pose` against your actual
 setup before running; connection/disconnection can move the arm. Stop any other
 process that owns its serial port or cameras. The real rollout does not inherit

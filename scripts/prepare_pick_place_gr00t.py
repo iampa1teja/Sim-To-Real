@@ -21,6 +21,8 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+from gr00t_model_profiles import PROFILES
+
 PIN = 'ead52833afbbf4243f8cd5e7664f48a94de03b19'
 
 
@@ -41,7 +43,11 @@ parser.add_argument('--groot', type=Path, required=True)
 parser.add_argument('--resume', action='store_true', help='Retry an incomplete build from the same unchanged source')
 parser.add_argument('--source', type=Path, default=Path('datasets/pick_place_v1'))
 parser.add_argument('--output', type=Path, default=Path('datasets/pick_place_v1_gr00t'))
+parser.add_argument('--model_profile', choices=PROFILES, default='so100_n16',
+                    help='Use so_arm_n17 for the official NVIDIA SO-arm N1.7 checkpoint')
 args = parser.parse_args()
+profile = PROFILES[args.model_profile]
+PIN = profile['revision']
 source, output, groot = args.source.resolve(), args.output.resolve(), args.groot.resolve()
 assert subprocess.check_output(['git', '-C', str(groot), 'rev-parse', 'HEAD'], text=True).strip() == PIN
 assert not output.exists(), f'Refusing to overwrite {output}'
@@ -71,6 +77,9 @@ if args.resume:
     selection_path = build / 'excluded_episodes.json'
     previous_excluded = json.loads(selection_path.read_text()) if selection_path.exists() else []
     assert previous_excluded == args.exclude_episodes, 'Resume requires the same --exclude_episodes'
+    profile_path = build / 'model_profile.json'
+    previous_profile = json.loads(profile_path.read_text())['model_profile'] if profile_path.exists() else 'so100_n16'
+    assert previous_profile == args.model_profile, 'Resume requires the same --model_profile'
 spec = importlib.util.spec_from_file_location('groot_v3_converter', groot / 'scripts/lerobot_conversion/convert_v3_to_v2.py')
 converter = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(converter)
@@ -87,6 +96,8 @@ video_keys = [k for k, v in info['features'].items() if v.get('dtype') == 'video
 assert set(video_keys) == {'observation.images.realsense_rgb', 'observation.images.wrist_cam'}
 chunks_size = info['chunks_size']
 build.mkdir(exist_ok=args.resume)
+if args.model_profile != 'so100_n16':
+    write_json(build / 'model_profile.json', {'model_profile': args.model_profile, 'groot_revision': PIN})
 write_json(build / 'source_sha256.json', before)
 if args.exclude_episodes:
     write_json(build / 'excluded_episodes.json', args.exclude_episodes)
@@ -189,9 +200,16 @@ for record in records:
 modality = json.loads((groot / 'examples/SO100/modality.json').read_text())
 modality['video']['front']['original_key'] = 'observation.images.realsense_rgb'
 modality['video']['wrist']['original_key'] = 'observation.images.wrist_cam'
+if args.model_profile == 'so_arm_n17':
+    modality['video']['room'] = modality['video'].pop('front')
 write_json(build / 'meta/modality.json', modality)
-shutil.copy2(groot / 'examples/SO100/so100_config.py', build / 'so100_config.py')
+config_source = (Path(__file__).with_name('so_arm_n17_config.py') if args.model_profile == 'so_arm_n17'
+                 else groot / 'examples/SO100/so100_config.py')
+shutil.copy2(config_source, build / 'so100_config.py')
 shutil.copy2(Path(__file__), build / 'prepare_pick_place_gr00t.py')
+shutil.copy2(Path(__file__).with_name('gr00t_model_profiles.py'), build / 'gr00t_model_profiles.py')
+if args.model_profile == 'so_arm_n17':
+    shutil.copy2(config_source, build / 'so_arm_n17_config.py')
 write_json(build / 'source_sha256.json', before)
 
 def decode_check(item):
@@ -220,7 +238,7 @@ with ThreadPoolExecutor(max_workers=4) as pool:
         if len(decoded) % 10 == 0:
             print(f'Validated videos: {len(decoded)}/{len(video_checks)}', flush=True)
 
-# Exercise the actual pinned GR00T reader and its relative-action statistics.
+# Exercise the actual reader with the selected checkpoint's action conventions.
 sys.path.insert(0, str(groot))
 config_spec = importlib.util.spec_from_file_location('pick_place_so100_config', build / 'so100_config.py')
 config_module = importlib.util.module_from_spec(config_spec)
@@ -230,8 +248,10 @@ from gr00t.data.embodiment_tags import EmbodimentTag
 from gr00t.data.stats import generate_stats, generate_rel_stats
 
 generate_stats(build)
-generate_rel_stats(build, EmbodimentTag.NEW_EMBODIMENT)
-loader = LeRobotEpisodeLoader(build, config_module.so100_config, video_backend='ffmpeg')
+if profile['relative_actions']:
+    generate_rel_stats(build, EmbodimentTag.NEW_EMBODIMENT)
+loader_kwargs = {'video_backend': 'ffmpeg'} if args.model_profile == 'so100_n16' else {}
+loader = LeRobotEpisodeLoader(build, config_module.so100_config, **loader_kwargs)
 assert len(loader) == len(records)
 for ep, length in enumerate(loader.episode_lengths):
     lowdim = loader._load_parquet_data(ep)
@@ -240,7 +260,7 @@ for ep, length in enumerate(loader.episode_lengths):
     assert np.stack(lowdim['action.gripper']).shape == (length, 1)
     assert set(lowdim['language.annotation.human.task_description']) == set(records[ep]['tasks'])
     frames = loader._load_video_data(ep, np.array([0, length // 2, length - 1]))
-    assert set(frames) == {'front', 'wrist'}
+    assert set(frames) == set(profile['cameras'])
     assert all(value.shape == (3, 480, 640, 3) for value in frames.values())
 assert snapshot(source) == before, 'Original dataset changed during preparation'
 report = {'status': 'passed', 'time_utc': datetime.now(timezone.utc).isoformat(),
@@ -249,11 +269,18 @@ report = {'status': 'passed', 'time_utc': datetime.now(timezone.utc).isoformat()
           'videos': len(decoded), 'decoded_video_frames': sum(row['frames'] for row in decoded),
           'all_parquet_values_preserved': True, 'all_videos_byte_identical': True,
           'all_video_frames_decoded': True, 'all_video_timestamps_checked': True,
-          'groot_loader_all_episodes_checked': True, 'groot_validation_video_backend': 'ffmpeg', 'relative_action_statistics_generated': True,
+          'groot_loader_all_episodes_checked': True, 'groot_validation_video_backend': profile['video_backend'],
+          'relative_action_statistics_generated': profile['relative_actions'],
           'original_dataset_sha256_unchanged': True, 'video_checks': decoded}
+if args.model_profile != 'so100_n16':
+    report.update(model_profile=args.model_profile, embodiment_tag='NEW_EMBODIMENT',
+                  video_keys=profile['cameras'], action_horizon=16,
+                  action_representation={'single_arm': 'ABSOLUTE', 'gripper': 'ABSOLUTE'})
 if args.exclude_episodes:
     report.update(excluded=args.exclude_episodes, index_map=index_map,
-                  statistics_policy='Recomputed GR00T global and relative-action stats from retained parquet; '
+                  statistics_policy=('Recomputed GR00T global and relative-action stats from retained parquet; '
+                                     if profile['relative_actions'] else
+                                     'Recomputed GR00T global absolute-action stats from retained parquet; ') +
                   'retained per-episode stats with shifted episode_index/index stats.',
                   all_parquet_values_preserved=False,
                   all_parquet_values_except_renumbered_indices_preserved=True)

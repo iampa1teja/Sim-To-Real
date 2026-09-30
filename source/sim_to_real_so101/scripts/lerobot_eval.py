@@ -15,12 +15,21 @@
 import importlib
 import argparse
 import json
+import math
 import os
 from pathlib import Path
 import random
 from tqdm import tqdm
 
 from isaaclab.app import AppLauncher
+
+
+def _positive_float(value):
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        raise argparse.ArgumentTypeError("must be finite and greater than 0")
+    return number
+
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Isaac Lab SO-101 Eval Client (remote GR00T inference server).")
@@ -48,7 +57,10 @@ parser.add_argument(
 )
 parser.add_argument("--policy_host", type=str, default="localhost", help="GR00T policy server host")
 parser.add_argument("--policy_port", type=int, default=5555, help="GR00T policy server port")
-parser.add_argument("--action_horizon", type=int, default=16, help="Number of action steps to execute per server query")
+parser.add_argument("--action_horizon", type=int, choices=range(1, 17), default=16,
+                    help="Number of action steps per server query (1..16; SO-arm checkpoint chunk length is 16)")
+parser.add_argument("--episode_length_s", type=_positive_float, default=None,
+                    help="Episode timeout in simulation seconds (default: task configuration; 15 s for Pick-Place-Eval)")
 parser.add_argument(
     "--lang_instruction",
     type=str,
@@ -99,6 +111,11 @@ from sim_to_real_so101.utils.lerobot_interface import (
 
 
 def _evaluate():
+    if not 1 <= args_cli.action_horizon <= 16:
+        raise ValueError("action_horizon must be in 1..16")
+    if args_cli.episode_length_s is not None and (
+            not math.isfinite(args_cli.episode_length_s) or args_cli.episode_length_s <= 0):
+        raise ValueError("episode_length_s must be finite and greater than 0")
     keyboard_control = KeyboardControl()
 
     # parse configuration
@@ -109,6 +126,11 @@ def _evaluate():
         use_fabric=not args_cli.disable_fabric
     )
     env_cfg.seed = args_cli.seed
+    if args_cli.episode_length_s is not None:
+        env_cfg.episode_length_s = args_cli.episode_length_s
+    episode_length_s = float(env_cfg.episode_length_s)
+    if not math.isfinite(episode_length_s) or episode_length_s <= 0:
+        raise ValueError("episode_length_s must be finite and greater than 0")
     pick_place = args_cli.task in ("Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")
     if args_cli.num_episodes < 1 or not 0 <= args_cli.random_fraction <= 1:
         raise ValueError("num_episodes must be positive and random_fraction must be in [0, 1]")
@@ -133,6 +155,7 @@ def _evaluate():
 
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
+    step_dt = float(env.unwrapped.step_dt)
 
     # print info (this is vectorized environment)
     print(f"[INFO]: Gym observation space: {env.observation_space}")
@@ -203,6 +226,15 @@ def _evaluate():
             [-0.2736, -0.6109, -0.0745, 1.5148, -1.6034, -0.1465],
             device=env.unwrapped.device,
         )
+
+        def settling_pose(observation):
+            if pick_place and args_cli.robot_start == "recorded":
+                return observation["policy"]["joint_pos_obs"][0].clone()
+            return initial_action
+
+        # Hold the reset pose for all ten settling steps, rather than following
+        # joint drift or moving a recorded start to the calibrated default pose.
+        settling_action = settling_pose(obs)
         step = 0
         while simulation_app.is_running() and len(episodes) < args_cli.num_episodes:
             with torch.inference_mode():
@@ -210,7 +242,7 @@ def _evaluate():
                     pbar = tqdm(total=env.unwrapped.max_episode_length,
                                 desc=f"Rollout (ep {len(episodes) + 1})", unit="step")
                 if step < 10:
-                    actions[:] = initial_action
+                    actions[:] = settling_action
                 else:
                     joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
                     actions[:] = policy.get_action(joint_positions, obs["visual"], log=True)
@@ -223,7 +255,8 @@ def _evaluate():
                     pbar.close()
                     pbar = None
                     row = {**metadata, "episode": len(episodes), "steps": step,
-                           "success": is_terminated and not is_truncated}
+                           "success": is_terminated and not is_truncated,
+                           "success_step": step if is_terminated and not is_truncated else None}
                     episodes.append(row)
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
@@ -232,6 +265,7 @@ def _evaluate():
                         break
                     policy.reset()
                     metadata = episode_metadata()
+                    settling_action = settling_pose(obs)
                     step = 0
                 elif keyboard_control.reset_world:
                     keyboard_control.reset_world = False
@@ -241,11 +275,16 @@ def _evaluate():
                     obs, _ = env.reset()
                     policy.reset()
                     metadata = episode_metadata()
+                    settling_action = settling_pose(obs)
                     step = 0
     finally:
         if pbar is not None:
             pbar.close()
-        report = results_report(episodes, args_cli.task, args_cli.checkpoint, args_cli.seed)
+        report = results_report(
+            episodes, args_cli.task, args_cli.checkpoint, args_cli.seed,
+            random_fraction=args_cli.random_fraction, episode_length_s=episode_length_s,
+            action_horizon=args_cli.action_horizon, step_dt=step_dt,
+        )
         report['requested_episodes'] = args_cli.num_episodes
         report['complete'] = len(episodes) == args_cli.num_episodes
         print(json.dumps(report, indent=2))

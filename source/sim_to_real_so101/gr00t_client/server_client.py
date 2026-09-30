@@ -14,6 +14,7 @@
 # limitations under the License.
 from dataclasses import dataclass
 import io
+import json
 from typing import Any, Callable
 
 import msgpack
@@ -33,16 +34,80 @@ class MsgSerializer:
 
     @staticmethod
     def from_bytes(data: bytes) -> Any:
-        return msgpack.unpackb(data, object_hook=MsgSerializer.decode_custom_classes)
+        return msgpack.unpackb(data, object_hook=MsgSerializer.decode_custom_classes, raw=False)
+
+    @staticmethod
+    def _numpy_dtype(description):
+        """Restore msgpack's list-form structured dtype descriptors safely."""
+        if isinstance(description, (list, tuple)):
+            fields = []
+            for name, subtype, *shape in description:
+                if isinstance(name, bytes):
+                    name = name.decode()
+                elif isinstance(name, (list, tuple)):
+                    name = tuple(part.decode() if isinstance(part, bytes) else part for part in name)
+                fields.append((name, MsgSerializer._numpy_dtype(subtype),
+                               *(tuple(value) if isinstance(value, list) else value for value in shape)))
+            description = fields
+        elif isinstance(description, bytes):
+            description = description.decode()
+        return np.dtype(description)
 
     @staticmethod
     def decode_custom_classes(obj):
         if not isinstance(obj, dict):
             return obj
-        if "__ModalityConfig_class__" in obj:
-            return ModalityConfig(**obj["as_json"])
-        if "__ndarray_class__" in obj:
-            return np.load(io.BytesIO(obj["as_npy"]), allow_pickle=False)
+
+        def field(name):
+            for key in (name, name.encode()):
+                if key in obj:
+                    return obj[key]
+            raise ValueError(f"Malformed serialized payload: '{name}' missing")
+
+        if any(marker in obj for marker in ("__ModalityConfig__", b"__ModalityConfig__",
+                                             "__ModalityConfig_class__", b"__ModalityConfig_class__")):
+            payload = field("as_json")
+            if isinstance(payload, bytes):
+                payload = payload.decode()
+            if isinstance(payload, str):
+                payload = json.loads(payload)
+            if not isinstance(payload, dict):
+                raise ValueError("Malformed ModalityConfig payload: 'as_json' must contain an object")
+            return ModalityConfig(**payload)
+        if "__ndarray_class__" in obj or b"__ndarray_class__" in obj:
+            return np.load(io.BytesIO(field("as_npy")), allow_pickle=False)
+
+        # N1.7 responses use msgpack_numpy's wire format. Decode numeric buffers
+        # directly so Isaac Sim needs no msgpack_numpy dependency or pickle path.
+        if "nd" in obj or b"nd" in obj:
+            kind = obj.get("kind", obj.get(b"kind"))
+            if kind in ("O", b"O"):
+                raise ValueError("Refusing to decode object-dtype ndarray payload")
+            try:
+                dtype = MsgSerializer._numpy_dtype(field("type"))
+            except (TypeError, ValueError, IndexError) as exc:
+                raise ValueError("Malformed NumPy dtype payload") from exc
+            if dtype.hasobject:
+                raise ValueError("Refusing to decode object-bearing NumPy dtype")
+            try:
+                nd = field("nd")
+                if not isinstance(nd, bool):
+                    raise ValueError("'nd' must be a boolean")
+                values = np.frombuffer(field("data"), dtype=dtype)
+                if nd:
+                    shape = field("shape")
+                    if not isinstance(shape, (list, tuple)) or any(
+                            not isinstance(size, int) or isinstance(size, bool) or size < 0 for size in shape):
+                        raise ValueError("'shape' must contain nonnegative integers")
+                    return values.reshape(shape)
+                if values.size != 1:
+                    raise ValueError("scalar payload must contain exactly one value")
+                return values[0]
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError(f"Malformed NumPy payload: {exc}") from exc
+        if "complex" in obj or b"complex" in obj:
+            value = field("data")
+            return complex(value.decode() if isinstance(value, bytes) else value)
         return obj
 
     @staticmethod

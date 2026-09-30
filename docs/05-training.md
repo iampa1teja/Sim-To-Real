@@ -4,31 +4,33 @@
 
 ## Pin the training environment
 
-The supported preparation/server revision is
-`ead52833afbbf4243f8cd5e7664f48a94de03b19` of NVIDIA/Isaac-GR00T. The Dockerfiles
-pin this revision too. Consult its [installation guide](https://github.com/NVIDIA/Isaac-GR00T/blob/ead52833afbbf4243f8cd5e7664f48a94de03b19/README.md)
-for platform dependencies. Training needs a CUDA GPU; preparation/verification
-are CPU checks. They require LeRobot's v3 converter dependencies, PyArrow, PyAV,
-NumPy, FFmpeg and the pinned GR00T reader/config dependencies in the executing
-Python environment. The GR00T training uv environment alone should not be assumed
-to provide the converter's separate LeRobot environment.
+The v2 workflow uses NVIDIA's official
+[SO_ARM_Starter_Gr00tN17](https://huggingface.co/nvidia/SO_ARM_Starter_Gr00tN17)
+checkpoint at revision `93a5a88f78a395939f784a5fe3685184913dcc60`, with GR00T N1.7
+GA code pinned to `51d4c89f72fda44cbf77285c6a8114b52676b8a1`. Keep a separate
+checkout at `~/Isaac-GR00T-N1.7`; its Python 3.12, Torch, Transformers and video
+reader differ from the old N1.6 environment. The setup helper installs the locked
+N1.7 environment and the converter's extra dependencies without replacing its
+Torch version.
 
-**Training machine**, with Git and uv installed, create a fresh GR00T checkout:
+**Training machine**, workshop root, with Git and uv installed:
 
 ```bash
-git clone --recurse-submodules https://github.com/NVIDIA/Isaac-GR00T.git
-cd Isaac-GR00T
-git checkout ead52833afbbf4243f8cd5e7664f48a94de03b19
-git submodule update --init --recursive
-uv sync
-uv pip install -e .
-source .venv/bin/activate
+bash scripts/setup_gr00t_n17.sh
+source ~/Isaac-GR00T-N1.7/.venv/bin/activate
+export PYTHONDONTWRITEBYTECODE=1
 ```
 
-Use a full checkout of this workshop and your complete dataset on this machine.
-The teleop Docker mount recipe exposes `source/`, not the top-level preparation
-scripts. Do not replace Isaac's pinned Torch/NumPy packages with training packages
-inside its simulation environment to try to combine incompatible installations.
+Training needs a CUDA GPU. Preparation and verification are CPU checks requiring
+NumPy, PyArrow, PyAV, FFmpeg, LeRobot's converter and the pinned GR00T reader.
+N1.7 uses TorchCodec and requires an FFmpeg 4–7 runtime; the verification command
+checks actual video decoding. Do not replace Isaac's simulation packages with
+training packages. Use a complete workshop checkout on the training machine:
+the standard teleop mount exposes `source/`, not these top-level scripts.
+
+The legacy `so100_n16` preparation profile still uses the original
+`ead52833afbbf4243f8cd5e7664f48a94de03b19` pin and front/wrist, relative-arm
+configuration. Keep its existing checkout separate when preparing old runs.
 
 ## Prepare an independent copy
 
@@ -40,17 +42,27 @@ and six action values, the recorder's complete per-episode videos and cube
 sidecars. This is not a general converter for the paired real camera names.
 Encode all saved episodes first.
 
-**Training machine**, workshop root, in a Python environment with both conversion
-and reader dependencies. Replace the checkout/dataset paths:
+**Training machine**, workshop root, after encoding the new yaw-aligned v2
+recordings and activating the N1.7 environment above:
 
 ```bash
+python scripts/check_pick_place_demo_alignment.py --dataset datasets/pick_place_v2
 python scripts/prepare_pick_place_gr00t.py \
-  --groot '<path_to_Isaac-GR00T>' \
-  --source '<datasets_dir>/pick_place_v1' \
-  --output '<datasets_dir>/pick_place_v1_gr00t'
-PYTHONPATH='<path_to_Isaac-GR00T>' python scripts/verify_pick_place_training.py \
-  --dataset '<datasets_dir>/pick_place_v1_gr00t'
+  --model_profile so_arm_n17 \
+  --groot ~/Isaac-GR00T-N1.7 \
+  --source datasets/pick_place_v2 \
+  --output datasets/pick_place_v2_gr00t
+PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+  --dataset datasets/pick_place_v2_gr00t
 ```
+
+The selected N1.7 profile maps the external view to `room` and the wrist view to
+`wrist`; state is `single_arm` (five normalized SO101 joints) plus `gripper`
+(one value). Both action groups are **absolute**, matching the starter checkpoint.
+It registers `NEW_EMBODIMENT` (saved ID 10) and supervises 16 future actions; the
+model's maximum horizon of 40 is a padded capacity, not 40 supervised SO-arm
+steps. The verifier obtains the model profile from the preparation report.
+Never train this copy with the legacy relative-arm config.
 
 To exclude failed source episodes, use a **different output path**. The following
 is an example only; use the failure IDs you actually reviewed.
@@ -59,21 +71,23 @@ is an example only; use the failure IDs you actually reviewed.
 
 ```bash
 python scripts/prepare_pick_place_gr00t.py \
-  --groot '<path_to_Isaac-GR00T>' \
-  --source '<datasets_dir>/pick_place_v1' \
-  --output '<datasets_dir>/pick_place_v1_gr00t_filtered' \
+  --model_profile so_arm_n17 \
+  --groot ~/Isaac-GR00T-N1.7 \
+  --source datasets/pick_place_v2 \
+  --output datasets/pick_place_v2_gr00t_filtered \
   --exclude_episodes 0,6
-PYTHONPATH='<path_to_Isaac-GR00T>' python scripts/verify_pick_place_training.py \
-  --dataset '<datasets_dir>/pick_place_v1_gr00t_filtered'
+PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+  --dataset datasets/pick_place_v2_gr00t_filtered
 ```
 
 | Preparation flag | Default / behavior |
 | --- | --- |
-| `--groot` | Required checkout; HEAD must equal the pin |
+| `--groot` | Required checkout; HEAD must equal the selected profile pin |
+| `--model_profile` | `so100_n16` for compatibility; select `so_arm_n17` explicitly for the v2 starter workflow |
 | `--source` | `datasets/pick_place_v1` |
 | `--output` | `datasets/pick_place_v1_gr00t`; refuses completed output overwrite |
 | `--exclude_episodes` | None; comma-separated nonnegative source IDs; duplicates deduplicated; unknown/all-excluded rejected |
-| `--resume` | Retry an interrupted output `.building` directory with unchanged source hashes and the same exclusion selection |
+| `--resume` | Retry an interrupted output `.building` directory with unchanged source hashes, the same model profile and the same exclusion selection |
 
 The verifier's only dataset argument is `--dataset`, defaulting to
 `datasets/pick_place_v1_gr00t`. Both scripts also accept argparse help.
@@ -87,125 +101,180 @@ and `index_map` map new IDs back to original recordings.
 
 GR00T reads episodes in JSONL order and uses IDs with `info.json` path templates.
 Filtered preparation never copies source global statistics and removes existing
-stats on resume before generating `meta/stats.json` and `meta/relative_stats.json`
-from retained parquet. Per-episode statistics remain valid apart from shifted
-index statistics. With no exclusions, the original preparation behavior is kept,
-including copying valid source global stats. The copied SO100 config registers
-`NEW_EMBODIMENT`, with relative single-arm actions and absolute gripper actions.
+stats on resume before generating `meta/stats.json` from retained parquet.
+The N1.7 generator also recomputes copied global statistics when their schema
+fingerprints are absent or stale. Its absolute arm and gripper profile does not
+generate `meta/relative_stats.json`. The legacy N1.6 relative-arm profile generates
+relative-action statistics and can reuse valid source global statistics when
+there are no exclusions. Per-episode statistics remain valid apart from shifted
+index statistics. The copied modality config registers `NEW_EMBODIMENT`; action
+representation and camera keys follow the selected profile.
 
 Preparation preserves source SHA-256 snapshots, compares parquet values, hashes
 video copies, decodes every frame and checks timestamps/dimensions, runs the real
 GR00T loader for every episode, and writes `preparation_report.json`,
 `source_sha256.json`, `prepared_sha256.json`. The independent verifier checks that
 manifest and compares first/middle/last images in each camera/episode between
-GR00T FFmpeg decoding and PyAV (maximum permitted RGB difference 2). Do not modify
-the prepared output after signing its manifest; make a new preparation instead.
+the selected GR00T reader and PyAV (maximum permitted RGB difference 2). Do not
+modify the prepared output after signing its manifest; make a new preparation
+instead.
 
 ## Fine-tune
 
-The command below uses the actual Tyro fields from the pinned
-[FinetuneConfig](https://github.com/NVIDIA/Isaac-GR00T/blob/ead52833afbbf4243f8cd5e7664f48a94de03b19/gr00t/configs/finetune_config.py).
-The launcher's underscore spellings are accepted by Tyro. The output name is an
-example. Choose the prepared dataset's copied config, not an unrelated modality
-file. Authenticate for model downloads if necessary; never paste tokens into Git.
+The starter model lives directly at `~/sim2real/models/nv_so_arm_n17`, with
+`config.json`, processor/statistics/embodiment files, a safetensors index and model
+weight shards at that root. It is **not** a `checkpoint-10000` subdirectory.
+Training writes new `checkpoint-*` directories under a separate output root.
+The saved model is N1.7, with room/wrist views, five arm joints plus gripper,
+absolute actions and a 16-step SO-arm modality. Its config must pass the training
+launcher's local compatibility check; serving uses the same tag and camera keys
+with the N1.7 image.
 
-**Training machine**, activated GR00T environment, GR00T checkout root:
+**Training machine**, manual download after inspecting available disk space.
+If authentication is needed, run `hf auth login` yourself. N1.7 also loads the
+gated [Cosmos-Reason2-2B](https://huggingface.co/nvidia/Cosmos-Reason2-2B) backbone;
+accept its access conditions on Hugging Face before downloading it. The targeted
+starter download below copies model artifacts, without optimizer states. The
+Cosmos command fills the Hugging Face cache used by the same training user:
 
 ```bash
 hf auth login
-export CUDA_VISIBLE_DEVICES=0
-python gr00t/experiment/launch_finetune.py \
-  --base_model_path nvidia/GR00T-N1.6-3B \
-  --dataset_path '<datasets_dir>/pick_place_v1_gr00t_filtered' \
-  --modality_config_path '<datasets_dir>/pick_place_v1_gr00t_filtered/so100_config.py' \
-  --embodiment_tag NEW_EMBODIMENT \
-  --num_gpus 1 \
-  --output_dir ./outputs/so101_pick_place_v1 \
-  --save_steps 1000 \
-  --save_total_limit 5 \
-  --max_steps 10000 \
-  --warmup_ratio 0.05 \
-  --weight_decay 1e-5 \
-  --learning_rate 1e-4 \
-  --global_batch_size 4 \
-  --gradient_accumulation_steps 1 \
-  --dataloader_num_workers 2
+hf download nvidia/SO_ARM_Starter_Gr00tN17 \
+  --revision 93a5a88f78a395939f784a5fe3685184913dcc60 \
+  --include config.json --include processor_config.json \
+  --include embodiment_id.json --include statistics.json \
+  --include 'model-*.safetensors' --include model.safetensors.index.json \
+  --local-dir ~/sim2real/models/nv_so_arm_n17
+hf download nvidia/Cosmos-Reason2-2B
 ```
 
-| Flag in the command | Meaning; code default when omitted |
-| --- | --- |
-| `--base_model_path` | Required pretrained model/repo path |
-| `--dataset_path` | Required prepared dataset root |
-| `--modality_config_path` | Python config registration; default `None` uses registered config |
-| `--embodiment_tag` | Required embodiment enum; must match config registration |
-| `--num_gpus` | Number of training GPUs; 1 |
-| `--output_dir` | Checkpoint/log directory; `./outputs` |
-| `--save_steps` | Checkpoint interval; 1000 |
-| `--save_total_limit` | Retained checkpoint count; 5; older checkpoints may be removed |
-| `--max_steps` | Training optimizer-step budget; 10000 |
-| `--warmup_ratio` | Warmup fraction; 0.05 |
-| `--weight_decay` | Optimizer decay; `1e-5` |
-| `--learning_rate` | Initial learning rate; `1e-4` |
-| `--global_batch_size` | 64 by default; example lowers to 4 for initial memory testing |
-| `--gradient_accumulation_steps` | 1; accumulation passed separately to Trainer |
-| `--dataloader_num_workers` | 2; data-loader workers |
+The launcher prints the download command and exits when the base model is
+missing. It sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`, so both the local
+starter files and the Cosmos Hugging Face cache must be ready before launching;
+training never downloads a missing backbone implicitly. If you set `HF_HOME`,
+use the same value for the cache download and training.
+It also sets `NO_ALBUMENTATIONS_UPDATE=1` to disable the optional version check.
+The launcher validates the offline Cosmos snapshot, processor files and complete
+weight payloads before checking the GPU or creating its output directory. The
+N1.7 serving image also operates offline and needs this complete cache mounted.
+Modern Hub paths expand variables such as `$HOME`. Legacy Transformers cache
+variables take precedence even when empty: an empty value means the startup
+directory, and a relative value resolves from there. The launcher exports the
+effective cache as an absolute `TRANSFORMERS_CACHE` before entering GR00T, so
+preflight and model loading use the same location. Cosmos also needs its
+processor chat-template file; a tokenizer-only template does not supply it.
+The project training and serving wrappers resolve the Cosmos processor to its
+local cached snapshot. This avoids Transformers 4.57.3's repository metadata
+request during processor loading, even in offline mode. The change is scoped to
+processor creation; saved repository IDs, model weights and the official GR00T
+sources are preserved.
 
-**Batch-size implementation detail:** the config description calls the global
-batch effective across accumulation, but the pinned `experiment.py` sets
-per-device batch to `global_batch_size / num_gpus` and passes accumulation
-separately. Thus increasing accumulation without lowering the global batch does
-not reduce per-forward memory, and increases effective samples per update.
-Global batch must be divisible by the GPU count. Start with a short measured
-run before estimating a full job.
-
-### Other supported fine-tuning options
-
-| Flags | Defaults and purpose |
-| --- | --- |
-| `--tune_llm`, `--tune_visual` | false; backbone tuning switches |
-| `--tune_projector`, `--tune_diffusion_model` | true; projector/action decoder tuning |
-| `--state_dropout_prob` | 0.0; input state dropout |
-| `--random_rotation_angle` | `None`; optional image rotation |
-| `--color_jitter_params` | `None`; optional brightness/contrast/saturation/hue dictionary; see config for inherited augmentation behavior |
-| `--extra_augmentation_config` | `None`; JSON augmentation config, including masks when supplied |
-| `--experiment_name` | `None`; optional run name |
-| `--wandb_project`, `--use_wandb` | `finetune-gr00t-n1d6`, false; experiment logging |
-| `--shard_size` | 1024; dataset preloading shard size |
-| `--episode_sampling_rate` | 0.1; episode sampling rate |
-| `--num_shards_per_epoch` | 100000; preloading/sampling configuration |
-
-Consult the pinned launcher's help for Boolean Tyro negation syntax rather than
-using argparse-style `true`/`false` values from another program.
-
-### Small datasets and a 24 GB GPU
-
-Ten thousand steps is the launcher default, not a promise of convergence. Evaluate
-several saved checkpoints with the same starts, seed and instructions; the lowest
-training loss need not give the best placement rate. Keep held-out starts/scenes
-for generalization checks. With 50 demos, repeated epochs can overfit appearance
-and trajectory habits; collect failures rather than only extending training.
-
-For 24 GB, batch 4 above is a starting memory probe, **not a validated fit**. Reduce
-`--global_batch_size` further on OOM, preserve divisibility, and keep default
-frozen language/visual backbones. Do not train beside Isaac simulation on an
-already full GPU. Distinguish GPU OOM from host RAM pressure caused by data loading.
-The course gives multi-hour training expectations, but this repo has no measured
-24 GB pick-place throughput; time a run on your actual GPU and estimate from
-observed steps/second. See [NVIDIA training guidance](https://docs.nvidia.com/learning/physical-ai/sim-to-real-so-101/latest/10-groot.html).
-
-**Training machine**, after the chosen checkpoint exists, copy it to a model
-folder for transfer/mounting (example selects step 10000):
+**Training machine**, workshop root, inspect the launch, then run it after
+preparation, compatibility and the memory probe have passed:
 
 ```bash
-mkdir -p ~/sim2real/models/so101_pick_place_v1
-cp -a outputs/so101_pick_place_v1/checkpoint-10000 ~/sim2real/models/so101_pick_place_v1/
+DRY_RUN=1 bash scripts/train_pick_place.sh
+bash scripts/train_pick_place.sh
 ```
 
-On a separate robot host, transfer this complete checkpoint directory to the
-host models directory. It must contain `config.json`, weights and the other
-checkpoint artifacts, not only a single weight file. The real-container mount
-uses `~/sim2real/models`; the host evaluator defaults to `~/models`, so pass
-`--models_dir` explicitly as shown in [Evaluation](06-evaluation.md).
+[train_pick_place.sh](../scripts/train_pick_place.sh) prints its complete command,
+checks for a busy GPU and at least **50 GiB free** on the output filesystem,
+refuses an output with existing checkpoints unless `RESUME=1`, and logs through
+`tee` to `$OUT/train.log`. It trains **10,000 steps**, saves every **1,000 steps**,
+and retains two checkpoints. Resume explicitly requests the latest checkpoint;
+use a new output directory when changing the model, dataset or modality profile.
+
+The project launcher scopes modality overrides to the selected dataset embodiment
+before calling the pinned official N1.7 launcher. This keeps an unused default
+robot's 50-step modality out of the starter's 40-step processor validation while
+preserving saved checkpoint modality tags and the SO-arm's 16 absolute actions.
+It checks the GR00T pin/import path and clears inherited test hooks that can skip
+pretrained weights; it does not rebuild the model architecture.
+
+| Environment variable | Default |
+| --- | --- |
+| `GROOT` | `$HOME/Isaac-GR00T-N1.7` at the N1.7 GA pin |
+| `BASE_MODEL` | `$HOME/sim2real/models/nv_so_arm_n17` |
+| `DATASET` | `$REPO/datasets/pick_place_v2_gr00t` |
+| `OUT` | `$HOME/sim2real/models/so101_pick_place_v2_nvinit` |
+| `MAX_STEPS`, `SAVE_STEPS`, `SAVE_TOTAL_LIMIT` | `10000`, `1000`, `2` |
+| `BATCH` | `16`; validated by the N1.7 30-step memory probe |
+| `MEASURED_S_PER_STEP` | `0.3902`; measured N1.7 batch-16 compute timing |
+| `RESUME` | `0`; set to `1` only to resume an existing run |
+| `DATALOADER_NUM_WORKERS` | `0` |
+
+The diffusion transformer stays frozen via `--no-tune-diffusion-model`, with
+language and visual backbones frozen. The actual smoke parameter list confirmed
+that state/action heads, projections and vision-language adaptation layers
+remain trainable, including four vision-language self-attention layers:
+528,793,728 of 3,144,016,000 parameters (16.82%) are trainable; 2,615,222,272
+are frozen. The launcher sets
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` and lowers hue jitter to `0.02`
+to preserve useful blue/red colour cues.
+
+The real N1.7 probe on the RTX 4090 loaded the official checkpoint and completed
+30 optimizer updates at **batch 16**, with finite losses, and saved its checkpoint
+and final model successfully. Parameters loaded as FP32. Peak Torch allocation
+was **20.38 GiB**, and peak reservation was **20.47 GiB**; process-memory sampling
+every 0.2 s observed **20.94 GiB**. Batch 32 ran out of memory after its first
+update. Repeat a separate **at most 30-step** probe into
+`/tmp` when changing hardware, the base model or the training configuration.
+
+The printed estimate uses the batch-16 synchronized mean for steps 6–30,
+`0.3902 s/step`: 10,000 × 0.3902 is about **1.08 h of training compute**.
+Model loading, dataset caching and checkpoint saving add time. The smoke's
+resumable checkpoint occupied **15.66 GiB**, and the final model and metadata
+occupied another **11.72 GiB**: two retained checkpoints plus the final model
+require about **43.04 GiB** before working space. Checkpoint rotation writes a
+third checkpoint before pruning the oldest, temporarily requiring about
+**46.98 GiB**; the launcher requires at least **50 GiB free** to cover that save
+order and margin. Global batch is per forward/backward across GPUs before
+accumulation, so increasing accumulation alone does not reduce per-forward
+memory. Reduce `BATCH` when a changed configuration requires it.
+
+Evaluate checkpoints 9000 and 10000 on the same recorded v2 starts. Keep
+`--random_fraction 0` for option B; use `--episode_length_s 30 --action_horizon 8`
+to report both 15 s and 30 s success rates. See [Evaluation](06-evaluation.md).
+A longer episode or training run does not compensate for inconsistent grasp
+orientation in the demonstrations.
+
+## Current v1 baseline
+
+The earlier v1 recordings have been prepared into the **new**
+`datasets/pick_place_v1_gr00t_n17` directory using the N1.7 absolute profile,
+excluding reviewed failures 0 and 6. The completed copy contains 48 demonstrations,
+10,632 frames and 96 videos; all 21,264 camera frames decoded, the real N1.7
+reader matched PyAV with maximum RGB difference 0, and source hashes stayed
+unchanged. This baseline uses earlier demonstrations. Record a new yaw-aligned
+v2 dataset to apply the grasp-orientation correction described above.
+
+The copy was created with this command; preparation refuses to overwrite the
+completed directory:
+
+```bash
+python scripts/prepare_pick_place_gr00t.py \
+  --model_profile so_arm_n17 \
+  --groot ~/Isaac-GR00T-N1.7 \
+  --source datasets/pick_place_v1 \
+  --output datasets/pick_place_v1_gr00t_n17 \
+  --exclude_episodes 0,6
+```
+
+**Training machine**, workshop root, verify the existing baseline, then use this
+command for the requested 10k run. The Cosmos cache and batch-16 N1.7 probe have
+been verified; the full training run has not been started.
+
+```bash
+PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+  --dataset datasets/pick_place_v1_gr00t_n17
+DATASET="$PWD/datasets/pick_place_v1_gr00t_n17" \
+OUT="$HOME/sim2real/models/so101_pick_place_v1_n17_10k" \
+BATCH=16 MAX_STEPS=10000 SAVE_STEPS=1000 SAVE_TOTAL_LIMIT=2 \
+bash scripts/train_pick_place.sh
+```
+
+The launcher defaults continue to point at the recommended v2 dataset and output;
+these explicit paths identify the v1 baseline separately.
 
 ## Optional Hub upload
 
@@ -234,9 +303,10 @@ your private environment if authentication requires it; do not put tokens in doc
 ## Optional extensions and future work
 
 Paired sim/real recording exists. A turnkey merger/GR00T preparation path for
-those two differently named camera datasets is not supplied. The pinned launcher
-accepts a single dataset path; a custom multi-dataset configuration would be an
-additional implementation. See the course's
+those two differently named camera datasets is not supplied. The N1.7 launcher
+accepts multiple dataset paths joined by the platform path separator (`:` on
+Linux); each still needs compatible camera keys and modality configuration.
+See the course's
 [co-training section](https://docs.nvidia.com/learning/physical-ai/sim-to-real-so-101/latest/13-strategy2-cotraining.html)
 for the broader workflow, not a claim that this fork already automates it.
 

@@ -1,0 +1,35 @@
+# Dedicated GR00T N1.7 policy server for x86_64 Ada / Blackwell GPUs.
+# Keep the N1.6 physical-robot images separate: their Python and Torch pins differ.
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+ARG GROOT_REF=51d4c89f72fda44cbf77285c6a8114b52676b8a1
+LABEL org.opencontainers.image.description="SO-arm GR00T N1.7 policy server"
+LABEL org.opencontainers.image.revision="${GROOT_REF}"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    GIT_LFS_SKIP_SMUDGE=1 \
+    CUDA_HOME=/usr/local/cuda
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential ca-certificates cmake curl git git-lfs ninja-build \
+    python3.12 python3.12-dev python3.12-venv ffmpeg libegl1 libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+RUN curl --proto '=https' --tlsv1.2 -LsSf https://astral.sh/uv/0.8.14/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+RUN git clone --no-checkout https://github.com/NVIDIA/Isaac-GR00T.git /Isaac-GR00T
+WORKDIR /Isaac-GR00T
+RUN git checkout "${GROOT_REF}" && git rev-parse --verify HEAD
+# The pinned lock supplies Python 3.12, Torch 2.9/cu128, Transformers 4.57.3,
+# and the matching FlashAttention wheel. No checkpoint weights are baked in.
+RUN uv sync --frozen --python 3.12
+ENV VIRTUAL_ENV="/Isaac-GR00T/.venv" \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
+ENV PATH="/Isaac-GR00T/.venv/bin:$PATH"
+RUN echo 'source /Isaac-GR00T/.venv/bin/activate' >> /root/.bashrc
+
+COPY docker/utils.sh /root/tmp/utils.sh
+RUN cat /root/tmp/utils.sh >> /root/.bashrc && rm /root/tmp/utils.sh
+COPY scripts/gr00t_model_profiles.py scripts/gr00t_offline_cosmos.py scripts/launch_gr00t_server_n17.py /opt/so101/
+COPY docker/real/entrypoint.n17.sh /opt/so101/entrypoint.sh
+ENTRYPOINT ["/bin/bash", "/opt/so101/entrypoint.sh"]
+CMD ["/bin/bash"]

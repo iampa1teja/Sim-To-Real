@@ -156,6 +156,48 @@ creates a practice cube; it does not implement PickPlace sidecars or success.
 5. The cube hides between episodes. Spawn again for the next demonstration.
    Encode videos when convenient, or encode on exit. Do not train on pending PNGs.
 
+### Option B: yaw-aligned demos
+
+For `pick_place_v2`, keep wrist roll neutral **before pressing Spawn** and inspect
+that the cube's faces line up with the arm's approach direction. Spawn copies the
+live gripper orientation; it has no independent yaw control. Let the cube settle
+and check the alignment in the external view. Vary cube **position** across the
+reachable 3×3 grid, keeping this approach-relative alignment consistent; do not
+introduce independent cube-yaw or wrist-roll variation.
+
+Approach, grasp, lift, place, and hold for **0.5–1 s after release** before saving.
+Use a **new** root, `datasets/pick_place_v2`, and never mix these demos with v1.
+Discard a visibly misaligned or failed attempt during collection. Encode every
+saved episode before preparation.
+
+**Teleop container**, sim-only v2 collection:
+
+```bash
+pick_place_agent --task Lerobot-So101-Teleop-Pick-Place \
+  --repo_id 'iampa1teja/pick_place_v2' \
+  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
+  --task_name 'Pick up the blue cube and place it in the white box'
+```
+
+**Host**, workshop root with NumPy and PyArrow, after recording:
+
+```bash
+python scripts/check_pick_place_demo_alignment.py --dataset datasets/pick_place_v2
+```
+
+This read-only review pairs sidecar frames with recorded `observation.state` and
+prints cube-face yaw, calibrated shoulder pan and wrist roll at the first base-Z
+rise over 1 cm. It accounts for wxyz quaternions, cubes resting on different
+faces, 90° face symmetry, and the recorder's normalized joint mapping. Review
+large changes in face-minus-pan or wrist roll, and episodes without a lift
+candidate, alongside the videos. Pan and roll are joint angles, so this comparison
+does not reconstruct the gripper's yaw or certify grasp alignment or success.
+
+Then run [prepare + verify](05-training.md#prepare-an-independent-copy) with
+`--model_profile so_arm_n17`, from `datasets/pick_place_v2` into the new
+`datasets/pick_place_v2_gr00t` root. Evaluate v2 on its recorded cube and arm
+starts with `--random_fraction 0`.
+
 ## Storage and recovery
 
 The primary recording is LeRobot v3: `meta/info.json`, `meta/tasks.parquet`,
@@ -193,8 +235,10 @@ supported. See [Troubleshooting](troubleshooting.md).
 The NVIDIA course's [dataset inventory](https://docs.nvidia.com/learning/physical-ai/sim-to-real-so-101/latest/datasets-and-models.html)
 uses 75 sim demonstrations for its original vial task. For your cube task, 50
 successful, varied demos are a reasonable initial experiment, not a success
-threshold. Aim for a 3×3 reachable grid plus edges, vary cube yaw across 0–90°,
-keep the arm start pose consistent, and avoid long idle sections or abrupt motion.
+threshold. For option B, aim for a 3×3 reachable position grid plus edges, keep
+wrist roll neutral when spawning and preserve cube-face alignment with the arm's
+approach. Keep the arm start pose consistent and avoid long idle sections or
+abrupt motion.
 The recorder spawns beside the gripper; it has no grid/yaw CLI. Position starts
 through the actual workflow and inspect achieved coverage instead of claiming
 uniform coverage from a requested count.
@@ -209,7 +253,7 @@ from collections import Counter
 import importlib.util
 import json
 from pathlib import Path
-root = Path('datasets/pick_place_v1')
+root = Path('datasets/pick_place_v2')
 path = Path('source/sim_to_real_so101/utils/pick_place_eval.py')
 spec = importlib.util.spec_from_file_location('starts', path)
 module = importlib.util.module_from_spec(spec)
