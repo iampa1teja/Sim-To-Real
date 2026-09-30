@@ -449,6 +449,7 @@ class GR00TRemotePolicy:
         self._lang_instruction = lang_instruction
         self._action_queue: deque = deque()
         self._client = None
+        self.inference_calls = 0
 
     def connect(self):
         """Connect to the GR00T policy server."""
@@ -464,6 +465,7 @@ class GR00TRemotePolicy:
         """Reset state; benchmark seeds must be acknowledged by the server."""
         self._client.reset()
         self._action_queue.clear()
+        self.inference_calls = 0
         if seed is not None:
             response = self._client.call_endpoint("seed_policy", {"seed": int(seed)})
             if response != {"seed": int(seed)}:
@@ -585,6 +587,7 @@ class GR00TRemotePolicy:
         if len(self._action_queue) == 0:
             model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
             action_chunk, _info = self._client.get_action(model_input)
+            self.inference_calls += 1
             decoded = self._decode_action_chunk(action_chunk)
             self._action_queue.extend(decoded)
 

@@ -5,6 +5,7 @@ repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 model='' dataset='' dr=nodr episodes=20 random_fraction=0.0 start_mode=cycle
 eval_set='' splits='' repeats=1 robot_start=recorded
+results_json='' external_server=false server_only=false
 episode_length_s='' action_horizon=16 embodiment_tag=${EMBODIMENT_TAG:-NEW_EMBODIMENT}
 server_image=${SERVER_IMAGE:-real-robot:n1.7}
 rename_map=${RENAME_MAP:-'{"realsense_rgb":"room","wrist_cam":"wrist"}'}
@@ -20,6 +21,8 @@ Usage: ./docker/eval_pick_place.sh --model <relative checkpoint> --dataset <cont
   [--eval_set <container JSON>] [--splits id,ood,yaw,train] [--repeats 1]
   [--robot_start recorded|default]
   [--port 5555] [--gui] [--rerun] [--dry_run]
+  [--results_json <absolute container path>] [--external_server | --server_only]
+  --external_server uses an existing server; --server_only owns one until interrupted.
 
 Defaults: recorded cube and arm starts only; --random_fraction 0.25 opts into random starts.
 Episode length uses the task's configured value (15 s for Pick-Place-Eval).
@@ -34,12 +37,14 @@ EOF
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 while (($#)); do
     case "$1" in
+        --external_server) external_server=true; shift ;;
+        --server_only) server_only=true; shift ;;
         --dr) dr=dr; shift ;;
         --gui) gui=true; shift ;;
         --rerun) rerun=true; shift ;;
         --dry_run) dry_run=true; shift ;;
         --help|-h) usage; exit 0 ;;
-        --model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start)
+        --results_json|--model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start)
             (($# >= 2)) || fail "Missing value for $1; see --help."
             [[ $1 != --episode_length_s || -n $2 ]] || fail '--episode_length_s must be finite and positive.'
             key=${1#--}; printf -v "$key" '%s' "$2"; shift 2 ;;
@@ -100,6 +105,9 @@ dataset=${dataset%/}
 timestamp=$(date -u +%Y%m%dT%H%M%S%N)
 server_name="groot-eval-server-${timestamp}-$$"
 results="${dataset}/../eval_results/${model//\//_}_${dr}_${timestamp}.json"
+[[ -z $results_json || $results_json == /* ]] || fail "--results_json must be absolute inside teleop."
+[[ -z $results_json ]] || results=$results_json
+! "$external_server" || ! "$server_only" || fail "Choose only one server mode."
 print_command() { printf '+ '; printf '%q ' "$@"; printf '\n'; }
 run() { if "$dry_run"; then print_command "$@"; else "$@"; fi; }
 server_started=false
@@ -157,7 +165,9 @@ if not (checkpoint / 'config.json').is_file() or not any(checkpoint.glob('*.safe
 PY
 fi
 run docker exec teleop test -d "$dataset/pick_place_meta" || fail 'Dataset metadata missing inside teleop; use its mounted /workspace/Sim-to-Real-SO-101-Workshop/datasets path.'
-if "$dry_run"; then
+if "$external_server"; then
+    : # The shared server owns the port.
+elif "$dry_run"; then
     printf '# Verify host port %s is free; wait up to 300 seconds for server readiness\n' "$port"
 else
     python3 - "$port" <<'PY'
@@ -192,6 +202,7 @@ if [[ -n $eval_set ]]; then
         fi
     done
 fi
+if ! "$external_server"; then
 # Arm cleanup before launching so a signal during docker run cannot orphan it.
 server_started=true
 run "${server_cmd[@]}"
@@ -237,6 +248,17 @@ PY
         show_server_logs
         fail 'GR00T readiness timed out after 300 seconds; inspect the server logs above.'
     fi
+fi
+fi # server ownership
+if "$server_only"; then
+    printf 'SERVER_READY port=%s\n' "$port"
+    if ! "$dry_run"; then
+        while [[ $(docker inspect -f '{{.State.Running}}' "$server_name" 2>/dev/null || true) == true ]]; do
+            sleep 1 & wait $!
+        done
+        fail 'Shared GR00T server exited.'
+    fi
+    exit 0
 fi
 task=Lerobot-So101-Teleop-Pick-Place-Eval
 [[ $dr == nodr ]] || task=Lerobot-So101-Teleop-Pick-Place-DR-Eval

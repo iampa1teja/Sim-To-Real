@@ -115,6 +115,7 @@ from sim_to_real_so101.utils.lerobot_interface import (
 
 
 def _evaluate():
+    from time import monotonic
     if not 1 <= args_cli.action_horizon <= 16:
         raise ValueError("action_horizon must be in 1..16")
     if args_cli.episode_length_s is not None and (
@@ -269,6 +270,7 @@ def _evaluate():
         # joint drift or moving a recorded start to the calibrated default pose.
         settling_action = settling_pose(obs)
         step = 0
+        episode_wall_start = monotonic()
         while simulation_app.is_running() and len(episodes) < args_cli.num_episodes:
             with torch.inference_mode():
                 if step == 0:
@@ -289,14 +291,16 @@ def _evaluate():
                     pbar = None
                     row = {**metadata, "episode": len(episodes), "steps": step,
                            "success": is_terminated and not is_truncated,
-                           "success_step": step if is_terminated and not is_truncated else None}
+                           "success_step": step if is_terminated and not is_truncated else None,
+                           "inference_calls": getattr(policy, "inference_calls", None),
+                           "wall_time_s": monotonic() - episode_wall_start}
                     if benchmark:
                         row.update(env.unwrapped._benchmark_trace.finish(row['success']))
                         env.unwrapped._benchmark_trace = StageTrace()
                     episodes.append(row)
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
-                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}")
+                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}", flush=True)
                     if len(episodes) == args_cli.num_episodes:
                         break
                     metadata = episode_metadata()
@@ -306,6 +310,7 @@ def _evaluate():
                         policy.reset()
                     settling_action = settling_pose(obs)
                     step = 0
+                    episode_wall_start = monotonic()
                 elif keyboard_control.reset_world:
                     if benchmark:
                         raise RuntimeError('Manual reset interrupted fixed benchmark; saving incomplete report')
@@ -318,6 +323,7 @@ def _evaluate():
                     metadata = episode_metadata()
                     settling_action = settling_pose(obs)
                     step = 0
+                    episode_wall_start = monotonic()
     finally:
         if pbar is not None:
             pbar.close()

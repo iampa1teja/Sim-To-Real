@@ -486,3 +486,110 @@ and the paired ID/yaw positions, are correlated; their pooled episode-level
 interval is descriptive, not evidence of equally many independent workspace
 positions. Report per-split rates, denominators and consistency alongside it.
 No long benchmark run is performed by the implementation's smoke checks.
+
+## Action-horizon sweep
+
+`action_horizon` is the number of actions the client executes from a returned
+chunk before querying again. GR00T's SO-arm processor returns 16 actions; a
+horizon of 8 executes its first eight and replans. The horizon is client-side,
+so the sweep loads the checkpoint **once** and reuses the acknowledged benchmark
+server across all horizons. Each horizon starts a fresh simulator evaluation
+through `eval_pick_place.sh`; success logic and benchmark geometry are unchanged.
+
+From the host repository root:
+
+```bash
+./docker/sweep_action_horizon.sh \
+  --model so101_pick_place_v1_n17_10k/checkpoint-50000 \
+  --models_dir ~/sim2real/models \
+  --eval_set eval_sets/pick_place_v1_seed1984.json \
+  --splits all --horizons 1,2,4,6,8,12,16 \
+  --repeats 1 --episode_length_s 20
+```
+
+Add `--dry_run` to print the commands without launching Docker jobs. `--horizons
+1-16` accepts an inclusive range; commas and ranges can be combined. Values must
+be positive and fit the checkpoint's selected embodiment action chunk. The
+processor's `action.delta_indices` takes precedence over the model config's
+padded capacity (40 in N1.7); without a configured length the fallback is 16.
+The current SO101 evaluator also requires horizons at most 16.
+
+`--model` accepts the same relative checkpoint path as the evaluation runner.
+Alternatively use `--model so101_pick_place_v1_n17_10k --checkpoint
+checkpoint-50000`. Defaults are the committed benchmark, all splits, horizons
+`1,2,4,6,8,12,16`, one repeat, 20 simulation seconds, and
+`--out_root datasets/hyperparameters`. `--dataset` optionally overrides the
+benchmark's dataset path. `--dr`, `--lang`, `--lang_by_color`, and `--gui` pass
+through to the existing runner; `--port` defaults to 5555. Existing
+`SERVER_IMAGE`, `EMBODIMENT_TAG`, and `RENAME_MAP` environment defaults are retained.
+Model files live on the host. Eval-set, dataset and output paths must be mounted
+in teleop; both host paths and repository paths inside teleop are accepted.
+A real sweep refuses to start while another compute process occupies the GPU.
+
+At about **25 minutes per horizon for 150 episodes**, seven horizons take roughly
+**2 hours 55 minutes**, plus startup overhead. Shorter horizons make more
+inference calls and can take longer. Progress reports show the current horizon,
+completed episodes, wall elapsed time and an ETA estimated from completed
+trials. The estimate becomes useful once episodes finish.
+
+The output layout is:
+
+```text
+datasets/hyperparameters/<model>_<checkpoint>_<eval_set_name>_<UTC timestamp>/
+  sweep_config.json       # flags, checkpoint, git revision, benchmark/hash, host/GPU
+  server_cmd.txt
+  server.log
+  ah_8/
+    cmd.txt              # exact shell-quoted runner command
+    run.log              # evaluation stdout and stderr
+    status.json
+    results.json
+    results.png          # existing benchmark heatmap
+  ah_16/ ...
+  summary.csv
+  summary.json
+  summary.md
+  plots/
+    success_vs_horizon.png
+    stages_vs_horizon.png
+    time_to_success_vs_horizon.png
+    failure_modes_vs_horizon.png
+```
+
+The evaluator currently saves no video files. Any future video recording should
+write under the corresponding horizon directory. JSON rows add measured
+`inference_calls` and `wall_time_s`; older reports without this telemetry show
+missing values, not zeros.
+
+Use `--resume` with the same options to reuse the latest matching folder. The
+stored flags and benchmark hash must agree. A horizon is skipped only when its
+report is complete and contains the exact unique selected `(start_id, repeat)`
+schedule, the requested count, horizon and run settings. Incomplete artifacts
+are retained as `results.json.previous` and `results.png.previous` before retry.
+A failed horizon receives a failed status and remains visible in the summary;
+subsequent horizons still run. Exit and Ctrl+C cleanup stop the owned server.
+
+Open `summary.md` for successes/episodes and 95% Wilson intervals by split,
+stage rates and failure counts. `summary.csv`/`summary.json` also contain mean
+and median simulated time to success, the fraction successful within 15 seconds,
+mean inference calls and wall time per episode. For repeats, per-start
+consistency is stored as each start's success fraction. The best **complete**
+horizon has the highest overall success rate; ties prefer `id_near` when present
+(or `id`), then shorter median success time. Final ties use the smaller horizon
+for a deterministic verdict. Failed or incomplete horizons cannot win.
+
+The summary reuses the comparison helper's exact paired McNemar test on shared
+starts in repeat 0, comparing the best horizon to the runner-up and horizon 16.
+A statistical-better verdict requires p < 0.05 and more first-only than
+second-only successes. Missing horizon 16 is reported as unavailable. A
+self-comparison against 16 has p=1. These unadjusted tests and descriptive Wilson
+intervals do not account for all correlations or multiple comparisons; two
+smoke-test trials are useful for checking execution, not choosing a model.
+
+Regenerate a summary without running the simulator:
+
+```bash
+python3 scripts/summarize_sweep.py datasets/hyperparameters/<sweep-folder>
+# After installing the package:
+summarize_eval_sweep datasets/hyperparameters/<sweep-folder>
+```

@@ -16,7 +16,7 @@
 
 import os
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 # Minimum dependencies required prior to installation
 INSTALL_REQUIRES = [
@@ -27,7 +27,8 @@ INSTALL_REQUIRES = [
 # Installation operation
 setup(
     name="sim_to_real_so101",
-    packages=find_packages(where=".."),
+    packages=find_namespace_packages(where="..", include=["sim_to_real_so101", "sim_to_real_so101.*"],
+                                     exclude=["*.build", "*.build.*"]),
     package_dir={"": ".."},
     install_requires=INSTALL_REQUIRES,
     package_data={

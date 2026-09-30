@@ -283,3 +283,6 @@ docker/env
 !/tests/test_replay_scene.py
 !/tests/test_dr_replay_script.py
 !/tests/test_robot_start.py
+
+# Action-horizon sweep regression tests.
+!/tests/test_summarize_sweep.py
