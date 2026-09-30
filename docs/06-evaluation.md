@@ -335,6 +335,15 @@ is 150 episodes; `--splits id,ood,yaw` is 100. The yaw trials reuse the first
 is ignored when `--eval_set` is supplied: every selected start runs exactly once
 per repeat, in file order. Do not regenerate the set separately for each model.
 
+The fixed set's zone counts (zero means no sampled starts in that zone):
+
+| Split | NR | NC | NL | MR | MC | ML | FR | FC | FL | OUT | Total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| id | 0 | 7 | 4 | 6 | 17 | 11 | 6 | 6 | 3 | 0 | 60 |
+| ood | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 20 | 20 |
+| yaw | 0 | 3 | 1 | 3 | 5 | 1 | 4 | 1 | 2 | 0 | 20 |
+| train | 0 | 0 | 7 | 6 | 5 | 6 | 10 | 11 | 5 | 0 | 50 |
+
 All positions and yaws are in the robot base-link frame, in metres and radians.
 ID positions are uniform rejection samples inside the **convex hull** of the
 recorded starts, at least 2 cm from every training start. OOD positions are
@@ -455,7 +464,7 @@ ID/yaw markers share positions intentionally.
 ### Compare checkpoints
 
 Run the same evaluation command for the second checkpoint, changing only
-`--model`. Then use the two result paths printed by the runner (on the host,
+`--model` to `so101_pick_place_v1_n17_10k/checkpoint-49000`. Then use the two result paths printed by the runner (on the host,
 under `datasets/eval_results/`):
 
 ```bash
