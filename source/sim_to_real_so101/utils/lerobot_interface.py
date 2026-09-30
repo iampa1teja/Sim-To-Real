@@ -460,10 +460,14 @@ class GR00TRemotePolicy:
             raise RuntimeError("Cannot connect to GR00T policy server!")
         print("[INFO]: Policy server connected")
 
-    def reset(self):
-        """Reset server-side policy state and clear the local action buffer."""
+    def reset(self, seed=None):
+        """Reset state; benchmark seeds must be acknowledged by the server."""
         self._client.reset()
         self._action_queue.clear()
+        if seed is not None:
+            response = self._client.call_endpoint("seed_policy", {"seed": int(seed)})
+            if response != {"seed": int(seed)}:
+                raise RuntimeError("Policy seed not acknowledged; use benchmark_server.py")
 
     # ------------------------------------------------------------------
     # Observation conversion

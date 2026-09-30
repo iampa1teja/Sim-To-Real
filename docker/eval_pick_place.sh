@@ -4,6 +4,7 @@ set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 model='' dataset='' dr=nodr episodes=20 random_fraction=0.0 start_mode=cycle
+eval_set='' splits='' repeats=1 robot_start=recorded
 episode_length_s='' action_horizon=16 embodiment_tag=${EMBODIMENT_TAG:-NEW_EMBODIMENT}
 server_image=${SERVER_IMAGE:-real-robot:n1.7}
 rename_map=${RENAME_MAP:-'{"realsense_rgb":"room","wrist_cam":"wrist"}'}
@@ -16,6 +17,8 @@ Usage: ./docker/eval_pick_place.sh --model <relative checkpoint> --dataset <cont
   [--episode_length_s <seconds>] [--action_horizon 16] [--embodiment_tag NEW_EMBODIMENT]
   [--server_image real-robot:n1.7] [--rename_map <camera-name JSON>]
   [--lang <instruction>] [--lang_by_color <json>] [--models_dir ~/models]
+  [--eval_set <container JSON>] [--splits id,ood,yaw,train] [--repeats 1]
+  [--robot_start recorded|default]
   [--port 5555] [--gui] [--rerun] [--dry_run]
 
 Defaults: recorded cube and arm starts only; --random_fraction 0.25 opts into random starts.
@@ -36,7 +39,7 @@ while (($#)); do
         --rerun) rerun=true; shift ;;
         --dry_run) dry_run=true; shift ;;
         --help|-h) usage; exit 0 ;;
-        --model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map)
+        --model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start)
             (($# >= 2)) || fail "Missing value for $1; see --help."
             [[ $1 != --episode_length_s || -n $2 ]] || fail '--episode_length_s must be finite and positive.'
             key=${1#--}; printf -v "$key" '%s' "$2"; shift 2 ;;
@@ -46,6 +49,13 @@ done
 [[ -n $model && -n $dataset ]] || { usage; fail 'Provide --model and --dataset.'; }
 [[ $model != /* && /$model/ != */../* && /$model/ != */./* ]] || fail '--model must be a relative path under --models_dir, without . or .. components.'
 [[ $dataset == /* ]] || fail '--dataset must be an absolute path inside teleop.'
+[[ $repeats =~ ^[1-9][0-9]*$ ]] || fail '--repeats must be a positive integer.'
+[[ $robot_start == recorded || $robot_start == default ]] || fail '--robot_start must be recorded or default.'
+[[ -n $eval_set || ( -z $splits && $repeats == 1 ) ]] || fail '--splits and --repeats require --eval_set.'
+[[ -z $eval_set || $eval_set == /* ]] || fail '--eval_set must be an absolute path inside teleop.'
+if [[ -n $splits ]]; then
+    [[ $splits =~ ^(id|ood|yaw|train)(,(id|ood|yaw|train))*$ ]] || fail 'Invalid --splits.'
+fi
 [[ $episodes =~ ^[1-9][0-9]*$ ]] || fail '--episodes must be a positive integer.'
 [[ $port =~ ^[0-9]+$ && ${#port} -le 5 ]] || fail '--port must be an integer from 1 to 65535.'
 port=$((10#$port))
@@ -159,6 +169,9 @@ except OSError as error:
     sys.exit(f'Port {sys.argv[1]} is unavailable ({error}); stop the listener or choose --port.')
 PY
 fi
+if [[ -n $eval_set ]]; then
+    run docker exec teleop test -f "$eval_set" || fail 'Eval set JSON missing inside teleop.'
+fi
 # Pinned GR00T uses tyro.cli(ServerConfig): --embodiment-tag accepts a tag name/value.
 server_cmd=(docker run -d --rm --name "$server_name" --network host --privileged --gpus all
     -e DISPLAY
@@ -172,6 +185,13 @@ server_cmd=(docker run -d --rm --name "$server_name" --network host --privileged
     -v "$repo_dir/docker/real/scripts:/Isaac-GR00T/gr00t/eval/real_robot/SO100"
     "$server_image" python /Isaac-GR00T/gr00t/eval/run_gr00t_server.py
     --model-path "/workspace/models/$model" --embodiment-tag "$embodiment_tag" --port "$port")
+if [[ -n $eval_set ]]; then
+    for index in "${!server_cmd[@]}"; do
+        if [[ ${server_cmd[index]} == /Isaac-GR00T/gr00t/eval/run_gr00t_server.py ]]; then
+            server_cmd[index]=/Isaac-GR00T/gr00t/eval/real_robot/SO100/benchmark_server.py
+        fi
+    done
+fi
 # Arm cleanup before launching so a signal during docker run cannot orphan it.
 server_started=true
 run "${server_cmd[@]}"
@@ -224,10 +244,14 @@ task=Lerobot-So101-Teleop-Pick-Place-Eval
 # environment exported by the container entrypoint. Run the lerobot_eval module.
 eval_cmd=(docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m sim_to_real_so101.scripts.lerobot_eval --task "$task" --num_envs 1
     --cube_starts "$dataset/pick_place_meta" --start_mode "$start_mode" --random_fraction "$random_fraction"
-    --robot_start recorded
+    --robot_start "$robot_start"
     --rename_map "$rename_map" --action_horizon "$action_horizon"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
     --num_episodes "$episodes" --checkpoint "$model" --results_json "$results")
+if [[ -n $eval_set ]]; then
+    eval_cmd+=(--eval_set "$eval_set" --repeats "$repeats")
+    [[ -z $splits ]] || eval_cmd+=(--splits "$splits")
+fi
 [[ -z $episode_length_s ]] || eval_cmd+=(--episode_length_s "$episode_length_s")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)

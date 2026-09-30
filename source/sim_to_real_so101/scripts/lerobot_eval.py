@@ -69,6 +69,10 @@ parser.add_argument(
 )
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
 
+parser.add_argument("--eval_set", type=Path, help="Fixed benchmark JSON (overrides num_episodes)")
+parser.add_argument("--splits", help="Comma-separated splits, default all in the file")
+parser.add_argument("--repeats", type=int, default=1)
+
 parser.add_argument("--cube_starts", help="Directory containing episode_*.json cube trajectories")
 parser.add_argument("--start_mode", choices=("cycle", "random"), default="cycle")
 parser.add_argument("--random_fraction", type=float, default=0.0)
@@ -116,6 +120,16 @@ def _evaluate():
     if args_cli.episode_length_s is not None and (
             not math.isfinite(args_cli.episode_length_s) or args_cli.episode_length_s <= 0):
         raise ValueError("episode_length_s must be finite and greater than 0")
+    benchmark = None
+    if getattr(args_cli, 'eval_set', None):
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, StageTrace, benchmark_report, save_heatmap
+        from sim_to_real_so101.utils.pick_place_benchmark_runtime import install_stage_tracking, capture_scene
+        benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
+        args_cli.num_episodes = len(benchmark.schedule)
+        if args_cli.random_fraction != 0:
+            raise ValueError('--eval_set cannot be combined with random_fraction')
+    elif getattr(args_cli, 'splits', None) or getattr(args_cli, 'repeats', 1) != 1:
+        raise ValueError('--splits and --repeats require --eval_set')
     keyboard_control = KeyboardControl()
 
     # parse configuration
@@ -142,7 +156,9 @@ def _evaluate():
                       reset_robot=args_cli.robot_start == "recorded")
         if args_cli.cube_starts:
             params["starts_dir"] = args_cli.cube_starts
-    elif args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
+        if benchmark:
+            params.update(eval_set=str(args_cli.eval_set), splits=args_cli.splits, repeats=args_cli.repeats)
+    elif benchmark or args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
         raise ValueError("Cube starts and colour instructions require a pick-place Eval task")
 
     # Seed all RNGs for reproducible episode resets
@@ -156,6 +172,8 @@ def _evaluate():
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
     step_dt = float(env.unwrapped.step_dt)
+    if benchmark:
+        install_stage_tracking(env.unwrapped)
 
     # print info (this is vectorized environment)
     print(f"[INFO]: Gym observation space: {env.observation_space}")
@@ -208,7 +226,12 @@ def _evaluate():
         color = getattr(raw, "_pick_place_cube_color", ["unknown"])[0]
         instruction = select_instruction(color, args_cli.lang_instruction, args_cli.lang_instruction_by_color)
         policy._lang_instruction = instruction
-        return {"start_index": index,
+        extra = {}
+        if benchmark:
+            start = raw._benchmark_start
+            extra = dict(start_id=start['id'], split=start['split'], repeat=start['repeat'],
+                         policy_seed=start['policy_seed'], x=start['x'], y=start['y'], yaw=start['yaw'])
+        return {**extra, "start_index": index,
                 "start_kind": "random" if index == -1 else "recorded" if index is not None else "unknown",
                 "zone": getattr(raw, "_pick_place_start_zone", ["unknown"])[0],
                 "cube_color": color, "instruction": instruction}
@@ -219,8 +242,18 @@ def _evaluate():
     pbar = None
     try:
         obs, _ = env.reset()
-        policy.reset()
         metadata = episode_metadata()
+        if benchmark:
+            live = capture_scene(env.unwrapped)
+            expected = benchmark.data['scene']
+            # Float32 PhysX poses may differ at the micrometre level. A changed
+            # scene must never silently reuse a benchmark's footprint mask.
+            for key in ('box_footprint_base_xy', 'table_outline_base_xy', 'cube_size_m'):
+                if np.shape(live[key]) != np.shape(expected[key]) or not np.allclose(live[key], expected[key], atol=1e-5, rtol=0):
+                    raise ValueError(f'Live scene differs from eval set: {key}; recapture geometry')
+            policy.reset(seed=metadata['policy_seed'])
+        else:
+            policy.reset()
         actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
         initial_action = torch.tensor(
             [-0.2736, -0.6109, -0.0745, 1.5148, -1.6034, -0.1465],
@@ -257,17 +290,25 @@ def _evaluate():
                     row = {**metadata, "episode": len(episodes), "steps": step,
                            "success": is_terminated and not is_truncated,
                            "success_step": step if is_terminated and not is_truncated else None}
+                    if benchmark:
+                        row.update(env.unwrapped._benchmark_trace.finish(row['success']))
+                        env.unwrapped._benchmark_trace = StageTrace()
                     episodes.append(row)
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
                           f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}")
                     if len(episodes) == args_cli.num_episodes:
                         break
-                    policy.reset()
                     metadata = episode_metadata()
+                    if benchmark:
+                        policy.reset(seed=metadata['policy_seed'])
+                    else:
+                        policy.reset()
                     settling_action = settling_pose(obs)
                     step = 0
                 elif keyboard_control.reset_world:
+                    if benchmark:
+                        raise RuntimeError('Manual reset interrupted fixed benchmark; saving incomplete report')
                     keyboard_control.reset_world = False
                     pbar.close()
                     pbar = None
@@ -280,17 +321,25 @@ def _evaluate():
     finally:
         if pbar is not None:
             pbar.close()
-        report = results_report(
-            episodes, args_cli.task, args_cli.checkpoint, args_cli.seed,
+        report_fn = results_report
+        report_extra = {}
+        if benchmark:
+            report_fn = benchmark_report
+            report_extra = dict(eval_set=benchmark.data, repeats=args_cli.repeats)
+        report = report_fn(
+            episodes, task=args_cli.task, checkpoint=args_cli.checkpoint, seed=args_cli.seed, **report_extra,
             random_fraction=args_cli.random_fraction, episode_length_s=episode_length_s,
             action_horizon=args_cli.action_horizon, step_dt=step_dt,
         )
+        report['robot_start'] = args_cli.robot_start
         report['requested_episodes'] = args_cli.num_episodes
         report['complete'] = len(episodes) == args_cli.num_episodes
         print(json.dumps(report, indent=2))
         if args_cli.results_json:
             args_cli.results_json.parent.mkdir(parents=True, exist_ok=True)
             args_cli.results_json.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
+            if benchmark:
+                save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
         env.close()
     if len(episodes) != args_cli.num_episodes:

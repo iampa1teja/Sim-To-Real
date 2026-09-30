@@ -429,6 +429,7 @@ def _robot_states_root(starts_dir, reset_robot):
 
 def reset_cube_from_recorded_starts(
     env, env_ids, asset_cfg, starts_dir, mode="cycle", random_fraction=0.0, seed=None, reset_robot=True,
+    eval_set=None, splits=None, repeats=1,
 ):
     """Evaluation-only placement from base-link frame trajectory starts.
 
@@ -450,9 +451,15 @@ def reset_cube_from_recorded_starts(
     starts_dir = starts_dir or os.environ.get("PICK_PLACE_EVAL_STARTS")
     seed = seed if seed is not None else env.cfg.seed
     key = (starts_dir, mode, random_fraction, seed, bool(reset_robot))
+    if eval_set:
+        key += (eval_set, splits, repeats)
     if getattr(env, "_pick_place_starts_key", None) != key:
-        env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
-                                                robot_states_root=_robot_states_root(starts_dir, reset_robot))
+        if eval_set:
+            from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
+            env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed)
+        else:
+            env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
+                                                    robot_states_root=_robot_states_root(starts_dir, reset_robot))
         env._pick_place_starts_key = key
     sampler = env._pick_place_starts
     asset, robot, box = env.scene[asset_cfg.name], env.scene["robot"], env.scene["white_box"]
@@ -482,7 +489,7 @@ def reset_cube_from_recorded_starts(
             return not footprints_overlap(footprint(world, rotation, size), box_polygon)
 
         start, p, q, zone = sampler.sample(accepts_random)
-        if start == -1:
+        if start == -1 or (eval_set and sampler.current['split'] != 'train'):
             q = upright_orientation(base_q, plane, q)
         world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
         if start != -1 and footprints_overlap(footprint(world, rotation, size), box_polygon):
@@ -494,6 +501,8 @@ def reset_cube_from_recorded_starts(
         ))
         env._pick_place_start_index[index] = start
         env._pick_place_start_zone[index] = zone
+        if eval_set:
+            env._benchmark_start = dict(sampler.current)
         if reset_robot:
             joint_starts.append(dataset_state_to_radians(
                 sampler.robot_state(start), getattr(env.cfg, "sim_joint_mapping", None)))
@@ -544,9 +553,10 @@ def check_pick_place_eval_event_order(env, env_ids):
     seed = params["seed"] if params["seed"] is not None else env.cfg.seed
     reset_robot = bool(params.get("reset_robot", True))
     params["starts_dir"], params["seed"] = directory, seed
-    env._pick_place_starts = RecordedStarts(directory, params["mode"], params["random_fraction"], seed,
-                                            robot_states_root=_robot_states_root(directory, reset_robot))
-    env._pick_place_starts_key = (directory, params["mode"], params["random_fraction"], seed, reset_robot)
+    if not params.get('eval_set'):
+        env._pick_place_starts = RecordedStarts(directory, params["mode"], params["random_fraction"], seed,
+                                                robot_states_root=_robot_states_root(directory, reset_robot))
+        env._pick_place_starts_key = (directory, params["mode"], params["random_fraction"], seed, reset_robot)
     names = env.event_manager.active_terms['reset']
     if not names.index('reset_robot_position') < names.index('spawn_cube') < names.index('reset_tracking'):
         raise RuntimeError(f'Invalid pick-place reset order: {names}')

@@ -324,3 +324,156 @@ for the failing starts, preserve scene versions, exclude known failed saved demo
 from the training copy, then retrain and compare the same evaluation protocol.
 Keep real outcomes as an explicit human-scored log until a real success sensor
 or scorer is implemented.
+
+## Benchmark protocol
+
+Use the committed `eval_sets/pick_place_v1_seed1984.json` for checkpoint
+comparisons. It contains **100 held-out trials** (60 `id`, 20 `ood`, 20 `yaw`)
+and **50 recorded `train` sanity trials**. With all splits selected, one repeat
+is 150 episodes; `--splits id,ood,yaw` is 100. The yaw trials reuse the first
+20 ID positions, so there are 80 distinct held-out XY positions. `--episodes`
+is ignored when `--eval_set` is supplied: every selected start runs exactly once
+per repeat, in file order. Do not regenerate the set separately for each model.
+
+All positions and yaws are in the robot base-link frame, in metres and radians.
+ID positions are uniform rejection samples inside the **convex hull** of the
+recorded starts, at least 2 cm from every training start. OOD positions are
+2–5 cm outside that hull and within the recorded cube-start polar/pan sweep
+expanded by 10 degrees. This is the protocol's angular reachability gate, not
+an inverse-kinematics guarantee. New cube footprints must also fit on the
+measured tabletop, so OOD sampling cannot create unsupported off-table starts.
+First-frame arm poses are rest poses; they
+must not be used to infer the workspace's pan sweep. All starts use the mean
+recorded first-frame `observation.state` with `--robot_start recorded` (the
+default), including the sanity split. `--robot_start default` instead uses the
+existing calibrated reset pose and is a different comparison condition.
+
+`--yaw_mode matched` (the default) keeps the recorded relative-yaw distribution
+for `pick_place_v1`. For each training start, `bearing = atan2(y, x)` and
+`rel_yaw = wrap(cube_yaw - bearing)` in [-45°,45°). A new ID/OOD start copies
+`rel_yaw` from its nearest recorded XY neighbour and sets `yaw = bearing +
+rel_yaw`, without jitter. `--yaw_mode radial` sets `yaw = bearing`, intended for
+future datasets recorded with the yaw-aligned protocol. `--yaw_mode random`
+draws uniform yaw in [0°,90°). The `yaw` split **always** uses uniform random yaw,
+regardless of this option, at its paired ID positions. The set stores the yaw
+mode, recorded relative-yaw mean/population-standard-deviation/min/max in radians,
+and each start's relative yaw and `source_start_id` (`null` for radial/random
+trials, self for recorded sanity trials). Absolute yaw is stored modulo 90°;
+recorded sanity trials also retain their original full orientation.
+New trials stand upright on the measured tabletop using the
+existing reset helpers. Cube/box overlap is rejected by the same projected
+cuboid footprint test as recorded-start evaluation. Paired ID/yaw candidates
+are accepted together only when both clear the box.
+
+Zones use the existing 3×3 training-region convention; OOD is `OUT`. Every trial
+has a stable ID, split, XY, yaw, zone and six-element arm state. The JSON embeds
+the captured live box/base poses, measured table outline and plane, existing
+cube/box dimensions, input parameters, dataset path, creation time, generator
+commit and a content hash. At runtime the benchmark checks live geometry against
+the snapshot. A different scene requires a new set; do not silently reuse it.
+
+Regenerate on the **host**, repository root (NumPy and PyArrow required):
+
+```bash
+PYTHONPATH=source python3 -m sim_to_real_so101.scripts.make_eval_set \
+  --dataset datasets/pick_place_v1 \
+  --out /tmp/pick_place_v1_seed1984.json --seed 1984 \
+  --n_id 60 --n_ood 20 --n_yaw 20 --min_dist_m 0.02 \
+  --ood_margin_m 0.02 0.05 --yaw_mode matched
+```
+
+After reinstalling the package, `make_pick_place_eval_set` is the equivalent
+console command. It uses `eval_sets/pick_place_scene.json` by default;
+`--scene_json` selects another live capture. To intentionally capture a changed
+scene, with a free GPU and the teleop container running:
+
+```bash
+docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh \
+  /workspace/Sim-to-Real-SO-101-Workshop/scripts/capture_eval_scene.py \
+  --headless --out /tmp/pick_place_scene.json
+```
+
+That helper resets the scene once and reads the geometry; it runs no policy.
+Copy the capture out of teleop before passing it to a host-side generator.
+
+Run **one checkpoint**, on the host from the repository root:
+
+```bash
+./docker/eval_pick_place.sh \
+  --model so101_pick_place_v1_n17_10k/checkpoint-50000 \
+  --models_dir ~/sim2real/models \
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --eval_set /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json \
+  --splits id,ood,yaw,train --repeats 1 \
+  --episode_length_s 30 --action_horizon 8
+```
+
+Add `--dry_run` to inspect commands without starting jobs. `--dr` retains the
+existing DR behavior; use the same DR setting and language configuration for
+both checkpoints. The wrapper uses a mounted `benchmark_server.py` entrypoint
+for benchmark runs; existing images need no rebuild. It preserves the pinned
+N1.7 offline launcher and adds an acknowledged server RNG seed endpoint. Direct
+clients must connect to this entrypoint too. Each (start ID, repeat) receives a
+deterministic policy seed derived from the run seed and original file index,
+so split selection does not change its seed. The client requires server
+acknowledgement; setting only a local seed is insufficient for remote inference.
+Seeding improves repeatability but does not guarantee bitwise GPU determinism.
+
+### Benchmark results and stages
+
+Benchmark reports use **schema version 2**; ordinary recorded/random evaluation
+retains schema version 1. Version 2 includes the fixed set and its hash,
+`by_split`, `by_zone`, `overall` and `per_start_consistency`. Each aggregate gives
+successes/episodes, success rate, a **95% Wilson interval**, stage rates,
+failure-mode counts and median simulated time to success. The median excludes
+failures and includes the existing ten settling steps. Per-start consistency is
+the fraction of its completed repeats that succeeded. Reports record completion
+and requested episode count; comparisons reject incomplete runs.
+
+Stages are latched over the episode, sampled on every control step **before
+automatic reset**, including the terminal frame:
+
+- `reached`: `ee_frame` was within 3 cm of the cube.
+- `grasped`: the existing `object_grasped` observation fired.
+- `lifted`: cube rise from the existing resting-height tracker reached `min_lift`.
+- `over_box`: cube centre XY entered the live outer box footprint while held.
+- `placed`: the existing placement observation fired.
+- `success`: existing confirmed termination, with timeout still taking precedence.
+
+Failure classification uses `placed_not_confirmed` if placement occurred without
+success; otherwise `never_reached`, `missed_grasp`, `timeout_holding` if still
+held, `dropped_before_box` if released before ever crossing the box, or
+`dropped_outside` if released after crossing without placement. These labels
+summarize observed stages, not a new success predicate. The observer does not
+change task geometry, contacts, thresholds or confirmation logic.
+
+A PNG beside each JSON shows the measured table and box outlines, grey training
+starts, and split-specific markers coloured from red (failure) to green
+(success). With repeats, colour represents each start's success fraction.
+ID/yaw markers share positions intentionally.
+
+### Compare checkpoints
+
+Run the same evaluation command for the second checkpoint, changing only
+`--model`. Then use the two result paths printed by the runner (on the host,
+under `datasets/eval_results/`):
+
+```bash
+python3 scripts/compare_eval_results.py \
+  datasets/eval_results/checkpoint_A_results.json \
+  datasets/eval_results/checkpoint_B_results.json
+```
+
+Substitute the actual timestamped filenames. The table reports each split's
+success rate and Wilson interval. The **exact two-sided paired McNemar test**
+compares starts shared by each pair, overall and per split. With repeats, it
+uses repeat 0 by default; `--repeat 1` selects the second repeat. This avoids
+treating repeated trials of the same start as independent McNemar observations.
+Policy seeds and task, timeout, action horizon, robot-start mode and environment
+seed must match. P-values are unadjusted when comparing multiple pairs/splits.
+
+Wilson intervals describe the tested episode sample. Repeats of the same start,
+and the paired ID/yaw positions, are correlated; their pooled episode-level
+interval is descriptive, not evidence of equally many independent workspace
+positions. Report per-split rates, denominators and consistency alongside it.
+No long benchmark run is performed by the implementation's smoke checks.
