@@ -28,7 +28,7 @@ STATIC_FILES = {
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/app.jsx": ("app.jsx", "text/javascript; charset=utf-8"),
 }
-COMMANDS = ("start", "stop", "discard", "spawn", "save", "encode", "exit")
+COMMANDS = ("start", "stop", "discard", "spawn", "save", "encode", "exit", "rerecord")
 
 
 class RecordingWebGui:
@@ -51,7 +51,8 @@ class RecordingWebGui:
         self._requests = dict.fromkeys(COMMANDS, False)
         self._state = {"active": False, "can_start": False, "busy": False, "pending": False, "status": "",
                        "recording": False, "pending_videos": 0, "encoding": False,
-                       "encode_progress": "All saved episodes are encoded", "closed": False}
+                       "encode_progress": "All saved episodes are encoded", "closed": False,
+                       "saved_episodes": 0, "rerecord_episode": None}
         self._frames: dict[str, str | None] = dict.fromkeys(self._camera_names)
         self._payload = ""
         self._seq = 0
@@ -66,7 +67,7 @@ class RecordingWebGui:
 
     # ── Control-loop API ─────────────────────────────────────────────────────
 
-    def consume_requests(self) -> dict[str, bool]:
+    def consume_requests(self) -> dict:
         with self._cond:
             requests = self._requests
             self._requests = dict.fromkeys(COMMANDS, False)
@@ -74,7 +75,8 @@ class RecordingWebGui:
 
     def set_state(self, active: bool, can_start: bool, status: str, busy: bool = False,
                   *, recording: bool = False, pending_videos: int = 0,
-                  encoding: bool = False, encode_progress: str = "") -> None:
+                  encoding: bool = False, encode_progress: str = "",
+                  saved_episodes: int = 0, rerecord_episode: int | None = None) -> None:
         """``active``: an episode is running (countdown or recording).
         ``can_start``: Start is allowed (e.g. a cube has been spawned)."""
         with self._cond:
@@ -88,7 +90,8 @@ class RecordingWebGui:
             self._state = {"active": active, "can_start": can_start, "busy": busy,
                            "pending": pending, "status": status, "recording": recording,
                            "pending_videos": pending_videos, "encoding": encoding,
-                           "encode_progress": encode_progress, "closed": False}
+                           "encode_progress": encode_progress, "closed": False,
+                           "saved_episodes": saved_episodes, "rerecord_episode": rerecord_episode}
             if self._state != previous:
                 self.flush()
 
@@ -148,7 +151,7 @@ class RecordingWebGui:
                 return last_seq, None
             return self._seq, self._payload
 
-    def _command(self, name: str, encode: bool | None = None) -> bool:
+    def _command(self, name: str, encode: bool | None = None, episode: int | None = None) -> bool:
         if name not in COMMANDS:
             return False
         with self._cond:
@@ -157,16 +160,21 @@ class RecordingWebGui:
                 "start": state["can_start"] and not state["active"],
                 "spawn": not state["active"],
                 "stop": state["active"],
-                "discard": state["active"],
+                "discard": state["active"] or state["rerecord_episode"] is not None,
                 "save": state["recording"],
                 "encode": state["pending_videos"] > 0 and not state["encoding"],
                 "exit": True,
+                "rerecord": not state["active"] and not state["encoding"]
+                    and not state["pending_videos"] and state["rerecord_episode"] is None
+                    and type(episode) is int and 0 <= episode < state["saved_episodes"],
             }
             if self._closed or state["busy"] or state["pending"] or not allowed[name]:
                 return False
             self._requests[name] = True
             if name == "exit":
                 self._requests["exit_encode"] = encode
+            if name == "rerecord":
+                self._requests["rerecord_episode"] = episode
             state["pending"] = True
             self.flush()
         return True
@@ -206,10 +214,12 @@ class RecordingWebGui:
                     command = body.get("cmd")
                     if command == "exit" and type(body.get("encode")) is not bool:
                         raise ValueError("exit requires boolean encode")
+                    if command == "rerecord" and type(body.get("episode")) is not int:
+                        raise ValueError("rerecord requires integer episode")
                 except (ValueError, AttributeError):
                     self.send_error(400, "Expected JSON body {\"cmd\": ...}")
                     return
-                if not gui._command(command, body.get("encode")):
+                if not gui._command(command, body.get("encode"), body.get("episode")):
                     self.send_error(409, "Command is unavailable in the current recorder state")
                     return
                 self.send_response(204)

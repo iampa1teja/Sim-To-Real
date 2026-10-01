@@ -273,7 +273,6 @@ docker/env
 !/tests/test_pick_place_eval.py
 !/tests/test_eval_pick_place_script.py
 !/tests/test_lerobot_eval_rollout.py
-!/tests/test_prepare_pick_place_gr00t.py
 # Domain-randomized replay tests.
 !/tests/_fakes.py
 !/tests/test_resets_dr.py
@@ -286,3 +285,4 @@ docker/env
 
 # Action-horizon sweep regression tests.
 !/tests/test_summarize_sweep.py
+!/tests/test_rerecording.py

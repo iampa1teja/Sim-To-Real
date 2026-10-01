@@ -8,7 +8,7 @@ const { useEffect, useState, useRef } = React;
 const BUTTONS = [
   { cmd: "start", label: "Start recording", tone: "start", enabled: (s) => s.can_start && !s.active },
   { cmd: "stop", label: "Stop recording", tone: "stop", enabled: (s) => s.active },
-  { cmd: "discard", label: "Discard recording", tone: "discard", enabled: (s) => s.active },
+  { cmd: "discard", label: "Discard recording", tone: "discard", enabled: (s) => s.active || s.rerecord_episode != null },
   // Teleporting the cube mid-episode would corrupt the recording.
   { cmd: "spawn", label: "Spawn the cube", tone: "spawn", enabled: (s) => !s.active },
 ];
@@ -96,11 +96,49 @@ function ExitDialog({ state, disabled, onExit, onCancel }) {
   );
 }
 
+function RerecordDialog({ state, disabled, onRecord, onCancel }) {
+  const dialog = useRef(null);
+  const input = useRef(null);
+  const [episode, setEpisode] = useState("");
+  const index = Number(episode);
+  const valid = /^\d+$/.test(episode) && Number.isSafeInteger(index) && index < state.saved_episodes;
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current.showModal();
+    input.current.focus();
+    return () => previous?.focus();
+  }, []);
+  return (
+    <dialog ref={dialog} aria-labelledby="rerecord-title" onCancel={(event) => {
+      event.preventDefault();
+      onCancel();
+    }}>
+      <form onSubmit={(event) => {
+        event.preventDefault();
+        if (valid && !disabled) onRecord(index);
+      }}>
+        <h2 id="rerecord-title">Re-record a saved episode</h2>
+        <p>Choose episode 0–{state.saved_episodes - 1}. Prepare the scene, then press Start recording.
+          Save replaces that episode in the sim and connected real dataset; Discard keeps the original.</p>
+        <p>A backup of each original dataset is kept when you save. Preparing the copy needs extra disk space.</p>
+        <label htmlFor="rerecord-episode">Episode number</label>{" "}
+        <input ref={input} id="rerecord-episode" type="number" min="0" max={state.saved_episodes - 1}
+          step="1" required value={episode} onChange={(event) => setEpisode(event.target.value)} />
+        <div className="dialog-actions">
+          <button type="submit" className="btn start" disabled={disabled || !valid}>Prepare re-recording</button>
+          <button type="button" className="btn spawn" onClick={onCancel}>Cancel</button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
 function App() {
   const [state, connected] = useRecorderState();
   const [error, setError] = useState(null);
   const [pending, setPending] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [rerecordOpen, setRerecordOpen] = useState(false);
   const live = connected && state !== null && !state.closed;
   const disabled = !live || pending || state?.busy || state?.pending;
 
@@ -130,12 +168,19 @@ function App() {
             {label}
           </button>
         ))}
+        <button className="btn stop"
+          disabled={disabled || state?.active || state?.encoding || !!state?.pending_videos ||
+            !state?.saved_episodes || state?.rerecord_episode != null}
+          onClick={() => setRerecordOpen(true)}>Re-record episode</button>
       </section>
 
       {error && <p className="error">{error}</p>}
       <p className={`status ${state?.active ? "rec" : ""}`}>
         {state ? state.status : "Waiting for the recorder…"}
       </p>
+      {state?.rerecord_episode != null && <p className="status" role="status">
+        Replacing episode {state.rerecord_episode}. The original stays safe until Save.
+      </p>}
 
       <section className="grid">
         {(state?.cameras ?? []).map((name) => (
@@ -153,6 +198,12 @@ function App() {
         onCancel={() => setExitOpen(false)} onExit={(encode) => {
           setExitOpen(false);
           onClick("exit", { encode });
+        }} />}
+      {rerecordOpen && !state?.closed && <RerecordDialog state={state}
+        disabled={disabled || state?.active || state?.encoding || !!state?.pending_videos || state?.rerecord_episode != null}
+        onCancel={() => setRerecordOpen(false)} onRecord={(episode) => {
+          setRerecordOpen(false);
+          onClick("rerecord", { episode });
         }} />}
     </main>
   );

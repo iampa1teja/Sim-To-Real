@@ -117,8 +117,9 @@ try:
 
     import_module("sim_to_real_so101.tasks")  # Registers workshop tasks.
     from sim_to_real_so101.utils.episode_cube import EpisodeCube
-    from sim_to_real_so101.utils.episode_metadata import save_cube_trajectory, validate_cube_trajectories
+    from sim_to_real_so101.utils.episode_metadata import validate_cube_trajectories
     from sim_to_real_so101.utils.recording_web_gui import RecordingWebGui
+    from sim_to_real_so101.utils.rerecording import RerecordingSession, recover_replacement
 
     try:
         from lerobot.utils.utils import say as _lerobot_say
@@ -176,11 +177,8 @@ def _save_episode(recorder_group, trajectory, cube_size):
     count = recorder_group.frame_count
     if len(trajectory) != count:
         raise ValueError(f"Cube trajectory has {len(trajectory)} frames; datasets have {count}.")
-    episode_index = recorder_group.save_episode()
-    if episode_index is not None:
-        poses = torch.stack(trajectory).cpu().tolist()
-        save_cube_trajectory(args_cli.repo_root, episode_index, poses, cube_size, args_cli.fps)
-    return episode_index
+    poses = torch.stack(trajectory).cpu().tolist() if trajectory else []
+    return recorder_group.save_with_sidecar(poses, cube_size, args_cli.fps)
 
 
 def _gui_frames(visual_obs: dict | None, real_observation: dict | None) -> dict:
@@ -305,6 +303,7 @@ def main():
             follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower")
 
         if recording_mode:
+            recover_replacement(args_cli.repo_root)
             recorder_group = make_recorders(
                 args_cli, env.unwrapped.device, sim_cameras, follower_iface, real_cameras,
                 batch_encoding_size=args_cli.encode_every or sys.maxsize,
@@ -314,6 +313,7 @@ def main():
             validate_cube_trajectories(
                 args_cli.repo_root, recorder_group.recorders["sim"].episode_lengths(), args_cli.fps
             )
+            recorder_group = RerecordingSession(recorder_group)
             print(f"[INFO]: Recording ready — episode {recorder_group.episode_index}")
         else:
             print("[INFO]: Recording disabled. Supply --repo_id, --repo_root, --task_name.")
@@ -366,6 +366,15 @@ def main():
                     requests[request] = True
             if gui_requests.get("exit"):
                 requests["exit_encode"] = gui_requests["exit_encode"]
+
+            if gui_requests.get("rerecord") and recorder_group is not None and phase == "setup":
+                gui.set_state(active=False, can_start=False, busy=True,
+                              status="Preparing a safe copy for re-recording…")
+                try:
+                    recorder_group.begin(gui_requests["rerecord_episode"])
+                    gui_note = f"Re-recording episode {recorder_group.target}. Discard keeps the original."
+                except (ValueError, OSError) as exc:
+                    gui_note = f"Cannot re-record: {exc}"
 
             # ── Quit ──────────────────────────────────────────────────────
             if requests["stop"]:
@@ -434,6 +443,9 @@ def main():
                         else:
                             gui_note = f"Saved episode {episode_index}."
                             say("Episode saved", blocking=False)
+                elif recorder_group is not None and recorder_group.target is not None:
+                    recorder_group.cancel_episode()
+                    gui_note = "Re-record cancelled; original episode kept."
                 cube_trajectory = []
                 recording = False
                 phase = "setup"
@@ -539,6 +551,8 @@ def main():
                 pending_videos=recorder_group.pending_video_episodes if recorder_group else 0,
                 encoding=recorder_group.encoding if recorder_group else False,
                 encode_progress=recorder_group.encode_progress if recorder_group else "All saved episodes are encoded",
+                saved_episodes=recorder_group.saved_episodes if recorder_group else 0,
+                rerecord_episode=recorder_group.target if recorder_group else None,
             )
             gui.update_images(_gui_frames(visual_obs, follower_observation))
 

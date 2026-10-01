@@ -106,7 +106,7 @@ can further configure the selected mode. `list_envs` does not expose this parser
 The page at `http://localhost:8765/` has four panes: **Sim: realsense**, **Sim:
 wrist**, **Real: external**, **Real: gripper**. Real panes show no signal without
 configured follower cameras. The top toolbar provides Start recording, Stop
-recording, Discard recording and Spawn the cube. Stop saves; it does not exit.
+recording, Discard recording, Spawn the cube and Re-record episode. Stop saves; it does not exit.
 The bottom bar has Save, Encode videos and Exit. Exit offers Encode & Exit,
 Exit without encoding and Cancel when videos are pending. The status line shows
 countdown, current episode/duration, save/discard messages and encoding progress.
@@ -116,6 +116,36 @@ active recorder. Keep its default localhost bind; host networking makes it
 available on the host's loopback. The UI currently downloads React/Babel from a
 CDN, so an offline browser may show an empty page even when the server is alive.
 GUI images are downsampled previews; this does not change dataset resolution.
+
+### Re-record a saved episode
+
+1. Finish the active recording and use **Encode videos** if any saved episodes
+   are still pending. Wait for encoding to finish.
+2. Click **Re-record episode**, enter its zero-based episode number (for example,
+   `6`), and choose **Prepare re-recording**. The recorder prepares private copies
+   of the configured datasets; allow enough free disk space for these copies
+   and the rebuilt data/videos during Save.
+3. Spawn/position the cube and prepare the arms as usual, then click **Start
+   recording**. Selecting an episode does not restore its original scene or move
+   the robot automatically. The status identifies the episode being replaced.
+4. **Save** or **Stop recording** replaces the selected episode, keeping its
+   number and every other episode's order. A different frame count is allowed;
+   frame offsets, dataset totals, numeric statistics, camera statistics and the
+   cube trajectory are updated. Paired sim/real datasets are replaced together.
+   Replacement videos are encoded before publication, so Save may take time.
+5. **Discard recording** cancels the replacement and keeps the original episode,
+   including when pressed before Start or during the countdown. Exit during an
+   active recording saves it, just like normal recording; a replacement still
+   requires encoding even if you choose Exit without encoding.
+
+Successful replacements retain each original dataset next to its root as
+`<dataset>.before-rerecord-<unique-id>`. Unselected videos are copied byte for
+byte; parquet layout and indices are rebuilt. Existing task IDs remain stable.
+If publication is interrupted, the next `pick_place_agent` launch restores both
+original roots before opening them. Hidden `.rerecord-*` staging copies can
+remain after an interrupted recording; they are not used as source datasets.
+Re-run training-data preparation into a new output after a replacement:
+`--resume` correctly refuses a training copy made from different source bytes.
 
 | Control mode | Actions |
 | --- | --- |
