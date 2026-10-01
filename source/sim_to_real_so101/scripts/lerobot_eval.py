@@ -19,6 +19,8 @@ import math
 import os
 from pathlib import Path
 import random
+import sys
+import traceback
 from tqdm import tqdm
 
 from isaaclab.app import AppLauncher
@@ -324,6 +326,15 @@ def _evaluate():
                     settling_action = settling_pose(obs)
                     step = 0
                     episode_wall_start = monotonic()
+        if len(episodes) != args_cli.num_episodes:
+            raise RuntimeError(f"Evaluation stopped after {len(episodes)}/{args_cli.num_episodes} episodes")
+    except Exception as error:
+        # Kit cleanup can exit before Python displays an uncaught exception.
+        # Emit the original failure before closing the environment or app.
+        traceback.print_exc()
+        sys.stderr.flush()
+        error._so101_traceback_printed = True
+        raise
     finally:
         if pbar is not None:
             pbar.close()
@@ -348,13 +359,18 @@ def _evaluate():
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
         env.close()
-    if len(episodes) != args_cli.num_episodes:
-        raise RuntimeError(f"Evaluation stopped after {len(episodes)}/{args_cli.num_episodes} episodes")
 
 
 def main():
     try:
         _evaluate()
+    except Exception as error:
+        # Setup failures happen before the rollout guard; avoid printing a
+        # rollout failure twice when normal cleanup returns to Python.
+        if not getattr(error, "_so101_traceback_printed", False):
+            traceback.print_exc()
+            sys.stderr.flush()
+        raise
     finally:
         simulation_app.close()
 
