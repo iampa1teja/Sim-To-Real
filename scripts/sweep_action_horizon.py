@@ -14,6 +14,7 @@ import socket
 import subprocess
 import sys
 import time
+from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'source'))
@@ -140,7 +141,7 @@ def main(argv=None):
     if args.dr: base+=['--dr']
     if args.gui: base+=['--gui']
     if args.lang_by_color: base+=['--lang_by_color',args.lang_by_color]
-    server=None;client=None;current_result=None;started=time.monotonic();finished=0
+    server=None;client=None;current_result=None
     def terminate(process):
         if process and process.poll() is None:
             os.killpg(process.pid,signal.SIGTERM)
@@ -156,7 +157,7 @@ def main(argv=None):
             try: report=json.loads(report_path.read_text())
             except (OSError,ValueError): report={}
             if args.resume and complete_report(report,expected,data['eval_set_id'],horizon,settings):
-                print(f'AH {horizon}: skipping complete {len(expected)} episodes',flush=True);finished+=len(expected)
+                tqdm.write(f'AH {horizon}: skipping complete {len(expected)} episodes')
                 (run/'status.json').write_text(json.dumps(dict(status='complete',resumed=True)))
                 continue
             pending.append((horizon,run))
@@ -180,7 +181,6 @@ def main(argv=None):
                 (run/'run.log').write_text('Shared server exited; horizon failed without launching a client.\n')
                 (run/'status.json').write_text(json.dumps(dict(status='failed',exit_code=server.returncode)))
                 print(f'AH {horizon}: failed; shared server exited',flush=True)
-                finished+=len(expected)
                 continue
             current_result=container_path(run/'results.json',mounts)
             command=base+['--external_server','--action_horizon',str(horizon),'--results_json',current_result]
@@ -190,18 +190,26 @@ def main(argv=None):
             if not args.dry_run:
                 for name in ('results.json','results.png'):
                     if (run/name).exists(): (run/name).rename(run/(name+'.previous'))
-            with (run/'run.log').open('w') as log:
+            with (run/'run.log').open('w') as log, (run/'run.log').open() as progress_log, tqdm(
+                total=len(expected), desc=f'AH {horizon} ({horizons.index(horizon)+1}/{len(horizons)})',
+                unit='ep', mininterval=1, dynamic_ncols=True, leave=True, disable=args.dry_run,
+            ) as progress:
                 client=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
-                last_progress=0
+                tail=''
+                def update_progress():
+                    nonlocal tail
+                    # Read only new log output; retain a partial episode marker between reads.
+                    text=tail+progress_log.read()
+                    tail=text[-80:]
+                    done=max([int(n) for n in re.findall(r'\[EPISODE (\d+)\]',text)],default=progress.n)
+                    progress.update(max(0,min(done,len(expected))-progress.n))
                 while client.poll() is None:
-                    if time.monotonic()-last_progress>=10:
-                        text=(run/'run.log').read_text(errors='replace')
-                        done=max([int(n) for n in re.findall(r'\[EPISODE (\d+)\]',text)],default=0)
-                        elapsed=time.monotonic()-started;total_done=finished+done
-                        eta=elapsed/total_done*(len(expected)*len(horizons)-total_done) if total_done else None
-                        print(f'Horizon {horizons.index(horizon)+1}/{len(horizons)} (AH {horizon}): episodes {done}/{len(expected)}, elapsed {elapsed:.0f}s, ETA {eta:.0f}s' if eta is not None else f'Horizon {horizons.index(horizon)+1}/{len(horizons)} (AH {horizon}): episodes {done}/{len(expected)}, elapsed {elapsed:.0f}s, ETA pending',flush=True)
-                        last_progress=time.monotonic()
-                    time.sleep(.5)
+                    if not args.dry_run:
+                        update_progress()
+                        progress.refresh()
+                    time.sleep(1)
+                if not args.dry_run:
+                    update_progress()
             code=client.returncode;client=None
             if args.dry_run:
                 print((run/'run.log').read_text());continue
@@ -209,8 +217,7 @@ def main(argv=None):
             except (OSError,ValueError): report={}
             status='complete' if code==0 and complete_report(report,expected,data['eval_set_id'],horizon,settings) else 'failed'
             (run/'status.json').write_text(json.dumps(dict(status=status,exit_code=code))+'\n')
-            finished+=len(expected)
-            print(f'AH {horizon}: {status}, {len(report.get("episodes",[]))}/{len(expected)} episodes',flush=True)
+            tqdm.write(f'AH {horizon}: {status}, {len(report.get("episodes",[]))}/{len(expected)} episodes')
         if not args.dry_run:
             summarize_folder(folder);print((folder/'summary.md').read_text())
         return 0 if args.dry_run or all(json.loads((folder/f'ah_{h}'/'status.json').read_text())['status']=='complete' for h in horizons) else 1

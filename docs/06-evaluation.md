@@ -528,8 +528,8 @@ A real sweep refuses to start while another compute process occupies the GPU.
 
 At about **25 minutes per horizon for 150 episodes**, seven horizons take roughly
 **2 hours 55 minutes**, plus startup overhead. Shorter horizons make more
-inference calls and can take longer. Progress reports show the current horizon,
-completed episodes, wall elapsed time and an ETA estimated from completed
+inference calls and can take longer. Each horizon has a tqdm episode progress bar showing its position in the sweep,
+completed episodes, wall elapsed time, episode rate and ETA estimated from completed
 trials. The estimate becomes useful once episodes finish.
 
 The output layout is:
