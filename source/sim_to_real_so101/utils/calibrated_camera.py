@@ -9,9 +9,25 @@ from sim_to_real_so101.assets.real_setup import apply_opencv_intrinsics
 class CalibratedPinholeCameraCfg(PinholeCameraCfg):
     # fx, fy, cx, cy in pixels; width/height describe their calibration resolution.
     intrinsics: dict | None = None
+    # Per-camera residual colour response (see utils/camera_response.py); None = raw render.
+    response: dict | None = None
 
 class CalibratedTiledCamera(TiledCamera):
-    """Report the lens model's K instead of Isaac Lab's centered approximation."""
+    """Report the lens model's K instead of Isaac Lab's centered approximation.
+
+    Optionally applies the camera's fitted colour response to its RGB output.
+    """
+
+    def _update_buffers_impl(self, env_ids):
+        super()._update_buffers_impl(env_ids)
+        params = getattr(self.cfg.spawn, "response", None)
+        if not params or "rgba" not in self._data.output:
+            return
+        if getattr(self, "_response", None) is None:
+            from sim_to_real_so101.utils.camera_response import CameraResponse
+            self._response = CameraResponse(params, self.cfg.height, self.cfg.width, self.device)
+        rgba = self._data.output["rgba"]
+        rgba[env_ids, ..., :3] = self._response(rgba[env_ids, ..., :3])
 
     def _update_intrinsic_matrices(self, env_ids):
         super()._update_intrinsic_matrices(env_ids)
