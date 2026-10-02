@@ -185,9 +185,10 @@ sys.exit(91)
                     "--output-dir": home / "sim2real/models/so101_pick_place_v2_nvinit",
                     "--embodiment-tag": "NEW_EMBODIMENT", "--max-steps": "10000",
                     "--save-steps": "1000", "--save-total-limit": "2", "--global-batch-size": "16"}
-        self.assertEqual(args[0], str(home / "Isaac-GR00T-N1.7/.venv/bin/python"))
+        groot = (home / "Isaac-GR00T-N1.7").resolve()
+        self.assertEqual(args[0], str(groot / ".venv/bin/python"))
         self.assertEqual(args[2], str(REPO / "scripts/launch_pick_place_n17.py"))
-        self.assertEqual(args[args.index("--groot") + 1], str(home / "Isaac-GR00T-N1.7"))
+        self.assertEqual(args[args.index("--groot") + 1], str(groot))
         for flag, value in expected.items():
             self.assertEqual(args[args.index(flag) + 1], str(value))
         for flag in ("--no-tune-diffusion-model", "--no-tune-llm", "--no-tune-visual"):
@@ -328,6 +329,16 @@ sys.exit(91)
         self.assertNotIn("--resume-from-checkpoint", launch["args"])
         self.assertEqual(len([call for call in self.calls() if call["tool"] == "nvidia-smi"]), 2)
         self.assertNotIn("hf", [call["tool"] for call in self.calls()])
+
+    def test_preflight_validates_gpu_without_launching_or_creating_output(self):
+        self.fixture()
+        result = self.run_script("--preflight_only")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("PASS: training preflight complete", result.stdout)
+        self.assertFalse(self.out.exists())
+        self.assertEqual(len([call for call in self.calls() if call["tool"] == "nvidia-smi"]), 2)
+        self.assertFalse(any(any(arg.endswith("/scripts/launch_pick_place_n17.py")
+                                 for arg in call.get("args", [])) for call in self.calls()))
 
     def test_compute_busy_gpu_never_creates_training_output(self):
         self.fixture()

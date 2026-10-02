@@ -75,6 +75,21 @@ def apply_room_lighting(stage, room_root="/RealSetup/Room"):
         xf = UsdGeom.Xformable(window)
         xf.ClearXformOpOrder()
         xf.AddTransformOp().Set(matrix)
+    for extra in values.get("extra_lights", []):
+        rect = UsdLux.RectLight.Define(stage, room_root + "/Lighting/" + extra["name"])
+        rect.CreateWidthAttr(extra["width"])
+        rect.CreateHeightAttr(extra["height"])
+        rect.CreateIntensityAttr(extra["intensity"])
+        rect.CreateNormalizeAttr(extra.get("normalize", False))
+        rect.CreateColorAttr(Gf.Vec3f(*extra["color"]))
+        rect.CreateEnableColorTemperatureAttr(extra.get("enableColorTemperature", False))
+        # A straight-down light needs its own up vector; SetLookAt with +Z is degenerate.
+        matrix = Gf.Matrix4d().SetLookAt(
+            Gf.Vec3d(*extra["position"]), Gf.Vec3d(*extra["target"]), Gf.Vec3d(*extra.get("up", (0, 0, 1)))
+        ).GetInverse()
+        xf = UsdGeom.Xformable(rect)
+        xf.ClearXformOpOrder()
+        xf.AddTransformOp().Set(matrix)
     return light
 
 
@@ -104,9 +119,54 @@ def apply_room_appearance(stage, room_root="/RealSetup/Room"):
     transform.CreateInput("scale", Sdf.ValueTypeNames.Float2).Set(Gf.Vec2f(*look.get("table_uv_scale", [1, 1])))
     transform.CreateOutput("result", Sdf.ValueTypeNames.Float2)
     texture.GetInput("st").ConnectToSource(transform.ConnectableAPI(), "result")
+    if "table_uv_frame" in look:
+        apply_table_planar_uv(stage, room_root, look["table_uv_frame"])
+        for wrap in ("wrapS", "wrapT"):
+            texture.CreateInput(wrap, Sdf.ValueTypeNames.Token).Set(look.get("table_texture_wrap", "mirror"))
     wall = UsdShade.Shader(stage.GetPrimAtPath(material_root + "/M_f94acc284ce2/ScanColor"))
     wall.GetInput("scale").Set(Gf.Vec4f(*look["backdrop_texture_scale"]))
     wall.GetInput("bias").Set(Gf.Vec4f(*look["backdrop_texture_bias"]))
+    if "wall_texture" in look:
+        from pxr import Vt
+        wall.GetInput("file").Set(Sdf.AssetPath(str(ASSET_DIR / look["wall_texture"])))
+        # Clean per-corner UVs: s along the wall base, t = 0 at the wall base.
+        wall_mesh = stage.GetPrimAtPath(room_root + "/Visual/Architecture/SouthWall_0")
+        st = UsdGeom.PrimvarsAPI(wall_mesh).CreatePrimvar(
+            "st", Sdf.ValueTypeNames.TexCoord2fArray, UsdGeom.Tokens.faceVarying)
+        st.Set(Vt.Vec2fArray([Gf.Vec2f(*uv) for uv in look["wall_st_faceVarying"]]))
+    for path in look.get("hide_room_prims", []):
+        prim = stage.GetPrimAtPath(room_root + path)
+        if prim.IsValid():
+            UsdGeom.Imageable(prim).MakeInvisible()
+
+
+def apply_table_planar_uv(stage, room_root, frame):
+    """Camera-independent planar UVs for the physical-scale table albedo.
+
+    st = ((P - origin).u / size_u + 0.5, (P - origin).v / size_v + 0.5) per face vertex,
+    in the room frame; u runs along the table's long edge (grain direction).
+    """
+    import numpy as np
+    from pxr import Vt
+
+    prim = stage.GetPrimAtPath(room_root + '/Visual/Furniture/Tabletop')
+    mesh = UsdGeom.Mesh(prim)
+    points = np.asarray(mesh.GetPointsAttr().Get(), dtype=float)
+    transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(prim, stage.GetPrimAtPath(room_root))
+    points = (np.c_[points, np.ones(len(points))] @ np.asarray(transform))[:, :3]
+    corners = points[np.asarray(mesh.GetFaceVertexIndicesAttr().Get())] - np.asarray(frame["origin"])
+    st = np.stack([corners @ np.asarray(frame["u_axis"]) / frame["size_u"] + 0.5,
+                   corners @ np.asarray(frame["v_axis"]) / frame["size_v"] + 0.5], axis=-1)
+    UsdGeom.PrimvarsAPI(prim).CreatePrimvar(
+        'st', Sdf.ValueTypeNames.TexCoord2fArray, UsdGeom.Tokens.faceVarying
+    ).Set(Vt.Vec2fArray.FromNumpy(st.astype(np.float32)))
+    # A single wood material covers the entire tabletop.
+    for child in prim.GetChildren():
+        if child.IsA(UsdGeom.Subset):
+            child.SetActive(False)
+    UsdShade.MaterialBindingAPI.Apply(prim).Bind(
+        UsdShade.Material(stage.GetPrimAtPath(room_root + '/Materials/RealWalnut')),
+        bindingStrength=UsdShade.Tokens.weakerThanDescendants)
 
 
 def apply_robot_appearance(stage, robot_root, arm_color=None):
@@ -136,6 +196,33 @@ def apply_robot_appearance(stage, robot_root, arm_color=None):
         shader.CreateInput('roughness', Sdf.ValueTypeNames.Float).Set(look['wrist_mount_roughness'])
         material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), 'surface')
         UsdShade.MaterialBindingAPI.Apply(mount).Bind(material, bindingStrength=UsdShade.Tokens.strongerThanDescendants)
+    apply_real_wrist_mount_visual(stage, robot_root)
+
+
+def apply_real_wrist_mount_visual(stage, robot_root):
+    """Replace the visual camera assembly using the measured CAD bolt interface.
+
+    Mesh vertices are baked in gripper-local metres. The original collision
+    subtree, rigid bodies, joints, mass and inertia are deliberately untouched.
+    Fit provenance: visual_matching/work/wrist_mount/mount_candidate.json.
+    """
+    visuals = stage.GetPrimAtPath(robot_root + '/gripper/visuals')
+    if not visuals.IsValid():
+        return
+    if visuals.IsInstance():
+        visuals.SetInstanceable(False)
+    old_mount = stage.GetPrimAtPath(str(visuals.GetPath()) + '/camera_mount')
+    if old_mount.IsValid():
+        UsdGeom.Imageable(old_mount).MakeInvisible()
+    path = str(visuals.GetPath()) + '/real_camera_mount'
+    replacement = stage.GetPrimAtPath(path)
+    if not replacement.IsValid():
+        replacement = stage.DefinePrim(path, 'Xform')
+        replacement.GetReferences().AddReference(str(ASSET_DIR / 'usd' / 'real_wrist_mount.usda'))
+    material = stage.GetPrimAtPath(robot_root + '/Looks/WristMountYellow')
+    if material.IsValid():
+        UsdShade.MaterialBindingAPI.Apply(replacement).Bind(
+            UsdShade.Material(material), bindingStrength=UsdShade.Tokens.strongerThanDescendants)
 
 
 def apply_opencv_intrinsics(prim, intrinsics):

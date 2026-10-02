@@ -59,7 +59,7 @@ def _spawn_room_without_embedded_robot(prim_path, cfg, translation=None, orienta
 
 
 def _spawn_named_camera(prim_path, cfg, translation=None, orientation=None, **kwargs):
-    prim = spawn_camera(prim_path, cfg.replace(intrinsics=None), translation=translation, orientation=orientation, **kwargs)
+    prim = spawn_camera(prim_path, cfg.replace(intrinsics=None, response=None), translation=translation, orientation=orientation, **kwargs)
     if cfg.intrinsics is not None:
         apply_opencv_intrinsics(prim, cfg.intrinsics)
     # USD identifiers use underscores; the viewport menu shows the requested labels.
@@ -83,6 +83,7 @@ def _camera(path, values, rotation, data_types):
             func=_spawn_named_camera,
             intrinsics=({**values["calibration"], "width": values["width"], "height": values["height"]}
                         if "calibration" in values else None),
+            response=values.get("response"),
             focal_length=values["focal_length"],
             horizontal_aperture=values["horizontal_aperture"],
             vertical_aperture=values["vertical_aperture"],

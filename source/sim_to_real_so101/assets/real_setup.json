@@ -23,9 +23,9 @@
   },
   "realsense": {
     "position": [
-      0.6126433133993302,
-      0.02722969879939067,
-      1.2632924467358662
+      0.6556803347125415,
+      0.007151182884697911,
+      1.2960657471564023
     ],
     "target": [
       0.6834827335143593,
@@ -38,9 +38,9 @@
     "width": 640,
     "height": 480,
     "euler_degrees": [
-      41.42908406743631,
-      2.6888161367161794,
-      -173.34765404106238
+      37.89536558302176,
+      1.179900948119167,
+      -176.32444041612325
     ],
     "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees",
     "calibration": {
@@ -58,25 +58,153 @@
         0.0
       ],
       "model": "distortion.inverse_brown_conrady",
-      "extrinsics_source": "Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
+      "extrinsics_source": "2026-10-02: data-solved (visual_matching/work/ext_cam2/native/r1a): 6-DoF pose with SDK factory intrinsics locked; objective = edge-snapped real arm masks (112 frames, 14 eps, real-state FK + separate joint-offset nuisance params) + IMU pitch/roll prior (sigma 0.3 deg) + wall-base line vs SouthWall_0 base; box excluded. Previous: Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
+    },
+    "response": {
+      "gain": [
+        1.3576,
+        1.2715,
+        1.3222
+      ],
+      "offset": [
+        0.006,
+        0.0126,
+        0.0039
+      ],
+      "lut": {
+        "knots": null,
+        "per_channel": [
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9654,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9942,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9395,
+            1.0,
+            1.0,
+            1.0
+          ]
+        ]
+      },
+      "blur_sigma_px": 0.0,
+      "noise": {
+        "a": 0.0,
+        "b": 0.0,
+        "seed": 101
+      },
+      "vignette": {
+        "k1": 0.0,
+        "k2": 0.0,
+        "cx": null,
+        "cy": null
+      },
+      "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)"
     }
   },
   "wrist": {
     "position": [
-      -0.005,
-      0.06,
-      -0.062
+      0.00499998298523849,
+      0.07067375346625575,
+      -0.00024107978488254345
     ],
     "euler_degrees": [
-      -45.0,
-      0.0,
-      0.0
+      -25.016428530741678,
+      -2.250973161482275,
+      2.1533965014050986
     ],
-    "focal_length": 13.5,
+    "focal_length": 18.14756233630291,
     "horizontal_aperture": 20.955,
     "vertical_aperture": 15.71625,
     "width": 640,
-    "height": 480
+    "height": 480,
+    "calibration": {
+      "source": "User manual tuner pick visual_matching/work/wrist-cam/manual_20261002T090057_786875Z.json (fov 60 deg, cx 315.6, cy 230.2, k1 0.164; pose = CAD seat + [2.5,-0.9,-3.0] mm, local [0,-2.95,1] deg). Geometry frozen by user; jaw-IoU gate waived (gripper sim/real calibration mismatch).",
+      "fx": 554.2562584220408,
+      "fy": 554.2562584220408,
+      "cx": 315.6,
+      "cy": 230.2,
+      "coeffs": [
+        0.16400000000000003,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "model": "opencv_forward_brown_conrady",
+      "convention": "OpenCV forward radial rd = ru*(1 + k1*ru^2), integer pixel centres (apply_opencv_intrinsics adds the RTX +0.5)"
+    },
+    "response": {
+      "gain": [
+        0.8883,
+        1.0643,
+        1.2356
+      ],
+      "offset": [
+        0.0117,
+        -0.001,
+        0.0054
+      ],
+      "vignette": {
+        "k1": -0.3804,
+        "k2": 0.0,
+        "cx": null,
+        "cy": null
+      },
+      "blur_sigma_px": 0.0,
+      "noise": {
+        "a": 0.005,
+        "b": 0.02,
+        "seed": 202
+      },
+      "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)"
+    }
   },
   "viewer": {
     "eye": [
@@ -133,24 +261,24 @@
       0.018
     ],
     "table_albedo_scale": [
-      0.760774,
-      1.173579,
-      1.14024,
-      1
+      0.597,
+      0.532,
+      0.54,
+      1.0
     ],
-    "ambient_intensity": 0.0,
-    "table_texture": "textures/table_photo_uniform.png",
+    "ambient_intensity": 0.3875,
+    "table_texture": "textures/table_albedo_v4.png",
     "backdrop_texture_scale": [
-      0.8,
-      0.82,
-      0.84,
+      2.0,
+      2.0,
+      2.0,
       1
     ],
     "backdrop_texture_bias": [
-      0.19,
-      0.31,
-      0.27,
-      0.0
+      0,
+      0,
+      0,
+      0
     ],
     "robot_plastic_roughness": 0.68,
     "motor_roughness": 0.72,
@@ -160,33 +288,65 @@
       1.0
     ],
     "table_albedo_bias": [
-      0.047482,
-      0.027333,
-      0.01541,
+      0,
+      0,
+      0,
       0
     ],
-    "table_albedo_note": "Reference photograph grain with left-edge glare removed and wood extended across the full texture. Same calibrated UV registration and material color response.",
-    "table_photo_camera": {
-      "position": [
-        0.7476643503745797,
-        -0.005184263622112693,
-        1.3076557759405634
+    "table_uv_frame": {
+      "origin": [
+        0.04949999999999999,
+        -0.09450000000000001,
+        0.80225
       ],
-      "euler_degrees": [
-        36.56055373602888,
-        1.3908763962152262,
-        -176.5955741519623
+      "u_axis": [
+        0.996794766632841,
+        0.07995679946252736,
+        0.0026652266487508913
       ],
-      "width": 640,
-      "height": 480,
-      "fx": 606.0668334960938,
-      "fy": 605.6687622070312,
-      "cx": 330.6416015625,
-      "cy": 253.326904296875
-    }
+      "v_axis": [
+        -0.07999240724504292,
+        0.9966259945244995,
+        0.018380473911063334
+      ],
+      "size_u": 2.4388157,
+      "size_v": 1.2241358
+    },
+    "table_texture_wrap": "mirror",
+    "wall_texture": "textures/wall_albedo_v2.png",
+    "wall_st_faceVarying": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "hide_room_prims": [
+      "/Visual/Furniture/Observed_primary_Furniture"
+    ],
+    "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights."
   },
   "lighting": {
-    "description": "Fitted ceiling tube plus a broad soft fill for the left-hand tabletop reflection. Renderer intensities are appearance estimates, not measured photometry.",
+    "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
     "position": [
       0.44,
       1.85,
@@ -199,32 +359,72 @@
     ],
     "length": 1.2,
     "diffuser_width": 0.06,
-    "intensity": 300000.0,
+    "intensity": 197160.0,
     "color": [
       0.82,
       0.93,
       1.0
     ],
-    "soft_fill": {
-      "position": [
-        1.55,
-        -0.2,
-        1.55
-      ],
-      "target": [
-        0.9,
-        -0.35,
-        0.8
-      ],
-      "width": 0.45,
-      "height": 0.8,
-      "intensity": 1200.0,
-      "color": [
-        0.83,
-        0.94,
-        1.0
-      ]
-    }
+    "extra_lights": [
+      {
+        "name": "OverheadPanel",
+        "type": "RectLight",
+        "position": [
+          0.7,
+          -1.0,
+          3.15
+        ],
+        "target": [
+          0.7,
+          -1.0,
+          0.8
+        ],
+        "up": [
+          0,
+          1,
+          0
+        ],
+        "width": 2.0,
+        "height": 1.2,
+        "intensity": 4389.3,
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "normalize": false,
+        "enableColorTemperature": false
+      },
+      {
+        "name": "SideFillNegX",
+        "type": "RectLight",
+        "position": [
+          -0.4,
+          -0.4,
+          1.4
+        ],
+        "target": [
+          0.8,
+          -0.5,
+          0.85
+        ],
+        "up": [
+          0,
+          0,
+          1
+        ],
+        "width": 1.2,
+        "height": 1.2,
+        "intensity": 448.25,
+        "color": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "normalize": false,
+        "enableColorTemperature": false
+      }
+    ]
   },
   "object_materials": {
     "blue_cube": {
@@ -238,12 +438,13 @@
     },
     "white_box": {
       "color": [
-        0.65,
-        0.78,
-        0.72
+        0.95,
+        0.95,
+        0.95
       ],
       "roughness": 0.7,
-      "metallic": 0.0
+      "metallic": 0.0,
+      "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only."
     },
     "vial_cap": {
       "roughness": 0.35

@@ -12,6 +12,7 @@ SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-2}"
 RESUME="${RESUME:-0}"
 DATALOADER_NUM_WORKERS="${DATALOADER_NUM_WORKERS:-0}"
 DRY_RUN="${DRY_RUN:-0}"
+PREFLIGHT_ONLY="${PREFLIGHT_ONLY:-0}"
 MEASURED_S_PER_STEP="${MEASURED_S_PER_STEP:-0.3902}"
 export PYTHONFAULTHANDLER="${PYTHONFAULTHANDLER:-1}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
@@ -25,13 +26,14 @@ unset GROOT_SKIP_HF_MODEL_WEIGHTS GROOT_HF_LOCAL_FIRST PYTEST_CURRENT_TEST
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 case "${1:-}" in
     --dry_run) DRY_RUN=1; shift ;;
-    --help|-h) printf 'Usage: bash scripts/train_pick_place.sh [--dry_run]\nConfigure BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, RESUME and DATALOADER_NUM_WORKERS as environment variables.\n'; exit 0 ;;
+    --preflight_only) PREFLIGHT_ONLY=1; shift ;;
+    --help|-h) printf 'Usage: bash scripts/train_pick_place.sh [--dry_run|--preflight_only]\nConfigure BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, RESUME and DATALOADER_NUM_WORKERS as environment variables.\n'; exit 0 ;;
 esac
 [[ $# == 0 ]] || die 'Unknown argument; use --help.'
 for setting in BATCH MAX_STEPS SAVE_STEPS SAVE_TOTAL_LIMIT; do
     [[ "${!setting}" =~ ^[1-9][0-9]*$ ]] || die "$setting must be a positive integer."
 done
-for setting in RESUME DRY_RUN; do
+for setting in RESUME DRY_RUN PREFLIGHT_ONLY; do
     [[ "${!setting}" == 0 || "${!setting}" == 1 ]] || die "$setting must be 0 or 1."
 done
 [[ "$DATALOADER_NUM_WORKERS" =~ ^(0|[1-9][0-9]*)$ ]] || die 'DATALOADER_NUM_WORKERS must be a non-negative integer.'
@@ -147,6 +149,10 @@ if busy or memory > 512 or utilization > 10:
 print(f'GPU 0 available: {memory} MiB used, {utilization}% utilization', flush=True)
 PY
 
+if [[ "$PREFLIGHT_ONLY" == 1 ]]; then
+    printf 'PASS: training preflight complete; no training launched.\n'
+    exit 0
+fi
 mkdir -p -- "$OUT"
 cd -- "$GROOT"
 # N1.7 requires an explicit resume flag; optimizer state stays in checkpoints.
