@@ -442,7 +442,10 @@ and requested episode count; comparisons reject incomplete runs.
 Stages are latched over the episode, sampled on every control step **before
 automatic reset**, including the terminal frame:
 
-- `reached`: `ee_frame` was within 3 cm of the cube.
+- `reached`: the grasp point was within 3 cm of the cube centre. The grasp point is where a held cube's centre sits: the
+  fixed-jaw tip offset measured from the gripper USD (`gripper_tip_local_offset`, zero clearance), applied to the live
+  `ee_frame`. The `ee_frame` origin itself is the gripper link origin, about 9.4 cm behind that point. Reports made before
+  2026-10-03 measured from the origin, so their `reached` stage is always false and every failure is `never_reached`.
 - `grasped`: the existing `object_grasped` observation fired.
 - `lifted`: cube rise from the existing resting-height tracker reached `min_lift`.
 - `over_box`: cube centre XY entered the live outer box footprint while held.

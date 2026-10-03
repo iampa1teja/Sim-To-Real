@@ -46,6 +46,23 @@ def install_stage_tracking(env):
     cfg = env.termination_manager.get_term_cfg('success')
     original = cfg.func
     env._benchmark_trace = StageTrace()
+    grasp_offset = {}
+
+    def grasp_point(raw, object_name):
+        """World position where the cube centre sits when held: the fixed-jaw tip offset measured from
+        the gripper USD (same helper and zero clearance as the in-gripper reset), applied to the live
+        ee_frame. The ee_frame origin itself is the gripper link origin, well behind the jaw tips."""
+        import torch
+        from isaaclab.utils import math as math_utils
+        from isaacsim.core.utils.stage import get_current_stage
+        from .gripper_geometry import gripper_tip_local_offset
+        frame = raw.scene['ee_frame'].data
+        if object_name not in grasp_offset:
+            half = float(raw.scene[object_name].cfg.spawn.size[0]) / 2
+            path = f"{raw.scene.env_prim_paths[0]}/Robot/gripper"
+            grasp_offset[object_name] = torch.tensor(gripper_tip_local_offset(get_current_stage(), half, 0.0, path),
+                                                     device=frame.target_pos_w.device, dtype=frame.target_pos_w.dtype)
+        return frame.target_pos_w[0, 0] + math_utils.quat_apply(frame.target_quat_w[0, 0], grasp_offset[object_name])
 
     def observe(raw, **params):
         result = original(raw, **params)
@@ -54,7 +71,7 @@ def install_stage_tracking(env):
         grasped = bool(object_grasped(raw, **grasp_params)[0].item())
         placed = bool(object_placed_in_container(raw, **obs_params)[0].item())
         cube = raw.scene[params['object_name']].data.root_pos_w[0]
-        ee = raw.scene['ee_frame'].data.target_pos_w[0, 0]
+        ee = grasp_point(raw, params['object_name'])
         box = raw.scene[params['container_name']]
         polygon = hull(footprint(box.data.root_pos_w[0].detach().cpu().numpy(),
                                  rotation_matrix(box.data.root_quat_w[0].detach().cpu().numpy()),

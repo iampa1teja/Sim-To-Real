@@ -86,6 +86,7 @@ def main(argv=None):
     p.add_argument('--lang',default='Pick up the blue cube and place it in the white box')
     p.add_argument('--lang_by_color',default='');p.add_argument('--port',type=int,default=5555)
     for key in ('dr','resume','dry_run','gui'): p.add_argument('--'+key,action='store_true')
+    p.add_argument('--shared_gpu',action='store_true',help='Skip the free-GPU check (parallel sweeps; see scripts/sweep_checkpoints.sh)')
     args=p.parse_args(argv)
     model=Path(args.model)
     if args.checkpoint: model=model/args.checkpoint
@@ -108,13 +109,13 @@ def main(argv=None):
         mounts=[dict(Source=str(ROOT),Destination='/workspace/Sim-to-Real-SO-101-Workshop')]
     else:
         busy=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid,process_name','--format=csv,noheader'],text=True).strip()
-        if busy: p.error('GPU is busy; stopped before launching: '+busy)
+        if busy and not args.shared_gpu: p.error('GPU is busy; stopped before launching: '+busy)
         mounts=json.loads(subprocess.check_output(['docker','inspect','teleop'],text=True))[0]['Mounts']
     eval_path=container_path(args.eval_set,mounts);dataset_path=container_path(args.dataset,mounts)
     expected=[(s['id'],r) for r in range(args.repeats) for s in data['starts'] if s['split'] in selected]
     stamp=datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     prefix=f"{str(model).replace('/','_')}_{args.eval_set.stem}_"
-    flags={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items() if k not in ('resume','dry_run')}
+    flags={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items() if k not in ('resume','dry_run','shared_gpu','port')}
     flags.update(server_image=os.environ.get('SERVER_IMAGE','real-robot:n1.7'),
                  embodiment_tag=os.environ.get('EMBODIMENT_TAG','NEW_EMBODIMENT'),
                  rename_map=os.environ.get('RENAME_MAP','{"realsense_rgb":"room","wrist_cam":"wrist"}'))
