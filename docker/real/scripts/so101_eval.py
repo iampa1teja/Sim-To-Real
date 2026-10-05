@@ -63,6 +63,9 @@ from lerobot.utils.utils import init_logging, log_say
 import numpy as np
 
 from so101_control import SO101Control
+from sim_to_real_so101.gr00t_client.smoothing import (
+    ActionSmoother, FixedRateScheduler, InferenceWorker, SmoothingConfig, TimingLog, log_late,
+)
 
 
 def recursive_add_extra_dim(obs: Dict) -> Dict:
@@ -84,6 +87,7 @@ def recursive_add_extra_dim(obs: Dict) -> Dict:
 
 
 class So100Adapter:
+
     """
     Adapter between:
         • Raw robot observation dictionary
@@ -232,7 +236,139 @@ class EvalConfig:
     # Optional start pose "pan,lift,elbow,wrist_flex,wrist_roll,gripper" (LeRobot units) replacing
     # SO101Control.initial_pose, e.g. the demonstrations' first-frame pose.
     start_pose: str = ""
+    prefetch_steps: int = 0
+    blend_steps: int = 0
+    ema_alpha: float = 1.0
+    smooth_gripper: bool = False
+    temporal_ensemble: int = 0
+    te_decay: float = 0.01
+    fixed_rate: bool = False
+    log_timing: bool = False
+    timing_csv: str = ""
 
+
+def smoothing_config(cfg):
+    return SmoothingConfig(
+        prefetch_steps=cfg.prefetch_steps, blend_steps=cfg.blend_steps,
+        ema_alpha=cfg.ema_alpha, smooth_gripper=cfg.smooth_gripper,
+        temporal_ensemble=cfg.temporal_ensemble, te_decay=cfg.te_decay,
+        log_timing=cfg.log_timing,
+    )
+
+
+def run_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
+    """Keep the original synchronous loop intact unless a new option is enabled."""
+    options = smoothing_config(cfg)
+    options.validate(cfg.action_horizon)
+    if options.enabled or cfg.fixed_rate:
+        return run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer)
+    joint_keys = policy.robot_state_keys
+    while True:
+        obs = so101_control.get_observation()
+        obs["lang"] = cfg.lang_instruction
+
+        actions = policy.get_action(obs)
+
+        for i, action_dict in enumerate(actions[: cfg.action_horizon]):
+            tic = time.time()
+            so101_control.send_action(action_dict)
+            so101_control.update_log_action(action_dict)
+
+            if cfg.plot:
+                step_obs = so101_control.get_observation()
+                obs_buffer.append({k: float(step_obs[k]) for k in joint_keys})
+                action_buffer.append({k: v for k, v in action_dict.items()})
+
+            toc = time.time()
+            if toc - tic < 1.0 / 30:
+                time.sleep(1.0 / 30 - (toc - tic))
+
+
+def run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
+    options = smoothing_config(cfg)
+    joint_keys = policy.robot_state_keys
+    smoother = ActionSmoother(options, cfg.action_horizon, joint_keys)
+    timing = None
+    if cfg.log_timing:
+        path = cfg.timing_csv or f"outputs/timing/real_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
+        timing = TimingLog(path, joint_keys)
+    worker = None
+    scheduler = None
+    step = 0
+
+    def observe():
+        # Prefetch/ensemble capture runs on the worker thread: keep camera waits outside the hardware lock.
+        obs = so101_control.get_observation_cameras_unlocked()
+        obs["lang"] = cfg.lang_instruction
+        return obs
+
+    def record_plot(action):
+        if cfg.plot:
+            obs = so101_control.get_observation()
+            obs_buffer.append({k: float(obs[k]) for k in joint_keys})
+            action_buffer.append(action.copy())
+
+    try:
+        # Bootstrap before starting the control clock. All subsequent prefetch /
+        # ensemble inference runs exclusively on the one worker thread.
+        obs = observe()
+        started = time.monotonic()
+        actions = policy.get_action(obs)
+        latency = time.monotonic() - started
+        smoother.add_chunk(actions, 0, 0, 0, latency)
+        if timing:
+            timing.inference(latency)
+        asynchronous = bool(cfg.prefetch_steps or cfg.temporal_ensemble)
+        if asynchronous:
+            worker = InferenceWorker(observe, policy.get_action, lambda: step)
+            worker.chunk_id = 1
+        scheduler = FixedRateScheduler()
+        next_query = cfg.temporal_ensemble
+        chunk_id = 1
+        was_held = False
+        while True:
+            if worker:
+                result = worker.poll()
+                if result is not None:
+                    smoother.add_chunk(result.actions, result.observation_step, step,
+                                       result.chunk_id, result.latency)
+                    log_late(result, step, cfg.action_horizon)
+                    if timing:
+                        timing.inference(result.latency)
+                due = (step >= next_query if cfg.temporal_ensemble
+                       else smoother.remaining(step) <= cfg.prefetch_steps)
+                if due and worker.submit() and cfg.temporal_ensemble:
+                    next_query = step + cfg.temporal_ensemble
+            elif smoother.remaining(step) == 0:
+                obs = observe()
+                started = time.monotonic()
+                actions = policy.get_action(obs)
+                latency = time.monotonic() - started
+                smoother.add_chunk(actions, step, step, chunk_id, latency)
+                chunk_id += 1
+                if timing:
+                    timing.inference(latency)
+
+            raw, sent, action_chunk_id, latency, held = smoother.action(step)
+            if held and not was_held:
+                logging.warning("Inference late at step %s; holding last target at 30 Hz", step)
+            was_held = held
+            action_dict = smoother.as_dict(sent)
+            tick_step = step
+            so101_control.send_action(action_dict)
+            step += 1
+            so101_control.update_log_action(action_dict)
+            record_plot(action_dict)
+            overrun = scheduler.finish_tick()
+            if timing:
+                timing.record(tick_step, action_chunk_id, latency, overrun, raw, sent, held)
+    finally:
+        if worker:
+            worker.close()
+        if scheduler:
+            logging.info("30 Hz scheduler overruns: %s", scheduler.overruns)
+        if timing:
+            timing.close()
 
 
 @draccus.wrap()
@@ -242,6 +378,7 @@ def eval(cfg: EvalConfig):
     """
     init_logging()
     logging.info(pformat(asdict(cfg)))
+    smoothing_config(cfg).validate(cfg.action_horizon)
 
     so101_control = SO101Control(cfg)
     if cfg.start_pose:
@@ -263,25 +400,7 @@ def eval(cfg: EvalConfig):
         if cfg.rerun:
             so101_control.start_logging_thread()
 
-        while True:
-            obs = so101_control.get_observation()
-            obs["lang"] = cfg.lang_instruction
-
-            actions = policy.get_action(obs)
-
-            for i, action_dict in enumerate(actions[: cfg.action_horizon]):
-                tic = time.time()
-                so101_control.send_action(action_dict)
-                so101_control.update_log_action(action_dict)
-
-                if cfg.plot:
-                    step_obs = so101_control.get_observation()
-                    obs_buffer.append({k: float(step_obs[k]) for k in joint_keys})
-                    action_buffer.append({k: v for k, v in action_dict.items()})
-
-                toc = time.time()
-                if toc - tic < 1.0 / 30:
-                    time.sleep(1.0 / 30 - (toc - tic))
+        run_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer)
 
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt received. Shutting down...")

@@ -14,10 +14,13 @@
 # limitations under the License.
 from collections import deque
 from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 import torch
 import uuid
+
+from sim_to_real_so101.gr00t_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
 
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig
 from lerobot.robots.so101_follower import SO101FollowerConfig
@@ -441,6 +444,14 @@ class GR00TRemotePolicy:
         port: int = 5555,
         action_horizon: int = 8,
         lang_instruction: str = "Pick up the vial and place it in the tray",
+        prefetch_steps: int = 0,
+        blend_steps: int = 0,
+        ema_alpha: float = 1.0,
+        smooth_gripper: bool = False,
+        temporal_ensemble: int = 0,
+        te_decay: float = 0.01,
+        log_timing: bool = False,
+        timing_csv: str = "",
     ):
         self._iface = robot_iface
         self._host = host
@@ -450,6 +461,15 @@ class GR00TRemotePolicy:
         self._action_queue: deque = deque()
         self._client = None
         self.inference_calls = 0
+        options = SmoothingConfig(prefetch_steps, blend_steps, ema_alpha, smooth_gripper,
+                                  temporal_ensemble, te_decay, log_timing)
+        options.validate(action_horizon)
+        self._timing = None
+        if log_timing:
+            path = timing_csv or f"outputs/timing/sim_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
+            self._timing = TimingLog(path, robot_iface.SO101_JOINT_ORDER)
+        self._smoothing = (SimulationSmoother(options, action_horizon, robot_iface.SO101_JOINT_ORDER,
+                                              self._timing) if options.enabled else None)
 
     def connect(self):
         """Connect to the GR00T policy server."""
@@ -466,6 +486,8 @@ class GR00TRemotePolicy:
         self._client.reset()
         self._action_queue.clear()
         self.inference_calls = 0
+        if self._smoothing is not None:
+            self._smoothing.reset()
         if seed is not None:
             response = self._client.call_endpoint("seed_policy", {"seed": int(seed)})
             if response != {"seed": int(seed)}:
@@ -537,19 +559,21 @@ class GR00TRemotePolicy:
     # Action decoding
     # ------------------------------------------------------------------
 
-    def _decode_action_chunk(self, action_chunk: dict) -> list[dict[str, float]]:
+    def _decode_action_chunk(self, action_chunk: dict, full_chunk: bool = False) -> list[dict[str, float]]:
         """Decode a GR00T action chunk into per-timestep joint-name dicts.
 
         Args:
             action_chunk: Dict with ``single_arm`` (B, T, 5) and
                 ``gripper`` (B, T, 1) numpy arrays.
+            full_chunk: Keep the model tail for stale-prefix removal, blending,
+                and temporal overlap; the smoother caps execution separately.
 
         Returns:
             List of dicts mapping joint name → float (real-robot degree space).
         """
         any_key = next(iter(action_chunk.keys()))
         T = action_chunk[any_key].shape[1]
-        horizon = min(T, self._action_horizon)
+        horizon = T if full_chunk else min(T, self._action_horizon)
 
         joint_order = self._iface.SO101_JOINT_ORDER
         actions_list = []
@@ -567,13 +591,24 @@ class GR00TRemotePolicy:
     # Public API
     # ------------------------------------------------------------------
 
+    @property
+    def steps_until_query(self):
+        """Control steps until the next observation is queried (for rendering)."""
+        return (self._smoothing.steps_until_query if self._smoothing is not None
+                else len(self._action_queue))
+
+    def close_timing(self):
+        if self._timing is not None:
+            self._timing.close()
+
     def get_action(
         self, joint_positions: torch.Tensor, visual_obs: dict, log: bool = False
     ) -> torch.Tensor:
         """Return the next sim action as a radians tensor.
 
-        Manages the action buffer internally — queries the server only
-        when the buffer is empty, then pops one action per call.
+        By default query only when the action buffer is empty, then pop one
+        action per call. Enabled smoothing uses a deterministic simulation-step
+        query/delivery clock and filters in LeRobot units before joint mapping.
 
         Args:
             joint_positions: Current joint positions in sim radians (6,).
@@ -584,14 +619,23 @@ class GR00TRemotePolicy:
             Tensor of mapped joint actions in sim radians, ready
             for ``env.step()``.
         """
-        if len(self._action_queue) == 0:
-            model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
-            action_chunk, _info = self._client.get_action(model_input)
-            self.inference_calls += 1
-            decoded = self._decode_action_chunk(action_chunk)
-            self._action_queue.extend(decoded)
+        if self._smoothing is not None:
+            def query():
+                model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                action_chunk, _info = self._client.get_action(model_input)
+                self.inference_calls += 1
+                return self._decode_action_chunk(action_chunk, full_chunk=True)
 
-        action_dict = self._action_queue.popleft()
+            action_dict = self._smoothing.get_action(query)
+        else:
+            if len(self._action_queue) == 0:
+                model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                action_chunk, _info = self._client.get_action(model_input)
+                self.inference_calls += 1
+                decoded = self._decode_action_chunk(action_chunk)
+                self._action_queue.extend(decoded)
+
+            action_dict = self._action_queue.popleft()
         raw_tensor = self._iface.get_raw_actions_tensor(action_dict)
         sim_action = self._iface.get_mapped_actions_vectorized(raw_tensor)
 

@@ -165,6 +165,19 @@ class SO101Control:
         with self._hw_lock:
             self.robot.send_action(action)
 
+    def get_observation_cameras_unlocked(self) -> Dict[str, Any]:
+        """Same keys as get_observation, but only the servo-bus read holds the lock.
+
+        Camera frames come from LeRobot's background reader (async_read can wait ~1 frame), so a capture on
+        another thread never delays send_action on the 30 Hz control thread.
+        """
+        with self._hw_lock:
+            positions = self.robot.bus.sync_read("Present_Position")
+        obs = {f"{motor}.pos": value for motor, value in positions.items()}
+        for key, camera in self.robot.cameras.items():
+            obs[key] = camera.async_read()
+        return obs
+
     # -----------------------------------------------------------------
     # Threaded Rerun logging
     # -----------------------------------------------------------------

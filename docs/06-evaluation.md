@@ -259,6 +259,130 @@ no rename map/results path/cube-start directory, `num_envs=None`, and language
 MyRoom has no success/timeout terminations. Checkpoint metadata falls back to
 `PICK_PLACE_EVAL_CHECKPOINT`, then `MODEL`, then `unknown`.
 
+## Smooth control
+
+Both clients share NumPy-only smoothing in
+[`gr00t_client/smoothing.py`](../source/sim_to_real_so101/gr00t_client/smoothing.py).
+All options default to off: the original real-arm action sequence and relative
+sleep loop, and the original simulation action queue, remain the default paths.
+Smoothing operates in the existing LeRobot joint units before the unchanged
+simulation joint mapping. It does not change the checkpoint, server, or success
+criteria. EMA and prediction history reset on every simulation episode, including
+manual resets; each real-client invocation is a fresh rollout.
+
+| Option | Default / behavior |
+| --- | --- |
+| `--prefetch_steps P` | 0, off; require `0 <= P < action_horizon` |
+| `--blend_steps K` | 0, off; linearly cross-fade old unexecuted predictions into a replacement over K steps, with new weights `1/K, 2/K, ..., 1` |
+| `--ema_alpha A` | 1.0, off; `sent = A * action + (1-A) * previous_sent`, finite `0 < A <= 1`; first action passes through |
+| `--smooth_gripper` | False; include gripper in EMA. Otherwise gripper passes through EMA; blend and ensemble still include it |
+| `--temporal_ensemble M` | 0, off; query every M control steps and average every prediction that covers the current step |
+| `--te_decay k` | 0.01; ensemble weights `exp(-k*i)`, `i=0` oldest, normalized over the current overlaps; finite `k >= 0` |
+| `--log_timing` | False; per-action CSV and exit summary |
+| `--timing_csv PATH` | Empty; optional CSV destination, otherwise `outputs/timing/{real,sim}_<timestamp>.csv` relative to the working directory |
+| `--fixed_rate` | Real only, False; enable the fixed-rate scheduler by itself |
+
+`--temporal_ensemble` and `--blend_steps` are mutually exclusive. EMA may follow
+either. Real Draccus booleans take values, e.g. `--log_timing=true` and
+`--smooth_gripper=true`; sim argparse booleans are bare flags.
+
+**Real timing.** The first observation/query bootstraps the action buffer before
+the 30 Hz clock starts. With prefetch, a single background thread takes a fresh
+observation when at most P executable actions remain and calls the policy while
+the main thread continues sending targets. A ready response replaces the active
+chunk on the next tick; if d actions have been sent since its observation, discard
+its first d predictions. Execute at most `min(action_horizon, chunk_length-d)`
+of the remaining predictions. Preserve any extra tail for the next cross-fade.
+If the old tail has run out, blend from the last sent target. A completely stale
+response is discarded and a fresh request follows. While waiting beyond the
+execution horizon, send the last **sent** target each tick, without advancing EMA,
+and log the late response's latency and stale count.
+
+Ensemble mode uses that same worker and the full prediction chunks; M replaces
+the chunk-based query cadence. Only one request can be outstanding. With a server
+faster than M ticks, queries occur every M ticks; if a request is still running,
+the next query takes a fresh observation as soon as it completes, without queuing
+obsolete observations. There is no achievable M-tick inference cadence when a
+single server request takes longer than M ticks. Ensemble uses all completed,
+unexpired overlaps, and holds the last target if none cover the current tick.
+
+Enabling prefetch, blend, EMA, ensemble, timing logging, or `--fixed_rate=true`
+selects monotonic absolute deadlines (`next_tick += 1/30`) and counts missed
+deadlines. Prefetch/ensemble inference never waits on the control thread after
+bootstrap. Motor/camera I/O, plotting, and OS scheduling can still overrun a tick;
+the counter records those overruns. Blend/EMA alone retain synchronous inference;
+use prefetch as well to remove inference pauses.
+
+**Simulation timing.** There is no wall-clock scheduler or inference thread.
+The first query delivers immediately. In chunk mode, query synchronously from
+the observation **P steps before the current executable chunk ends**, keep
+executing the old chunk for those P simulation steps, then deliver the new chunk
+and drop exactly its first P actions. Execute at most
+`min(action_horizon, chunk_length-P)` remaining actions; thus a 16-action model
+with the preset below executes 12 actions per replacement. A synchronous query
+can take real time, but that time never advances simulation steps or changes the
+selected actions. In ensemble mode, queries occur at steps `0, M, 2M, ...`;
+all queries after startup deliver P steps later, even when several are pending.
+Weights include only delivered predictions that cover the current step.
+`--render_warmup` uses this adjusted query schedule to refresh camera frames.
+
+The CSV contains control step, active/latest contributing chunk ID, that chunk's
+inference latency in seconds, per-tick overrun, hold indicator, and raw/sent values
+for all six joints. Raw values precede blend/EMA; for an ensemble they are its
+weighted prediction. The exit summary reports mean/p95 latency **per completed
+inference**, total overruns (zero for sim), and mean joint jerk: the mean over
+steps of `sum(abs(a[t] - 2*a[t-1] + a[t-2]))` on the five arm joints, in LeRobot
+units per step squared. Jerk excludes episode boundaries. Sim CSV steps count
+policy actions across episodes, excluding the existing ten settling steps.
+
+Recommended starting preset:
+`--action_horizon 12 --prefetch_steps 4 --blend_steps 4 --ema_alpha 0.6`.
+Compare against the saved unsmoothed rollout with the same checkpoint and starts.
+
+With the [N1.7 200k server below](#n17-200k-real-arm) already serving on port
+5560, run the smooth **simulation** client inside teleop:
+
+```bash
+lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
+  --cube_starts /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1/pick_place_meta \
+  --rename_map '{"realsense_rgb":"room","wrist_cam":"wrist"}' \
+  --policy_host localhost --policy_port 5560 --episode_length_s 30 \
+  --action_horizon 12 --prefetch_steps 4 --blend_steps 4 --ema_alpha 0.6 \
+  --lang_instruction 'Pick up the blue cube and place it in the white box' \
+  --num_episodes 20 --seed 1984 \
+  --checkpoint so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --log_timing --timing_csv /tmp/so101_sim_smooth.csv --headless
+```
+
+For the smooth **real-arm** client, keep that same server running and use the
+saved host environment, YUYV cameras, and start pose:
+
+```bash
+source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
+cd ~/Isaac-GR00T && \
+PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
+uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
+  --no-sync \
+  --with feetech-servo-sdk \
+  --with pyzmq \
+  --with msgpack \
+  --with msgpack-numpy \
+  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
+  --robot.type=so101_follower \
+  --robot.port="$ROBOT_PORT" \
+  --robot.id="$ROBOT_ID" \
+  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
+  --policy_host=localhost \
+  --policy_port=5560 \
+  --action_horizon=12 --prefetch_steps=4 --blend_steps=4 --ema_alpha=0.6 \
+  --log_timing=true --timing_csv=/tmp/so101_real_smooth.csv \
+  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
+  --lang_instruction='Pick up the blue cube and place it in the white box'
+```
+
+To try ensemble instead, replace `--blend_steps 4` with
+`--temporal_ensemble 4 --te_decay 0.01` (use `=` syntax for the real client).
+
 ## Real-robot rollout
 
 ### N1.7 200k real arm

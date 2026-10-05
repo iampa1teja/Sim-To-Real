@@ -33,6 +33,27 @@ def _positive_float(value):
     return number
 
 
+def _nonnegative_int(value):
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer")
+    return number
+
+
+def _ema_alpha(value):
+    number = _positive_float(value)
+    if number > 1:
+        raise argparse.ArgumentTypeError("must be in (0, 1]")
+    return number
+
+
+def _nonnegative_float(value):
+    number = float(value)
+    if not math.isfinite(number) or number < 0:
+        raise argparse.ArgumentTypeError("must be finite and nonnegative")
+    return number
+
+
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Isaac Lab SO-101 Eval Client (remote GR00T inference server).")
 parser.add_argument(
@@ -61,6 +82,19 @@ parser.add_argument("--policy_host", type=str, default="localhost", help="GR00T 
 parser.add_argument("--policy_port", type=int, default=5555, help="GR00T policy server port")
 parser.add_argument("--action_horizon", type=int, choices=range(1, 17), default=16,
                     help="Number of action steps per server query (1..16; SO-arm checkpoint chunk length is 16)")
+parser.add_argument("--prefetch_steps", type=_nonnegative_int, default=0,
+                    help="Query P steps early; sim delivers P steps later and drops the first P actions (0: off)")
+parser.add_argument("--blend_steps", type=_nonnegative_int, default=0,
+                    help="Cross-fade old unexecuted predictions into new chunks over K steps (0: off)")
+parser.add_argument("--ema_alpha", type=_ema_alpha, default=1.0,
+                    help="Arm EMA coefficient in (0,1]; 1: off")
+parser.add_argument("--smooth_gripper", action="store_true", help="Also apply EMA to the gripper")
+parser.add_argument("--temporal_ensemble", type=_nonnegative_int, default=0,
+                    help="Query every M steps and average overlapping predictions, favouring older chunks (0: off)")
+parser.add_argument("--te_decay", type=_nonnegative_float, default=0.01,
+                    help="Temporal ensemble weights exp(-k*i), i=0 oldest")
+parser.add_argument("--log_timing", action="store_true", help="Write per-action CSV and print latency/jerk summary")
+parser.add_argument("--timing_csv", default="", help="Timing CSV path (default: outputs/timing/sim_<timestamp>.csv)")
 parser.add_argument("--episode_length_s", type=_positive_float, default=None,
                     help="Episode timeout in simulation seconds (default: task configuration; 15 s for Pick-Place-Eval)")
 parser.add_argument(
@@ -93,6 +127,10 @@ parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHEC
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+if args_cli.prefetch_steps >= args_cli.action_horizon:
+    parser.error("prefetch_steps must be less than action_horizon")
+if args_cli.temporal_ensemble and args_cli.blend_steps:
+    parser.error("temporal_ensemble and blend_steps are mutually exclusive")
 
 # always enable cameras to record video
 args_cli.enable_cameras = True
@@ -219,12 +257,18 @@ def _evaluate():
     robot_iface.init_device(visualize=args_cli.rerun)
 
     # remote GR00T policy
+    smoothing_defaults = dict(prefetch_steps=0, blend_steps=0, ema_alpha=1.0,
+                              smooth_gripper=False, temporal_ensemble=0, te_decay=0.01,
+                              log_timing=False, timing_csv="")
+    smoothing_kwargs = {key: getattr(args_cli, key) for key, default in smoothing_defaults.items()
+                        if getattr(args_cli, key, default) != default}
     policy = GR00TRemotePolicy(
         robot_iface=robot_iface,
         host=args_cli.policy_host,
         port=args_cli.policy_port,
         action_horizon=args_cli.action_horizon,
         lang_instruction=args_cli.lang_instruction,
+        **smoothing_kwargs,
     )
     policy.connect()
 
@@ -292,9 +336,9 @@ def _evaluate():
                     joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
                     actions[:] = policy.get_action(joint_positions, obs["visual"], log=not render_warmup or args_cli.rerun)
                 if render_warmup:
-                    # Steps until the observation of this step is sent to the server: the first query uses the
-                    # obs after settling step 9; later ones the obs after the step that empties the action queue.
-                    steps_to_query = 9 - step if step < 10 else len(policy._action_queue)
+                    # The first query uses the obs after settling step 9; later
+                    # queries follow the policy's chunk/prefetch/ensemble clock.
+                    steps_to_query = 9 - step if step < 10 else policy.steps_until_query
                     # Isaac Lab renders at physics substeps where counter % render_interval == 0; a huge
                     # interval skips this step's render (physics and termination checks are unaffected).
                     env.unwrapped.cfg.sim.render_interval = render_every if steps_to_query < render_warmup else 10**12
@@ -364,6 +408,9 @@ def _evaluate():
             action_horizon=args_cli.action_horizon, step_dt=step_dt,
         )
         report['robot_start'] = args_cli.robot_start
+        if smoothing_kwargs:
+            report['smoothing'] = {key: getattr(args_cli, key, default)
+                                   for key, default in smoothing_defaults.items()}
         report['requested_episodes'] = args_cli.num_episodes
         report['complete'] = len(episodes) == args_cli.num_episodes
         print(json.dumps(report, indent=2))
@@ -373,7 +420,11 @@ def _evaluate():
             if benchmark:
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
-        env.close()
+        try:
+            if smoothing_kwargs.get("log_timing"):
+                policy.close_timing()
+        finally:
+            env.close()
 
 
 def main():
