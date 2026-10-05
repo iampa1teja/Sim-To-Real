@@ -481,3 +481,32 @@ The synthetic five-episode suite excludes 0 and 3 and tests renumbering, values,
 video bytes, sidecars, stats, unchanged source hashes, actual GR00T reads and
 resume. `PREPARATION_BASELINE` optionally names a saved pre-change script for a
 default-output byte comparison; only provenance/variable report fields differ.
+
+## Grasp audit (approval gate before new data)
+
+Run the CPU-only audit against the original v1 recordings:
+
+```bash
+~/Isaac-GR00T-N1.7/.venv/bin/python scripts/audit_grasps.py
+~/Isaac-GR00T-N1.7/.venv/bin/python -m unittest discover \
+  -s tests -p test_audit_grasps.py -v
+```
+
+It writes `audit.csv`, `summary.md`, `distributions.png`, and a source SHA-256
+snapshot to a new UTC timestamp directory under `datasets/analysis/grasp_audit`.
+It verifies every source file is unchanged, checks frame/sidecar correspondence,
+and uses the existing calibrated joint mapping. It neither prepares data nor
+uses the GPU. The summary defines each metric and prints percentile thresholds,
+classification reasons are in the CSV, and episodes 0, 3, 6, 51, 72 are always bad.
+Missing metric values remain empty in CSV rather than being replaced with zeros.
+
+The October 5 audit of 75 episodes / 16,448 frames found 37 provisional bad,
+20 hesitant and 18 clean episodes. These are review labels: 35 episodes never
+reach the training-extrema midpoint (44.375961), despite all 75 showing some cube
+rise. Only one reaches 90% of the global gripper opening range, so closing
+duration is measurable in only one episode. Initial opening from an already
+closed state is not a failed close attempt. Hover includes settling before
+approach; roll alignment is a joint-angle proxy, not full gripper kinematics.
+Do not turn the additional bad labels into exclusions without reviewing this
+threshold limitation. Stop for approval of exclusions/hesitant handling before
+building clean or grasp-window datasets or starting the staged training work.
