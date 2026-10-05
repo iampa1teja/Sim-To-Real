@@ -452,7 +452,18 @@ class GR00TRemotePolicy:
         te_decay: float = 0.01,
         log_timing: bool = False,
         timing_csv: str = "",
+        grasp_config=None,
+        seed_per_episode: bool = False,
+        episode_seed: int = 1984,
+        control_dt: float = 1/30,
     ):
+        self.grasp = None
+        if grasp_config is not None and grasp_config.enabled:
+            from sim_to_real_so101.gr00t_client.grasp import GraspController
+            self.grasp = GraspController(grasp_config, robot_iface.SO101_JOINT_ORDER, control_dt)
+            self.grasp.episode = -1  # first policy.reset starts episode zero
+        self._seed_per_episode = seed_per_episode
+        self._episode_seed = episode_seed
         self._iface = robot_iface
         self._host = host
         self._port = port
@@ -469,7 +480,7 @@ class GR00TRemotePolicy:
             path = timing_csv or f"outputs/timing/sim_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
             self._timing = TimingLog(path, robot_iface.SO101_JOINT_ORDER)
         self._smoothing = (SimulationSmoother(options, action_horizon, robot_iface.SO101_JOINT_ORDER,
-                                              self._timing) if options.enabled else None)
+                                              self._timing, grasp=self.grasp) if options.enabled else None)
 
     def connect(self):
         """Connect to the GR00T policy server."""
@@ -484,6 +495,10 @@ class GR00TRemotePolicy:
     def reset(self, seed=None):
         """Reset state; benchmark seeds must be acknowledged by the server."""
         self._client.reset()
+        if self.grasp is not None:
+            self.grasp.reset()
+        if seed is not None:
+            self._episode_seed = int(seed)
         self._action_queue.clear()
         self.inference_calls = 0
         if self._smoothing is not None:
@@ -598,6 +613,8 @@ class GR00TRemotePolicy:
                 else len(self._action_queue))
 
     def close_timing(self):
+        if self.grasp is not None:
+            self.grasp.close()
         if self._timing is not None:
             self._timing.close()
 
@@ -619,9 +636,15 @@ class GR00TRemotePolicy:
             Tensor of mapped joint actions in sim radians, ready
             for ``env.step()``.
         """
+        if self.grasp is not None:
+            measured = self._iface.get_raw_actions_from_radians(joint_positions)
+            self.grasp.measured = float(measured[self.grasp.gripper_index].item())
         if self._smoothing is not None:
             def query():
                 model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                if self._seed_per_episode:
+                    from sim_to_real_so101.gr00t_client.grasp import seed_query
+                    seed_query(self._client, self._episode_seed)
                 action_chunk, _info = self._client.get_action(model_input)
                 self.inference_calls += 1
                 return self._decode_action_chunk(action_chunk, full_chunk=True)
@@ -630,12 +653,22 @@ class GR00TRemotePolicy:
         else:
             if len(self._action_queue) == 0:
                 model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                if self._seed_per_episode:
+                    from sim_to_real_so101.gr00t_client.grasp import seed_query
+                    seed_query(self._client, self._episode_seed)
                 action_chunk, _info = self._client.get_action(model_input)
                 self.inference_calls += 1
-                decoded = self._decode_action_chunk(action_chunk)
-                self._action_queue.extend(decoded)
+                decoded = self._decode_action_chunk(action_chunk, full_chunk=self.grasp is not None)
+                if self.grasp is not None:
+                    self.grasp.observe_chunk(decoded, self.inference_calls - 1)
+                self._action_queue.extend(decoded[:self._action_horizon])
 
             action_dict = self._action_queue.popleft()
+            if self.grasp is not None:
+                keys = self._iface.SO101_JOINT_ORDER
+                raw = np.asarray([action_dict[k] for k in keys])
+                sent = self.grasp.process(raw, raw, self.inference_calls - 1)
+                action_dict = dict(zip(keys, sent))
         raw_tensor = self._iface.get_raw_actions_tensor(action_dict)
         sim_action = self._iface.get_mapped_actions_vectorized(raw_tensor)
 

@@ -6,6 +6,8 @@ cd "$repo_dir"
 model='' dataset='' dr=nodr episodes=20 random_fraction=0.0 start_mode=cycle
 eval_set='' splits='' repeats=1 robot_start=recorded render_warmup=0
 results_json='' external_server=false server_only=false
+grasp_args=()
+seed_per_episode=false
 episode_length_s='' action_horizon=16 embodiment_tag=${EMBODIMENT_TAG:-NEW_EMBODIMENT}
 server_image=${SERVER_IMAGE:-real-robot:n1.7}
 rename_map=${RENAME_MAP:-'{"realsense_rgb":"room","wrist_cam":"wrist"}'}
@@ -22,6 +24,12 @@ Usage: ./docker/eval_pick_place.sh --model <relative checkpoint> --dataset <cont
   [--robot_start recorded|default] [--render_warmup 0]
   [--port 5555] [--gui] [--rerun] [--dry_run]
   [--results_json <absolute container path>] [--external_server | --server_only]
+  [--gripper_latch] [--latch_close_below C] [--latch_open_above O]
+  [--latch_confirm_steps 3] [--latch_release_confirm 5] [--latch_min_hold 30]
+  [--latch_dataset <container training dataset>] [--seed_per_episode]
+  [--log_gripper] [--gripper_csv <container CSV path>]
+  [--latch_steady_steps 10] [--latch_steady_max_delta 2] [--gripper_empty_closed E]
+  [--latch_empty_margin 3] [--latch_empty_confirm 15] [--latch_reopen_steps 15]
   --external_server uses an existing server; --server_only owns one until interrupted.
 
 Defaults: recorded cube and arm starts only; --random_fraction 0.25 opts into random starts.
@@ -43,6 +51,11 @@ while (($#)); do
         --gui) gui=true; shift ;;
         --rerun) rerun=true; shift ;;
         --dry_run) dry_run=true; shift ;;
+        --gripper_latch|--log_gripper) grasp_args+=("$1"); shift ;;
+        --seed_per_episode) seed_per_episode=true; grasp_args+=("$1"); shift ;;
+        --latch_close_below|--latch_open_above|--latch_confirm_steps|--latch_release_confirm|--latch_min_hold|--latch_dataset|--gripper_csv|--latch_steady_steps|--latch_steady_max_delta|--gripper_empty_closed|--latch_empty_margin|--latch_empty_confirm|--latch_reopen_steps)
+            (($# >= 2)) || fail "Missing value for $1"
+            grasp_args+=("$1" "$2"); shift 2 ;;
         --help|-h) usage; exit 0 ;;
         --results_json|--model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start|--render_warmup)
             (($# >= 2)) || fail "Missing value for $1; see --help."
@@ -196,7 +209,7 @@ server_cmd=(docker run -d --rm --name "$server_name" --network host --privileged
     -v "$repo_dir/docker/real/scripts:/Isaac-GR00T/gr00t/eval/real_robot/SO100"
     "$server_image" python /Isaac-GR00T/gr00t/eval/run_gr00t_server.py
     --model-path "/workspace/models/$model" --embodiment-tag "$embodiment_tag" --port "$port")
-if [[ -n $eval_set ]]; then
+if [[ -n $eval_set ]] || "$seed_per_episode"; then
     for index in "${!server_cmd[@]}"; do
         if [[ ${server_cmd[index]} == /Isaac-GR00T/gr00t/eval/run_gr00t_server.py ]]; then
             server_cmd[index]=/Isaac-GR00T/gr00t/eval/real_robot/SO100/benchmark_server.py
@@ -275,6 +288,7 @@ if [[ -n $eval_set ]]; then
     eval_cmd+=(--eval_set "$eval_set" --repeats "$repeats")
     [[ -z $splits ]] || eval_cmd+=(--splits "$splits")
 fi
+eval_cmd+=("${grasp_args[@]}")
 [[ -z $episode_length_s ]] || eval_cmd+=(--episode_length_s "$episode_length_s")
 [[ -z $render_warmup || $render_warmup == 0 ]] || eval_cmd+=(--render_warmup "$render_warmup")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")

@@ -21,6 +21,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('sim_to_real_so101.utils.pick_place_eval',
                                             ROOT / 'source/sim_to_real_so101/utils/pick_place_eval.py')
+sys.path.insert(0, str(ROOT / 'source'))
+from sim_to_real_so101.gr00t_client.grasp import GraspConfig, add_grasp_arguments
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
 EVALUATOR = ROOT / 'source/sim_to_real_so101/scripts/lerobot_eval.py'
@@ -133,6 +135,8 @@ class EvaluatorRolloutTests(unittest.TestCase):
                                lang_instruction='fallback', results_json=path, checkpoint='checkpoint-10',
                                rerun=False, policy_host='localhost', policy_port=5555, action_horizon=16,
                                episode_length_s=None)
+        for key, value in (vars(GraspConfig()) | {"seed_per_episode": False}).items():
+            setattr(args, key, value)
         for key, value in (args_override or {}).items():
             setattr(args, key, value)
         torch = SimpleNamespace(manual_seed=lambda _: None, cuda=SimpleNamespace(manual_seed_all=lambda _: None),
@@ -145,7 +149,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
             env.max_episode_length = math.ceil(env.made_episode_length_s / env.step_dt)
             return env
-        context = dict(args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
+        context = dict(GraspConfig=GraspConfig, args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
                        KeyboardControl=lambda: SimpleNamespace(reset_world=False), torch=torch, np=np, random=random,
                        json=json, math=math, sys=sys, traceback=traceback,
                        LeRobotSO101Interface=lambda **kw: interface, GR00TRemotePolicy=FakePolicy,
@@ -406,7 +410,7 @@ class EvaluatorCliTests(unittest.TestCase):
         boundary = next(i for i, node in enumerate(tree.body) if isinstance(node, ast.Import)
                         and any(alias.name == 'gymnasium' for alias in node.names))
         body = [node for node in tree.body[:boundary] if not isinstance(node, (ast.Import, ast.ImportFrom))]
-        context = dict(argparse=argparse, json=json, math=math, os=os, Path=Path, AppLauncher=self.Launcher)
+        context = dict(argparse=argparse, json=json, math=math, os=os, Path=Path, AppLauncher=self.Launcher, add_grasp_arguments=add_grasp_arguments)
         with patch.object(sys, 'argv', ['lerobot_eval', *arguments]), redirect_stderr(io.StringIO()):
             exec(compile(ast.Module(body=body, type_ignores=[]), str(EVALUATOR), 'exec'), context)
         return context['args_cli']

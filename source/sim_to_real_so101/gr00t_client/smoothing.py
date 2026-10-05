@@ -106,9 +106,10 @@ class ActionSmoother:
     tail remains available for a cross-fade. Ensemble mode uses all T rows.
     """
 
-    def __init__(self, config, action_horizon, joint_keys):
+    def __init__(self, config, action_horizon, joint_keys, grasp=None):
         config.validate(action_horizon)
         self.config = config
+        self.grasp = grasp
         self.horizon = action_horizon
         self.joint_keys = tuple(joint_keys)
         gripper = next((i for i, key in enumerate(joint_keys) if key == "gripper.pos"), -1)
@@ -132,6 +133,8 @@ class ActionSmoother:
         values = np.asarray([[a[k] for k in self.joint_keys] for a in actions], dtype=float)
         if values.ndim != 2 or values.shape[1] != len(self.joint_keys) or len(values) == 0:
             raise ValueError("Policy returned an empty or malformed action chunk")
+        if self.grasp is not None:
+            self.grasp.observe_chunk(actions, chunk_id)
         stale = max(0, step - observation_step)
         self.stale_actions_dropped += min(stale, len(values))
         values = values[stale:]
@@ -181,6 +184,10 @@ class ActionSmoother:
                 logged_raw = prediction.raw_actions[step - prediction.start].copy()
             self.last_chunk_id = prediction.chunk_id
             self.last_latency = prediction.latency
+        if self.grasp is not None:
+            if prediction is not None and self.config.temporal_ensemble:
+                logged_raw = prediction.actions[step - prediction.start].copy()
+            sent = self.grasp.process(logged_raw, sent, self.last_chunk_id, held)
         self.last_sent = sent.copy()
         return logged_raw, sent, self.last_chunk_id, self.last_latency, held
 
@@ -239,9 +246,9 @@ class SimulationSmoother:
     clock or thread affects actions. The initial query is delivered immediately.
     """
 
-    def __init__(self, config, action_horizon, joint_keys, timing=None):
+    def __init__(self, config, action_horizon, joint_keys, timing=None, grasp=None):
         self.config = config
-        self.smoother = ActionSmoother(config, action_horizon, joint_keys)
+        self.smoother = ActionSmoother(config, action_horizon, joint_keys, grasp=grasp)
         self.timing = timing
         self.total_steps = 0
         self.reset()

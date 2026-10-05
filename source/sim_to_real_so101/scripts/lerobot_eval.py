@@ -123,6 +123,9 @@ parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON c
 parser.add_argument("--results_json", type=Path)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
 
+from sim_to_real_so101.gr00t_client.grasp import GraspConfig, add_grasp_arguments
+add_grasp_arguments(parser)
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -262,6 +265,11 @@ def _evaluate():
                               log_timing=False, timing_csv="")
     smoothing_kwargs = {key: getattr(args_cli, key) for key, default in smoothing_defaults.items()
                         if getattr(args_cli, key, default) != default}
+    grasp_config = GraspConfig(**{name: getattr(args_cli, name) for name in GraspConfig.__dataclass_fields__})
+    grasp_kwargs = {}
+    if grasp_config.enabled or args_cli.seed_per_episode:
+        grasp_kwargs = dict(grasp_config=grasp_config, seed_per_episode=args_cli.seed_per_episode,
+                            episode_seed=args_cli.seed, control_dt=step_dt)
     policy = GR00TRemotePolicy(
         robot_iface=robot_iface,
         host=args_cli.policy_host,
@@ -269,7 +277,10 @@ def _evaluate():
         action_horizon=args_cli.action_horizon,
         lang_instruction=args_cli.lang_instruction,
         **smoothing_kwargs,
+        **grasp_kwargs,
     )
+    if grasp_config.enabled:
+        policy.grasp.clock = lambda: step * step_dt
     policy.connect()
 
     from sim_to_real_so101.utils.pick_place_eval import select_instruction, results_report
@@ -344,6 +355,8 @@ def _evaluate():
                     env.unwrapped.cfg.sim.render_interval = render_every if steps_to_query < render_warmup else 10**12
                 obs, _, terminated, truncated, _ = env.step(actions)
                 step += 1
+                if grasp_config.enabled and benchmark and env.unwrapped._benchmark_trace.stages["grasped"]:
+                    policy.grasp.mark_grasp(step * step_dt)
                 pbar.update(1)
                 is_terminated = bool(terminated.any().item())
                 is_truncated = bool(truncated.any().item())
@@ -358,6 +371,8 @@ def _evaluate():
                     if benchmark:
                         row.update(env.unwrapped._benchmark_trace.finish(row['success']))
                         env.unwrapped._benchmark_trace = StageTrace()
+                    if grasp_config.enabled:
+                        row.update(policy.grasp.finish_episode(reason="success" if row["success"] else "timeout"))
                     episodes.append(row)
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
@@ -408,6 +423,13 @@ def _evaluate():
             action_horizon=args_cli.action_horizon, step_dt=step_dt,
         )
         report['robot_start'] = args_cli.robot_start
+        if grasp_kwargs:
+            from dataclasses import asdict
+            report["gripper_control"] = asdict(grasp_config)
+            if grasp_config.enabled:
+                report["gripper_calibration"] = policy.grasp.calibration
+            report["gripper_latch"] = grasp_config.gripper_latch
+            report["seed_per_episode"] = args_cli.seed_per_episode
         if smoothing_kwargs:
             report['smoothing'] = {key: getattr(args_cli, key, default)
                                    for key, default in smoothing_defaults.items()}
@@ -421,7 +443,7 @@ def _evaluate():
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
         try:
-            if smoothing_kwargs.get("log_timing"):
+            if smoothing_kwargs.get("log_timing") or grasp_config.enabled:
                 policy.close_timing()
         finally:
             env.close()

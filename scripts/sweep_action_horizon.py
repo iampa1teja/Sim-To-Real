@@ -88,7 +88,20 @@ def main(argv=None):
     for key in ('dr','resume','dry_run','gui'): p.add_argument('--'+key,action='store_true')
     p.add_argument('--render_warmup',type=int,default=0,help='Render only the N steps before each policy query (0 = every step; see lerobot_eval.py)')
     p.add_argument('--shared_gpu',action='store_true',help='Skip the free-GPU check (parallel sweeps; see scripts/sweep_checkpoints.sh)')
+    from sim_to_real_so101.gr00t_client.grasp import add_grasp_arguments, GraspConfig
+    add_grasp_arguments(p, include_latch=False)
+    p.add_argument('--gripper_latch', nargs='?', const='on', default=None,
+                   help='Sweep dimension: off,on (default: ordinary horizon sweep)')
     args=p.parse_args(argv)
+    latch_modes = args.gripper_latch.split(',') if args.gripper_latch is not None else [None]
+    if len(set(latch_modes)) != len(latch_modes) or any(m not in (None, 'off', 'on') for m in latch_modes):
+        p.error('--gripper_latch expects on, off, or off,on')
+    if args.gripper_csv:
+        p.error('Sweep chooses a separate gripper.csv in each variant directory')
+    if args.gripper_latch is not None:
+        args.log_gripper = True
+    grasp_defaults = vars(GraspConfig()) | {'seed_per_episode': False}
+
     model=Path(args.model)
     if args.checkpoint: model=model/args.checkpoint
     if model.is_absolute() or any(part in ('.','..') for part in str(model).split('/')):
@@ -114,17 +127,26 @@ def main(argv=None):
         if busy and not args.shared_gpu: p.error('GPU is busy; stopped before launching: '+busy)
         mounts=json.loads(subprocess.check_output(['docker','inspect','teleop'],text=True))[0]['Mounts']
     eval_path=container_path(args.eval_set,mounts);dataset_path=container_path(args.dataset,mounts)
+    variants = [dict(horizon=h, latch=m, folder=f'ah_{h}' + (f'_latch_{m}' if m is not None else ''))
+                for h in horizons for m in latch_modes]
     expected=[(s['id'],r) for r in range(args.repeats) for s in data['starts'] if s['split'] in selected]
     stamp=datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     prefix=f"{str(model).replace('/','_')}_{args.eval_set.stem}_"
     # render_warmup joins the identity only when used, so --resume still matches sweeps made before it existed.
     flags={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()
            if k not in ('resume','dry_run','shared_gpu','port') and not (k=='render_warmup' and not v)}
+    for key, default in grasp_defaults.items():
+        if key in flags and (flags[key] == default or (key == 'gripper_latch' and flags[key] is None)):
+            del flags[key]
     flags.update(server_image=os.environ.get('SERVER_IMAGE','real-robot:n1.7'),
                  embodiment_tag=os.environ.get('EMBODIMENT_TAG','NEW_EMBODIMENT'),
                  rename_map=os.environ.get('RENAME_MAP','{"realsense_rgb":"room","wrist_cam":"wrist"}'))
     settings=dict(checkpoint=str(model),episode_length_s=args.episode_length_s,robot_start='recorded',seed=1984,
                   task='Lerobot-So101-Teleop-Pick-Place'+('-DR' if args.dr else '')+'-Eval',repeats=args.repeats)
+    if args.log_gripper or args.seed_per_episode:
+        settings['seed_per_episode'] = args.seed_per_episode
+    def variant_settings(variant):
+        return settings | ({'gripper_latch': variant['latch'] == 'on'} if variant['latch'] is not None else {})
     identity=dict(flags=flags,eval_set_id=data['eval_set_id'],eval_set_sha256=hashlib.sha256(args.eval_set.read_bytes()).hexdigest())
     args.out_root.mkdir(parents=True,exist_ok=True)
     matches=sorted(d for d in args.out_root.glob(prefix+'*') if d.is_dir() and (d/'sweep_config.json').exists())
@@ -139,6 +161,8 @@ def main(argv=None):
                     report_settings=settings,checkpoint_path=str(checkpoint),eval_set_path=str(args.eval_set),
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                     host=socket.gethostname(),gpu_name=gpu,start_time=datetime.now(timezone.utc).isoformat())
+        if args.gripper_latch is not None:
+            config['variants'] = [v | {'settings': variant_settings(v)} for v in variants]
         (folder/'sweep_config.json').write_text(json.dumps(config,indent=2)+'\n')
     base=[str(ROOT/'docker/eval_pick_place.sh'),'--model',str(model),'--models_dir',str(args.models_dir),
           '--dataset',dataset_path,'--eval_set',eval_path,'--splits',','.join(selected),'--repeats',str(args.repeats),
@@ -147,6 +171,13 @@ def main(argv=None):
     if args.gui: base+=['--gui']
     if args.lang_by_color: base+=['--lang_by_color',args.lang_by_color]
     if args.render_warmup: base+=['--render_warmup',str(args.render_warmup)]
+    for key, default in grasp_defaults.items():
+        value = getattr(args, key)
+        if key in ('gripper_latch', 'gripper_csv') or value == default:
+            continue
+        if key == 'latch_dataset':
+            value = container_path(host_path(value), mounts)
+        base += ['--' + key] if isinstance(value, bool) else ['--' + key, str(value)]
     server=None;client=None;current_result=None
     def terminate(process):
         if process and process.poll() is None:
@@ -157,16 +188,17 @@ def main(argv=None):
     previous={sig:signal.signal(sig,interrupt) for sig in (signal.SIGINT,signal.SIGTERM)}
     try:
         pending=[]
-        for horizon in horizons:
-            run=folder/f'ah_{horizon}';run.mkdir(exist_ok=True)
+        for variant in variants:
+            horizon = variant['horizon']
+            run=folder/variant['folder'];run.mkdir(exist_ok=True)
             report_path=run/'results.json'
             try: report=json.loads(report_path.read_text())
             except (OSError,ValueError): report={}
-            if args.resume and complete_report(report,expected,data['eval_set_id'],horizon,settings):
+            if args.resume and complete_report(report,expected,data['eval_set_id'],horizon,variant_settings(variant)):
                 tqdm.write(f'AH {horizon}: skipping complete {len(expected)} episodes')
                 (run/'status.json').write_text(json.dumps(dict(status='complete',resumed=True)))
                 continue
-            pending.append((horizon,run))
+            pending.append((variant,run))
         server_command=base+['--server_only']
         if args.dry_run: server_command+=['--dry_run']
         (folder/'server_cmd.txt').write_text(shlex.join(server_command)+'\n')
@@ -182,7 +214,8 @@ def main(argv=None):
                     if server.poll() is not None: raise RuntimeError('Server failed; see server.log')
                     if time.monotonic()>deadline: raise RuntimeError('Server readiness timed out; see server.log')
                     time.sleep(1)
-        for horizon,run in pending:
+        for variant,run in pending:
+            horizon = variant['horizon']
             if server is not None and server.poll() is not None:
                 (run/'run.log').write_text('Shared server exited; horizon failed without launching a client.\n')
                 (run/'status.json').write_text(json.dumps(dict(status='failed',exit_code=server.returncode)))
@@ -190,6 +223,9 @@ def main(argv=None):
                 continue
             current_result=container_path(run/'results.json',mounts)
             command=base+['--external_server','--action_horizon',str(horizon),'--results_json',current_result]
+            if variant['latch'] == 'on': command += ['--gripper_latch']
+            if args.log_gripper:
+                command += ['--gripper_csv', container_path(run/'gripper.csv', mounts)]
             if args.dry_run: command+=['--dry_run']
             (run/'cmd.txt').write_text(shlex.join(command)+'\n')
             # Existing incomplete results must not qualify a failed retry as complete.
@@ -221,12 +257,12 @@ def main(argv=None):
                 print((run/'run.log').read_text());continue
             try: report=json.loads((run/'results.json').read_text())
             except (OSError,ValueError): report={}
-            status='complete' if code==0 and complete_report(report,expected,data['eval_set_id'],horizon,settings) else 'failed'
+            status='complete' if code==0 and complete_report(report,expected,data['eval_set_id'],horizon,variant_settings(variant)) else 'failed'
             (run/'status.json').write_text(json.dumps(dict(status=status,exit_code=code))+'\n')
             tqdm.write(f'AH {horizon}: {status}, {len(report.get("episodes",[]))}/{len(expected)} episodes')
         if not args.dry_run:
             summarize_folder(folder);print((folder/'summary.md').read_text())
-        return 0 if args.dry_run or all(json.loads((folder/f'ah_{h}'/'status.json').read_text())['status']=='complete' for h in horizons) else 1
+        return 0 if args.dry_run or all(json.loads((folder/v['folder']/'status.json').read_text())['status']=='complete' for v in variants) else 1
     except KeyboardInterrupt:
         if current_result and not args.dry_run:
             # docker exec's host process exiting does not terminate its container child.

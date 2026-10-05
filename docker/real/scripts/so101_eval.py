@@ -175,6 +175,9 @@ class So100Adapter:
         Returns a list of robot motor commands (one per model timestep).
         """
         model_input = self.obs_to_policy_inputs(obs)
+        if getattr(self, "episode_seed", None) is not None:
+            from sim_to_real_so101.gr00t_client.grasp import seed_query
+            seed_query(self.policy, self.episode_seed)
         action_chunk, info = self.policy.get_action(model_input)
 
         # Determine horizon
@@ -245,6 +248,23 @@ class EvalConfig:
     fixed_rate: bool = False
     log_timing: bool = False
     timing_csv: str = ""
+    gripper_latch: bool = False
+    latch_close_below: float | None = None
+    latch_confirm_steps: int = 3
+    latch_open_above: float | None = None
+    latch_release_confirm: int = 5
+    latch_min_hold: int = 30
+    latch_dataset: str = ""
+    latch_steady_steps: int = 10
+    latch_steady_max_delta: float = 2.0
+    gripper_empty_closed: float | None = None
+    latch_empty_margin: float = 3.0
+    latch_empty_confirm: int = 15
+    latch_reopen_steps: int = 15
+    seed_per_episode: bool = False
+    seed: int = 1984
+    log_gripper: bool = False
+    gripper_csv: str = ""
 
 
 def smoothing_config(cfg):
@@ -263,14 +283,25 @@ def run_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
     if options.enabled or cfg.fixed_rate:
         return run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer)
     joint_keys = policy.robot_state_keys
+    grasp = getattr(policy, "grasp", None)
+    chunk_id = 0
     while True:
         obs = so101_control.get_observation()
         obs["lang"] = cfg.lang_instruction
 
         actions = policy.get_action(obs)
+        if grasp is not None:
+            grasp.observe_chunk(actions, chunk_id)
+        chunk_id += 1
 
         for i, action_dict in enumerate(actions[: cfg.action_horizon]):
             tic = time.time()
+            if grasp is not None:
+                grasp.measured = float(so101_control.get_joint_positions()["gripper.pos"])
+                raw = np.asarray([action_dict[k] for k in joint_keys])
+                sent = grasp.process(raw, raw, chunk_id - 1,
+                                     timestamp=time.monotonic() - policy.grasp_started)
+                action_dict = dict(zip(joint_keys, sent))
             so101_control.send_action(action_dict)
             so101_control.update_log_action(action_dict)
 
@@ -287,7 +318,8 @@ def run_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
 def run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
     options = smoothing_config(cfg)
     joint_keys = policy.robot_state_keys
-    smoother = ActionSmoother(options, cfg.action_horizon, joint_keys)
+    grasp = getattr(policy, "grasp", None)
+    smoother = ActionSmoother(options, cfg.action_horizon, joint_keys, grasp=grasp)
     timing = None
     if cfg.log_timing:
         path = cfg.timing_csv or f"outputs/timing/real_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
@@ -349,6 +381,8 @@ def run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffe
                 if timing:
                     timing.inference(latency)
 
+            if grasp is not None:
+                grasp.measured = float(so101_control.get_joint_positions()["gripper.pos"])
             raw, sent, action_chunk_id, latency, held = smoother.action(step)
             if held and not was_held:
                 logging.warning("Inference late at step %s; holding last target at 30 Hz", step)
@@ -380,6 +414,10 @@ def eval(cfg: EvalConfig):
     logging.info(pformat(asdict(cfg)))
     smoothing_config(cfg).validate(cfg.action_horizon)
 
+    from sim_to_real_so101.gr00t_client.grasp import GraspConfig, GraspController
+    grasp_config = GraspConfig(**{name: getattr(cfg, name) for name in GraspConfig.__dataclass_fields__})
+    # Resolve/validate before connecting to or moving hardware.
+    grasp = GraspController(grasp_config, So100Adapter.joint_keys) if grasp_config.enabled else None
     so101_control = SO101Control(cfg)
     if cfg.start_pose:
         values = [float(v) for v in cfg.start_pose.split(",")]
@@ -391,6 +429,12 @@ def eval(cfg: EvalConfig):
     policy_client = PolicyClient(host=cfg.policy_host, port=cfg.policy_port)
     # The robot's camera names become the policy's video keys.
     policy = So100Adapter(policy_client, camera_keys=list(cfg.robot.cameras))
+    policy.grasp = grasp
+    policy.grasp_started = time.monotonic()
+    if grasp is not None:
+        grasp.clock = lambda: time.monotonic() - policy.grasp_started
+    if cfg.seed_per_episode:
+        policy.episode_seed = cfg.seed
 
     joint_keys = policy.robot_state_keys
     obs_buffer: List[Dict[str, float]] = []
@@ -410,7 +454,11 @@ def eval(cfg: EvalConfig):
         if cfg.plot and (obs_buffer or action_buffer):
             save_eval_plot(obs_buffer, action_buffer, joint_keys)
 
-        so101_control.disconnect()
+        try:
+            so101_control.disconnect()
+        finally:
+            if grasp is not None:
+                grasp.close()
 
 if __name__ == "__main__":
     eval()

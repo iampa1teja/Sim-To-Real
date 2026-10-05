@@ -165,6 +165,12 @@ class SO101Control:
         with self._hw_lock:
             self.robot.send_action(action)
 
+    def get_joint_positions(self) -> Dict[str, float]:
+        """Read calibrated follower positions without fetching camera frames."""
+        with self._hw_lock:
+            positions = self.robot.bus.sync_read("Present_Position")
+        return {f"{key}.pos": value for key, value in positions.items()}
+
     def get_observation_cameras_unlocked(self) -> Dict[str, Any]:
         """Same keys as get_observation, but only the servo-bus read holds the lock.
 

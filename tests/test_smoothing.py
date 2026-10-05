@@ -237,8 +237,8 @@ def test_late_real_response_holds_last_sent_target_and_drops_elapsed_steps(tmp_p
     smoother_instances = []
 
     class RecordedSmoother(ActionSmoother):
-        def __init__(self, *args):
-            super().__init__(*args)
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             smoother_instances.append(self)
 
     class StepWorker:
@@ -433,7 +433,9 @@ def test_new_sim_cli_flags_and_early_validation():
             self.app = SimpleNamespace()
 
     def parse(arguments):
-        context = dict(argparse=argparse, json=json, math=math, os=os, Path=Path, AppLauncher=Launcher)
+        from sim_to_real_so101.gr00t_client.grasp import add_grasp_arguments
+        context = dict(argparse=argparse, json=json, math=math, os=os, Path=Path, AppLauncher=Launcher,
+                       add_grasp_arguments=add_grasp_arguments)
         with patch.object(sys, "argv", ["lerobot_eval", *arguments]):
             exec(compile(ast.Module(body=body, type_ignores=[]), str(path), "exec"), context)
         return context["args_cli"]

@@ -429,6 +429,132 @@ The client obtains the serial port, calibration ID, and camera paths from
 executes eight actions per inference request and uses the explicit six-joint
 start pose above. Stop the rollout with Ctrl+C.
 
+### Optional grasp latch and diagnostics
+
+Both clients share `gr00t_client/grasp.py`. Everything below is off by default;
+no model, training, joint mapping, or success/grasp detection logic changes.
+There is no dynamic horizon in these clients, so no `--h_grasp` option is added.
+The action horizon stays fixed (8 in the saved real-arm setup).
+
+`--gripper_latch` enables the following sequence, after any arm/gripper smoothing:
+
+- Derive closed/open action units from the named `gripper.pos` column's minimum
+  and maximum in the **training** dataset's `meta/stats.json`. The default dataset
+  is `datasets/pick_place_sim`; use `--latch_dataset` for another training set.
+- Engage below `closed + 0.50 * (open - closed)` for 3 consecutive predictions.
+  Require the maximum commanded arm change to be at most 2 units per step across
+  the last 10 changes (11 command samples). Unsteady steps reset close confirmation.
+- While latched, command the training-data fully-closed value. Normal release
+  needs predictions above `closed + 0.80 * (open - closed)` for 5 consecutive
+  steps, with at least 30 steps since engagement. Held/stale commands do not count
+  as new close/release evidence. Only the gripper is overridden.
+- Read measured gripper position each step. Real uses a locked, calibrated
+  follower joint-bus read with **no camera read**; sim reverses the existing joint
+  mapping. The empty-closed reference defaults to the minimum **state** gripper
+  position in training metadata. Override with `--gripper_empty_closed`.
+- If latched and measured position is at most `empty_closed + 3` for 15 consecutive
+  steps, log `missed grasp`, release, command fully open for 15 steps, then require
+  a fresh close confirmation. This measured-empty escape is an exception to the
+  normal minimum hold. A measured stall above that threshold never causes an
+  automatic timed release, however long the latch has been held.
+
+All limits are configurable: `--latch_close_below` and `--latch_open_above` accept
+**absolute gripper units**, not percentages; `--latch_confirm_steps`,
+`--latch_release_confirm`, `--latch_min_hold`, `--latch_steady_steps`,
+`--latch_steady_max_delta`, `--latch_empty_margin`, `--latch_empty_confirm`, and
+`--latch_reopen_steps` expose the other defaults above. Startup prints the actual
+closed/open range, both thresholds, and the empty-closed reference. The 200k
+training metadata currently resolves C≈44.376, O≈70.955, closed≈0.07704,
+open≈88.67488, empty-closed≈1.22932 (empty threshold≈4.22932).
+
+`--seed_per_episode` reissues the same acknowledged server noise seed **before
+every inference query** within an episode. The benchmark supplies its existing
+per-start seed; other sim runs use `--seed` (1984 by default). A real client run is
+one episode, also with `--seed=1984` by default. The host runner selects
+`benchmark_server.py` when this flag is present, including `--server_only`.
+An external server must expose `seed_policy`; an absent acknowledgement fails
+explicitly. Keep one client per server when using this option.
+
+`--log_gripper` writes a per-step CSV, optionally at `--gripper_csv`. It records
+raw predicted, measured, and final commanded gripper; latch state/events;
+steadiness; chunk ID; per-joint and norm changes between successive **full chunk
+arm endpoints**, in LeRobot arm units (not Cartesian distance); thresholds;
+and commanded arm positions. With temporal ensembling, “raw” means the newest
+applicable chunk's prediction. The first endpoint delta and missing predictions
+on held ticks are NaN. CSV episodes flush on completion/reset or Ctrl+C.
+
+At episode end, the client prints the observed raw predicted gripper min/max
+in the final two seconds before the first observed grasp, or the episode end if
+there was no grasp. This helps move C into a hover region. The dither score counts
+arm direction reversals, summed over the five **commanded** arm joints in that
+same window; changes ≤1e-6 units are treated as zero. It ignores gripper movement
+and velocities crossing the window boundary. The benchmark uses its unchanged
+StageTrace grasp signal, not latch engagement. Real runs have no verified grasp
+signal, so their diagnostic window ends at Ctrl+C; measured obstruction alone
+is not reported as a confirmed grasp. Grasp time includes the sim's ten settling
+steps; diagnostic command samples start after settling.
+
+Run this 200-start on/off comparison **after training releases the GPU**. Each
+variant runs all 200 starts (400 episodes total at horizon 8):
+
+```bash
+cd ~/Sim-to-Real-SO-101-Workshop
+python3 scripts/sweep_action_horizon.py \
+  --model so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --models_dir /external_storage/models \
+  --eval_set eval_sets/pick_place_v1_75ep_seed1984.json \
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --latch_dataset datasets/pick_place_sim \
+  --horizons 8 --gripper_latch off,on --seed_per_episode \
+  --episode_length_s 20 --repeats 1 --port 5560 \
+  --out_root outputs/grasp_sweeps
+```
+
+The sweep automatically logs both variants in separate `ah_8_latch_off` and
+`ah_8_latch_on` directories. `summary.csv`, `summary.md`, and `summary.json`
+compare success, grasp rate, mean time to observed grasp (grasped episodes only),
+and mean dither score (all episodes). JSON also includes paired on-only/off-only
+success counts and metric differences. Incomplete schedules cannot qualify for
+comparison/resume. Add `--dry_run` to inspect commands without GPU work.
+
+For the **real arm**, first start a seeding-capable server:
+
+```bash
+cd ~/Sim-to-Real-SO-101-Workshop
+./docker/eval_pick_place.sh --server_only --seed_per_episode \
+  --model so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --models_dir /external_storage/models \
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --port 5560
+```
+
+Then run the saved camera/start-pose client with the optional controls:
+
+```bash
+source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
+cd ~/Isaac-GR00T && \
+PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/source:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
+uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
+  --no-sync --with feetech-servo-sdk --with pyzmq --with msgpack --with msgpack-numpy \
+  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
+  --robot.type=so101_follower --robot.port="$ROBOT_PORT" --robot.id="$ROBOT_ID" \
+  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
+  --policy_host=localhost --policy_port=5560 --action_horizon=8 \
+  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
+  --lang_instruction='Pick up the blue cube and place it in the white box' \
+  --gripper_latch=true --seed_per_episode=true --log_gripper=true \
+  --latch_dataset="$HOME/Sim-to-Real-SO-101-Workshop/datasets/pick_place_sim" \
+  --gripper_csv="$HOME/Sim-to-Real-SO-101-Workshop/outputs/gripper/real.csv"
+```
+
+After stopping the client, plot the recorded predictions, measurements, commands,
+thresholds, chunk boundaries, and dither window:
+
+```bash
+cd ~/Sim-to-Real-SO-101-Workshop
+python3 scripts/plot_grasp.py outputs/gripper/real.csv
+```
+
 ### Legacy N1.6 real arm
 
 The commands below retain the legacy N1.6 real-robot workflow. Build its image

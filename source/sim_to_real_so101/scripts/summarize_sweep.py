@@ -51,6 +51,9 @@ def aggregate(horizon, split, rows, report, status):
                   mean_time_to_success_s=mean(times) if times else None,
                   success_within_15s=timing['success_rate_within_15s'],
                   mean_inference_calls_per_episode=avg('inference_calls'), mean_wall_time_per_episode_s=avg('wall_time_s'))
+    grasp_times = [r['time_to_grasp_s'] for r in rows if r.get('time_to_grasp_s') is not None]
+    result['mean_time_to_grasp_s'] = mean(grasp_times) if grasp_times else None
+    result['mean_dither_score'] = avg('dither_score')
     if report.get('repeats', 1) > 1:
         result['per_start_consistency'] = {k: mean(r['success'] for r in rows if r['start_id'] == k)
                                            for k in sorted({r['start_id'] for r in rows})}
@@ -60,6 +63,8 @@ def aggregate(horizon, split, rows, report, status):
 def summarize_folder(folder):
     folder = Path(folder)
     config = json.loads((folder/'sweep_config.json').read_text())
+    if 'variants' in config:
+        return summarize_latch_variants(folder, config)
     expected = [tuple(k) for k in config['expected_schedule']]
     rows, reports = [], {}
     for horizon in config['horizons']:
@@ -159,6 +164,70 @@ def make_plots(folder, rows):
         values=[r[failure] for r in all_rows]; ax.bar([str(h) for h in x],values,bottom=bottom,label=failure)
         bottom=[a+b for a,b in zip(bottom,values)]
     ax.set(xlabel='Action horizon',ylabel='Failed episodes'); ax.legend(fontsize=7); fig.tight_layout(); fig.savefig(plots/'failure_modes_vs_horizon.png'); plt.close(fig)
+
+
+def summarize_latch_variants(folder, config):
+    """Keep both on/off runs visible; never rank or compare incomplete schedules."""
+    expected = [tuple(k) for k in config['expected_schedule']]
+    rows, reports = [], {}
+    for variant in config['variants']:
+        run = folder / variant['folder']
+        try:
+            report = json.loads((run / 'results.json').read_text())
+        except (OSError, ValueError):
+            report = {}
+        complete = complete_report(report, expected, config['eval_set_id'],
+                                   variant['horizon'], variant['settings'])
+        if (run / 'status.json').exists():
+            complete &= json.loads((run / 'status.json').read_text()).get('status') == 'complete'
+        if complete:
+            reports[(variant['horizon'], variant['latch'])] = report
+        for split in [*config['selected_splits'], 'all']:
+            subset = [r for r in report.get('episodes', []) if split == 'all' or r['split'] == split]
+            row = aggregate(variant['horizon'], split, subset, report, 'complete' if complete else 'failed')
+            row['gripper_latch'] = variant['latch']
+            rows.append(row)
+    comparisons = []
+    for horizon in config['horizons']:
+        off, on = reports.get((horizon, 'off')), reports.get((horizon, 'on'))
+        if off is None or on is None:
+            comparisons.append(dict(action_horizon=horizon, available=False))
+            continue
+        for split in [*config['selected_splits'], 'all']:
+            first, second = [next(r for r in rows if r['action_horizon'] == horizon and
+                                 r['split'] == split and r['gripper_latch'] == mode) for mode in ('off', 'on')]
+            differences = {}
+            for key in ('success_rate', 'grasped_rate', 'mean_time_to_grasp_s', 'mean_dither_score'):
+                differences[key + '_on_minus_off'] = (second[key] - first[key]
+                                                      if first[key] is not None and second[key] is not None else None)
+            pairs = {(r['start_id'], r['repeat']): r for r in off['episodes']}
+            off_only = on_only = 0
+            for r in on['episodes']:
+                if split != 'all' and r['split'] != split:
+                    continue
+                before = pairs[(r['start_id'], r['repeat'])]['success']
+                on_only += int(r['success'] and not before)
+                off_only += int(before and not r['success'])
+            comparisons.append(dict(action_horizon=horizon, split=split, available=True,
+                                    on_only_successes=on_only, off_only_successes=off_only, **differences))
+    result = dict(rows=rows, latch_comparisons=comparisons)
+    (folder / 'summary.json').write_text(json.dumps(result, indent=2) + '\n')
+    with (folder / 'summary.csv').open('w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    lines = ['| H | Latch | Split | Status | Success | Grasp rate | Time to grasp (s) | Dither |',
+             '|---|---|---|---|---|---|---|---|']
+    def fmt(value):
+        return '—' if value is None else f'{value:.4g}'
+    for r in rows:
+        lines.append(f"| {r['action_horizon']} | {r['gripper_latch']} | {r['split']} | {r['status']} | "
+                     f"{fmt(r['success_rate'])} | {fmt(r['grasped_rate'])} | "
+                     f"{fmt(r['mean_time_to_grasp_s'])} | {fmt(r['mean_dither_score'])} |")
+    lines += ['', 'Time to grasp averages observed grasps only; dither averages all completed episodes.',
+              'Paired on/off success counts and metric differences are in summary.json.']
+    (folder / 'summary.md').write_text('\n'.join(lines) + '\n')
+    return result
 
 
 def main(argv=None):
