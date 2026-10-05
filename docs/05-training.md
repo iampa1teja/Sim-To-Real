@@ -315,6 +315,159 @@ pick-place episodes by replaying states/actions through recoloured simulation
 is future work: this fork has no tracked dataset-producing replay/augmentation
 tool. External LeRobot replay and GR00T ReplayPolicy are not that pipeline.
 
+## DiT-only continuation (4090)
+
+[train_dit.sh](../train_dit.sh) continues the saved 200k pick-place model with
+only `action_head.model`, the action-head diffusion transformer, trainable.
+The backbone, visual encoder, projectors, vision-language adapters, positional
+embedding, and SO101 state/action encoders and action decoder stay frozen.
+It calls the pinned official fine-tune entry point through
+[train_dit_only.py](../scripts/train_dit_only.py); it changes no GR00T source files
+and leaves the existing training scripts and data preparation unchanged.
+This checkout has no root `train.sh` or `CLAUDE.md`: the existing shell-wrapper
+style comes from `scripts/train_pick_place.sh`, and the GR00T notes come from
+the pinned checkout's `CLAUDE.md`.
+
+The selected init is
+`/external_storage/models/so101_pick_place_sim_n17_200k/milestones/checkpoint-200000`.
+Its `trainer_state.json` confirms step 200000, and all three weight shards are
+present. The external-storage run also contains checkpoints 102000, 103000,
+160000 and 180000; only one checkpoint in that run is at step 200000.
+The saved mixture is exactly one dataset,
+`/home/rpuser1/Sim-to-Real-SO-101-Workshop/datasets/pick_place_sim`, at ratio 1.0:
+`NEW_EMBODIMENT` / `new_embodiment`, room/wrist images, five arm joints plus
+gripper, and 16 absolute future actions. Model capacity remains 40 actions.
+The actual loaded checkpoint has **32 DiT blocks**; the saved experiment's
+16-block default does not replace that checkpoint architecture.
+
+The launcher reconstructs the full saved model/data config, including image
+augmentation, modality, statistics policy, seed 42, shard size 1024, episode
+sampling rate 0.1, and two data workers. It registers the original dataset's
+`so100_config.py` and checks that it agrees with the saved modalities. The
+created processor config was compared with the init checkpoint and matched
+exactly: crop 230×230, target 256×256, shortest edge 256, crop fraction 0.95,
+colour jitter brightness/contrast/saturation/hue 0.3/0.4/0.5/0.02, and state
+dropout 0.2. The original run used batch 16, accumulation 1, learning rate 1e-4,
+cosine decay and 5% warmup. The new optimizer starts at continuation step 0
+with learning rate 2e-5, cosine decay, 1000 warmup updates and 20000 updates.
+The init's projector-training optimizer state is deliberately not resumed.
+
+From the workshop root:
+
+```bash
+bash train_dit.sh --dry_run
+bash train_dit.sh --smoke 50 --output_dir /external_storage/models/dit_probe
+bash train_dit.sh
+# Recover an interrupted continuation using its latest checkpoint:
+bash train_dit.sh --resume
+```
+
+All controls have defaults: `--init_ckpt`, `--output_dir`, `--steps` (20000),
+`--lr` (2e-5), `--warmup` (1000), `--schedule` (cosine), `--save_steps` (5000),
+`--save_total_limit` (4), `--batch`, `--grad_accum`, `--grad_ckpt`, `--optim`
+(`adamw` or `adamw8bit`), and `--train_last_n_blocks` (0 means the complete DiT).
+Explicit arguments override the measured defaults in `train_dit.sh`.
+`--no_grad_ckpt` disables a checkpointing default. For a positive last-N value,
+only those final transformer blocks train; the other DiT blocks and its
+timestep/output layers freeze as well. `--preflight_only` checks readiness.
+
+Before loading a model, the wrapper prints the resolved settings and the pinned
+launcher's actual `--help`, rejects a busy GPU without stopping its owner,
+checks readable datasets, and requires free output disk space of at least
+`init_checkpoint_bytes × save_total_limit + 20 GiB`. Here the checkpoint is
+15.66 GiB and the minimum is 82.65 GiB. It uses the unchanged pinned Python 3.12
+environment, Torch 2.9.0+cu128 and Transformers 4.57.3, with
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` and offline model loading.
+8-bit AdamW requires bitsandbytes installed with `--no-deps`, preserving Torch.
+
+Before constructing the optimizer, the log prints `Module path | Parameters |
+Trainable`. Every row outside `action_head.model` must say **no**. All-block
+training enables **1,091,722,240 of 3,144,016,000** parameters (34.72%); the other
+2,052,293,760 are frozen. The loader prints missing/unexpected/mismatched key
+counts and aborts if any are nonzero. A second audit checks that the optimizer
+contains exactly the selected DiT parameters. CPU tests exercise these failure
+boundaries, block selection and gradients through the frozen decoder:
+
+```bash
+~/Isaac-GR00T-N1.7/.venv/bin/python -m unittest discover \
+  -s tests -p test_train_dit_only.py -v
+```
+
+The memory ladder requests 50 optimizer updates per attempt. Failed attempts
+report the update count and memory peak at failure; successful probes report
+Torch allocated/reserved memory, sampled process memory and seconds/update
+after five warmup updates. Probe artifacts are retained under
+`/external_storage/models/so101_pick_place_sim_n17_200k_dit_only_smokes`.
+The pinned DiT advertises gradient checkpointing but does not consume its flag
+in forward; the launcher enables actual non-reentrant recomputation around its
+existing blocks in-process. CPU tests confirm the gradients match.
+
+Measured on October 5, 2026, on the RTX 4090, with all 32 DiT blocks selected:
+
+| Rung | Per-GPU batch × accumulation | Optimizer / checkpointing | Updates | Peak Torch allocated / reserved | Result |
+| --- | --- | --- | ---: | --- | --- |
+| 0 | 32 × 1 | AdamW, off | 0/50 | 22.48 / 22.95 GiB | OOM allocating optimizer states |
+| 1 | 16 × 2 | AdamW, off | 0/50 | 22.39 / 22.95 GiB | OOM allocating optimizer states |
+| 2 | 16 × 2 | AdamW, on | 0/50 | 22.77 / 22.95 GiB | OOM allocating optimizer states |
+| 3 | 16 × 2 | 8-bit AdamW, on | 50/50 | 20.23 / 20.60 GiB | Passed, process peak 21.06 GiB |
+
+The first fitting configuration is now the shell default: **batch 16,
+accumulation 2, DiT checkpointing, 8-bit AdamW, all blocks**. The half-block rung
+was unnecessary. bitsandbytes 0.50.2 installed with `uv pip install --no-deps`;
+Torch's version, CUDA version and module fingerprint were identical before
+and after. The passing probe's loss remained finite (mean 0.00935). Timing
+after the first five updates was **0.9284 seconds/update**: 20000 updates are
+about **5.16 hours of training compute**, plus model loading, initial data
+caching and checkpoint writes. `memory_ladder.json` beside the probe folders
+records flags and measurements for every memory attempt. The first setup
+attempt found an unregistered modality before training; registering the saved
+dataset config corrected it without changing data or upstream sources.
+
+The full run writes
+`/external_storage/models/so101_pick_place_sim_n17_200k_dit_only/train.log`,
+`run_config.json`, and checkpoints 5000, 10000, 15000 and 20000. The run config
+records every flag, origin step/path, the trainable count and parameter table,
+data mixture/hash, repository commit, GR00T pin, runtime versions and GPU name.
+`training_metrics.json` reports timing and memory after the first 50 updates.
+Saving and initial dataset caching add time beyond the compute estimate.
+
+### Evaluation hand-off
+
+Evaluation needs the GPU; run this **after training stops**. These commands are
+a hand-off, not part of training. The 200-start set on current main is
+`eval_sets/pick_place_v1_75ep_seed1984.json` (75 ID, 25 OOD, 25 yaw, 75 train),
+hash `779f5e18b147939309efb5638560c963f6d6aa5ca1d6271e1c186714ed576e14`.
+The older `pick_place_v1_seed1984.json` has only 150 starts. Keep the same
+30-second timeout, action horizon 8, recorded arm start and benchmark for all
+five checkpoints; do not regenerate the start set between models.
+
+```bash
+cd ~/Sim-to-Real-SO-101-Workshop
+for step in init 5000 10000 15000 20000; do
+  if [[ "$step" == init ]]; then
+    model=so101_pick_place_sim_n17_200k/milestones/checkpoint-200000
+  else
+    model="so101_pick_place_sim_n17_200k_dit_only/checkpoint-$step"
+  fi
+  ./docker/eval_pick_place.sh \
+    --model "$model" --models_dir /external_storage/models \
+    --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+    --eval_set /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_75ep_seed1984.json \
+    --splits id,ood,yaw,train --repeats 1 --robot_start recorded \
+    --episode_length_s 30 --action_horizon 8 --port 5560 \
+    --results_json "/workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_results/dit_${step}_ah8.json"
+done
+python3 scripts/compare_eval_results.py \
+  datasets/eval_results/dit_init_ah8.json \
+  datasets/eval_results/dit_5000_ah8.json \
+  datasets/eval_results/dit_10000_ah8.json \
+  datasets/eval_results/dit_15000_ah8.json \
+  datasets/eval_results/dit_20000_ah8.json
+```
+
+The comparison prints exact paired McNemar tests using repeat 0 on matching
+starts, overall and by split. Multi-checkpoint p-values are unadjusted.
+
 ## CPU preparation regression tests
 
 **Training machine**, workshop root with the preparation dependencies:

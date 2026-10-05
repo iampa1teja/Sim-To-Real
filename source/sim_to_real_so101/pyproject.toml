@@ -12,7 +12,31 @@ authors = [
     { name="Maximilian Ofir", email="maxofir@nvidia.com" },
     { name="Zhijin Li", email="zhijinl@nvidia.com" }
 ]
+
+# >=3.11: the Isaac Sim container (Python 3.11) pip-installs this package at start (docker/sim/entrypoint.sh).
 requires-python = ">=3.11"
+
+[dependency-groups]
+# Host-side tools (uv sync). A dependency group, not [project] dependencies, so the container's
+# `pip install -e` does not pull torch/transformers/lerobot into Isaac Sim's Python.
+host = [
+    "numpy",
+    "pandas<3",
+    "pyarrow",
+    "torch",
+    "tqdm",
+    "matplotlib",
+    "huggingface-hub",
+    "lerobot==0.4.2",
+    "transformers>=4.45,<5",
+    "pytest>=9.1.1",
+    "scipy",
+    "opencv-python>=5.0.0.93",
+]
+
+[tool.uv]
+default-groups = ["host"]
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 [project.scripts]
 list_envs = "sim_to_real_so101.scripts.list_envs:main"

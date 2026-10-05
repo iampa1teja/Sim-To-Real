@@ -42,9 +42,50 @@ def scope_dataset_modalities(config):
     }
 
 
+class milestone_checkpoints:
+    """Add the milestone callback to every Trainer trained inside this block.
+
+    Always attached: it also re-applies --save-steps on resume. Milestones are skipped when steps <= 0.
+    Attached when train() starts, i.e. after GR00T's CheckpointFormatCallback, so each on_save sees the
+    checkpoint only after GR00T has copied processor/experiment_cfg files into it."""
+
+    def __init__(self, steps, keep, milestone_dir=None):
+        self.steps, self.keep, self.milestone_dir, self.original = steps, keep, milestone_dir, None
+
+    def __enter__(self):
+        try:
+            import transformers
+        except ImportError:  # no Trainer to patch (e.g. unit tests outside the GR00T venv)
+            return self
+        from checkpoint_milestones import make_callback
+        trainer, original = transformers.Trainer, transformers.Trainer.train
+        steps, keep, milestone_dir = self.steps, self.keep, self.milestone_dir
+
+        def train(self, *args, **kwargs):
+            if not getattr(self, "_milestone_callback_added", False):
+                self.add_callback(make_callback(steps, keep, milestone_dir))
+                self._milestone_callback_added = True
+            return original(self, *args, **kwargs)
+
+        self.original = (trainer, original)
+        trainer.train = train
+        return self
+
+    def __exit__(self, *exc):
+        if self.original:
+            trainer, original = self.original
+            trainer.train = original
+        return False
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, add_help=False)
     parser.add_argument("--groot", type=Path, required=True)
+    parser.add_argument("--milestone-steps", type=int, default=0,
+                        help="Also keep a hard-linked copy of every Nth-step checkpoint in <output>/milestones (0 = off)")
+    parser.add_argument("--milestone-keep", type=int, default=3, help="Newest milestones to keep")
+    parser.add_argument("--milestone-dir", type=Path, default=None,
+                        help="Copy milestones here in the background instead of hard-linking into <output>/milestones")
     args, forwarded = parser.parse_known_args(argv)
     groot = args.groot.expanduser().resolve()
     launcher = groot / "gr00t/experiment/launch_finetune.py"
@@ -75,7 +116,8 @@ def main(argv=None):
         def run_selected(config):
             scope_dataset_modalities(config)
             from gr00t_offline_cosmos import offline_cosmos_processor
-            with offline_cosmos_processor():
+            with offline_cosmos_processor(), milestone_checkpoints(args.milestone_steps, args.milestone_keep,
+                                                                           args.milestone_dir):
                 return original_run(config)
 
         experiment.run = run_selected
