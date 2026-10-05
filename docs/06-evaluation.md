@@ -261,6 +261,52 @@ MyRoom has no success/timeout terminations. Checkpoint metadata falls back to
 
 ## Real-robot rollout
 
+### N1.7 200k real arm
+
+These are the user's saved commands from October 5, 2026. Start the policy server
+in the first host terminal and keep it running after `SERVER_READY port=5560`:
+
+```bash
+cd ~/Sim-to-Real-SO-101-Workshop && \
+./docker/eval_pick_place.sh \
+  --server_only \
+  --model so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --models_dir /external_storage/models \
+  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --port 5560
+```
+
+In the second host terminal, run the physical SO101 follower client:
+
+```bash
+source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
+cd ~/Isaac-GR00T && \
+PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
+uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
+  --no-sync \
+  --with feetech-servo-sdk \
+  --with pyzmq \
+  --with msgpack \
+  --with msgpack-numpy \
+  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
+  --robot.type=so101_follower \
+  --robot.port="$ROBOT_PORT" \
+  --robot.id="$ROBOT_ID" \
+  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
+  --policy_host=localhost \
+  --policy_port=5560 \
+  --action_horizon=8 \
+  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
+  --lang_instruction='Pick up the blue cube and place it in the white box'
+```
+
+The client obtains the serial port, calibration ID, and camera paths from
+`docker/env`. Both cameras use 640×480 at 30 FPS with YUYV. This saved command
+executes eight actions per inference request and uses the explicit six-joint
+start pose above. Stop the rollout with Ctrl+C.
+
+### Legacy N1.6 real arm
+
 The commands below retain the legacy N1.6 real-robot workflow. Build its image
 with `./docker/real/build.sh ada n16`, then use [Setup](01-setup.md) to start the
 real-robot container and calibrate hardware. The new N1.7 image supplies policy

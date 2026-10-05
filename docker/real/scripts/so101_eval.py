@@ -98,7 +98,10 @@ class So100Adapter:
         • Decoding model action chunks into real robot actions
     """
 
-    def __init__(self, policy_client: PolicyClient):
+    joint_keys = ["shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos",
+                  "wrist_flex.pos", "wrist_roll.pos", "gripper.pos"]
+
+    def __init__(self, policy_client: PolicyClient, camera_keys: List[str] | None = None):
         self.policy = policy_client
 
         # SO100 joint ordering used for BOTH training + robot execution
@@ -111,7 +114,8 @@ class So100Adapter:
             "gripper.pos",
         ]
 
-        self.camera_keys = ["front", "wrist"]
+        # Must match the checkpoint's video keys (N1.6: front/wrist; N1.7 pick-place: room/wrist).
+        self.camera_keys = list(camera_keys) if camera_keys else ["front", "wrist"]
 
     # -------------------------------------------------------------------------
     # Observation → Model Input
@@ -225,6 +229,9 @@ class EvalConfig:
     rerun: bool = False
     passive_mode: bool = False
     plot: bool = False
+    # Optional start pose "pan,lift,elbow,wrist_flex,wrist_roll,gripper" (LeRobot units) replacing
+    # SO101Control.initial_pose, e.g. the demonstrations' first-frame pose.
+    start_pose: str = ""
 
 
 
@@ -237,10 +244,16 @@ def eval(cfg: EvalConfig):
     logging.info(pformat(asdict(cfg)))
 
     so101_control = SO101Control(cfg)
+    if cfg.start_pose:
+        values = [float(v) for v in cfg.start_pose.split(",")]
+        if len(values) != 6:
+            raise ValueError("start_pose needs 6 comma-separated values")
+        so101_control.initial_pose = dict(zip(So100Adapter.joint_keys, values))
     so101_control.connect()
 
     policy_client = PolicyClient(host=cfg.policy_host, port=cfg.policy_port)
-    policy = So100Adapter(policy_client)
+    # The robot's camera names become the policy's video keys.
+    policy = So100Adapter(policy_client, camera_keys=list(cfg.robot.cameras))
 
     joint_keys = policy.robot_state_keys
     obs_buffer: List[Dict[str, float]] = []

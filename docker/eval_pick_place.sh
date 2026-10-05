@@ -4,7 +4,7 @@ set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 model='' dataset='' dr=nodr episodes=20 random_fraction=0.0 start_mode=cycle
-eval_set='' splits='' repeats=1 robot_start=recorded
+eval_set='' splits='' repeats=1 robot_start=recorded render_warmup=0
 results_json='' external_server=false server_only=false
 episode_length_s='' action_horizon=16 embodiment_tag=${EMBODIMENT_TAG:-NEW_EMBODIMENT}
 server_image=${SERVER_IMAGE:-real-robot:n1.7}
@@ -19,7 +19,7 @@ Usage: ./docker/eval_pick_place.sh --model <relative checkpoint> --dataset <cont
   [--server_image real-robot:n1.7] [--rename_map <camera-name JSON>]
   [--lang <instruction>] [--lang_by_color <json>] [--models_dir ~/models]
   [--eval_set <container JSON>] [--splits id,ood,yaw,train] [--repeats 1]
-  [--robot_start recorded|default]
+  [--robot_start recorded|default] [--render_warmup 0]
   [--port 5555] [--gui] [--rerun] [--dry_run]
   [--results_json <absolute container path>] [--external_server | --server_only]
   --external_server uses an existing server; --server_only owns one until interrupted.
@@ -44,7 +44,7 @@ while (($#)); do
         --rerun) rerun=true; shift ;;
         --dry_run) dry_run=true; shift ;;
         --help|-h) usage; exit 0 ;;
-        --results_json|--model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start)
+        --results_json|--model|--dataset|--episodes|--random_fraction|--start_mode|--lang|--lang_by_color|--models_dir|--port|--episode_length_s|--action_horizon|--embodiment_tag|--server_image|--rename_map|--eval_set|--splits|--repeats|--robot_start|--render_warmup)
             (($# >= 2)) || fail "Missing value for $1; see --help."
             [[ $1 != --episode_length_s || -n $2 ]] || fail '--episode_length_s must be finite and positive.'
             key=${1#--}; printf -v "$key" '%s' "$2"; shift 2 ;;
@@ -56,6 +56,7 @@ done
 [[ $dataset == /* ]] || fail '--dataset must be an absolute path inside teleop.'
 [[ $repeats =~ ^[1-9][0-9]*$ ]] || fail '--repeats must be a positive integer.'
 [[ $robot_start == recorded || $robot_start == default ]] || fail '--robot_start must be recorded or default.'
+[[ -z $render_warmup || $render_warmup =~ ^[0-9]+$ ]] || fail '--render_warmup must be a non-negative integer.'
 [[ -n $eval_set || ( -z $splits && $repeats == 1 ) ]] || fail '--splits and --repeats require --eval_set.'
 [[ -z $eval_set || $eval_set == /* ]] || fail '--eval_set must be an absolute path inside teleop.'
 if [[ -n $splits ]]; then
@@ -275,6 +276,7 @@ if [[ -n $eval_set ]]; then
     [[ -z $splits ]] || eval_cmd+=(--splits "$splits")
 fi
 [[ -z $episode_length_s ]] || eval_cmd+=(--episode_length_s "$episode_length_s")
+[[ -z $render_warmup || $render_warmup == 0 ]] || eval_cmd+=(--render_warmup "$render_warmup")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)
 "$rerun" && eval_cmd+=(--rerun)

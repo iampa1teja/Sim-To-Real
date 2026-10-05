@@ -70,6 +70,10 @@ parser.add_argument(
     help="Language instruction for the policy",
 )
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
+parser.add_argument("--render_warmup", type=int, default=0,
+                    help="0 (default): render the cameras every control step. N>0: render only the N steps before each "
+                         "policy query (the policy reads images once per action chunk); the extra N-1 frames refresh "
+                         "the renderer's temporal history (DLAA, denoisers). Physics is unchanged.")
 
 parser.add_argument("--eval_set", type=Path, help="Fixed benchmark JSON (overrides num_episodes)")
 parser.add_argument("--splits", help="Comma-separated splits, default all in the file")
@@ -120,6 +124,9 @@ def _evaluate():
     from time import monotonic
     if not 1 <= args_cli.action_horizon <= 16:
         raise ValueError("action_horizon must be in 1..16")
+    render_warmup = getattr(args_cli, "render_warmup", 0)
+    if render_warmup < 0:
+        raise ValueError("render_warmup must be >= 0")
     if args_cli.episode_length_s is not None and (
             not math.isfinite(args_cli.episode_length_s) or args_cli.episode_length_s <= 0):
         raise ValueError("episode_length_s must be finite and greater than 0")
@@ -273,6 +280,7 @@ def _evaluate():
         settling_action = settling_pose(obs)
         step = 0
         episode_wall_start = monotonic()
+        render_every = env.unwrapped.cfg.sim.render_interval if render_warmup else None
         while simulation_app.is_running() and len(episodes) < args_cli.num_episodes:
             with torch.inference_mode():
                 if step == 0:
@@ -282,7 +290,14 @@ def _evaluate():
                     actions[:] = settling_action
                 else:
                     joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
-                    actions[:] = policy.get_action(joint_positions, obs["visual"], log=True)
+                    actions[:] = policy.get_action(joint_positions, obs["visual"], log=not render_warmup or args_cli.rerun)
+                if render_warmup:
+                    # Steps until the observation of this step is sent to the server: the first query uses the
+                    # obs after settling step 9; later ones the obs after the step that empties the action queue.
+                    steps_to_query = 9 - step if step < 10 else len(policy._action_queue)
+                    # Isaac Lab renders at physics substeps where counter % render_interval == 0; a huge
+                    # interval skips this step's render (physics and termination checks are unaffected).
+                    env.unwrapped.cfg.sim.render_interval = render_every if steps_to_query < render_warmup else 10**12
                 obs, _, terminated, truncated, _ = env.step(actions)
                 step += 1
                 pbar.update(1)

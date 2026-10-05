@@ -86,6 +86,7 @@ def main(argv=None):
     p.add_argument('--lang',default='Pick up the blue cube and place it in the white box')
     p.add_argument('--lang_by_color',default='');p.add_argument('--port',type=int,default=5555)
     for key in ('dr','resume','dry_run','gui'): p.add_argument('--'+key,action='store_true')
+    p.add_argument('--render_warmup',type=int,default=0,help='Render only the N steps before each policy query (0 = every step; see lerobot_eval.py)')
     p.add_argument('--shared_gpu',action='store_true',help='Skip the free-GPU check (parallel sweeps; see scripts/sweep_checkpoints.sh)')
     args=p.parse_args(argv)
     model=Path(args.model)
@@ -99,6 +100,7 @@ def main(argv=None):
     data=load_eval_set(args.eval_set)
     selected=list(dict.fromkeys(s['split'] for s in data['starts'])) if args.splits=='all' else args.splits.split(',')
     if len(selected)!=len(set(selected)) or not set(selected)<=set(s['split'] for s in data['starts']): p.error('Invalid/duplicate splits')
+    if args.render_warmup<0: p.error('--render_warmup must be >= 0')
     if args.repeats<1 or not math.isfinite(args.episode_length_s) or args.episode_length_s<=0: p.error('Positive repeats and finite episode length required')
     if not 1<=args.port<=65535: p.error('Port must be in 1..65535')
     try: horizons=parse_horizons(args.horizons,chunk_length(checkpoint,os.environ.get('EMBODIMENT_TAG','NEW_EMBODIMENT')))
@@ -115,7 +117,9 @@ def main(argv=None):
     expected=[(s['id'],r) for r in range(args.repeats) for s in data['starts'] if s['split'] in selected]
     stamp=datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
     prefix=f"{str(model).replace('/','_')}_{args.eval_set.stem}_"
-    flags={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items() if k not in ('resume','dry_run','shared_gpu','port')}
+    # render_warmup joins the identity only when used, so --resume still matches sweeps made before it existed.
+    flags={k:str(v) if isinstance(v,Path) else v for k,v in vars(args).items()
+           if k not in ('resume','dry_run','shared_gpu','port') and not (k=='render_warmup' and not v)}
     flags.update(server_image=os.environ.get('SERVER_IMAGE','real-robot:n1.7'),
                  embodiment_tag=os.environ.get('EMBODIMENT_TAG','NEW_EMBODIMENT'),
                  rename_map=os.environ.get('RENAME_MAP','{"realsense_rgb":"room","wrist_cam":"wrist"}'))
@@ -142,6 +146,7 @@ def main(argv=None):
     if args.dr: base+=['--dr']
     if args.gui: base+=['--gui']
     if args.lang_by_color: base+=['--lang_by_color',args.lang_by_color]
+    if args.render_warmup: base+=['--render_warmup',str(args.render_warmup)]
     server=None;client=None;current_result=None
     def terminate(process):
         if process and process.poll() is None:
