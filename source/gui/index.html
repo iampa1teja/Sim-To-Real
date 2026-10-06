@@ -4,79 +4,176 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pick-Place Recorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
   <style>
     :root {
-      --bg: #111418;
-      --panel: #1b1f24;
-      --border: #30363d;
-      --text: #e6e8eb;
-      --muted: #8b949e;
-      --start: #2ea043;
-      --stop: #1f6feb;
-      --discard: #da3633;
-      --spawn: #6e7681;
-      --rec: #ff5a52;
+      color-scheme: light dark;
+      --ground: #ecedea; --panel: #f7f7f5; --well: #e2e3df; --seam: #c9cbc6; --edge: #7f827c;
+      --ink: #171816; --ink-muted: #585b56;
+      --signal: #e04f27; --signal-ink: #b23d18; --on-signal: #171816;
+      --cobalt: #2f5bd3; --on-cobalt: #ffffff; --amber: #a87400;
+      --shadow-key: 0 2px 0 0 #7f827c;
+      --shadow-plate: inset 0 1px 0 0 #ffffff, 0 1px 2px 0 rgba(23, 24, 22, 0.10);
+      --shadow-well: inset 0 1px 2px 0 rgba(23, 24, 22, 0.12);
+      --shadow-lift: 4px 4px 0 0 rgba(23, 24, 22, 0.08);
+      --font-sans: "Geist", "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "Geist Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --font-dot: "Doto", "Geist Mono", monospace;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+      --radius-0: 0; --radius-2: 2px; --radius-pill: 999px;
+      --dur-tick: 80ms; --dur-snap: 140ms; --dur-travel: 220ms; --dur-blink: 1200ms;
+      --ease-detent: cubic-bezier(0.2, 0, 0, 1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ground: #141513; --panel: #1c1d1b; --well: #0f100e; --seam: #30322f; --edge: #686b65;
+        --ink: #ecedea; --ink-muted: #a2a59f;
+        --signal: #ff6b3d; --signal-ink: #ff8a63; --on-signal: #141513;
+        --cobalt: #7c9bff; --on-cobalt: #141513; --amber: #f2b92b;
+        --shadow-key: 0 2px 0 0 #3a3c38;
+        --shadow-plate: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+        --shadow-well: inset 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+        --shadow-lift: 4px 4px 0 0 rgba(0, 0, 0, 0.5);
+      }
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--ground);
+      color: var(--ink);
+      font: 15px/22px var(--font-sans);
     }
-    main { max-width: 1400px; margin: 0 auto; padding: 16px; }
-    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    h1 { font-size: 20px; margin: 0; }
-    .conn { font-size: 13px; }
-    .conn::before { content: "●"; margin-right: 6px; }
-    .conn.on { color: var(--start); }
-    .conn.off { color: var(--discard); }
-    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 8px; }
+    :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+    main { max-width: 1400px; margin: 0 auto; padding: var(--space-4); }
+
+    .label {
+      font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted);
+    }
+
+    /* Instrument strip */
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;
+      padding: var(--space-2) var(--space-4); background: var(--panel); border: 1px solid var(--seam);
+      box-shadow: var(--shadow-plate);
+    }
+    .title-block { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+    h1 { font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: -0.005em; margin: 0; }
+    .strip-right { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+    .conn-text { font-family: var(--font-mono); font-size: 13px; line-height: 18px; color: var(--ink-muted); overflow-wrap: anywhere; }
+
+    .signal {
+      display: inline-flex; align-items: center; gap: var(--space-2); height: 24px; padding-inline: var(--space-2);
+      font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink);
+      background: var(--panel); border: 1px solid var(--seam); border-radius: var(--radius-2);
+    }
+    .signal::before {
+      content: ""; flex: none; width: 8px; height: 8px; border-radius: var(--radius-pill);
+      background: transparent; border: 1px solid var(--edge);
+    }
+    .signal[data-state="ok"]::before { background: var(--cobalt); border: 0; }
+    .signal[data-state="live"]::before { background: var(--signal); border: 0; animation: blink var(--dur-blink) steps(1, end) infinite; }
+    .signal[data-state="off"]::before { border-radius: 0; background: transparent; border: 1px solid var(--edge); }
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.25; } }
+
+    /* Status row */
+    .statusbar { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; margin: var(--space-3) 0 0; min-height: 32px; }
+    .readout {
+      display: inline-flex; align-items: baseline; gap: var(--space-2); padding: 0 var(--space-3);
+      background: var(--well); border: 1px solid var(--seam); box-shadow: var(--shadow-well);
+    }
+    .readout-value { font-family: var(--font-dot); font-weight: 700; font-size: 20px; line-height: 28px; font-variant-numeric: tabular-nums; }
+    .status { margin: 0; font-family: var(--font-mono); font-size: 13px; line-height: 18px; color: var(--ink-muted); min-height: 18px; overflow-wrap: anywhere; }
+    .status.rec { color: var(--ink); font-weight: 500; }
+    .status-note { margin: var(--space-1) 0 0; }
+    .error { margin: var(--space-2) 0 0; color: var(--signal-ink); font-size: 14px; line-height: 20px; }
+    .error .label { color: var(--signal-ink); margin-right: var(--space-2); }
+
+    /* Keycap buttons */
+    .toolbar { display: flex; gap: var(--space-3); flex-wrap: wrap; margin: var(--space-4) 0 var(--space-2); }
     .btn {
-      flex: 1 1 180px;
-      padding: 14px 18px;
-      border: 0;
-      border-radius: 8px;
-      color: #fff;
-      font: inherit;
-      font-weight: 600;
-      cursor: pointer;
+      flex: 1 1 180px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+      height: 44px; padding-inline: var(--space-4);
+      font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--ink);
+      background: var(--panel); border: 1px solid var(--edge); border-radius: var(--radius-2);
+      box-shadow: var(--shadow-key); cursor: pointer;
+      transition: background-color var(--dur-snap) var(--ease-detent), transform var(--dur-snap) var(--ease-detent), box-shadow var(--dur-snap) var(--ease-detent);
     }
-    .btn.start { background: var(--start); }
-    .btn.stop { background: var(--stop); }
-    .btn.discard { background: var(--discard); }
-    .btn.spawn { background: var(--spawn); }
-    .btn:hover:not(:disabled) { filter: brightness(1.12); }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .status { min-height: 1.4em; margin: 0 0 4px; color: var(--muted); }
-    .status.rec { color: var(--rec); font-weight: 600; }
-    .error { margin: 0 0 4px; color: var(--discard); }
+    .btn:hover:not(:disabled) { background: var(--well); }
+    .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+    .btn.start { background: var(--signal); color: var(--on-signal); border-color: var(--signal-ink); box-shadow: 0 2px 0 0 var(--signal-ink); }
+    .btn.start:hover:not(:disabled) { background: var(--signal); }
+    .btn.start:active:not(:disabled) { box-shadow: none; }
+    .btn.discard { background: transparent; border: 1px dashed var(--edge); box-shadow: none; color: var(--signal-ink); }
+    .btn.discard:hover:not(:disabled) { background: var(--well); }
+    .btn.discard:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled, .btn.start:disabled, .btn.discard:disabled {
+      background: transparent; color: var(--ink-muted); border: 1px dashed var(--edge);
+      box-shadow: none; cursor: not-allowed; transform: none;
+    }
+
+    /* Camera grid. 360px = chrome above the grid (strip, toolbar, status) plus the two pane head rows. */
     .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin: 12px auto 0;
-      /* Width at which two rows of 4:3 panes fit under the toolbar (~352px of
-         chrome), so all four cameras are visible without scrolling. */
-      width: max(320px, min(100%, calc((100vh - 352px) * 4 / 3 + 16px)));
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3);
+      margin: var(--space-3) auto 0;
+      width: max(320px, min(100%, calc((100vh - 360px) * 4 / 3 + 16px)));
     }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; width: 100%; } }
-    .bottom-bar, .dialog-actions { display: flex; gap: 10px; margin: 12px 0 8px; }
-    .encoding-status { color: var(--muted); font-size: 13px; margin: 0; min-height: 1.4em; overflow-wrap: anywhere; }
-    dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border);
-      border-radius: 12px; padding: 24px; max-width: min(680px, calc(100% - 32px)); }
-    dialog::backdrop { background: #000a; }
-    dialog h2 { font-size: 19px; margin-top: 0; }
-    .dialog-actions { flex-wrap: wrap; }
-    .bottom-bar .btn:focus-visible, .dialog-actions .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+    .pane {
+      position: relative; margin: 0; background: var(--panel); border: 1px solid var(--seam);
+      border-radius: var(--radius-0); box-shadow: var(--shadow-plate); overflow: hidden;
+    }
+    /* Corner fasteners: two dots per pseudo-element, drawn over the image. */
+    .pane::before, .pane::after {
+      content: ""; position: absolute; left: 0; right: 0; height: 12px; pointer-events: none; z-index: 1;
+      background-image: radial-gradient(circle, var(--edge) 0 1.5px, transparent 2px), radial-gradient(circle, var(--edge) 0 1.5px, transparent 2px);
+      background-size: 12px 12px; background-repeat: no-repeat;
+    }
+    .pane::before { top: 0; background-position: left top, right top; }
+    .pane::after { bottom: 0; background-position: left bottom, right bottom; }
+    .pane-head {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+      padding: var(--space-1) var(--space-4); border-bottom: 1px solid var(--seam);
+    }
+    .pane-name { font-size: 13px; line-height: 18px; color: var(--ink); }
+    .pane img, .no-signal { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; }
+    .no-signal { display: flex; align-items: center; justify-content: center; gap: var(--space-2); background: var(--well); }
+    .no-signal::before { content: ""; width: 8px; height: 8px; border: 1px solid var(--edge); border-radius: var(--radius-pill); }
+
+    .bottom-bar, .dialog-actions { display: flex; gap: var(--space-3); margin: var(--space-3) 0 var(--space-2); }
+    .encoding-status { font-family: var(--font-mono); color: var(--ink-muted); font-size: 12px; line-height: 18px; margin: 0; min-height: 18px; overflow-wrap: anywhere; }
+
+    /* Dialogs: plates lifted over the page */
+    dialog {
+      background: var(--panel); color: var(--ink); border: 1px solid var(--edge); border-radius: var(--radius-0);
+      box-shadow: var(--shadow-lift); padding: var(--space-6); max-width: min(680px, calc(100% - 32px));
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+    dialog h2 { font-size: 18px; line-height: 24px; font-weight: 600; letter-spacing: -0.005em; margin: 0 0 var(--space-3); }
+    dialog p { margin: 0 0 var(--space-3); }
+    dialog label { display: inline-block; margin-right: var(--space-2); }
+    dialog input[type="number"] {
+      width: 160px; height: 36px; padding-inline: var(--space-3);
+      font-family: var(--font-mono); font-size: 14px; color: var(--ink); background: var(--well);
+      border: 1px solid var(--seam); border-bottom-color: var(--edge); border-radius: var(--radius-0); box-shadow: var(--shadow-well);
+    }
+    dialog input:focus { border-color: var(--cobalt); }
+    .dialog-actions {
+      flex-wrap: wrap; margin: var(--space-4) calc(var(--space-6) * -1) calc(var(--space-6) * -1);
+      padding: var(--space-3) var(--space-6); border-top: 1px dashed var(--seam);
+    }
+    .dialog-actions .btn { flex: 0 1 auto; }
     @media (max-width: 700px) {
       .bottom-bar, .dialog-actions { flex-direction: column; }
       .bottom-bar .btn, .dialog-actions .btn { flex-basis: auto; }
     }
-    .pane { margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .pane figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); }
-    .pane img, .no-signal { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; }
-    .no-signal { display: grid; place-items: center; color: var(--muted); }
+    @media (prefers-reduced-motion: reduce) {
+      .btn { transition: none; }
+      .signal::before { animation: none; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>

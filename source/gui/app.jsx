@@ -45,14 +45,17 @@ async function sendCommand(cmd, options = {}) {
   }
 }
 
-function CameraPane({ name, frame }) {
+function CameraPane({ name, frame, index }) {
   return (
     <figure className="pane">
-      <figcaption>{name}</figcaption>
+      <figcaption className="pane-head">
+        <span className="label">{`CAM-${String(index + 1).padStart(2, "0")}`}</span>
+        <span className="pane-name">{name}</span>
+      </figcaption>
       {frame ? (
         <img src={`data:image/jpeg;base64,${frame}`} alt={name} />
       ) : (
-        <div className="no-signal">No signal</div>
+        <div className="no-signal label">No signal</div>
       )}
     </figure>
   );
@@ -151,10 +154,16 @@ function App() {
   return (
     <main>
       <header>
-        <h1>Pick-Place Recorder</h1>
-        <span className={`conn ${connected ? "on" : "off"}`}>
-          {state?.closed ? "Recorder closed" : connected ? "Connected" : "Disconnected: is pick_place_agent running?"}
-        </span>
+        <div className="title-block">
+          <h1>Pick-Place Recorder</h1>
+          <span className="label">REC-01</span>
+        </div>
+        <div className="strip-right">
+          <span className="conn-text">
+            {state?.closed ? "Recorder closed" : connected ? "Connected" : "Disconnected: is pick_place_agent running?"}
+          </span>
+          <span className="signal" data-state={connected ? "ok" : "off"}>{connected ? "Link" : "No link"}</span>
+        </div>
       </header>
 
       <section className="toolbar">
@@ -174,22 +183,29 @@ function App() {
           onClick={() => setRerecordOpen(true)}>Re-record episode</button>
       </section>
 
-      {error && <p className="error">{error}</p>}
-      <p className={`status ${state?.active ? "rec" : ""}`}>
-        {state ? state.status : "Waiting for the recorder…"}
-      </p>
-      {state?.rerecord_episode != null && <p className="status" role="status">
+      {error && <p className="error"><span className="label">Fault</span>{error}</p>}
+      <div className="statusbar">
+        {state?.active && <span className="signal" data-state="live">Live</span>}
+        {state && <span className="readout" title="Saved episodes">
+          <span className="label">Saved</span>
+          <span className="readout-value">{String(state.saved_episodes).padStart(3, "0")}</span>
+        </span>}
+        <p className={`status ${state?.active ? "rec" : ""}`}>
+          {state ? state.status : "Waiting for the recorder…"}
+        </p>
+      </div>
+      {state?.rerecord_episode != null && <p className="status status-note" role="status">
         Replacing episode {state.rerecord_episode}. The original stays safe until Save.
       </p>}
 
       <section className="grid">
-        {(state?.cameras ?? []).map((name) => (
-          <CameraPane key={name} name={name} frame={state.frames[name]} />
+        {(state?.cameras ?? []).map((name, index) => (
+          <CameraPane key={name} name={name} index={index} frame={state.frames[name]} />
         ))}
       </section>
       <section className="bottom-bar" aria-label="Recording actions">
         <button className="btn stop" disabled={disabled || !state?.recording} onClick={() => onClick("save")}>Save</button>
-        <button className="btn start" disabled={disabled || !state?.pending_videos || state?.encoding}
+        <button className="btn stop" disabled={disabled || !state?.pending_videos || state?.encoding}
           onClick={() => onClick("encode")}>Encode videos</button>
         <button className="btn discard" disabled={disabled} onClick={() => setExitOpen(true)}>Exit</button>
       </section>
