@@ -172,6 +172,7 @@ try:
     from isaaclab_tasks.utils import parse_env_cfg
 
     import_module("sim_to_real_so101.tasks")  # Registers workshop tasks.
+    from sim_to_real_so101.tasks.my_room_env_cfg import drop_unused_camera_outputs
     from sim_to_real_so101.utils.terminal_control import TerminalInputControl
     from sim_to_real_so101.utils.cube_spawner import CubeSpawnServer, spawn_blue_cube
 
@@ -267,6 +268,8 @@ def main():
             raise ValueError("--fps must divide the physics rate exactly.")
         env_cfg.decimation = round(physics_steps)
         env_cfg.sim.render_interval = env_cfg.decimation
+        if hasattr(env_cfg.scene, "realsense_depth"):
+            drop_unused_camera_outputs(env_cfg, depth=args_cli.depth, instance_id_seg=args_cli.instance_id_seg)
         env = gym.make(args_cli.task, cfg=env_cfg)
 
         print(f"[INFO]: Gym observation space: {env.observation_space}")
@@ -333,6 +336,8 @@ def main():
         )
         wrist_roll_index = 4
         leader_wrist_start = None
+        # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
+        obs = None
 
         # Start input only after device connection/calibration prompts finish.
         if args_cli.control_input == "keyboard":
@@ -380,6 +385,7 @@ def main():
                 recording = False
                 _reset_for_buffer(env, keyboard_control)
                 leader_wrist_start = None
+                obs = None
 
             elif requests["end"]:
                 if recording and recorder_group is not None:
@@ -387,6 +393,7 @@ def main():
                 recording = False
                 _reset_for_buffer(env, keyboard_control)
                 leader_wrist_start = None
+                obs = None
 
             elif requests["reset"]:
                 if recording and recorder_group is not None:
@@ -394,6 +401,7 @@ def main():
                 recording = False
                 _reset_for_buffer(env, keyboard_control)
                 leader_wrist_start = None
+                obs = None
 
             if (requests["start"] and not recording
                     and not any(requests[key] for key in ("end", "rerecord", "reset"))):
@@ -404,6 +412,7 @@ def main():
                     )
                 else:
                     _place_configured_object_near_ee(env)
+                    obs = None
                     recording = True
                     keyboard_control.set_recording(True)
                     print(
@@ -423,11 +432,11 @@ def main():
             _, mapped_action = (
                 leader_iface.real_to_sim_obs_processor(leader_action)
             )
+            if obs is None:  # First tick, or scene edited outside env.step().
+                obs = env.unwrapped.observation_manager.compute()
             if leader_wrist_start is None:
                 leader_wrist_start = mapped_action[wrist_roll_index].clone()
-                sim_wrist_start = env.unwrapped.observation_manager.compute()["policy"]["joint_pos_obs"][
-                    0, wrist_roll_index
-                ].clone()
+                sim_wrist_start = obs["policy"]["joint_pos_obs"][0, wrist_roll_index].clone()
             mapped_action[wrist_roll_index] = (
                 sim_wrist_start
                 + mapped_action[wrist_roll_index]
@@ -438,8 +447,6 @@ def main():
                 leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
                 leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
             )
-
-            obs = env.unwrapped.observation_manager.compute()
 
             if recording and recorder_group is not None:
                 visual_obs = obs.get("visual")

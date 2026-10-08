@@ -116,6 +116,7 @@ try:
     from isaaclab_tasks.utils import parse_env_cfg
 
     import_module("sim_to_real_so101.tasks")  # Registers workshop tasks.
+    from sim_to_real_so101.tasks.my_room_env_cfg import drop_unused_camera_outputs
     from sim_to_real_so101.utils.episode_cube import EpisodeCube
     from sim_to_real_so101.utils.episode_metadata import validate_cube_trajectories
     from sim_to_real_so101.utils.recording_web_gui import RecordingWebGui
@@ -273,6 +274,8 @@ def main():
         env_cfg.events.spawn_cube = None
         env_cfg.scene.blue_cube.init_state.pos = (0.0, 0.0, -10.0)
         env_cfg.scene.blue_cube.spawn.visible = False
+        if hasattr(env_cfg.scene, "realsense_depth"):
+            drop_unused_camera_outputs(env_cfg, depth=args_cli.depth, instance_id_seg=args_cli.instance_id_seg)
         env = gym.make(args_cli.task, cfg=env_cfg)
         env.reset()
         episode_cube = EpisodeCube(env)
@@ -322,6 +325,8 @@ def main():
         actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
         wrist_roll_index = 4
         leader_wrist_start = None
+        # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
+        obs = None
 
         if args_cli.control_input == "isaac":
             from sim_to_real_so101.utils.keyboard import KeyboardControl
@@ -406,6 +411,7 @@ def main():
             if requests.get("spawn") and not finishing:
                 if phase == "setup":
                     episode_cube.show()
+                    obs = None
                     print("[INFO]: Cube spawned for practice; recording remains off.")
                 else:
                     print("[INFO]: Finish the active episode before respawning the cube.")
@@ -455,6 +461,7 @@ def main():
                     env.reset()
                     leader_wrist_start = None
                 episode_cube.hide()
+                obs = None
                 print("\n[INFO]: Setup ready; cube cleared. Start the next episode when ready.")
 
             # ── Countdown expired → start recording ───────────────────────
@@ -479,11 +486,11 @@ def main():
             _, mapped_action = leader_iface.real_to_sim_obs_processor(leader_action)
 
             # Wrist-roll re-zero
+            if obs is None:  # First tick, or scene edited outside env.step().
+                obs = env.unwrapped.observation_manager.compute()
             if leader_wrist_start is None:
                 leader_wrist_start = mapped_action[wrist_roll_index].clone()
-                sim_wrist_start = env.unwrapped.observation_manager.compute()["policy"]["joint_pos_obs"][
-                    0, wrist_roll_index
-                ].clone()
+                sim_wrist_start = obs["policy"]["joint_pos_obs"][0, wrist_roll_index].clone()
             mapped_action[wrist_roll_index] = (
                 sim_wrist_start
                 + mapped_action[wrist_roll_index]
@@ -495,7 +502,6 @@ def main():
                 leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
             )
 
-            obs = env.unwrapped.observation_manager.compute()
             visual_obs = obs.get("visual")
 
             # Read every tick: the GUI shows the real cameras even when not recording.

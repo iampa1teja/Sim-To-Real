@@ -127,6 +127,9 @@ class FakeRobot:
 
     get_observation_cameras_unlocked = get_observation
 
+    def get_joint_positions(self):
+        return dict.fromkeys(KEYS, float(len(self.sent)))
+
     def send_action(self, action):
         if len(self.sent) == self.steps:
             raise KeyboardInterrupt

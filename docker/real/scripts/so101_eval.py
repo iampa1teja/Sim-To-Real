@@ -306,7 +306,7 @@ def run_control_loop(cfg, so101_control, policy, obs_buffer, action_buffer):
             so101_control.update_log_action(action_dict)
 
             if cfg.plot:
-                step_obs = so101_control.get_observation()
+                step_obs = so101_control.get_joint_positions()
                 obs_buffer.append({k: float(step_obs[k]) for k in joint_keys})
                 action_buffer.append({k: v for k, v in action_dict.items()})
 
@@ -336,7 +336,7 @@ def run_smooth_control_loop(cfg, so101_control, policy, obs_buffer, action_buffe
 
     def record_plot(action):
         if cfg.plot:
-            obs = so101_control.get_observation()
+            obs = so101_control.get_joint_positions()
             obs_buffer.append({k: float(obs[k]) for k in joint_keys})
             action_buffer.append(action.copy())
 

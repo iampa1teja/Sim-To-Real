@@ -568,6 +568,8 @@ def check_pick_place_eval_event_order(env, env_ids):
 def sync_pick_place_camera_intrinsics(env, env_ids):
     """Make reused focal-length DR affect MyRoom's OpenCV RTX lens model too."""
     for name in ("camera_realsense_rgb", "camera_wrist_cam", "realsense_depth"):
+        if name not in env.scene.sensors:  # None cfgs (e.g. realsense_depth in eval) are never spawned
+            continue
         camera = env.scene[name]
         calibration = camera.cfg.spawn.intrinsics
         if calibration is None:

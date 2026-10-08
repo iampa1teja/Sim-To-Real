@@ -194,7 +194,7 @@ class SO101Control:
         def worker():
             while not self._log_stop.wait(1.0 / log_fps):
                 try:
-                    self.log_rerun_data(self.get_observation(), self._log_action)
+                    self.log_rerun_data(self.get_observation_cameras_unlocked(), self._log_action)
                 except Exception as e:
                     logging.warning("Rerun log error: %s", e)
 

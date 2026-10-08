@@ -7,7 +7,10 @@ import io
 import json
 from pathlib import Path
 import pickle
+import socket
 import sys
+import threading
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -17,24 +20,71 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 HAVE_TRANSPORT = all(importlib.util.find_spec(name) is not None for name in ('msgpack', 'zmq'))
 HAVE_MSGPACK_NUMPY = importlib.util.find_spec('msgpack_numpy') is not None
-msgpack = mnp = MsgSerializer = ModalityConfig = None
+msgpack = mnp = zmq = MsgSerializer = ModalityConfig = PolicyClient = None
 
 
 def setUpModule():
-    global msgpack, mnp, MsgSerializer, ModalityConfig
+    global msgpack, mnp, zmq, MsgSerializer, ModalityConfig, PolicyClient
     if not HAVE_TRANSPORT:
         return
     msgpack = importlib.import_module('msgpack')
+    zmq = importlib.import_module('zmq')
     if HAVE_MSGPACK_NUMPY:
         mnp = importlib.import_module('msgpack_numpy')
     with patch.object(sys, 'path', [str(ROOT / 'source'), *sys.path]):
         transport = importlib.import_module('sim_to_real_so101.gr00t_client.server_client')
     MsgSerializer = transport.MsgSerializer
     ModalityConfig = transport.ModalityConfig
+    PolicyClient = transport.PolicyClient
 
 
 @unittest.skipUnless(HAVE_TRANSPORT, 'msgpack/pyzmq unavailable; run in the GR00T environment')
 class Gr00tTransportTests(unittest.TestCase):
+    def serve(self, ignored_requests):
+        # ROUTER fake server: drops the first `ignored_requests` requests, then replies.
+        router = zmq.Context.instance().socket(zmq.ROUTER)
+        router.setsockopt(zmq.LINGER, 0)
+        port = router.bind_to_random_port('tcp://127.0.0.1')
+        stop = threading.Event()
+        seen = []
+
+        def run():
+            while not stop.is_set():
+                if not router.poll(20):
+                    continue
+                identity, _, payload = router.recv_multipart()
+                seen.append(MsgSerializer.from_bytes(payload))
+                if len(seen) > ignored_requests:
+                    router.send_multipart([identity, b'', MsgSerializer.to_bytes({'status': 'ok'})])
+
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+        self.addCleanup(lambda: (stop.set(), thread.join(2), router.close(linger=0)))
+        return port, seen
+
+    def test_policy_client_timeout_raises_then_recreated_socket_recovers(self):
+        port, seen = self.serve(ignored_requests=1)
+        client = PolicyClient(host='127.0.0.1', port=port, timeout_ms=200)
+        self.addCleanup(lambda: (client.socket.close(linger=0), client.context.term()))
+        start = time.monotonic()
+        with self.assertRaisesRegex(TimeoutError, rf'127\.0\.0\.1:{port}.*200 ms'):
+            client.call_endpoint('ping', requires_input=False)
+        self.assertLess(time.monotonic() - start, 5)
+        self.assertEqual(client.call_endpoint('ping', requires_input=False), {'status': 'ok'})
+        self.assertEqual(len(seen), 2)
+
+    def test_policy_client_ping_returns_false_on_unbound_port_within_timeout(self):
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]  # Released before use, so nothing listens here.
+        client = PolicyClient(host='127.0.0.1', port=port, timeout_ms=200)
+        self.addCleanup(lambda: (client.socket.close(linger=0), client.context.term()))
+        start = time.monotonic()
+        self.assertFalse(client.ping())
+        elapsed = time.monotonic() - start
+        self.assertGreaterEqual(elapsed, 0.15)
+        self.assertLess(elapsed, 3)
+
     def decode_envelope(self, payload):
         return MsgSerializer.from_bytes(msgpack.packb(payload))
 

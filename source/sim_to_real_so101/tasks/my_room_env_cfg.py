@@ -204,3 +204,22 @@ class MyRoomEnvCfg(SO101TeleopEnvCfg):
         self.viewer.resolution = (SETUP["realsense"]["width"], SETUP["realsense"]["height"])
         self.viewer.eye = tuple(SETUP["viewer"]["eye"])
         self.viewer.lookat = tuple(SETUP["viewer"]["lookat"])
+
+
+def drop_unused_camera_outputs(cfg, depth=False, instance_id_seg=False):
+    """Stop rendering depth / instance-id segmentation nobody consumes.
+
+    Policy eval uses only RGB; recorders read depth and segmentation only when enabled.
+    Pass the flags the caller will actually use. Lists are rebuilt, not mutated in place.
+    """
+    if not depth:
+        cfg.scene.realsense_depth = None
+        cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != "depth"]
+        cfg.observations.visual.depth_realsense_rgb = None
+        cfg.observations.visual.depth_wrist_cam = None
+    if not instance_id_seg:
+        seg = "instance_id_segmentation_fast"
+        cfg.scene.camera_realsense_rgb.data_types = [t for t in cfg.scene.camera_realsense_rgb.data_types if t != seg]
+        cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != seg]
+        cfg.observations.visual.instance_id_seg_realsense_rgb = None
+        cfg.observations.visual.instance_id_seg_wrist_cam = None

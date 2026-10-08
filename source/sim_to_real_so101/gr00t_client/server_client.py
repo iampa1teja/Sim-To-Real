@@ -246,14 +246,23 @@ class PolicyClient(BasePolicy):
     def _init_socket(self):
         """Initialize or reinitialize the socket with current settings"""
         self.socket = self.context.socket(zmq.REQ)
+        self.socket.setsockopt(zmq.RCVTIMEO, self.timeout_ms)
+        self.socket.setsockopt(zmq.LINGER, 0)
         self.socket.connect(f"tcp://{self.host}:{self.port}")
+
+    def _reset_socket(self):
+        """Drop a socket stuck awaiting a reply and open a fresh one."""
+        self.socket.close(linger=0)
+        self._init_socket()
 
     def ping(self) -> bool:
         try:
             self.call_endpoint("ping", requires_input=False)
             return True
+        except TimeoutError:
+            return False
         except zmq.error.ZMQError:
-            self._init_socket()  # Recreate socket for next attempt
+            self._reset_socket()  # Recreate socket for next attempt
             return False
 
     def kill_server(self):
@@ -280,7 +289,13 @@ class PolicyClient(BasePolicy):
             request["api_token"] = self.api_token
 
         self.socket.send(MsgSerializer.to_bytes(request))
-        message = self.socket.recv()
+        try:
+            message = self.socket.recv()
+        except zmq.error.Again:
+            self._reset_socket()  # REQ socket is stuck awaiting the lost reply
+            raise TimeoutError(
+                f"No reply from policy server at {self.host}:{self.port} within {self.timeout_ms} ms"
+            ) from None
         if message == b"ERROR":
             raise RuntimeError("Server error. Make sure we are running the correct policy server.")
         response = MsgSerializer.from_bytes(message)
@@ -291,8 +306,12 @@ class PolicyClient(BasePolicy):
 
     def __del__(self):
         """Cleanup resources on destruction"""
-        self.socket.close()
-        self.context.term()
+        socket = getattr(self, "socket", None)
+        if socket is not None:
+            socket.close(linger=0)
+        context = getattr(self, "context", None)
+        if context is not None:
+            context.term()
 
     def _get_action(
         self, observation: dict[str, Any], options: dict[str, Any] | None = None

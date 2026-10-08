@@ -20,6 +20,7 @@ from .my_room_env_cfg import (
     MyRoomEventsCfg,
     MyRoomEnvCfg,
     MyRoomObservationsCfg,
+    drop_unused_camera_outputs,
 )
 
 from sim_to_real_so101.mdp import (
@@ -279,6 +280,8 @@ class PickPlaceEvalEnvCfg(PickPlaceEnvCfg):
         super().__post_init__()
         # Match the existing vial evaluation task's 450 control-step horizon.
         self.episode_length_s = 450 * self.decimation * self.sim.dt
+        # Eval only consumes RGB, so skip rendering depth and segmentation.
+        drop_unused_camera_outputs(self)
 
 
 @configclass

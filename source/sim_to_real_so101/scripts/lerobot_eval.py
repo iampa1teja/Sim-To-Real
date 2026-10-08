@@ -345,7 +345,7 @@ def _evaluate():
                     actions[:] = settling_action
                 else:
                     joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
-                    actions[:] = policy.get_action(joint_positions, obs["visual"], log=not render_warmup or args_cli.rerun)
+                    actions[:] = policy.get_action(joint_positions, obs["visual"], log=args_cli.rerun)
                 if render_warmup:
                     # The first query uses the obs after settling step 9; later
                     # queries follow the policy's chunk/prefetch/ensemble clock.

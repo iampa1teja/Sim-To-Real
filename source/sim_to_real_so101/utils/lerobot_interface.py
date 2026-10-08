@@ -430,8 +430,11 @@ class LeRobotSO101Interface:
 
         for camera in self.cameras.keys():
             visual_buffers[camera] = visual_obs[f"rgb_{camera}"][0]
-            depth_buffers[camera] = visual_obs[f"depth_{camera}"][0]
-            instance_id_seg_buffers[camera] = visual_obs[f"instance_id_seg_{camera}"][0][..., :3]
+            # Depth / segmentation terms are absent when the env drops them.
+            if f"depth_{camera}" in visual_obs:
+                depth_buffers[camera] = visual_obs[f"depth_{camera}"][0]
+            if f"instance_id_seg_{camera}" in visual_obs:
+                instance_id_seg_buffers[camera] = visual_obs[f"instance_id_seg_{camera}"][0][..., :3]
 
         return real_obs, visual_buffers, depth_buffers, instance_id_seg_buffers
 
