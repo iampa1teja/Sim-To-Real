@@ -26,6 +26,7 @@ WEB_DIR = Path(__file__).resolve().parents[2] / "gui"
 STATIC_FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/index.html": ("index.html", "text/html; charset=utf-8"),
+    "/form.html": ("form.html", "text/html; charset=utf-8"),
     "/app.jsx": ("app.jsx", "text/javascript; charset=utf-8"),
 }
 COMMANDS = ("start", "stop", "discard", "spawn", "save", "encode", "exit", "rerecord")

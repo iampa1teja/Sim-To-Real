@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Environment Setup · SO-101</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@500;700;900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ground: #ecedea; --panel: #f7f7f5; --well: #e2e3df; --seam: #c9cbc6; --edge: #7f827c;
+      --ink: #171816; --ink-muted: #585b56;
+      --signal: #e04f27; --signal-ink: #b23d18; --on-signal: #171816;
+      --cobalt: #2f5bd3; --on-cobalt: #ffffff; --amber: #a87400;
+      --shadow-key: 0 2px 0 0 #7f827c;
+      --shadow-plate: inset 0 1px 0 0 #ffffff, 0 1px 2px 0 rgba(23, 24, 22, 0.10);
+      --shadow-well: inset 0 1px 2px 0 rgba(23, 24, 22, 0.12);
+      --shadow-lift: 4px 4px 0 0 rgba(23, 24, 22, 0.08);
+      --font-sans: "Geist", "Helvetica Neue", Arial, sans-serif;
+      --font-mono: "Geist Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      --font-dot: "Doto", "Geist Mono", monospace;
+      --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+      --radius-0: 0; --radius-2: 2px; --radius-pill: 999px;
+      --dur-tick: 80ms; --dur-snap: 140ms; --dur-travel: 220ms; --dur-blink: 1200ms;
+      --ease-detent: cubic-bezier(0.2, 0, 0, 1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ground: #141513; --panel: #1c1d1b; --well: #0f100e; --seam: #30322f; --edge: #686b65;
+        --ink: #ecedea; --ink-muted: #a2a59f;
+        --signal: #ff6b3d; --signal-ink: #ff8a63; --on-signal: #141513;
+        --cobalt: #7c9bff; --on-cobalt: #141513; --amber: #f2b92b;
+        --shadow-key: 0 2px 0 0 #3a3c38;
+        --shadow-plate: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+        --shadow-well: inset 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+        --shadow-lift: 4px 4px 0 0 rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/22px var(--font-sans); }
+    main { max-width: 1400px; margin: auto; padding: 16px; }
+    :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+    header, .plate { background: var(--panel); border: 1px solid var(--seam); box-shadow: var(--shadow-plate); }
+    header { padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .title-block { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+    h1 { font-size: 18px; line-height: 24px; margin: 0; font-weight: 600; }
+    .label, .variable { font: 11px/16px var(--font-mono); color: var(--ink-muted); }
+    .label { text-transform: uppercase; letter-spacing: .08em; }
+    a { color: var(--cobalt); text-underline-offset: 4px; }
+    .intro { margin: 24px 0; max-width: 740px; }
+    .intro p { margin: 8px 0 0; color: var(--ink-muted); }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .form-sections { display: grid; gap: 16px; }
+    .plate-head { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--seam); }
+    .number { font: 700 22px/28px var(--font-dot); color: var(--signal-ink); }
+    h2 { font-size: 15px; line-height: 22px; font-weight: 600; margin: 0; }
+    .section-note { margin: 16px 16px 0; color: var(--ink-muted); font-size: 13px; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; padding: 16px; }
+    .field { min-width: 0; }
+    label { display: block; font-weight: 500; font-size: 14px; }
+    .variable { display: block; overflow-wrap: anywhere; margin: 2px 0 8px; }
+    input { width: 100%; height: 42px; padding: 8px 10px; background: var(--well); color: var(--ink); border: 1px solid var(--seam); border-bottom-color: var(--edge); border-radius: 0; box-shadow: var(--shadow-well); font: 13px var(--font-mono); }
+    input:focus { border-color: var(--cobalt); }
+    .hint { margin: 6px 0 0; color: var(--ink-muted); font-size: 12px; line-height: 18px; }
+    .preview { position: sticky; top: 16px; min-width: 0; }
+    .preview .plate-head { justify-content: space-between; flex-wrap: wrap; }
+    .indicator { display: inline-flex; align-items: center; gap: 8px; }
+    .indicator::before { content: ''; width: 8px; height: 8px; background: var(--cobalt); border-radius: 50%; }
+    pre { margin: 16px; padding: 16px; background: var(--well); border: 1px solid var(--seam); box-shadow: var(--shadow-well); white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/21px var(--font-mono); }
+    .instructions { padding: 0 16px; font-size: 13px; color: var(--ink-muted); }
+    code { font-family: var(--font-mono); font-size: .9em; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; border-top: 1px dashed var(--seam); }
+    button { flex: 1 1 140px; min-height: 44px; padding: 10px 16px; font: 500 14px var(--font-sans); color: var(--ink); background: var(--panel); border: 1px solid var(--edge); border-radius: 2px; box-shadow: var(--shadow-key); cursor: pointer; transition: transform 140ms, background-color 140ms; }
+    button:hover { background: var(--well); }
+    button:active { transform: translateY(2px); box-shadow: none; }
+    .primary { background: var(--signal); border-color: var(--signal-ink); color: var(--on-signal); box-shadow: 0 2px 0 var(--signal-ink); }
+    .primary:hover { background: var(--signal); }
+    .reset { flex: 0 1 auto; color: var(--ink-muted); box-shadow: none; border-style: dashed; }
+    .status { min-height: 36px; margin: 0; padding: 0 16px 16px; font: 12px/18px var(--font-mono); color: var(--ink-muted); }
+    footer { margin: 20px 0 8px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .preview { position: static; } }
+    @media (max-width: 500px) { .fields { grid-template-columns: 1fr; } main { padding: 12px; } }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  </style>
+</head>
+<body>
+<main>
+  <header><div class="title-block"><h1>Environment Setup</h1><span class="label">SO-101 / Workshop</span></div><a href="index.html">Recorder GUI ↗</a></header>
+  <div class="intro"><span class="label">Hardware configuration</span><p>Set up your arms, cameras and calibration paths. Download an environment file when you’re ready.</p></div>
+  <noscript><p>Enable JavaScript to preview and download your environment settings.</p></noscript>
+  <form id="env-form" autocomplete="off">
+    <div class="layout"><div class="form-sections">
+<section class="plate" aria-labelledby="section-01">
+      <div class="plate-head"><span class="number">01</span><h2 id="section-01">Arm connections</h2></div>
+      <p class="section-note">Identify the leader and follower using their serial ports and calibration IDs.</p><div class="fields"><div class="field"><label for="TELEOP_PORT">Leader port</label>
+          <span class="variable">TELEOP_PORT</span>
+          <input id="TELEOP_PORT" name="TELEOP_PORT" type="text" value="/dev/ttyACM0" aria-describedby="TELEOP_PORT-hint" required>
+          <p class="hint" id="TELEOP_PORT-hint">Prefer a stable /dev/serial/by-id/ path when available.</p></div><div class="field"><label for="TELEOP_ID">Leader ID</label>
+          <span class="variable">TELEOP_ID</span>
+          <input id="TELEOP_ID" name="TELEOP_ID" type="text" value="leader_arm_1" aria-describedby="TELEOP_ID-hint" required>
+          <p class="hint" id="TELEOP_ID-hint">Use the ID saved during leader calibration.</p></div><div class="field"><label for="ROBOT_PORT">Follower port</label>
+          <span class="variable">ROBOT_PORT</span>
+          <input id="ROBOT_PORT" name="ROBOT_PORT" type="text" value="/dev/ttyACM1" aria-describedby="ROBOT_PORT-hint" required>
+          <p class="hint" id="ROBOT_PORT-hint">Serial device connected to the follower arm.</p></div><div class="field"><label for="ROBOT_ID">Follower ID</label>
+          <span class="variable">ROBOT_ID</span>
+          <input id="ROBOT_ID" name="ROBOT_ID" type="text" value="follower_arm_1" aria-describedby="ROBOT_ID-hint" required>
+          <p class="hint" id="ROBOT_ID-hint">Use the ID saved during follower calibration.</p></div></div></section><section class="plate" aria-labelledby="section-02">
+      <div class="plate-head"><span class="number">02</span><h2 id="section-02">Camera inputs</h2></div>
+      <p class="section-note">Choose the wrist and room cameras, then set their capture format.</p><div class="fields"><div class="field"><label for="CAMERA_GRIPPER">Wrist camera</label>
+          <span class="variable">CAMERA_GRIPPER</span>
+          <input id="CAMERA_GRIPPER" name="CAMERA_GRIPPER" type="text" value="" aria-describedby="CAMERA_GRIPPER-hint">
+          <p class="hint" id="CAMERA_GRIPPER-hint">Optional. Device index or /dev/v4l/by-id/ path.</p></div><div class="field"><label for="CAMERA_EXTERNAL">Room camera</label>
+          <span class="variable">CAMERA_EXTERNAL</span>
+          <input id="CAMERA_EXTERNAL" name="CAMERA_EXTERNAL" type="text" value="" aria-describedby="CAMERA_EXTERNAL-hint">
+          <p class="hint" id="CAMERA_EXTERNAL-hint">Optional. Device index or /dev/v4l/by-path/ path.</p></div><div class="field"><label for="CAMERA_WIDTH">Width</label>
+          <span class="variable">CAMERA_WIDTH</span>
+          <input id="CAMERA_WIDTH" name="CAMERA_WIDTH" type="number" value="640" aria-describedby="CAMERA_WIDTH-hint" min="1" step="1" required>
+          <p class="hint" id="CAMERA_WIDTH-hint">Capture width in pixels.</p></div><div class="field"><label for="CAMERA_HEIGHT">Height</label>
+          <span class="variable">CAMERA_HEIGHT</span>
+          <input id="CAMERA_HEIGHT" name="CAMERA_HEIGHT" type="number" value="480" aria-describedby="CAMERA_HEIGHT-hint" min="1" step="1" required>
+          <p class="hint" id="CAMERA_HEIGHT-hint">Capture height in pixels.</p></div><div class="field"><label for="CAMERA_FOURCC">Pixel format</label>
+          <span class="variable">CAMERA_FOURCC</span>
+          <input id="CAMERA_FOURCC" name="CAMERA_FOURCC" type="text" value="YUYV" aria-describedby="CAMERA_FOURCC-hint" minlength="4" maxlength="4">
+          <p class="hint" id="CAMERA_FOURCC-hint">Four characters, e.g. YUYV or MJPG. Leave blank for backend default.</p></div><div class="field"><label for="CONTROL_FPS">Control rate</label>
+          <span class="variable">CONTROL_FPS</span>
+          <input id="CONTROL_FPS" name="CONTROL_FPS" type="number" value="30" aria-describedby="CONTROL_FPS-hint" min="1" step="1" required>
+          <p class="hint" id="CONTROL_FPS-hint">Recorder control rate in frames per second.</p></div></div></section><section class="plate" aria-labelledby="section-03">
+      <div class="plate-head"><span class="number">03</span><h2 id="section-03">Calibration & paths</h2></div>
+      <p class="section-note">Set calibration locations and optional scene and model folders.</p><div class="fields"><div class="field"><label for="LEROBOT_CALIB">Calibration mount</label>
+          <span class="variable">LEROBOT_CALIB</span>
+          <input id="LEROBOT_CALIB" name="LEROBOT_CALIB" type="text" value=".cache/huggingface/lerobot/calibration" aria-describedby="LEROBOT_CALIB-hint" required>
+          <p class="hint" id="LEROBOT_CALIB-hint">Calibration folder relative to your home directory.</p></div><div class="field"><label for="HF_LEROBOT_CALIBRATION">Calibration lookup</label>
+          <span class="variable">HF_LEROBOT_CALIBRATION</span>
+          <input id="HF_LEROBOT_CALIBRATION" name="HF_LEROBOT_CALIBRATION" type="text" value="$HOME/.cache/huggingface/lerobot/calibration" aria-describedby="HF_LEROBOT_CALIBRATION-hint" required>
+          <p class="hint" id="HF_LEROBOT_CALIBRATION-hint">$HOME is expanded when you source the downloaded file.</p></div><div class="field"><label for="ROOM_USD_PATH">Custom room</label>
+          <span class="variable">ROOM_USD_PATH</span>
+          <input id="ROOM_USD_PATH" name="ROOM_USD_PATH" type="text" value="" aria-describedby="ROOM_USD_PATH-hint">
+          <p class="hint" id="ROOM_USD_PATH-hint">Optional. Leave blank to use the packaged room.</p></div><div class="field"><label for="MODELS_DIR">Model storage</label>
+          <span class="variable">MODELS_DIR</span>
+          <input id="MODELS_DIR" name="MODELS_DIR" type="text" value="" aria-describedby="MODELS_DIR-hint">
+          <p class="hint" id="MODELS_DIR-hint">Optional. Folder used by host evaluation scripts.</p></div></div></section>
+    </div><aside class="plate preview" aria-labelledby="preview-title">
+      <div class="plate-head"><h2 id="preview-title">docker/env</h2><span class="label indicator">Live preview</span></div>
+      <pre id="env-preview" tabindex="0" aria-label="Generated environment file"></pre>
+      <div class="instructions"><p>Save the downloaded <code>env</code> file as <code>docker/env</code>, then run <code>source docker/env</code> in your host shell. New containers read it on startup.</p><p>Fields use example defaults, not your current environment. Blank optional fields are omitted. Keep any other settings when merging into an existing file.</p><p>Camera settings apply to recording; real-arm evaluation uses its explicit camera arguments.</p></div>
+      <div class="actions"><button class="primary" type="submit">Download env</button><button id="copy" type="button">Copy exports</button><button class="reset" type="reset">Reset defaults</button></div>
+      <p class="status" id="status" role="status" aria-live="polite">Your edits stay in this page until you copy or download.</p>
+    </aside></div>
+  </form>
+  <footer class="label">Pick-place recorder / Environment settings</footer>
+</main>
+<script>
+  const form = document.querySelector('#env-form');
+  const preview = document.querySelector('#env-preview');
+  const status = document.querySelector('#status');
+  const inputs = [...form.querySelectorAll('input')];
+  // Single-quote literal shell values; expand only an explicit leading home path.
+  function quote(value) {
+    const literal = text => "'" + text.replaceAll("'", "'\"'\"'") + "'";
+    for (const prefix of ['$HOME/', '${HOME}/', '~/']) {
+      if (value.startsWith(prefix)) return '"${HOME}"/' + literal(value.slice(prefix.length));
+    }
+    return literal(value);
+  }
+  function exportsText() {
+    return '# SO-101 workshop environment\n' + inputs
+      .filter(input => input.value.trim() !== '')
+      .map(input => 'export ' + input.name + '=' + quote(input.value.trim())).join('\n') + '\n';
+  }
+  function update() {
+    for (const input of inputs) {
+      const value = input.value.trim();
+      input.setCustomValidity(/[\x00-\x1f\x7f]/.test(value) ? 'Use a single-line value without control characters.' :
+        (input.required && !value ? 'Please fill out this field.' :
+        (input.name === 'CAMERA_FOURCC' && value && !/^[A-Za-z0-9]{4}$/.test(value) ? 'Use four letters or numbers, such as YUYV.' : '')));
+    }
+    preview.textContent = exportsText();
+  }
+  form.addEventListener('input', () => { update(); status.textContent = 'Preview updated. Copy or download to save your settings.'; });
+  form.addEventListener('reset', () => setTimeout(() => { update(); status.textContent = 'Example defaults restored.'; }, 0));
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    update();
+    if (!form.reportValidity()) return;
+    const url = URL.createObjectURL(new Blob([exportsText()], {type: 'application/octet-stream'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'env';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = 'Downloaded env. Save it as docker/env, then source it in your shell.';
+  });
+  document.querySelector('#copy').addEventListener('click', async () => {
+    update();
+    if (!form.reportValidity()) return;
+    try {
+      await navigator.clipboard.writeText(exportsText());
+      status.textContent = 'Environment exports copied.';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(preview);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      preview.focus();
+      status.textContent = 'Clipboard unavailable. Preview selected: press Ctrl+C or Command+C, or download the file.';
+    }
+  });
+  update();
+</script>
+</body>
+</html>
