@@ -144,6 +144,66 @@ launch recipe. Read the vendor terms before using them. Camera variables do not
 automatically configure `so101_eval.py`; its explicit camera dictionary is in
 [Evaluation](06-evaluation.md).
 
+### Configure with the browser form
+
+The [environment form](../source/gui/form.html) provides fields for arm ports and
+calibration IDs, wrist/room cameras, capture size and format, control rate,
+calibration directories, and optional room/model paths. Its initial values are
+examples; it does not read your shell or the existing `docker/env` file.
+
+If the recorder is already running, visit `/form.html` at its GUI address
+(default `http://localhost:8765/form.html`). To configure settings without
+starting the recorder, run this on the **host**, from the repository root:
+
+```bash
+python3 -m http.server 8766 --bind 127.0.0.1 --directory source/gui
+```
+
+Open `http://127.0.0.1:8766/form.html`. Keep this terminal open while using the
+form, then press Ctrl+C to stop the static server. This serves the form only;
+the recorder controls require the actual recording server.
+
+1. Enter your discovered device paths and calibrated arm IDs. A camera can use
+   an index or a stable device path. Leave unused optional fields blank.
+2. Review the live exports. **Copy exports** copies them to the clipboard;
+   **Download env** saves an `env` file. If clipboard access fails, the form
+   selects the preview for manual copying or offers the download alternative.
+3. Merge the downloaded values into the host's `docker/env`, preserving any
+   custom settings that are not represented by the form. Blank optional fields
+   are omitted; they do not unset values already present in a shell or file.
+4. From the repository root, load the saved settings in the relevant host shell:
+
+```bash
+source docker/env
+```
+
+For an existing container shell, reload its mounted file with `source /root/env`.
+Restart the recorder to pick up changed launch settings; editing the form or
+sourcing a file does not reconfigure an already-running process. Real-arm
+policy evaluation still uses the explicit camera arguments in
+[Evaluation](06-evaluation.md).
+
+### Local drafts
+
+Draft controls let you reuse settings without exporting a file on every visit.
+
+| Control | Effect |
+| --- | --- |
+| **Save draft** | Validates the form and replaces the draft in this browser's local storage |
+| **Restore draft** | Replaces the current fields with the saved draft and refreshes the preview |
+| **Delete draft** | Removes the saved draft while retaining the current form values |
+| **Reset defaults** | Restores example field values while retaining the saved draft |
+
+A later visit displays a draft-available message; restoration is explicit.
+Drafts belong to the browser profile and page origin, including its hostname
+and port. `localhost:8765` and `127.0.0.1:8766` therefore have separate drafts.
+Clearing site data removes them. Use the same address when returning to a draft.
+
+If browser storage is disabled or full, use copy/download instead. An unreadable
+or invalid draft leaves the current form unchanged; delete it and save a new
+one. A local draft does not update `docker/env`, export shell variables, or
+connect to the robot.
+
 ## Discovery, permissions and calibration
 
 **Teleop container**, identify devices individually and inspect captured camera

@@ -93,6 +93,23 @@ pick_place_agent --task Lerobot-So101-Teleop-Pick-Place \
    [Recording](docs/04-recording.md) explains controls, paired real recording,
    recovery and the empty-dataset relaunch caveat.
 
+## Environment setup form
+
+Use [form.html](source/gui/form.html) to enter arm ports and IDs, camera settings,
+calibration paths and optional room/model locations. It matches the recorder's
+light/dark interface and previews the shell exports as you edit.
+
+With the recorder running at its default address, open
+`http://localhost:8765/form.html`. For setup before launching the recorder, use
+[the standalone form instructions](docs/01-setup.md#configure-with-the-browser-form).
+Choose **Download env**, merge the values into `docker/env`, then run
+`source docker/env` in the host shell that will use them.
+
+**Save draft** keeps the form in this browser; **Restore draft** loads it on a
+later visit. Drafts are separate from `docker/env` and do not configure a running
+recorder. See [draft behavior and recovery](docs/01-setup.md#local-drafts) for
+reset, deletion and browser-storage details.
+
 ## Guides
 
 | Guide | Purpose |
@@ -114,7 +131,7 @@ pick_place_agent --task Lerobot-So101-Teleop-Pick-Place \
 | `source/sim_to_real_so101/mdp/` | Reset, observation and success functions |
 | `source/sim_to_real_so101/scripts/` | Installed console commands |
 | `source/sim_to_real_so101/utils/` | Recording, sidecars, geometry and policy adapters |
-| `source/gui/` | Recorder browser interface |
+| `source/gui/` | Recorder browser interface and environment setup form |
 | `docker/` | Images, host runner and real-robot scripts |
 | `scripts/` | CPU dataset preparation and verification |
 | `tests/` | Contract and integration tests |
