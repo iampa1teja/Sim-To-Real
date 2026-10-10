@@ -80,6 +80,10 @@
     .primary:hover { background: var(--signal); }
     .reset { flex: 0 1 auto; color: var(--ink-muted); box-shadow: none; border-style: dashed; }
     .status { min-height: 36px; margin: 0; padding: 0 16px 16px; font: 12px/18px var(--font-mono); color: var(--ink-muted); }
+    .draft { padding: 16px; border-top: 1px dashed var(--seam); }
+    .draft p { margin: 6px 0 12px; }
+    .draft-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .draft-actions button { flex: 1 1 120px; }
     footer { margin: 20px 0 8px; }
     @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .preview { position: static; } }
     @media (max-width: 500px) { .fields { grid-template-columns: 1fr; } main { padding: 12px; } }
@@ -147,7 +151,17 @@
       <pre id="env-preview" tabindex="0" aria-label="Generated environment file"></pre>
       <div class="instructions"><p>Save the downloaded <code>env</code> file as <code>docker/env</code>, then run <code>source docker/env</code> in your host shell. New containers read it on startup.</p><p>Fields use example defaults, not your current environment. Blank optional fields are omitted. Keep any other settings when merging into an existing file.</p><p>Camera settings apply to recording; real-arm evaluation uses its explicit camera arguments.</p></div>
       <div class="actions"><button class="primary" type="submit">Download env</button><button id="copy" type="button">Copy exports</button><button class="reset" type="reset">Reset defaults</button></div>
-      <p class="status" id="status" role="status" aria-live="polite">Your edits stay in this page until you copy or download.</p>
+      <section class="draft" aria-labelledby="draft-title">
+        <h2 id="draft-title">Local draft</h2>
+        <p class="hint">Save these settings in this browser for your next visit.
+          Restore replaces the form values. Reset defaults keeps your saved draft.</p>
+        <div class="draft-actions">
+          <button id="save-draft" type="button">Save draft</button>
+          <button id="restore-draft" type="button">Restore draft</button>
+          <button id="delete-draft" type="button">Delete draft</button>
+        </div>
+      </section>
+      <p class="status" id="status" role="status" aria-live="polite">Your edits stay in this page until you save a draft, copy or download.</p>
     </aside></div>
   </form>
   <footer class="label">Pick-place recorder / Environment settings</footer>
@@ -211,6 +225,78 @@
       status.textContent = 'Clipboard unavailable. Preview selected: press Ctrl+C or Command+C, or download the file.';
     }
   });
+  const draftKey = 'so101.environment-draft.v1';
+  function readDraft() {
+    const raw = localStorage.getItem(draftKey);
+    if (raw === null) return null;
+    if (raw.length > 65536) throw new Error('Draft is too large.');
+    const draft = JSON.parse(raw);
+    if (!draft || draft.version !== 1 || !draft.values ||
+        typeof draft.values !== 'object' || Array.isArray(draft.values)) {
+      throw new Error('Unsupported draft format.');
+    }
+    // Validate every known field before changing any live form values.
+    for (const input of inputs) {
+      const value = draft.values[input.name];
+      if (!Object.hasOwn(draft.values, input.name) || typeof value !== 'string' ||
+          value.length > 4096 || /[\x00-\x1f\x7f]/.test(value)) {
+        throw new Error('Invalid draft field.');
+      }
+      const probe = input.cloneNode();
+      probe.value = value;
+      if (probe.value !== value || !probe.checkValidity() ||
+          (input.required && !value.trim()) ||
+          (input.name === 'CAMERA_FOURCC' && value && !/^[A-Za-z0-9]{4}$/.test(value))) {
+        throw new Error('Draft contains an invalid setting.');
+      }
+    }
+    return draft;
+  }
+  document.querySelector('#save-draft').addEventListener('click', () => {
+    update();
+    if (!form.reportValidity()) return;
+    const values = Object.fromEntries(inputs.map(input => [input.name, input.value.trim()]));
+    if (Object.values(values).some(value => value.length > 4096)) {
+      status.textContent = 'Draft not saved: keep each setting under 4,097 characters.';
+      return;
+    }
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({version: 1, values}));
+      status.textContent = 'Draft saved in this browser. Use Restore draft on your next visit.';
+    } catch {
+      status.textContent = 'Browser storage unavailable or full. Copy or download your settings instead.';
+    }
+  });
+  document.querySelector('#restore-draft').addEventListener('click', () => {
+    try {
+      const draft = readDraft();
+      if (!draft) {
+        status.textContent = 'No saved draft in this browser.';
+        return;
+      }
+      for (const input of inputs) input.value = draft.values[input.name];
+      update();
+      status.textContent = 'Draft restored. Review your settings before downloading.';
+    } catch {
+      status.textContent = 'Draft could not be read. Form unchanged; delete the draft or check browser storage.';
+    }
+  });
+  document.querySelector('#delete-draft').addEventListener('click', () => {
+    try {
+      localStorage.removeItem(draftKey);
+      status.textContent = 'Saved draft deleted. Current form values are unchanged.';
+    } catch {
+      status.textContent = 'Could not delete the draft. Check browser storage permissions.';
+    }
+  });
+  // Offer restoration without silently replacing defaults or starting hardware.
+  try {
+    if (localStorage.getItem(draftKey) !== null) {
+      status.textContent = 'A local draft is available. Choose Restore draft to load it.';
+    }
+  } catch {
+    status.textContent = 'Browser storage unavailable. You can still copy or download settings.';
+  }
   update();
 </script>
 </body>
