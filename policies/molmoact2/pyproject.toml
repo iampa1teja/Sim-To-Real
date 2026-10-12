@@ -1,0 +1,12 @@
+[project]
+name = "policy-molmoact2"
+version = "0.1.0"
+requires-python = ">=3.12"           # TODO: match policy.toml environment.python
+dependencies = [
+    "numpy",
+    "pyzmq",
+    "msgpack",
+    # TODO: torch, transformers and anything else the MolmoAct2 model card lists, with exact pins.
+]
+
+# Then run `uv lock` in this folder and commit uv.lock.

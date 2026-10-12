@@ -1,0 +1,27 @@
+# Copy this folder to policies/<name>/ (or run `new_policy <name>`), then fill in every field.
+# Folders whose name starts with "_" are ignored by discovery.
+
+[policy]
+name = "my_policy"            # must equal the folder name: lowercase letters, digits, underscore
+description = "One line about the model and the checkpoint family it serves."
+enabled = true                # false hides the policy from --policy choices and the conformance test
+default_port = 5555
+
+[environment]
+python = "3.12"               # interpreter uv installs for this policy's venv
+# Option A (default): the venv is built from the pyproject.toml + uv.lock next to this file.
+# Option B: build it from a pinned upstream repo instead (use when the upstream lockfile matters):
+# git = "https://github.com/ORG/REPO.git"
+# rev = "<full 40-character commit SHA>"
+
+[observation]
+cameras = ["room", "wrist"]   # camera keys the client sends; the eval rename map must produce these
+language = true               # does the model take a text instruction?
+
+[action]
+default_horizon = 8           # steps the client executes per query (<= what the model returns)
+representation = "absolute_joint"   # what parse_response returns; the shared client assumes this
+
+[runtime.env]
+# Environment variables exported before the server starts, e.g.:
+# HF_HUB_OFFLINE = "1"

@@ -1,0 +1,26 @@
+[policy]
+name = "groot_n17"
+description = "NVIDIA GR00T N1.7 SO-arm policy (official server, offline Cosmos processor)."
+enabled = true
+default_port = 5555
+
+# Built from the official repo at the pin used by training and the old container
+# (N17_PIN in scripts/gr00t_model_profiles.py). Its own uv.lock supplies Python 3.12, Torch 2.9/cu128,
+# Transformers 4.57.3 and the matching FlashAttention wheel, so no pyproject.toml lives in this folder.
+[environment]
+python = "3.12"
+git = "https://github.com/NVIDIA/Isaac-GR00T.git"
+rev = "51d4c89f72fda44cbf77285c6a8114b52676b8a1"
+
+[observation]
+cameras = ["room", "wrist"]
+language = true
+
+[action]
+default_horizon = 8
+representation = "absolute_joint"
+
+[runtime.env]
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+PYTHONDONTWRITEBYTECODE = "1"
