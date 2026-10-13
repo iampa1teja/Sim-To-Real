@@ -20,7 +20,7 @@ import numpy as np
 import torch
 import uuid
 
-from sim_to_real_so101.gr00t_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
+from source.sim_to_real_so101.policy_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
 
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig
 from lerobot.robots.so101_follower import SO101FollowerConfig
@@ -462,7 +462,7 @@ class GR00TRemotePolicy:
     ):
         self.grasp = None
         if grasp_config is not None and grasp_config.enabled:
-            from sim_to_real_so101.gr00t_client.grasp import GraspController
+            from source.sim_to_real_so101.policy_client.grasp import GraspController
             self.grasp = GraspController(grasp_config, robot_iface.SO101_JOINT_ORDER, control_dt)
             self.grasp.episode = -1  # first policy.reset starts episode zero
         self._seed_per_episode = seed_per_episode
@@ -646,7 +646,7 @@ class GR00TRemotePolicy:
             def query():
                 model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
                 if self._seed_per_episode:
-                    from sim_to_real_so101.gr00t_client.grasp import seed_query
+                    from source.sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
                 action_chunk, _info = self._client.get_action(model_input)
                 self.inference_calls += 1
@@ -657,7 +657,7 @@ class GR00TRemotePolicy:
             if len(self._action_queue) == 0:
                 model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
                 if self._seed_per_episode:
-                    from sim_to_real_so101.gr00t_client.grasp import seed_query
+                    from source.sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
                 action_chunk, _info = self._client.get_action(model_input)
                 self.inference_calls += 1

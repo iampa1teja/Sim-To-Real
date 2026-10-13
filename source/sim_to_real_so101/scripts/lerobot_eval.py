@@ -123,7 +123,7 @@ parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON c
 parser.add_argument("--results_json", type=Path)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
 
-from sim_to_real_so101.gr00t_client.grasp import GraspConfig, add_grasp_arguments
+from source.sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
 add_grasp_arguments(parser)
 
 # append AppLauncher cli args
