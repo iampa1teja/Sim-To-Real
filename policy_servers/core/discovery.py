@@ -1,7 +1,7 @@
-"""Read and validate policies/<name>/policy.toml on the robot / sim side.
+"""Read and validate policies/<name>/policy.toml inside the policy server container.
 
-Stdlib only: it runs in the Isaac container and the host env, and must import without torch.
-Keep the API identical to policy_servers/core/discovery.py.
+Stdlib only: this module is imported by the launcher before any policy venv exists.
+Keep the API identical to source/sim_to_real_so101/policy_client/discovery.py.
 """
 from dataclasses import dataclass
 import logging
@@ -59,11 +59,11 @@ def default_policies_dir() -> Path:
 
 
 def load_manifest(policy_dir: str | Path) -> PolicyManifest:
-    policy_dir = Path(policy_dir) 
+    policy_dir = Path(policy_dir)
     manifest_path = policy_dir / "policy.toml"
 
     if not manifest_path.exists():
-        raise FileNotFoundError(f"{manifest_path} not fount")
+        raise FileNotFoundError(f"{manifest_path} not found")
 
     try:
         data = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
@@ -77,19 +77,23 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
         cameras = data["observation"]["cameras"]
         language = data.get("observation", {}).get("language", False)
         default_horizon = data["action"]["default_horizon"]
+        representation = data.get("action", {}).get("representation", "absolute_joint")
         runtime_env = data.get("runtime", {}).get("env", {})
 
     except KeyError as err:
         raise ValueError(f"Missing required key: {err.args[0]}") from err
 
     except tomllib.TOMLDecodeError as err:
-        raise ValueError(f"Invalid TOML: {err}") from err 
+        raise ValueError(f"Invalid TOML: {err}") from err
 
     if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", name):
         raise ValueError("policy.name must match [a-z][a-z0-9_]*")
-    
+
     if name != policy_dir.name:
         raise ValueError(f"policy.name {name!r} must match folder {policy_dir.name!r}")
+
+    if not isinstance(description, str):
+        raise ValueError("policy.description must be a string")
 
     if not isinstance(enabled, bool):
         raise ValueError("policy.enabled must be a boolean")
@@ -114,13 +118,16 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
     cameras = tuple(cameras)
 
     if not isinstance(language, bool):
-        raise TypeError("observation.language must be a boolean")
+        raise ValueError("observation.language must be a boolean")
 
     if type(default_horizon) is not int or default_horizon < 1:
         raise ValueError("action.default_horizon must be an integer >= 1")
 
+    if representation != "absolute_joint":
+        raise ValueError("action.representation must be 'absolute_joint'")
+
     if not isinstance(runtime_env, dict):
-        raise TypeError("runtime.env must be a table")
+        raise ValueError("runtime.env must be a table")
 
     for key, value in runtime_env.items():
         if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
@@ -136,14 +143,17 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
         cameras=cameras,
         language=language,
         default_horizon=default_horizon,
+        representation=representation,
         git=git,
         rev=rev,
         env=runtime_env,
         path=policy_dir,
     )
     return manifest
-    
+
+
 def discover(policies_dir: str | Path | None = None) -> dict[str, PolicyManifest]:
+    policies_dir = default_policies_dir() if policies_dir is None else Path(policies_dir)
     manifests = {}
     if not policies_dir.is_dir():
         return manifests
@@ -155,7 +165,7 @@ def discover(policies_dir: str | Path | None = None) -> dict[str, PolicyManifest
             continue
         try:
             manifest = load_manifest(policy_dir)
-        except (FileNotFoundError, TypeError, ValueError) as err:
+        except (FileNotFoundError, ValueError) as err:
             log.warning("Skipping invalid policy %s: %s", policy_dir, err)
             continue
         if manifest.enabled:
