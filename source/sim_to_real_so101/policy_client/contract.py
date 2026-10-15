@@ -10,26 +10,27 @@ from .discovery import PolicyManifest
 
 log = logging.getLogger(__name__)
 
+
 class ClientPolicy(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def from_manifest(cls, manifest: PolicyManifest, options: dict[str, str]) -> "ClientPolicy": ...
 
     @abc.abstractmethod
-    def build_request(self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str, ) -> dict[str, Any]: ...
+    def build_request(self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str) -> dict[str, Any]: ...
 
     @abc.abstractmethod
     def parse_response(self, response: dict[str, Any], joint_order: list[str]) -> np.ndarray: ...
 
     @abc.abstractmethod
-    def reset(self) -> None:
-        pass 
+    def reset(self) -> None: ...
+
 
 def load_client_policy(name: str, manifest: PolicyManifest, options: dict[str, str]) -> ClientPolicy:
     client_path = Path(manifest.path) / "client.py"
     if not client_path.is_file():
         raise FileNotFoundError(f"{client_path} not found")
-    
+
     path_key = str(client_path.resolve()).encode("utf-8")
     module_name = f"_policy_client_{name}_{hashlib.sha256(path_key).hexdigest()}"
     spec = importlib.util.spec_from_file_location(module_name, client_path)
