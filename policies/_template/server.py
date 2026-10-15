@@ -19,7 +19,10 @@ class TemplateServerPolicy(ServerPolicy):
         raise NotImplementedError
 
     def infer(self, request: dict) -> dict:
-        """Take the dict produced by build_request, return a dict with the action array (H, J)."""
+        """request is {"state": (J,), "images": {camera: (H, W, 3) uint8}, "instruction": str}.
+
+        Return {"actions": float32 array (horizon, J)} of absolute joint targets.
+        """
         raise NotImplementedError
 
     def info(self) -> dict:
