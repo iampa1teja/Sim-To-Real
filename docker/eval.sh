@@ -228,6 +228,7 @@ fi
 
 # Use the README's Isaac Python wrapper: docker exec does not inherit the environment exported by the
 # container entrypoint. Run the lerobot_eval module.
+run docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m pip install tqdm
 eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" teleop /workspace/isaaclab/_isaac_sim/python.sh
     -m sim_to_real_so101.scripts.lerobot_eval --task "$task" --num_envs 1
     --cube_starts "$dataset/pick_place_meta" --start_mode "$start_mode" --random_fraction "$random_fraction"

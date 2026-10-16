@@ -63,6 +63,7 @@ docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --n
   -v "$(pwd)/policies:/workspace/Sim-to-Real-SO-101-Workshop/policies" \
   -v "$(pwd)/outputs:/workspace/Sim-to-Real-SO-101-Workshop/outputs" \
   -v "$(pwd)/datasets:/workspace/Sim-to-Real-SO-101-Workshop/datasets" \
+  -v "$(pwd)/eval_sets:/workspace/Sim-to-Real-SO-101-Workshop/eval_sets" \
   -v "$(pwd)/docker/real/scripts:/workspace/Sim-to-Real-SO-101-Workshop/docker/real/scripts" \
   teleop-docker:latest
 ```
