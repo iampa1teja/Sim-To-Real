@@ -78,8 +78,13 @@ parser.add_argument(
         'e.g. \'{"sim_name1": "policy_name1", "sim_name2": "policy_name2"}\'. '
     ),
 )
-parser.add_argument("--policy_host", type=str, default="localhost", help="GR00T policy server host")
-parser.add_argument("--policy_port", type=int, default=5555, help="GR00T policy server port")
+parser.add_argument("--policy", default="groot_n17", help="Policy plugin name (a folder under policies/)")
+parser.add_argument("--policy_option", action="append", default=[], metavar="KEY=VALUE",
+                    help="Policy-specific client option; repeatable")
+parser.add_argument("--policy_host", "--host", type=str, default="localhost", help="Policy server host")
+parser.add_argument("--policy_port", "--port", type=int, default=None,
+                    help="Policy server port (default: the plugin manifest's default_port)")
+parser.add_argument("--policy_api_token", default=os.environ.get("POLICY_API_TOKEN"), help="Server API token")
 parser.add_argument("--action_horizon", type=int, choices=range(1, 17), default=16,
                     help="Number of action steps per server query (1..16; SO-arm checkpoint chunk length is 16)")
 parser.add_argument("--prefetch_steps", type=_nonnegative_int, default=0,
@@ -157,7 +162,7 @@ importlib.import_module("sim_to_real_so101.tasks")
 from sim_to_real_so101.utils.keyboard import KeyboardControl
 from sim_to_real_so101.utils.lerobot_interface import (
     LeRobotSO101Interface,
-    GR00TRemotePolicy,
+    SimRemotePolicy,
 )
 
 
@@ -259,7 +264,7 @@ def _evaluate():
     print(f"[INFO]: Initializing device with Rerun visualization: {args_cli.rerun}")
     robot_iface.init_device(visualize=args_cli.rerun)
 
-    # remote GR00T policy
+    # remote policy plugin
     smoothing_defaults = dict(prefetch_steps=0, blend_steps=0, ema_alpha=1.0,
                               smooth_gripper=False, temporal_ensemble=0, te_decay=0.01,
                               log_timing=False, timing_csv="")
@@ -270,8 +275,17 @@ def _evaluate():
     if grasp_config.enabled or args_cli.seed_per_episode:
         grasp_kwargs = dict(grasp_config=grasp_config, seed_per_episode=args_cli.seed_per_episode,
                             episode_seed=args_cli.seed, control_dt=step_dt)
-    policy = GR00TRemotePolicy(
+    policy_options = {}
+    for item in args_cli.policy_option:
+        key, sep, value = item.partition("=")
+        if not sep or not key:
+            raise ValueError(f"Invalid --policy_option {item!r}: expected KEY=VALUE")
+        policy_options[key] = value
+    policy = SimRemotePolicy(
         robot_iface=robot_iface,
+        policy_name=args_cli.policy,
+        policy_options=policy_options,
+        api_token=args_cli.policy_api_token,
         host=args_cli.policy_host,
         port=args_cli.policy_port,
         action_horizon=args_cli.action_horizon,

@@ -47,7 +47,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 import draccus
-from gr00t.policy.server_client import PolicyClient
 
 # Importing various robot configs ensures CLI autocompletion works
 from lerobot.cameras.opencv.configuration_opencv import OpenCVCameraConfig  # noqa: F401
@@ -63,27 +62,12 @@ from lerobot.utils.utils import init_logging, log_say
 import numpy as np
 
 from so101_control import SO101Control
+from sim_to_real_so101.policy_client.adapter import PluginClient, build_plugin_client
 from sim_to_real_so101.policy_client.smoothing import (
     ActionSmoother, FixedRateScheduler, InferenceWorker, SmoothingConfig, TimingLog, log_late,
 )
 
 
-def recursive_add_extra_dim(obs: Dict) -> Dict:
-    """
-    Recursively add an extra dim to arrays or scalars.
-
-    GR00T Policy Server expects:
-        obs: (batch=1, time=1, ...)
-    Calling this function twice achieves that.
-    """
-    for key, val in obs.items():
-        if isinstance(val, np.ndarray):
-            obs[key] = val[np.newaxis, ...]
-        elif isinstance(val, dict):
-            obs[key] = recursive_add_extra_dim(val)
-        else:
-            obs[key] = [val]  # scalar → [scalar]
-    return obs
 
 
 class So100Adapter:
@@ -105,7 +89,7 @@ class So100Adapter:
     joint_keys = ["shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos",
                   "wrist_flex.pos", "wrist_roll.pos", "gripper.pos"]
 
-    def __init__(self, policy_client: PolicyClient, camera_keys: List[str] | None = None):
+    def __init__(self, policy_client: PluginClient, camera_keys: List[str] | None = None):
         self.policy = policy_client
 
         # SO100 joint ordering used for BOTH training + robot execution
@@ -126,35 +110,21 @@ class So100Adapter:
     # -------------------------------------------------------------------------
     def obs_to_policy_inputs(self, obs: Dict[str, Any]) -> Dict:
         """
-        Convert raw robot observation dict into the structured GR00T VLA input.
+        Convert the raw robot observation into the policy-agnostic input of the plugin client:
+        the 6 joint values, the cameras named after the policy's video keys, and the instruction.
         """
-        model_obs = {}
-
-        # (1) Cameras
-        model_obs["video"] = {k: obs[k] for k in self.camera_keys}
-
-        # (2) Arm + gripper state
-        state = np.array([obs[k] for k in self.robot_state_keys], dtype=np.float32)
-        model_obs["state"] = {
-            "single_arm": state[:5],  # (5,)
-            "gripper": state[5:6],  # (1,)
+        return {
+            "state": np.array([obs[k] for k in self.robot_state_keys], dtype=np.float32),
+            "images": {k: obs[k] for k in self.camera_keys},
+            "instruction": obs["lang"],
         }
-
-        # (3) Language
-        model_obs["language"] = {"annotation.human.task_description": obs["lang"]}
-
-        # (4) Add (B=1, T=1) dims
-        model_obs = recursive_add_extra_dim(model_obs)
-        model_obs = recursive_add_extra_dim(model_obs)
-        return model_obs
 
     # -------------------------------------------------------------------------
     # Model Action Chunk → Robot Motor Commands
     # -------------------------------------------------------------------------
-    def decode_action_chunk(self, chunk: Dict, t: int) -> Dict[str, float]:
+    def decode_action_chunk(self, chunk: np.ndarray, t: int) -> Dict[str, float]:
         """
-        chunk["single_arm"]: (B, T, 5)
-        chunk["gripper"]:    (B, T, 1)
+        chunk: (T, 6) joint targets in robot_state_keys order.
 
         Convert to:
             {
@@ -163,12 +133,7 @@ class So100Adapter:
             }
         for timestep t.
         """
-        single_arm = chunk["single_arm"][0][t]  # (5,)
-        gripper = chunk["gripper"][0][t]  # (1,)
-
-        full = np.concatenate([single_arm, gripper], axis=0)  # (6,)
-
-        return {joint_name: float(full[i]) for i, joint_name in enumerate(self.robot_state_keys)}
+        return {joint_name: float(chunk[t][i]) for i, joint_name in enumerate(self.robot_state_keys)}
 
     def get_action(self, obs: Dict) -> List[Dict[str, float]]:
         """
@@ -178,13 +143,9 @@ class So100Adapter:
         if getattr(self, "episode_seed", None) is not None:
             from sim_to_real_so101.policy_client.grasp import seed_query
             seed_query(self.policy, self.episode_seed)
-        action_chunk, info = self.policy.get_action(model_input)
+        action_chunk = self.policy.get_action(model_input)  # (T, 6)
 
-        # Determine horizon
-        any_key = next(iter(action_chunk.keys()))
-        horizon = action_chunk[any_key].shape[1]  # (B, T, D) → T
-
-        return [self.decode_action_chunk(action_chunk, t) for t in range(horizon)]
+        return [self.decode_action_chunk(action_chunk, t) for t in range(len(action_chunk))]
 
 
 
@@ -229,6 +190,10 @@ class EvalConfig:
     robot: RobotConfig | None = None
     policy_host: str = "0.0.0.0"
     policy_port: int = 5555
+    # Policy plugin (policies/<name>) the server at policy_host:policy_port serves.
+    policy: str = "groot_n17"
+    # Plugin options as "key=value,key=value".
+    policy_options: str = ""
     action_horizon: int = 16
     lang_instruction: str = "Grab markers and place into pen holder."
     play_sounds: bool = False
@@ -426,7 +391,9 @@ def eval(cfg: EvalConfig):
         so101_control.initial_pose = dict(zip(So100Adapter.joint_keys, values))
     so101_control.connect()
 
-    policy_client = PolicyClient(host=cfg.policy_host, port=cfg.policy_port)
+    options = dict(item.split("=", 1) for item in cfg.policy_options.split(",") if item)
+    policy_client = build_plugin_client(cfg.policy, So100Adapter.joint_keys, host=cfg.policy_host,
+                                        port=cfg.policy_port, policy_options=options)
     # The robot's camera names become the policy's video keys.
     policy = So100Adapter(policy_client, camera_keys=list(cfg.robot.cameras))
     policy.grasp = grasp

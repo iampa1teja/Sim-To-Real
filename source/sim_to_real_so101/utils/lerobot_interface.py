@@ -439,12 +439,18 @@ class LeRobotSO101Interface:
         return real_obs, visual_buffers, depth_buffers, instance_id_seg_buffers
 
 
-class GR00TRemotePolicy:
+class SimRemotePolicy:
+    """Drives the simulated robot from any policy plugin served by a policy server.
+
+    Owns the action queue, smoothing, grasp controller, per-episode seeding and timing. The plugin
+    (policies/<name>/client.py) decides what the request contains and how the reply is read.
+    """
+
     def __init__(
         self,
         robot_iface: LeRobotSO101Interface,
         host: str = "localhost",
-        port: int = 5555,
+        port: int | None = None,
         action_horizon: int = 8,
         lang_instruction: str = "Pick up the vial and place it in the tray",
         prefetch_steps: int = 0,
@@ -459,6 +465,10 @@ class GR00TRemotePolicy:
         seed_per_episode: bool = False,
         episode_seed: int = 1984,
         control_dt: float = 1/30,
+        policy_name: str = "groot_n17",
+        policy_options: dict | None = None,
+        api_token: str | None = None,
+        timeout_ms: int = 15000,
     ):
         self.grasp = None
         if grasp_config is not None and grasp_config.enabled:
@@ -470,6 +480,10 @@ class GR00TRemotePolicy:
         self._iface = robot_iface
         self._host = host
         self._port = port
+        self._policy_name = policy_name
+        self._policy_options = dict(policy_options or {})
+        self._api_token = api_token
+        self._timeout_ms = timeout_ms
         self._action_horizon = action_horizon
         self._lang_instruction = lang_instruction
         self._action_queue: deque = deque()
@@ -486,13 +500,15 @@ class GR00TRemotePolicy:
                                               self._timing, grasp=self.grasp) if options.enabled else None)
 
     def connect(self):
-        """Connect to the GR00T policy server."""
-        from sim_to_real_so101.gr00t_client.server_client import PolicyClient
+        """Connect to the policy server and check it serves the configured policy."""
+        from sim_to_real_so101.policy_client.adapter import build_plugin_client, check_server
 
-        print(f"[INFO]: Connecting to GR00T policy server at {self._host}:{self._port}...")
-        self._client = PolicyClient(host=self._host, port=self._port)
-        if not self._client.ping():
-            raise RuntimeError("Cannot connect to GR00T policy server!")
+        self._client = build_plugin_client(
+            self._policy_name, self._iface.SO101_JOINT_ORDER, host=self._host, port=self._port,
+            timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=self._policy_options)
+        print(f"[INFO]: Connecting to the {self._policy_name} policy server at "
+              f"{self._host}:{self._client.client.port}...")
+        check_server(self._client)
         print("[INFO]: Policy server connected")
 
     def reset(self, seed=None):
@@ -509,101 +525,58 @@ class GR00TRemotePolicy:
         if seed is not None:
             response = self._client.call_endpoint("seed_policy", {"seed": int(seed)})
             if response != {"seed": int(seed)}:
-                raise RuntimeError("Policy seed not acknowledged; use benchmark_server.py")
+                raise RuntimeError("Policy seed not acknowledged; the server must implement seed_policy")
 
     # ------------------------------------------------------------------
     # Observation conversion
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _add_batch_time_dims(obs: dict) -> dict:
-        """Recursively add one leading dimension to every leaf array/scalar.
-
-        GR00T expects (batch=1, time=1, ...).  Call twice to get both dims.
-        """
-        for key, val in obs.items():
-            if isinstance(val, np.ndarray):
-                obs[key] = val[np.newaxis, ...]
-            elif isinstance(val, dict):
-                obs[key] = GR00TRemotePolicy._add_batch_time_dims(val)
-            else:
-                obs[key] = [val]
-        return obs
-
-    def _sim_obs_to_groot_inputs(
-        self, joint_positions: torch.Tensor, visual_obs: dict
-    ) -> dict:
-        """Convert Isaac Lab sim observations into the GR00T VLA input format.
+    def _sim_obs_to_inputs(self, joint_positions: torch.Tensor, visual_obs: dict) -> dict:
+        """Convert Isaac Lab sim observations into the policy-agnostic input of the plugin client.
 
         Args:
             joint_positions: Joint positions in sim radians, shape (6,).
             visual_obs: Visual observation dict from env (e.g. rgb_ego, rgb_external_D455).
 
         Returns:
-            Dict with ``video``, ``state``, and ``language`` keys,
-            each with (B=1, T=1) leading dimensions.
+            Dict with ``state`` (6 raw joint values), ``images`` (policy camera name -> HWC array)
+            and ``instruction``. The plugin client turns it into its model's request.
         """
         state = self._iface.get_raw_actions_from_radians(joint_positions)
         state_np = state.cpu().numpy().astype(np.float32)
 
         rename = self._iface.rename_map
-        model_obs = {}
-
-        # Cameras → video dict
-        model_obs["video"] = {}
+        images = {}
         for camera in self._iface.cameras.keys():
-            img = visual_obs[f"rgb_{camera}"][0].cpu().numpy()
             camera_name = rename[camera] if rename else camera
-            model_obs["video"][camera_name] = img
+            images[camera_name] = visual_obs[f"rgb_{camera}"][0].cpu().numpy()
 
-        # Joint state (arm + gripper, matching GR00T convention)
-        model_obs["state"] = {
-            "single_arm": state_np[:5],
-            "gripper": state_np[5:6],
-        }
-
-        # Language instruction
-        model_obs["language"] = {
-            "annotation.human.task_description": self._lang_instruction,
-        }
-
-        # Add (B=1, T=1) leading dimensions
-        model_obs = self._add_batch_time_dims(model_obs)
-        model_obs = self._add_batch_time_dims(model_obs)
-
-        return model_obs
+        return {"state": state_np, "images": images, "instruction": self._lang_instruction}
 
     # ------------------------------------------------------------------
     # Action decoding
     # ------------------------------------------------------------------
 
-    def _decode_action_chunk(self, action_chunk: dict, full_chunk: bool = False) -> list[dict[str, float]]:
-        """Decode a GR00T action chunk into per-timestep joint-name dicts.
+    def _decode_action_chunk(self, action_chunk: np.ndarray, full_chunk: bool = False) -> list[dict[str, float]]:
+        """Decode a policy action chunk into per-timestep joint-name dicts.
 
         Args:
-            action_chunk: Dict with ``single_arm`` (B, T, 5) and
-                ``gripper`` (B, T, 1) numpy arrays.
+            action_chunk: Array of shape (T, 6) in joint order, real-robot degree space.
             full_chunk: Keep the model tail for stale-prefix removal, blending,
                 and temporal overlap; the smoother caps execution separately.
 
         Returns:
             List of dicts mapping joint name → float (real-robot degree space).
         """
-        any_key = next(iter(action_chunk.keys()))
-        T = action_chunk[any_key].shape[1]
+        action_chunk = np.asarray(action_chunk)
+        T = action_chunk.shape[0]
         horizon = T if full_chunk else min(T, self._action_horizon)
 
         joint_order = self._iface.SO101_JOINT_ORDER
-        actions_list = []
-        for t in range(horizon):
-            single_arm = action_chunk["single_arm"][0][t]  # (5,)
-            gripper = action_chunk["gripper"][0][t]          # (1,)
-            full = np.concatenate([single_arm, gripper], axis=0)  # (6,)
-            actions_list.append(
-                {name: float(full[i]) for i, name in enumerate(joint_order)}
-            )
-
-        return actions_list
+        return [
+            {name: float(action_chunk[t][i]) for i, name in enumerate(joint_order)}
+            for t in range(horizon)
+        ]
 
     # ------------------------------------------------------------------
     # Public API
@@ -644,22 +617,22 @@ class GR00TRemotePolicy:
             self.grasp.measured = float(measured[self.grasp.gripper_index].item())
         if self._smoothing is not None:
             def query():
-                model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                model_input = self._sim_obs_to_inputs(joint_positions, visual_obs)
                 if self._seed_per_episode:
                     from source.sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
-                action_chunk, _info = self._client.get_action(model_input)
+                action_chunk = self._client.get_action(model_input)
                 self.inference_calls += 1
                 return self._decode_action_chunk(action_chunk, full_chunk=True)
 
             action_dict = self._smoothing.get_action(query)
         else:
             if len(self._action_queue) == 0:
-                model_input = self._sim_obs_to_groot_inputs(joint_positions, visual_obs)
+                model_input = self._sim_obs_to_inputs(joint_positions, visual_obs)
                 if self._seed_per_episode:
                     from source.sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
-                action_chunk, _info = self._client.get_action(model_input)
+                action_chunk = self._client.get_action(model_input)
                 self.inference_calls += 1
                 decoded = self._decode_action_chunk(action_chunk, full_chunk=self.grasp is not None)
                 if self.grasp is not None:
