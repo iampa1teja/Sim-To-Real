@@ -78,6 +78,7 @@ def main(argv=None):
     p.add_argument('--model',required=True,help='Relative model/checkpoint path, or model directory with --checkpoint')
     p.add_argument('--checkpoint',help='Optional checkpoint subdirectory, e.g. checkpoint-50000')
     p.add_argument('--models_dir',type=Path,default=Path(os.environ.get('MODELS_DIR','~/models')))
+    p.add_argument('--config',type=Path,default=ROOT/'configs/eval/pick_place.yaml',help='Base eval YAML for docker/eval.sh; the sweep overrides it with --set')
     p.add_argument('--eval_set',type=Path,default=ROOT/'eval_sets/pick_place_v1_seed1984.json')
     p.add_argument('--dataset',type=Path,help='Defaults to eval-set dataset_path')
     p.add_argument('--splits',default='all');p.add_argument('--horizons',default='1,2,4,6,8,12,16')
@@ -138,9 +139,7 @@ def main(argv=None):
     for key, default in grasp_defaults.items():
         if key in flags and (flags[key] == default or (key == 'gripper_latch' and flags[key] is None)):
             del flags[key]
-    flags.update(server_image=os.environ.get('SERVER_IMAGE','real-robot:n1.7'),
-                 embodiment_tag=os.environ.get('EMBODIMENT_TAG','NEW_EMBODIMENT'),
-                 rename_map=os.environ.get('RENAME_MAP','{"realsense_rgb":"room","wrist_cam":"wrist"}'))
+    flags['config_sha256']=hashlib.sha256(args.config.read_bytes()).hexdigest()
     settings=dict(checkpoint=str(model),episode_length_s=args.episode_length_s,robot_start='recorded',seed=1984,
                   task='Lerobot-So101-Teleop-Pick-Place'+('-DR' if args.dr else '')+'-Eval',repeats=args.repeats)
     if args.log_gripper or args.seed_per_episode:
@@ -164,20 +163,26 @@ def main(argv=None):
         if args.gripper_latch is not None:
             config['variants'] = [v | {'settings': variant_settings(v)} for v in variants]
         (folder/'sweep_config.json').write_text(json.dumps(config,indent=2)+'\n')
-    base=[str(ROOT/'docker/eval_pick_place.sh'),'--model',str(model),'--models_dir',str(args.models_dir),
-          '--dataset',dataset_path,'--eval_set',eval_path,'--splits',','.join(selected),'--repeats',str(args.repeats),
-          '--episode_length_s',str(args.episode_length_s),'--lang',args.lang,'--port',str(args.port)]
-    if args.dr: base+=['--dr']
+    def override(key, value):
+        # --set values are parsed as YAML; JSON strings are valid YAML and keep colons or quotes intact.
+        return ['--set', f'{key}={json.dumps(value)}']
+    base=[str(ROOT/'docker/eval.sh'),str(args.config)]
+    base+=override('policy.checkpoint',str(model))+override('policy.models_dir',str(args.models_dir))
+    base+=override('eval.dataset',dataset_path)+override('eval.eval_set',eval_path)
+    base+=override('eval.splits',','.join(selected))+override('eval.repeats',args.repeats)
+    base+=override('eval.episode_length_s',args.episode_length_s)+override('eval.lang',args.lang)
+    base+=override('policy.port',args.port)
+    if args.dr: base+=override('task','pick_place_dr')
     if args.gui: base+=['--gui']
-    if args.lang_by_color: base+=['--lang_by_color',args.lang_by_color]
-    if args.render_warmup: base+=['--render_warmup',str(args.render_warmup)]
+    if args.lang_by_color: base+=override('eval.lang_by_color',json.loads(args.lang_by_color))
+    if args.render_warmup: base+=override('eval.render_warmup',args.render_warmup)
     for key, default in grasp_defaults.items():
         value = getattr(args, key)
         if key in ('gripper_latch', 'gripper_csv') or value == default:
             continue
         if key == 'latch_dataset':
             value = container_path(host_path(value), mounts)
-        base += ['--' + key] if isinstance(value, bool) else ['--' + key, str(value)]
+        base += override('grasp.' + key, value)
     server=None;client=None;current_result=None
     def terminate(process):
         if process and process.poll() is None:
@@ -222,10 +227,10 @@ def main(argv=None):
                 print(f'AH {horizon}: failed; shared server exited',flush=True)
                 continue
             current_result=container_path(run/'results.json',mounts)
-            command=base+['--external_server','--action_horizon',str(horizon),'--results_json',current_result]
-            if variant['latch'] == 'on': command += ['--gripper_latch']
+            command=base+['--external_server']+override('eval.action_horizon',horizon)+override('eval.results_json',current_result)
+            if variant['latch'] == 'on': command += override('grasp.gripper_latch',True)
             if args.log_gripper:
-                command += ['--gripper_csv', container_path(run/'gripper.csv', mounts)]
+                command += override('grasp.gripper_csv', container_path(run/'gripper.csv', mounts))
             if args.dry_run: command+=['--dry_run']
             (run/'cmd.txt').write_text(shlex.join(command)+'\n')
             # Existing incomplete results must not qualify a failed retry as complete.

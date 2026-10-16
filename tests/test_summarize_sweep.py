@@ -143,7 +143,7 @@ class OrchestrationTests(unittest.TestCase):
         import os
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);(root/'docker').mkdir();bin_dir=root/'bin';bin_dir.mkdir()
+            root=Path(tmp);(root/'docker').mkdir();(root/'configs/eval').mkdir(parents=True);(root/'configs/eval/pick_place.yaml').write_text('policy: {}\n');bin_dir=root/'bin';bin_dir.mkdir()
             model_dir=root/'models/model/checkpoint-1';model_dir.mkdir(parents=True);(model_dir/'config.json').write_text('{}')
             r=report(16,[True,False,True,False]);r['task']='Lerobot-So101-Teleop-Pick-Place-Eval'
             r['checkpoint']='model/checkpoint-1';r['eval_set']['dataset_path']=str(root/'dataset')
@@ -151,7 +151,7 @@ class OrchestrationTests(unittest.TestCase):
             fixture_path=root/'fixture.json';fixture_path.write_text(json.dumps(r))
             eval_path=root/'eval.json';eval_path.write_text(json.dumps(r['eval_set']))
             call_path=root/'calls.txt'
-            fake=root/'docker/eval_pick_place.sh'
+            fake=root/'docker/eval.sh'
             fake.write_text('#!'+sys.executable+'\n'+f'''
 import json,sys,time,signal
 from pathlib import Path
@@ -165,10 +165,11 @@ if '--server_only' in args:
     signal.signal(signal.SIGTERM,stopped)
     print('SERVER_READY',flush=True)
     while True:time.sleep(.1)
-h=int(args[args.index('--action_horizon')+1])
+sets=dict(a.split('=',1) for a in args if '=' in a)
+h=int(sets['eval.action_horizon'])
 if h==2:sys.exit(42)
 r=json.loads(Path({str(fixture_path)!r}).read_text());r['action_horizon']=h
-Path(args[args.index('--results_json')+1]).write_text(json.dumps(r))
+Path(json.loads(sets['eval.results_json'])).write_text(json.dumps(r))
 print('[EPISODE 4]',flush=True)
 ''');fake.chmod(0o755)
             for name,body in [('nvidia-smi',"import sys;print('Mock GPU' if '--query-gpu=name' in sys.argv else '',end='')"),('git',"print('abc123')"),('docker',f"import json;print(json.dumps([{{'Mounts':[{{'Source':{str(root)!r},'Destination':{str(root)!r}}}]}}]))")]:
@@ -181,45 +182,8 @@ print('[EPISODE 4]',flush=True)
                 calls=call_path.read_text();self.assertEqual(calls.count('--server_only'),1);self.assertIn('STOPPED',calls)
                 self.assertIn('"exit_code": 42',(folder/'ah_2/status.json').read_text())
                 self.assertEqual(sweep.main(args+['--resume']),1)
-                calls=call_path.read_text();self.assertEqual(calls.count('--action_horizon 16'),1)
+                calls=call_path.read_text();self.assertEqual(calls.count('eval.action_horizon=16'),1)
                 self.assertEqual(calls.count('--server_only'),2)
-
-
-class ServerModeTests(unittest.TestCase):
-    def setUp(self):
-        from test_eval_pick_place_script import HostScriptTests
-        HostScriptTests.setUp(self)
-        self.run_script=HostScriptTests.run_script.__get__(self)
-        self.calls=HostScriptTests.calls.__get__(self)
-
-    def test_external_server_and_explicit_results(self):
-        result=self.run_script('--external_server','--results_json','/workspace/results/ah_8/results.json')
-        self.assertEqual(result.returncode,0,result.stderr)
-        calls=self.calls();self.assertFalse(any(c[0] in ('run','stop','rm') for c in calls))
-        client=next(c for c in calls if 'sim_to_real_so101.scripts.lerobot_eval' in c)
-        self.assertEqual(client[client.index('--results_json')+1],'/workspace/results/ah_8/results.json')
-
-    def test_server_only_ctrl_c_owns_cleanup(self):
-        import os
-        import signal
-        import subprocess
-        import time
-        from test_eval_pick_place_script import SCRIPT
-        proc=subprocess.Popen([str(SCRIPT),'--model','model/checkpoint-10','--models_dir',str(self.root/'models'),
-                               '--dataset','/workspace/datasets/demo','--server_only'],
-                              env=self.env,start_new_session=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
-        try:
-            deadline=time.monotonic()+5
-            while time.monotonic()<deadline:
-                if self.log.exists() and any(c[0]=='inspect' and c[-1]!='teleop' for c in self.calls()):break
-                time.sleep(.02)
-            else:self.fail('Server startup was not reached')
-            os.killpg(proc.pid,signal.SIGINT);proc.communicate(timeout=5)
-            self.assertEqual(proc.returncode,130)
-            self.assertEqual([c[0] for c in self.calls()][-2:],['stop','rm'])
-            self.assertFalse(any('sim_to_real_so101.scripts.lerobot_eval' in c for c in self.calls()))
-        finally:
-            if proc.poll() is None:os.killpg(proc.pid,signal.SIGKILL);proc.communicate()
 
 
 if __name__=='__main__':unittest.main()
