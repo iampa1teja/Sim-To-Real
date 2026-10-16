@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('sim_to_real_so101.utils.pick_place_eval',
                                             ROOT / 'source/sim_to_real_so101/utils/pick_place_eval.py')
 sys.path.insert(0, str(ROOT / 'source'))
-from sim_to_real_so101.gr00t_client.grasp import GraspConfig, add_grasp_arguments
+from sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
 EVALUATOR = ROOT / 'source/sim_to_real_so101/scripts/lerobot_eval.py'

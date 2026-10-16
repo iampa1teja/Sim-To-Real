@@ -9,10 +9,10 @@ import sys
 import numpy as np
 import pytest
 
-from sim_to_real_so101.gr00t_client.grasp import (
+from sim_to_real_so101.policy_client.grasp import (
     GraspConfig, GraspController, GripperLatch, dither_score, seed_query, training_bounds,
 )
-from sim_to_real_so101.gr00t_client.smoothing import ActionSmoother, SmoothingConfig
+from sim_to_real_so101.policy_client.smoothing import ActionSmoother, SmoothingConfig
 from test_smoothing import KEYS, FakeClient, FakeClock, FakeRobot, actions, make_sim_policy, real_code
 
 

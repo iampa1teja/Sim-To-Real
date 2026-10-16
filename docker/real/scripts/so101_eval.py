@@ -63,7 +63,7 @@ from lerobot.utils.utils import init_logging, log_say
 import numpy as np
 
 from so101_control import SO101Control
-from sim_to_real_so101.gr00t_client.smoothing import (
+from sim_to_real_so101.policy_client.smoothing import (
     ActionSmoother, FixedRateScheduler, InferenceWorker, SmoothingConfig, TimingLog, log_late,
 )
 
@@ -176,7 +176,7 @@ class So100Adapter:
         """
         model_input = self.obs_to_policy_inputs(obs)
         if getattr(self, "episode_seed", None) is not None:
-            from sim_to_real_so101.gr00t_client.grasp import seed_query
+            from sim_to_real_so101.policy_client.grasp import seed_query
             seed_query(self.policy, self.episode_seed)
         action_chunk, info = self.policy.get_action(model_input)
 
@@ -414,7 +414,7 @@ def eval(cfg: EvalConfig):
     logging.info(pformat(asdict(cfg)))
     smoothing_config(cfg).validate(cfg.action_horizon)
 
-    from sim_to_real_so101.gr00t_client.grasp import GraspConfig, GraspController
+    from sim_to_real_so101.policy_client.grasp import GraspConfig, GraspController
     grasp_config = GraspConfig(**{name: getattr(cfg, name) for name in GraspConfig.__dataclass_fields__})
     # Resolve/validate before connecting to or moving hardware.
     grasp = GraspController(grasp_config, So100Adapter.joint_keys) if grasp_config.enabled else None

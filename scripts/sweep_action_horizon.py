@@ -88,7 +88,7 @@ def main(argv=None):
     for key in ('dr','resume','dry_run','gui'): p.add_argument('--'+key,action='store_true')
     p.add_argument('--render_warmup',type=int,default=0,help='Render only the N steps before each policy query (0 = every step; see lerobot_eval.py)')
     p.add_argument('--shared_gpu',action='store_true',help='Skip the free-GPU check (parallel sweeps; see scripts/sweep_checkpoints.sh)')
-    from sim_to_real_so101.gr00t_client.grasp import add_grasp_arguments, GraspConfig
+    from sim_to_real_so101.policy_client.grasp import add_grasp_arguments, GraspConfig
     add_grasp_arguments(p, include_latch=False)
     p.add_argument('--gripper_latch', nargs='?', const='on', default=None,
                    help='Sweep dimension: off,on (default: ordinary horizon sweep)')
