@@ -1,0 +1,37 @@
+# Official base MolmoAct2 (no fine-tuning) on the same benchmark as pick_place.yaml.
+# Run with:  ./docker/eval.sh pick_place_molmo_base.yaml [--dry_run]
+#
+# Official base weights (allenai/MolmoAct2). One-time setup: ./scripts/setup_molmoact2.sh
+
+task: pick_place
+
+policy:
+  name: molmoact2
+  checkpoint: molmoact2_base          # folder written by scripts/setup_molmoact2.sh
+  models_dir: /external_storage/molmoact2
+  # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
+  server_image: policy-server:latest
+  options:
+    norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
+    dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
+    num_steps: 10                     # flow-matching solver steps
+
+# Everything below matches pick_place.yaml so results are comparable.
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  splits: [id, ood, yaw, train]
+  repeats: 1
+  start_mode: cycle
+  random_fraction: 0.0
+  robot_start: recorded
+  action_horizon: 8                   # at most the model's chunk length
+  render_warmup: 2
+  lang: Pick up the blue cube and place it in the white box
+  rename_map:
+    realsense_rgb: room
+    wrist_cam: wrist
+
+run:
+  gui: false
+  rerun: false
