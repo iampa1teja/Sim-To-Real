@@ -42,7 +42,7 @@ if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=
 [[ -f $config ]] || fail "Config file not found: $config"
 
 # Variables defined by the helper: dr task policy_name model models_dir port server_image dataset
-# episodes repeats start_mode random_fraction robot_start render_warmup episode_length_s action_horizon
+# episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon
 # eval_set splits lang lang_by_color rename_map results_json seed_per_episode gui rerun
 # and the arrays policy_options (KEY=VALUE) and grasp_args.
 config_vars=$(python3 "$repo_dir/docker/eval_config.py" "$config") || exit 1
@@ -137,6 +137,9 @@ run docker exec teleop test -d "$dataset/pick_place_meta" || fail 'Dataset metad
 run docker exec teleop test -d "$teleop_policies" || fail "Policies folder missing inside teleop ($teleop_policies); mount ./policies there (README) or set TELEOP_POLICIES_DIR."
 if [[ -n $eval_set ]]; then
     run docker exec teleop test -f "$eval_set" || fail 'Eval set JSON missing inside teleop.'
+fi
+if [[ -n $robot_usd ]]; then
+    run docker exec teleop test -f "$robot_usd" || fail 'Robot USD missing inside teleop; check eval.robot_usd.'
 fi
 if "$external_server"; then
     : # The shared server owns the port.
@@ -243,6 +246,7 @@ if [[ -n $eval_set ]]; then
 fi
 eval_cmd+=("${grasp_args[@]}")
 [[ -z $episode_length_s ]] || eval_cmd+=(--episode_length_s "$episode_length_s")
+[[ -z $robot_usd ]] || eval_cmd+=(--robot_usd "$robot_usd")
 [[ $render_warmup == 0 ]] || eval_cmd+=(--render_warmup "$render_warmup")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)

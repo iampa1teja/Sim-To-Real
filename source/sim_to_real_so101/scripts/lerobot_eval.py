@@ -124,6 +124,8 @@ parser.add_argument("--random_fraction", type=float, default=0.0)
 parser.add_argument("--robot_start", choices=("recorded", "default"), default="recorded",
                     help="recorded: arm starts at each episode's recorded first-frame state (demo start pose); "
                          "default: the scene's calibrated reset pose")
+parser.add_argument("--robot_usd", type=Path, default=None,
+                    help="Override the robot USD before creating the environment (default: task asset)")
 parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON colour to instruction map")
 parser.add_argument("--results_json", type=Path)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
@@ -196,6 +198,12 @@ def _evaluate():
         use_fabric=not args_cli.disable_fabric
     )
     env_cfg.seed = args_cli.seed
+    if args_cli.robot_usd is not None:
+        robot_usd = args_cli.robot_usd.resolve()
+        if not robot_usd.is_file():
+            raise ValueError(f"Robot USD does not exist: {robot_usd}")
+        env_cfg.scene.robot.spawn.usd_path = str(robot_usd)
+    print(f"[INFO]: Robot USD: {env_cfg.scene.robot.spawn.usd_path}")
     if args_cli.episode_length_s is not None:
         env_cfg.episode_length_s = args_cli.episode_length_s
     episode_length_s = float(env_cfg.episode_length_s)
@@ -450,6 +458,7 @@ def _evaluate():
             action_horizon=args_cli.action_horizon, step_dt=step_dt,
         )
         report['robot_start'] = args_cli.robot_start
+        report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
         if grasp_kwargs:
             from dataclasses import asdict
             report["gripper_control"] = asdict(grasp_config)
