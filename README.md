@@ -60,6 +60,7 @@ docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --n
   -v ~/.cache/huggingface/lerobot/calibration:/root/.cache/huggingface/lerobot/calibration \
   -v "$(pwd)/docker/env:/root/env" \
   -v "$(pwd)/source:/workspace/Sim-to-Real-SO-101-Workshop/source" \
+  -v "$(pwd)/policies:/workspace/Sim-to-Real-SO-101-Workshop/policies" \
   -v "$(pwd)/outputs:/workspace/Sim-to-Real-SO-101-Workshop/outputs" \
   -v "$(pwd)/datasets:/workspace/Sim-to-Real-SO-101-Workshop/datasets" \
   -v "$(pwd)/docker/real/scripts:/workspace/Sim-to-Real-SO-101-Workshop/docker/real/scripts" \
@@ -154,7 +155,7 @@ The table also covers repository host scripts and direct Python utilities.
 | `scripts/prepare_pick_place_gr00t.py` | Independent v2.1 training copy; [Training](docs/05-training.md) |
 | `scripts/verify_pick_place_training.py` | Checksums and actual reader check; [Training](docs/05-training.md) |
 | `docker/real/build.sh` | Host image build for Ada/Blackwell; [Setup](docs/01-setup.md) |
-| `docker/eval_pick_place.sh` | Host-managed server/client lifecycle; [Evaluation](docs/06-evaluation.md) |
+| `docker/eval.sh <config>.yaml` | Host-managed server/client lifecycle from one YAML (`configs/eval/`); [Evaluation](docs/06-evaluation.md) |
 | `docker/sim/entrypoint.sh` | Automatic container initialization; [Setup](docs/01-setup.md) |
 | `docker/utils.sh` | Sourced `setenv` helper; [Setup](docs/01-setup.md) |
 | `source/sim_to_real_so101/scripts/spawn.py` | Generic teleop cube spawn client; [Recording](docs/04-recording.md) |
@@ -167,7 +168,7 @@ The table also covers repository host scripts and direct Python utilities.
 External LeRobot discovery/calibration commands are covered in [Setup](docs/01-setup.md);
 GR00T's launcher and server are covered in [Training](docs/05-training.md) and
 [Evaluation](docs/06-evaluation.md). [Docker notes](docker/README.md),
-[preparation notes](scripts/README.md) and [validation history](docker/eval_pick_place_validation.md)
+[preparation notes](scripts/README.md)
 remain available.
 
 ## Troubleshooting at a glance
