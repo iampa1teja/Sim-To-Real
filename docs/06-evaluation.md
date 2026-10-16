@@ -120,6 +120,19 @@ configs retain their calibration. The wrist camera follows the gripper; the
 base pose, joint command mapping and benchmark starts are unchanged. Results
 record `robot_usd` so runs with different wrist frames can be identified.
 
+To inspect the initial pose in Isaac without loading a policy, run:
+
+```bash
+docker exec -it -w /workspace/Sim-to-Real-SO-101-Workshop teleop \
+  /workspace/isaaclab/_isaac_sim/python.sh scripts/preview_eval_pose.py \
+  --config pick_place_molmo_base.yaml
+```
+
+The preview uses the YAML's USD and first benchmark start, holds the reset pose
+for the evaluator's ten settling steps, then pauses physics. The Isaac window
+stays open for inspection. External/wrist images and `pose.json` are saved under
+`outputs/preview_molmo/` (`--out_dir` overrides this). Close Isaac to end it.
+
 The former `eval_pick_place.sh --flag value` options map to `--set` using the table above, for instance
 `--episodes 5` becomes `--set eval.episodes=5` and `--gripper_latch` becomes `--set grasp.gripper_latch=true`.
 
