@@ -23,7 +23,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "source"))
-from sim_to_real_so101.gr00t_client.smoothing import (
+from sim_to_real_so101.policy_client.smoothing import (
     ActionSmoother, FixedRateScheduler, InferenceResult, InferenceWorker, JointEMA,
     SimulationSmoother, SmoothingConfig, TimingLog, blend_actions, log_late,
 )
@@ -436,7 +436,7 @@ def test_new_sim_cli_flags_and_early_validation():
             self.app = SimpleNamespace()
 
     def parse(arguments):
-        from sim_to_real_so101.gr00t_client.grasp import add_grasp_arguments
+        from sim_to_real_so101.policy_client.grasp import add_grasp_arguments
         context = dict(argparse=argparse, json=json, math=math, os=os, Path=Path, AppLauncher=Launcher,
                        add_grasp_arguments=add_grasp_arguments)
         with patch.object(sys, "argv", ["lerobot_eval", *arguments]):

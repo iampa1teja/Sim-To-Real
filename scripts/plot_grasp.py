@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'source'))
-from sim_to_real_so101.gr00t_client.grasp import dither_score
+from sim_to_real_so101.policy_client.grasp import dither_score
 
 
 def main():
