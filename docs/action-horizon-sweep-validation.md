@@ -8,7 +8,7 @@ Validated on 2026-10-01 IST, RTX 4090, checkpoint
 - `.gitignore`: track the new sweep regression tests; existing local edits excluded.
 - `docker/sweep_action_horizon.sh`: shell entry point.
 - `scripts/sweep_action_horizon.py`: host argument/configuration handling, one-server lifecycle, horizon runs, logging, progress and resume.
-- `docker/eval_pick_place.sh`: shared-server ownership modes and explicit results destination.
+- `docker/eval.sh`: YAML-driven evaluation with shared-server ownership modes and `--set` overrides; the sweep calls it with `--config` as the base YAML.
 - `scripts/summarize_sweep.py` and `source/sim_to_real_so101/scripts/summarize_sweep.py`: repository and installed summary entry points, CSV/JSON/Markdown and plots.
 - `scripts/compare_eval_results.py` and `source/sim_to_real_so101/utils/eval_comparison.py`: one shared comparison implementation, allowing horizon differences only for same-checkpoint sweeps.
 - `source/sim_to_real_so101/utils/lerobot_interface.py` and `source/sim_to_real_so101/scripts/lerobot_eval.py`: per-episode inference calls, measured wall time and flushed episode progress.
@@ -25,7 +25,7 @@ python3 -m unittest discover -s tests -p test_summarize_sweep.py -v
 Ran 13 tests in 6.198s — OK
 python3 -m unittest discover -s tests -p test_pick_place_benchmark.py -v
 Ran 13 tests in 2.280s — OK
-python3 -m unittest discover -s tests -p test_eval_pick_place_script.py -v
+python3 -m unittest discover -s tests -p test_eval_script.py -v
 Ran 19 tests in 3.549s — OK
 python3 -m unittest discover -s tests -p test_lerobot_eval_rollout.py -v
 Ran 16 tests in 0.155s — OK

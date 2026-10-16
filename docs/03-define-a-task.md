@@ -141,5 +141,4 @@ For your task, verify that a cube still on the table is not a grasp, a released
 object outside the box is not placement, contact blocks release, and brief rim
 crossings do not satisfy confirmation. Test success and timeout separately,
 including same-step success/timeout. Check reset clearing across consecutive
-episodes. Use the [GPU validation checklist](../docker/eval_pick_place_validation.md)
-for the existing task; code-level checks do not replace observing the renderer.
+episodes. Run the evaluation on a GPU host for the existing task; code-level checks do not replace observing the renderer.

@@ -10,9 +10,8 @@ calibration, persistent `docker/env` settings and editable extension installatio
 - [Calibration and manual control](../docs/01-setup.md#calibration-diagnostics-and-manual-control)
 - [Host evaluation runner and every flag](../docs/06-evaluation.md#host-runner)
 - [Real policy server and rollout](../docs/06-evaluation.md#real-robot-rollout)
-- [Validation history and GPU checks](eval_pick_place_validation.md)
 - [Troubleshooting](../docs/troubleshooting.md)
 
-The teleop launch block also remains in the hub because `eval_pick_place.sh`
+The teleop launch block also remains in the hub because `eval.sh`
 extracts it for its missing-container diagnostic. Use the checked paths in the
 new guides rather than the former `real_robot/` or `lerobot_so101_teleop/` paths.

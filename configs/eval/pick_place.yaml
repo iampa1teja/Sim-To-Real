@@ -6,8 +6,8 @@ task: pick_place            # pick_place | pick_place_dr (domain randomisation)
 
 policy:
   name: groot_n17           # folder under policies/
-  checkpoint: so101_pick_place_v1/checkpoint-10000   # relative to models_dir
-  models_dir: ~/models
+  checkpoint: stage_2_main/checkpoint-60000          # final checkpoint, relative to models_dir
+  models_dir: /external_storage/gr00t_20261011_130632
   # port: 5555              # default: default_port from policies/<name>/policy.toml
   server_image: policy-server:latest                 # ./policy_servers/build.sh
   options:                  # passed to the server (--option) and the client (--policy_option)
@@ -21,7 +21,7 @@ eval:
   robot_start: recorded     # recorded | default
   action_horizon: 16        # 1..16
   # episode_length_s: 15    # default: the task's own value
-  render_warmup: 0
+  render_warmup: 2          # render only the 2 steps before each policy query (0 = every step)
   # eval_set: /workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_set.json   # fixed benchmark JSON
   # splits: [id, ood, yaw, train]                                             # needs eval_set
   # repeats: 1                                                                # needs eval_set
