@@ -249,7 +249,7 @@ def test_sim_latch_and_logging_preserve_arm_mapping(dataset, smoothing):
         grasp_config=GraspConfig(gripper_latch=True, latch_dataset=str(dataset)), **smoothing)
     latched._iface.get_raw_actions_from_radians = lambda joints: joints
     def predict(_):
-        return {'single_arm': np.zeros((1,16,5)), 'gripper': np.full((1,16,1), 20.)}, {}
+        return np.hstack([np.zeros((16, 5)), np.full((16, 1), 20.)])
     baseline._client.get_action = latched._client.get_action = predict
     for step in range(50):
         a = baseline.get_action(np.array([0.]*5 + [25.]), {})

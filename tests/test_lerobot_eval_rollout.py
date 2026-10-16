@@ -133,7 +133,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
                                start_mode='cycle', robot_start='recorded', cube_starts='/fake/metadata', rename_map=None,
                                lang_instruction_by_color={'blue': 'blue task', 'red': 'red task'},
                                lang_instruction='fallback', results_json=path, checkpoint='checkpoint-10',
-                               rerun=False, policy_host='localhost', policy_port=5555, action_horizon=16,
+                               rerun=False, policy='groot_n17', policy_option=[], policy_api_token=None, policy_host='localhost', policy_port=None, action_horizon=16,
                                episode_length_s=None)
         for key, value in (vars(GraspConfig()) | {"seed_per_episode": False}).items():
             setattr(args, key, value)
@@ -152,7 +152,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
         context = dict(GraspConfig=GraspConfig, args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
                        KeyboardControl=lambda: SimpleNamespace(reset_world=False), torch=torch, np=np, random=random,
                        json=json, math=math, sys=sys, traceback=traceback,
-                       LeRobotSO101Interface=lambda **kw: interface, GR00TRemotePolicy=FakePolicy,
+                       LeRobotSO101Interface=lambda **kw: interface, SimRemotePolicy=FakePolicy,
                        simulation_app=simulation, tqdm=lambda **kw: SimpleNamespace(update=lambda _: None, close=lambda: None))
         tree = ast.parse(EVALUATOR.read_text())
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)

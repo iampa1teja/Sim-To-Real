@@ -51,13 +51,13 @@ def load_client_code(path, names, context):
 
 
 def real_code(clock=time):
-    context = dict(dataclass=dataclass, datetime=datetime, RobotConfig=object, PolicyClient=object,
+    context = dict(dataclass=dataclass, datetime=datetime, RobotConfig=object, PolicyClient=object, PluginClient=object,
                    Dict=Dict, List=List, Any=Any, np=np, time=clock, logging=logging,
                    ActionSmoother=ActionSmoother, SmoothingConfig=SmoothingConfig,
                    FixedRateScheduler=FixedRateScheduler, InferenceWorker=InferenceWorker,
                    TimingLog=TimingLog, log_late=log_late)
     return load_client_code(ROOT / "docker/real/scripts/so101_eval.py",
-                            {"EvalConfig", "So100Adapter", "recursive_add_extra_dim", "smoothing_config",
+                            {"EvalConfig", "So100Adapter", "smoothing_config",
                              "run_control_loop", "run_smooth_control_loop"}, context)
 
 
@@ -66,7 +66,7 @@ def sim_code():
                    deque=deque, SmoothingConfig=SmoothingConfig, SimulationSmoother=SimulationSmoother,
                    TimingLog=TimingLog, datetime=datetime, log_rerun_data=lambda **kw: None)
     return load_client_code(ROOT / "source/sim_to_real_so101/utils/lerobot_interface.py",
-                            {"GR00TRemotePolicy"}, context)
+                            {"SimRemotePolicy"}, context)
 
 
 class FakeClock:
@@ -107,7 +107,7 @@ class FakeClient:
             self.clock.sleep(self.latency)
         chunk = np.array([[a[k] for k in KEYS] for a in actions(100 * chunk_id)])
         self.finished.set()
-        return {"single_arm": chunk[None, :, :5], "gripper": chunk[None, :, 5:]}, {}
+        return chunk
 
 
 class FakeRobot:
@@ -152,9 +152,9 @@ class FakeInterface:
 
 
 def make_sim_policy(**options):
-    policy = sim_code().GR00TRemotePolicy(FakeInterface(), **options)
+    policy = sim_code().SimRemotePolicy(FakeInterface(), **options)
     policy._client = FakeClient()
-    policy._sim_obs_to_groot_inputs = lambda joints, visual: {"joints": joints.copy(), "visual": visual}
+    policy._sim_obs_to_inputs = lambda joints, visual: {"joints": joints.copy(), "visual": visual}
     return policy
 
 

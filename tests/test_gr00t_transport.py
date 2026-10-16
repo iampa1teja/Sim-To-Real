@@ -148,7 +148,7 @@ class Gr00tTransportTests(unittest.TestCase):
         path = ROOT / 'source/sim_to_real_so101/utils/lerobot_interface.py'
         tree = ast.parse(path.read_text())
         policy_class = next(node for node in tree.body if isinstance(node, ast.ClassDef)
-                            and node.name == 'GR00TRemotePolicy')
+                            and node.name == 'SimRemotePolicy')
         context = dict(np=np, deque=deque, torch=SimpleNamespace(Tensor=object), LeRobotSO101Interface=object)
         exec(compile(ast.Module(body=[policy_class], type_ignores=[]), str(path), 'exec'), context)
         joint_names = ('shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll', 'gripper')
@@ -157,18 +157,17 @@ class Gr00tTransportTests(unittest.TestCase):
                                 get_mapped_actions_vectorized=np.deg2rad)
         for horizon in (8, 16):
             with self.subTest(horizon=horizon):
-                policy = context['GR00TRemotePolicy'](iface, action_horizon=horizon)
+                policy = context['SimRemotePolicy'](iface, action_horizon=horizon)
                 requests = []
 
                 def query(observation):
                     requests.append(observation)
                     chunk = (np.arange(16, dtype=np.float32)[:, None]
                              + np.arange(6, dtype=np.float32)[None, :] / 10 + (len(requests) - 1) * 20)[None]
-                    reply = [{'single_arm': chunk[..., :5], 'gripper': chunk[..., 5:]}, {}]
-                    return MsgSerializer.from_bytes(msgpack.packb(reply, default=mnp.encode))
+                    return chunk[0]
 
                 policy._client = SimpleNamespace(get_action=query)
-                policy._sim_obs_to_groot_inputs = lambda joints, visual: {'observed_joints': joints}
+                policy._sim_obs_to_inputs = lambda joints, visual: {'observed_joints': joints}
                 for step in range(16):
                     action = policy.get_action(np.full(6, step), {})
                     expected_degrees = (step // horizon) * 20 + step % horizon + np.arange(6) / 10
