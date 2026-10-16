@@ -290,14 +290,17 @@ def test_latch_sweep_summary_pairs_schedule_and_reports_metrics(tmp_path):
     assert summary['latch_comparisons'] == [{'action_horizon': 8, 'available': False}]
 
 
-def test_runner_forwards_grasp_controls_and_seeded_server_without_eval_set():
+def test_runner_forwards_grasp_controls_and_seeded_server_without_eval_set(tmp_path):
     root = Path(__file__).resolve().parents[1]
-    base = [str(root/'docker/eval_pick_place.sh'), '--model', 'example/checkpoint-200000',
-            '--models_dir', '/tmp/models', '--dataset', '/workspace/data', '--dry_run',
-            '--seed_per_episode', '--gripper_latch', '--log_gripper', '--latch_steady_steps', '10',
-            '--gripper_empty_closed', '2']
+    config = tmp_path / 'grasp.yaml'
+    config.write_text(
+        'policy: {checkpoint: example/checkpoint-200000}\n'
+        'eval: {dataset: /workspace/data}\n'
+        'grasp: {seed_per_episode: true, gripper_latch: true, log_gripper: true,'
+        ' latch_steady_steps: 10, gripper_empty_closed: 2}\n')
+    base = ['bash', str(root/'docker/eval.sh'), str(config), '--dry_run']
     server = subprocess.run(base + ['--server_only'], capture_output=True, text=True, check=True).stdout
-    assert 'benchmark_server.py' in server
+    assert '--policy groot_n17' in server and 'lerobot_eval' not in server
     client = subprocess.run(base + ['--external_server'], capture_output=True, text=True, check=True).stdout
     assert '--latch_steady_steps 10' in client
     assert '--gripper_empty_closed 2' in client

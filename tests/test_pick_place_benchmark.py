@@ -276,38 +276,6 @@ class RuntimeTests(unittest.TestCase):
             self.assertEqual(report['overall']['failure_modes']['placed_not_confirmed'],2)
             self.assertTrue((root/'results.png').is_file())
 
-    def test_seed_endpoint_reseeds_actual_rngs(self):
-        import torch, random
-        spec=importlib.util.spec_from_file_location('seed_server',ROOT/'docker/real/scripts/benchmark_server.py')
-        server=importlib.util.module_from_spec(spec);spec.loader.exec_module(server)
-        with patch.object(torch.cuda,'manual_seed_all'):
-            self.assertEqual(server.seed_policy(123),{'seed':123})
-            first=(random.random(),np.random.random(),torch.rand(1).item())
-            server.seed_policy(123)
-            second=(random.random(),np.random.random(),torch.rand(1).item())
-            self.assertEqual(first,second)
-            server.seed_policy(124)
-            self.assertNotEqual(first,(random.random(),np.random.random(),torch.rand(1).item()))
-        for bad in (-1,2**32,True,'123'):
-            with self.assertRaises(ValueError):server.seed_policy(bad)
-
-    def test_host_passes_benchmark_flags_and_selects_seed_server(self):
-        import test_eval_pick_place_script as host
-        harness=host.HostScriptTests();harness.setUp()
-        try:
-            result=harness.run_script('--eval_set','/workspace/set.json','--splits','id,ood',
-                                      '--repeats','3','--robot_start','default','--dr')
-            self.assertEqual(result.returncode,0,result.stderr)
-            calls=harness.calls()
-            server=next(c for c in calls if c[0]=='run')
-            self.assertIn('/Isaac-GR00T/gr00t/eval/real_robot/SO100/benchmark_server.py',server)
-            evaluation=next(c for c in calls if 'sim_to_real_so101.scripts.lerobot_eval' in c)
-            for key,value in (('--eval_set','/workspace/set.json'),('--splits','id,ood'),('--repeats','3'),('--robot_start','default')):
-                self.assertEqual(evaluation[evaluation.index(key)+1],value)
-            self.assertIn('Lerobot-So101-Teleop-Pick-Place-DR-Eval',evaluation)
-        finally:
-            harness.doCleanups()
-
 
 if __name__ == '__main__':
     unittest.main()
