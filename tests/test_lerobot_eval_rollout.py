@@ -38,6 +38,22 @@ class RecordingStderr(io.StringIO):
         super().flush()
 
 
+class FakeProgress:
+    def __init__(self, **options):
+        self.options = options
+        self.postfixes = []
+        self.closed = False
+
+    def update(self, amount):
+        pass
+
+    def set_postfix_str(self, value):
+        self.postfixes.append(value)
+
+    def close(self):
+        self.closed = True
+
+
 class FakePolicy:
     instances = []
 
@@ -149,11 +165,18 @@ class EvaluatorRolloutTests(unittest.TestCase):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
             env.max_episode_length = math.ceil(env.made_episode_length_s / env.step_dt)
             return env
+        env.progress_bars = []
+
+        def progress_bar(**options):
+            bar = FakeProgress(**options)
+            env.progress_bars.append(bar)
+            return bar
+
         context = dict(GraspConfig=GraspConfig, args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
                        KeyboardControl=lambda: SimpleNamespace(reset_world=False), torch=torch, np=np, random=random,
                        json=json, math=math, sys=sys, traceback=traceback,
                        LeRobotSO101Interface=lambda **kw: interface, SimRemotePolicy=FakePolicy,
-                       simulation_app=simulation, tqdm=lambda **kw: SimpleNamespace(update=lambda _: None, close=lambda: None))
+                       simulation_app=simulation, tqdm=progress_bar)
         tree = ast.parse(EVALUATOR.read_text())
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
                      and node.name in ('_evaluate', 'main')]
@@ -217,6 +240,23 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(report['step_dt'], 1/30)
         self.assertEqual(env.made_episode_length_s, 15)
         self.assertEqual(json.loads(next(line for line in env.printed if line.startswith('{'))), report)
+
+    def test_progress_tracks_completed_successes_and_final_episode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env, _ = self.evaluate(Path(directory) / 'report.json')
+        bars = env.progress_bars
+        self.assertEqual([bar.options['desc'] for bar in bars],
+                         ['Rollout (ep 1/3)', 'Rollout (ep 2/3)', 'Rollout (ep 3/3)'])
+        self.assertEqual([bar.postfixes[0] for bar in bars],
+                         ['success=N/A (0/0)', 'success=100.0% (1/1)', 'success=50.0% (1/2)'])
+        self.assertEqual([bar.postfixes[-1] for bar in bars],
+                         ['success=100.0% (1/1)', 'success=50.0% (1/2)', 'success=66.7% (2/3)'])
+        self.assertTrue(all(bar.closed for bar in bars))
+
+    def test_progress_counts_simultaneous_success_and_timeout_as_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            env, _ = self.evaluate(Path(directory) / 'report.json', outcomes=[(1, True, True)] * 3)
+        self.assertEqual(env.progress_bars[-1].postfixes[-1], 'success=0.0% (0/3)')
 
     def test_override_is_applied_before_environment_creation(self):
         with tempfile.TemporaryDirectory() as directory:

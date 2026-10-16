@@ -178,7 +178,7 @@ def _evaluate():
         raise ValueError("episode_length_s must be finite and greater than 0")
     benchmark = None
     if getattr(args_cli, 'eval_set', None):
-        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, StageTrace, benchmark_report, save_heatmap
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, StageTrace, benchmark_report, save_heatmap, polygons_match
         from sim_to_real_so101.utils.pick_place_benchmark_runtime import install_stage_tracking, capture_scene
         benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
         args_cli.num_episodes = len(benchmark.schedule)
@@ -318,18 +318,28 @@ def _evaluate():
     # ManagerBasedRLEnv auto-resets on termination. Snapshot metadata BEFORE
     # stepping, then use the returned reset observation for the next episode.
     episodes = []
+    successes = 0
     pbar = None
+
+    def progress_summary():
+        completed = len(episodes)
+        rate = f"{successes / completed:.1%}" if completed else "N/A"
+        return f"success={rate} ({successes}/{completed})"
+
     try:
         obs, _ = env.reset()
         metadata = episode_metadata()
         if benchmark:
             live = capture_scene(env.unwrapped)
             expected = benchmark.data['scene']
-            # Float32 PhysX poses may differ at the micrometre level. A changed
-            # scene must never silently reuse a benchmark's footprint mask.
-            for key in ('box_footprint_base_xy', 'table_outline_base_xy', 'cube_size_m'):
-                if np.shape(live[key]) != np.shape(expected[key]) or not np.allclose(live[key], expected[key], atol=1e-5, rtol=0):
+            # Float32 poses can change the number of nearly collinear hull
+            # vertices. Compare boundaries while retaining the geometry guard.
+            for key in ('box_footprint_base_xy', 'table_outline_base_xy'):
+                if not polygons_match(live[key], expected[key], atol=1e-5):
                     raise ValueError(f'Live scene differs from eval set: {key}; recapture geometry')
+            if (np.shape(live['cube_size_m']) != np.shape(expected['cube_size_m'])
+                    or not np.allclose(live['cube_size_m'], expected['cube_size_m'], atol=1e-5, rtol=0)):
+                raise ValueError('Live scene differs from eval set: cube_size_m; recapture geometry')
             policy.reset(seed=metadata['policy_seed'])
         else:
             policy.reset()
@@ -354,7 +364,8 @@ def _evaluate():
             with torch.inference_mode():
                 if step == 0:
                     pbar = tqdm(total=env.unwrapped.max_episode_length,
-                                desc=f"Rollout (ep {len(episodes) + 1})", unit="step")
+                                desc=f"Rollout (ep {len(episodes) + 1}/{args_cli.num_episodes})", unit="step")
+                    pbar.set_postfix_str(progress_summary())
                 if step < 10:
                     actions[:] = settling_action
                 else:
@@ -375,8 +386,6 @@ def _evaluate():
                 is_terminated = bool(terminated.any().item())
                 is_truncated = bool(truncated.any().item())
                 if is_terminated or is_truncated:
-                    pbar.close()
-                    pbar = None
                     row = {**metadata, "episode": len(episodes), "steps": step,
                            "success": is_terminated and not is_truncated,
                            "success_step": step if is_terminated and not is_truncated else None,
@@ -388,6 +397,10 @@ def _evaluate():
                     if grasp_config.enabled:
                         row.update(policy.grasp.finish_episode(reason="success" if row["success"] else "timeout"))
                     episodes.append(row)
+                    successes += int(row['success'])
+                    pbar.set_postfix_str(progress_summary())
+                    pbar.close()
+                    pbar = None
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
                           f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}", flush=True)

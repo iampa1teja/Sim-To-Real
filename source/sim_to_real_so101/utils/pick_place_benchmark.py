@@ -48,6 +48,24 @@ def hull_distance(point, polygon):
     return float(np.linalg.norm(point - (polygon + t[:, None]*edges), axis=1).min())
 
 
+def polygons_match(first, second, *, atol=1e-5):
+    """Compare convex boundaries in metres, independent of vertex sampling/order."""
+    polygons = []
+    for points in (first, second):
+        points = np.asarray(points, dtype=float)
+        if points.ndim != 2 or points.shape[1] != 2 or len(points) < 3 or not np.isfinite(points).all():
+            return False
+        try:
+            polygons.append(hull(points))
+        except ValueError:
+            return False
+    first, second = polygons
+    # Nearly collinear mesh vertices can enter/leave the hull after tiny float
+    # changes. Compare each hull to the other's edges, not its vertex array.
+    return (all(hull_distance(point, second) <= atol for point in first)
+            and all(hull_distance(point, first) <= atol for point in second))
+
+
 def face_yaw(quaternion):
     rotation = rotation_matrix(quaternion)
     axis = np.argmax(np.linalg.norm(rotation[:2], axis=0))
