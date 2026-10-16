@@ -20,7 +20,7 @@ eval:
   random_fraction: 0.0      # 0.25 opts into random starts
   robot_start: recorded     # recorded | default
   action_horizon: 16        # 1..16
-  # episode_length_s: 15    # default: the task's own value
+  episode_length_s: 30      # 900 steps (the task default is 15 s = 450 steps)
   render_warmup: 2          # render only the 2 steps before each policy query (0 = every step)
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json   # fixed benchmark JSON
   splits: [id, ood, yaw, train]                                                             # needs eval_set

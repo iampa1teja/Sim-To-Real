@@ -26,6 +26,7 @@ eval:
   random_fraction: 0.0
   robot_start: recorded
   action_horizon: 8                   # at most the model's chunk length
+  episode_length_s: 30                    # 900 steps (the task default is 15 s = 450 steps)
   render_warmup: 2
   lang: Pick up the blue cube and place it in the white box
   rename_map:
