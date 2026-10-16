@@ -1,25 +1,23 @@
-# TODO: every value marked TODO must come from the MolmoAct2 model card and repo. Do not guess them.
-# Flip enabled to true once they are filled in and policies/molmoact2/pyproject.toml is locked.
-
 [policy]
 name = "molmoact2"
-description = "MolmoAct2 policy."          # TODO: variant and checkpoint family
-enabled = false
+description = "Official allenai/MolmoAct2 base model (multi-embodiment, post-trained), served with trust_remote_code."
+enabled = true
 default_port = 5556
 
+# Versions follow github.com/allenai/molmoact2 pyproject.toml (Python 3.11-3.12, torch 2.11.0 cu128,
+# transformers >=4.57,<4.58). The lockfile lives in this folder.
 [environment]
-python = "3.12"                            # TODO: the version the model card requires
-# Use these two lines instead of pyproject.toml if upstream publishes a lockfile you want to follow:
-# git = "https://github.com/ORG/REPO.git"  # TODO
-# rev = "<full 40-character commit SHA>"   # TODO
+python = "3.12"
 
 [observation]
-cameras = ["room", "wrist"]                # TODO: cameras and order the model expects
-language = true                            # TODO: confirm it takes an instruction
+cameras = ["room", "wrist"]
+language = true
 
 [action]
-default_horizon = 8                        # TODO: must not exceed the model's native chunk length
-representation = "absolute_joint"          # TODO: if the model emits deltas or another space, convert in client.py
+default_horizon = 8
+representation = "absolute_joint"
 
 [runtime.env]
-# TODO: e.g. HF_HUB_OFFLINE = "1" once weights are local
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+PYTHONDONTWRITEBYTECODE = "1"
