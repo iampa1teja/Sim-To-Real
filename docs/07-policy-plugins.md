@@ -119,16 +119,13 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 - `tests/policies/test_conformance.py`: parametrized over `discover()`. For each policy check the manifest, import `client.py` with torch blocked, check `build_request` accepts a fake observation. Server side is skipped on the host when the model library is missing.
 - `tests/policy_servers/test_launcher.py`: option parsing, bad manifest errors.
 
-## 4. Not yet changed: `docker/eval_pick_place.sh`
+## 4. Evaluation: `docker/eval.sh <config>.yaml`
 
-It still starts `real-robot:n1.7` and mounts `docker/real/scripts` over the GR00T checkout so that
-`benchmark_server.py` provides `seed_policy`. After your Python works, change it to:
-- default `--server_image policy-server:latest`;
-- add `--policy` (default `groot_n17`);
-- replace the server command with `--policy <name> --checkpoint /workspace/models/$model --port $port --option embodiment_tag=$embodiment_tag`;
-- mount `$repo_dir/policies:/policies` and a `policy-cache:/opt/cache` volume;
-- drop the `benchmark_server.py` substitution, since `seed_policy` is now built into `server_core`;
-- pass `--policy` to `lerobot_eval`.
+`docker/eval.sh` replaced `eval_pick_place.sh`. All settings come from a YAML file
+(`configs/eval/pick_place.yaml`; `docker/eval_config.py` validates it). It starts `policy-server:latest`
+with `--policy <name> --checkpoint ... --port ... --option k=v`, mounts `./policies` and a `policy-cache`
+volume, and runs `lerobot_eval --policy <name> --policy_option k=v` in teleop. `seed_policy` is built
+into `server_core`, so no separate benchmark server is needed. See [Evaluation](06-evaluation.md).
 
 ## 5. Order to build it in
 
@@ -138,4 +135,4 @@ It still starts `real-robot:n1.7` and mounts `docker/real/scripts` over the GR00
 4. `RemotePolicy` and the `--policy` flag.
 5. `molmoact2`.
 6. `new_policy` and the conformance test.
-7. The `eval_pick_place.sh` change; then remove `gr00t_client/`, `docker/real/Dockerfile.n17`, `entrypoint.n17.sh`.
+7. The `eval.sh` change (done); then remove `gr00t_client/`, `docker/real/Dockerfile.n17`, `entrypoint.n17.sh`.

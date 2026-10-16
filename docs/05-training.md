@@ -449,13 +449,13 @@ for step in init 5000 10000 15000 20000; do
   else
     model="so101_pick_place_sim_n17_200k_dit_only/checkpoint-$step"
   fi
-  ./docker/eval_pick_place.sh \
-    --model "$model" --models_dir /external_storage/models \
-    --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-    --eval_set /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_75ep_seed1984.json \
-    --splits id,ood,yaw,train --repeats 1 --robot_start recorded \
-    --episode_length_s 30 --action_horizon 8 --port 5560 \
-    --results_json "/workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_results/dit_${step}_ah8.json"
+  ./docker/eval.sh pick_place.yaml \
+    --set policy.checkpoint="\"$model\"" --set policy.models_dir=/external_storage/models \
+    --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+    --set eval.eval_set=/workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_75ep_seed1984.json \
+    --set 'eval.splits=[id, ood, yaw, train]' --set eval.repeats=1 --set eval.robot_start=recorded \
+    --set eval.episode_length_s=30 --set eval.action_horizon=8 --set policy.port=5560 \
+    --set eval.results_json="/workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_results/dit_${step}_ah8.json"
 done
 python3 scripts/compare_eval_results.py \
   datasets/eval_results/dit_init_ah8.json \

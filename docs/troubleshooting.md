@@ -153,7 +153,6 @@ These were found while documenting; no code fixes are bundled with these docs.
 | Historical Docker notes used obsolete paths and unsupported visualization flags | New commands use the tracked `docker/real/scripts` files and actual config fields |
 | Browser GUI needs CDN assets; teleop X11 recipe lacks socket mount | Offline browser and X-server compatibility need environment-specific validation |
 
-Use the [evaluation validation record](../docker/eval_pick_place_validation.md)
-for CPU checks versus outstanding GPU checks. Documentation validation confirms
+Documentation validation confirms
 links/CLI spelling; it does not calibrate hardware, test GPU rendering, establish
 training convergence, or certify a real-robot rollout.

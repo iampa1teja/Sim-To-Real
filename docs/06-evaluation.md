@@ -15,7 +15,7 @@ sequenceDiagram
   S->>S: Count success or timeout; auto-reset once
 ```
 
-`lerobot_eval` uses `GR00TRemotePolicy` and the SO101 interface to convert between
+`lerobot_eval` uses `SimRemotePolicy` and the SO101 interface to convert between
 normalized LeRobot joints and simulation radians, including `sim_joint_mapping`.
 Its `rename_map` translates sim camera names to checkpoint keys. For the prepared
 v2 N1.7 starter profile use `{"realsense_rgb":"room","wrist_cam":"wrist"}`.
@@ -63,74 +63,68 @@ the checkpoint under your **host** models directory. `--dataset` is an absolute
 path **inside teleop**, pointing at the original dataset with saved cube sidecars;
 model paths are relative to the host models directory.
 
-**Host**, repository root, inspect the launch without starting Docker jobs:
+**Host**, repository root. Every setting lives in one YAML file
+([configs/eval/pick_place.yaml](../configs/eval/pick_place.yaml) is the template: policy, checkpoint,
+dataset, episodes, smoothing-free grasp options and so on). Copy it, edit it, then inspect the launch
+without starting Docker jobs:
 
 ```bash
-./docker/eval_pick_place.sh \
-  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
-  --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
-  --episodes 20 --episode_length_s 30 --action_horizon 8 --dry_run
+./docker/eval.sh pick_place.yaml --dry_run
 ```
 
-**Host**, repository root, run the plain evaluation:
+Run the evaluation (a bare file name is looked up in `configs/eval/`):
 
 ```bash
-./docker/eval_pick_place.sh \
-  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
-  --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
-  --episodes 20 --episode_length_s 30 --action_horizon 8
+./docker/eval.sh pick_place.yaml
+./docker/eval.sh pick_place.yaml --set eval.episodes=5 --set policy.checkpoint=so101_pick_place_v2_nvinit/checkpoint-9000
 ```
 
-Run the same command with `checkpoint-9000` to compare both saved checkpoints.
-These commands use recorded cube starts and the corresponding recorded arm
-poses. Keep the dataset, seed and other options identical for the comparison.
+Run it again with `checkpoint-9000` to compare both saved checkpoints. These commands use recorded
+cube starts and the corresponding recorded arm poses. Keep the dataset, seed and other options
+identical for the comparison. Command-line options: `--set section.key=value` (repeatable, overrides
+the YAML), `--dry_run`, `--external_server`, `--server_only`, `--gui`, `--rerun`, `--help`.
 
-Every flag from [eval_pick_place.sh](../docker/eval_pick_place.sh):
+The policy is a plugin under `policies/<name>/` (see [07 policy plugins](07-policy-plugins.md)); the
+server runs in the generic `policy-server` image (`./policy_servers/build.sh`) and the first start of a
+policy builds its environment, so allow for `READY_TIMEOUT` (default 900 s). The teleop container needs
+`./policies` mounted (see the README launch block).
 
-| Flag | Default / interpretation |
+YAML keys (old `eval_pick_place.sh` flag in parentheses):
+
+| Key | Default / interpretation |
 | --- | --- |
-| `--model` | Required relative checkpoint path; no absolute, `.` or `..` path components |
-| `--dataset` | Required absolute teleop dataset root; expects `pick_place_meta/` |
-| `--models_dir` | `MODELS_DIR` or `$HOME/models` on host |
-| `--episodes` | 20, positive integer |
-| `--dr` | Off; choose `Lerobot-So101-Teleop-Pick-Place-DR-Eval` instead of plain Eval |
-| `--random_fraction` | 0.0; recorded cube starts only; `0.25` explicitly opts into random XY/yaws |
-| `--start_mode` | `cycle`; alternative `random` for recorded-start selection |
-| `--episode_length_s` | Task default (15 s); override with finite positive seconds |
-| `--action_horizon` | 16; integer in 1–16, executed actions before replanning |
-| `--embodiment_tag` | `EMBODIMENT_TAG` or `NEW_EMBODIMENT`; passed to the server as `--embodiment-tag` |
-| `--server_image` | `SERVER_IMAGE` or `real-robot:n1.7` |
-| `--rename_map` | `RENAME_MAP` or `{"realsense_rgb":"room","wrist_cam":"wrist"}` |
-| `--lang` | `Pick up the blue cube and place it in the white box` |
-| `--lang_by_color` | Empty; JSON with blue instruction, and red too with DR |
-| `--port` | 5555; host TCP port, 1–65535 |
-| `--gui` | Off; omit the client's headless flag when enabled |
-| `--rerun` | Off; pass the client's Rerun visualization flag |
-| `--dry_run` | Off; print Docker commands/preflight rather than execute Docker |
-| `--help`, `-h` | Usage |
+| `task` | `pick_place`; `pick_place_dr` selects `Lerobot-So101-Teleop-Pick-Place-DR-Eval` (`--dr`) |
+| `policy.name` | `groot_n17`; folder under `policies/` |
+| `policy.checkpoint` | Required relative checkpoint path under `policy.models_dir` (`--model`) |
+| `policy.models_dir` | `~/models` on the host (`--models_dir`) |
+| `policy.port` | The plugin manifest's `default_port` (`--port`) |
+| `policy.server_image` | `policy-server:latest` (`--server_image`) |
+| `policy.options` | Mapping given to the server (`--option`) and client (`--policy_option`), e.g. `embodiment_tag` (`--embodiment_tag`) |
+| `eval.dataset` | Required absolute teleop dataset root; expects `pick_place_meta/` (`--dataset`) |
+| `eval.episodes` | 20 (`--episodes`) |
+| `eval.random_fraction`, `eval.start_mode`, `eval.robot_start` | 0.0, `cycle`, `recorded` |
+| `eval.episode_length_s` | Task default (15 s); finite positive seconds |
+| `eval.action_horizon` | 16; integer in 1-16 |
+| `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
+| `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
+| `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
+| `eval.render_warmup`, `eval.results_json` | 0; absolute teleop path |
+| `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
+| `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
-For a legacy N1.6 checkpoint, build with `./docker/real/build.sh ada n16` and add
-`--server_image real-robot --rename_map '{"realsense_rgb":"front","wrist_cam":"wrist"}'`.
-Keep the checkpoint's own action/modality configuration; changing camera names
-does not convert a model between N1.6 and N1.7.
+The former `eval_pick_place.sh --flag value` options map to `--set` using the table above, for instance
+`--episodes 5` becomes `--set eval.episodes=5` and `--gripper_latch` becomes `--set grasp.gripper_latch=true`.
 
-Preflight checks Docker access without sudo, running `teleop`, the chosen server
-image, checkpoint containment/existence, `config.json` and weight files, sidecar
-directory existence, valid arguments/colour JSON, and a free host port. Dry-run
-still validates arguments and needs host Python 3, but does not perform those
-Docker/filesystem readiness checks. The missing-teleop diagnostic extracts the
-launch block from the hub README; that block is intentionally retained there.
+Preflight checks Docker access without sudo, running `teleop`, the server image, checkpoint
+containment/existence, `config.json` and weight files, dataset and policies folders inside teleop,
+valid values, and a free host port. Dry-run validates the YAML but skips the Docker/filesystem checks.
+The missing-teleop diagnostic extracts the launch block from the hub README.
 
-The script starts a uniquely named detached, auto-removed policy server with the
-existing GPU/network/device/display/model mounts, waits up to 300 seconds for TCP
-readiness, runs `lerobot_eval` inside teleop with Isaac's Python wrapper, and
-prints the JSON. It streams server logs to a temporary host file so failure logs
-survive automatic container removal. Exit/interrupt traps stop/remove only this
-run's server, stop log following and delete its temporary log. It does not stop
-the user's teleop container. Save terminal output if you need persistent server
-failure logs. A readiness connection is not a complete inference health test.
+The script starts a uniquely named detached, auto-removed policy server, waits for TCP readiness,
+runs `lerobot_eval` inside teleop with Isaac's Python wrapper, and prints the JSON. It streams server
+logs to a temporary host file so failure logs survive automatic container removal. Exit/interrupt
+traps stop/remove only this run's server. It does not stop the user's teleop container. A readiness
+connection is not a complete inference health test.
 
 ### Results JSON
 
@@ -198,12 +192,12 @@ is weak evidence of coverage.
 **Host**, repository root, DR with matching colour instructions:
 
 ```bash
-./docker/eval_pick_place.sh \
-  --model so101_pick_place_v2_nvinit/checkpoint-10000 \
-  --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
-  --episodes 20 --dr --random_fraction 0 --start_mode cycle \
-  --lang_by_color '{"blue":"Pick up the blue cube and place it in the white box","red":"Pick up the red cube and place it in the white box"}'
+./docker/eval.sh pick_place.yaml \
+  --set policy.checkpoint=so101_pick_place_v2_nvinit/checkpoint-10000 \
+  --set policy.models_dir=~/sim2real/models \
+  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
+  --set task=pick_place_dr --set eval.episodes=20 --set eval.random_fraction=0 --set eval.start_mode=cycle \
+  --set 'eval.lang_by_color={blue: Pick up the blue cube and place it in the white box, red: Pick up the red cube and place it in the white box}'
 ```
 
 DR randomizes robot colour, blue/red cube colour and the measured room tube-light
@@ -232,8 +226,7 @@ zero_agent --task Lerobot-So101-Teleop-Pick-Place-DR-Eval --num_steps 4500
 
 Confirm startup event order, cube support on the actual tabletop, no box overlap,
 and varying camera/light/robot/cube appearance. These checks require a GPU and
-renderer. The [validation history](../docker/eval_pick_place_validation.md)
-records earlier CPU tests/dry runs and retains the GPU checklist; it is not proof
+renderer. Passing CPU tests is not proof
 that rendering was tested on your hardware.
 
 **Teleop container**, with a server already listening, direct evaluation:
@@ -392,12 +385,11 @@ in the first host terminal and keep it running after `SERVER_READY port=5560`:
 
 ```bash
 cd ~/Sim-to-Real-SO-101-Workshop && \
-./docker/eval_pick_place.sh \
-  --server_only \
-  --model so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
-  --models_dir /external_storage/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --port 5560
+./docker/eval.sh pick_place.yaml --server_only \
+  --set policy.checkpoint=so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --set policy.models_dir=/external_storage/models \
+  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --set policy.port=5560
 ```
 
 In the second host terminal, run the physical SO101 follower client:
@@ -521,11 +513,11 @@ For the **real arm**, first start a seeding-capable server:
 
 ```bash
 cd ~/Sim-to-Real-SO-101-Workshop
-./docker/eval_pick_place.sh --server_only --seed_per_episode \
-  --model so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
-  --models_dir /external_storage/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --port 5560
+./docker/eval.sh pick_place.yaml --server_only --set grasp.seed_per_episode=true \
+  --set policy.checkpoint=so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
+  --set policy.models_dir=/external_storage/models \
+  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --set policy.port=5560
 ```
 
 Then run the saved camera/start-pose client with the optional controls:
@@ -704,13 +696,13 @@ Copy the capture out of teleop before passing it to a host-side generator.
 Run **one checkpoint**, on the host from the repository root:
 
 ```bash
-./docker/eval_pick_place.sh \
-  --model so101_pick_place_v1_n17_10k/checkpoint-50000 \
-  --models_dir ~/sim2real/models \
-  --dataset /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --eval_set /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json \
-  --splits id,ood,yaw,train --repeats 1 \
-  --episode_length_s 30 --action_horizon 8
+./docker/eval.sh pick_place.yaml \
+  --set policy.checkpoint=so101_pick_place_v1_n17_10k/checkpoint-50000 \
+  --set policy.models_dir=~/sim2real/models \
+  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --set eval.eval_set=/workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json \
+  --set 'eval.splits=[id, ood, yaw, train]' --set eval.repeats=1 \
+  --set eval.episode_length_s=30 --set eval.action_horizon=8
 ```
 
 Add `--dry_run` to inspect commands without starting jobs. `--dr` retains the
@@ -793,7 +785,7 @@ chunk before querying again. GR00T's SO-arm processor returns 16 actions; a
 horizon of 8 executes its first eight and replans. The horizon is client-side,
 so the sweep loads the checkpoint **once** and reuses the acknowledged benchmark
 server across all horizons. Each horizon starts a fresh simulator evaluation
-through `eval_pick_place.sh`; success logic and benchmark geometry are unchanged.
+through `eval.sh`; success logic and benchmark geometry are unchanged.
 
 From the host repository root:
 

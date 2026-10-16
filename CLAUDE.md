@@ -25,7 +25,7 @@ Code runs in four separate places. Check which one a command belongs to before y
    on every launch. Console commands such as `pick_place_agent`, `lerobot_eval` and `list_envs` only
    exist here. `setenv` is a helper sourced from `docker/utils.sh`.
 2. **Policy-server container** (`real-robot:n1.7`, built with `./docker/real/build.sh ada n17`).
-   `docker/eval_pick_place.sh` starts and stops it from the host.
+   `docker/eval.sh <config>.yaml` starts and stops it from the host.
 3. **Host uv env**: `uv run --project source/sim_to_real_so101`. The `host` dependency group holds
    torch, lerobot 0.4.2, pytest and similar packages. They live in a dependency group rather than
    `[project]` deps so the container's editable install doesn't pull them into Isaac Sim's Python. The
@@ -84,7 +84,7 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   diagnostics. Sim eval (`scripts/lerobot_eval.py` via `utils/lerobot_interface.GR00TRemotePolicy`) and
   the real client (`docker/real/scripts/so101_eval.py`) both use this one module, so a change there
   affects both paths.
-- **Evaluation**: `docker/eval_pick_place.sh` is the host-side orchestrator. It starts the GR00T server
+- **Evaluation**: `docker/eval.sh <config>.yaml` is the host-side orchestrator. It starts the GR00T server
   container (or uses `--external_server`/`--server_only`), runs `lerobot_eval` in the teleop container
   and writes results JSON. Fixed start sets live in `eval_sets/*.json`, built with
   `make_pick_place_eval_set`. Keep the same set (and its hash) across checkpoints you compare. Benchmark
@@ -100,7 +100,7 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
 ## Conventions and gotchas
 
 - N1.7 models expect camera keys `room`/`wrist`. Older N1.6 checkpoints use `front`/`wrist` and the
-  `real-robot` image (see `eval_pick_place.sh --help`).
+  `real-robot` image (see `eval.sh --help`).
 - `datasets/` and `outputs/` are local and unversioned. Preparation and audit scripts check source hashes;
   never edit recorded datasets in place.
 - Upstream GR00T sources stay untouched. Wrappers patch behavior in-process and pin exact revisions.
