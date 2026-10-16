@@ -1,0 +1,36 @@
+# Base MolmoAct2 (no fine-tuning) on the same benchmark as pick_place.yaml.
+# Run with:  ./docker/eval.sh pick_place_molmo_base.yaml [--dry_run]
+#
+# NOT RUNNABLE YET: policies/molmoact2 is still a stub (enabled = false, TODO values in policy.toml,
+# no real server.py/client.py). Fill those in from the MolmoAct2 model card, set enabled = true and
+# lock policies/molmoact2/pyproject.toml, then set policy.checkpoint below.
+
+task: pick_place
+
+policy:
+  name: molmoact2
+  checkpoint: molmoact2_base          # TODO: base weights folder under models_dir (the plugin decides what it loads)
+  models_dir: /external_storage/molmoact2   # TODO: where the base weights live on the host
+  # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
+  server_image: policy-server:latest
+  options: {}                         # TODO: plugin options, if molmoact2 defines any
+
+# Everything below matches pick_place.yaml so results are comparable.
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  splits: [id, ood, yaw, train]
+  repeats: 1
+  start_mode: cycle
+  random_fraction: 0.0
+  robot_start: recorded
+  action_horizon: 8                   # must not exceed the model's native chunk length (policy.toml default_horizon)
+  render_warmup: 2
+  lang: Pick up the blue cube and place it in the white box
+  rename_map:
+    realsense_rgb: room
+    wrist_cam: wrist
+
+run:
+  gui: false
+  rerun: false
