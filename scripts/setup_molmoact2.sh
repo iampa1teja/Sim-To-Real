@@ -1,20 +1,33 @@
 #!/usr/bin/env bash
 # One-time setup for configs/eval/pick_place_molmo_base.yaml. Run from anywhere on the GPU host:
-#   ./scripts/setup_molmoact2.sh [models_dir]
+#   ./scripts/setup_molmoact2.sh [--variant base|so101] [models_dir]
 # 1. builds the policy-server image if it is missing (./policy_servers/build.sh)
-# 2. downloads the official allenai/MolmoAct2 weights into <models_dir>/molmoact2_base
+# 2. downloads the official weights into <models_dir>/molmoact2_<variant>:
+#      base  = allenai/MolmoAct2 (foundation model, default)
+#      so101 = allenai/MolmoAct2-SO100_101 (SO-100/101 fine-tune)
 # 3. builds the molmoact2 uv environment on the policy-cache volume, so the first eval starts fast
 # models_dir defaults to /external_storage/molmoact2 (the YAML's policy.models_dir). Set HF_TOKEN if the
 # Hub asks for it; SKIP_ENV=1 skips step 3. Re-running resumes or skips finished steps.
 set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-repo_id=${MOLMOACT2_REPO:-allenai/MolmoAct2}
+variant=base
+if [[ ${1:-} == --variant ]]; then
+    [[ $# -ge 2 ]] || { printf 'ERROR: --variant needs base or so101.\n' >&2; exit 1; }
+    variant=$2
+    shift 2
+fi
+case $variant in
+    base) default_repo=allenai/MolmoAct2 ;;
+    so101) default_repo=allenai/MolmoAct2-SO100_101 ;;
+    *) printf 'ERROR: --variant must be base or so101.\n' >&2; exit 1 ;;
+esac
+repo_id=${MOLMOACT2_REPO:-$default_repo}
 models_dir=${1:-/external_storage/molmoact2}
-target=$models_dir/molmoact2_base
+target=$models_dir/molmoact2_$variant
 image=${SERVER_IMAGE:-policy-server:latest}
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 step() { printf '\n== %s\n' "$*"; }
-[[ $# -le 1 && ${1:-} != -* ]] || fail 'Usage: setup_molmoact2.sh [models_dir]'
+[[ $# -le 1 && ${1:-} != -* ]] || fail 'Usage: setup_molmoact2.sh [--variant base|so101] [models_dir]'
 command -v docker >/dev/null || fail 'Install Docker and the NVIDIA Container Toolkit first.'
 docker info >/dev/null 2>&1 || fail 'Start Docker and grant this user Docker access (no sudo is used).'
 
@@ -67,4 +80,4 @@ else
             fi'
 fi
 
-printf '\nMolmoAct2 is ready. Run:\n  ./docker/eval.sh pick_place_molmo_base.yaml --dry_run\n  ./docker/eval.sh pick_place_molmo_base.yaml\n'
+printf '\nMolmoAct2 is ready. Run:\n  ./docker/eval.sh pick_place_molmo_%s.yaml --dry_run\n  ./docker/eval.sh pick_place_molmo_%s.yaml\n' "$variant" "$variant"
