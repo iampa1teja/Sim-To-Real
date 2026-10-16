@@ -1,0 +1,47 @@
+# Pick-and-place evaluation. Run with:  ./docker/eval.sh pick_place.yaml [--dry_run]
+# Every key except policy.checkpoint and eval.dataset is optional; the values below are the defaults
+# unless a line is commented out.
+
+task: pick_place            # pick_place | pick_place_dr (domain randomisation)
+
+policy:
+  name: groot_n17           # folder under policies/
+  checkpoint: so101_pick_place_v1/checkpoint-10000   # relative to models_dir
+  models_dir: ~/models
+  # port: 5555              # default: default_port from policies/<name>/policy.toml
+  server_image: policy-server:latest                 # ./policy_servers/build.sh
+  options:                  # passed to the server (--option) and the client (--policy_option)
+    embodiment_tag: NEW_EMBODIMENT                   # must match the training checkpoint
+
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1   # path inside teleop
+  episodes: 20
+  start_mode: cycle         # cycle | random
+  random_fraction: 0.0      # 0.25 opts into random starts
+  robot_start: recorded     # recorded | default
+  action_horizon: 16        # 1..16
+  # episode_length_s: 15    # default: the task's own value
+  render_warmup: 0
+  # eval_set: /workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_set.json   # fixed benchmark JSON
+  # splits: [id, ood, yaw, train]                                             # needs eval_set
+  # repeats: 1                                                                # needs eval_set
+  lang: Pick up the blue cube and place it in the white box
+  # lang_by_color:          # needs blue (and red for pick_place_dr)
+  #   blue: Pick up the blue cube and place it in the white box
+  #   red: Pick up the red cube and place it in the white box
+  rename_map:               # simulator camera -> camera name the policy expects
+    realsense_rgb: room
+    wrist_cam: wrist
+  # results_json: /workspace/Sim-to-Real-SO-101-Workshop/outputs/results.json   # default: next to the dataset
+
+# grasp:                    # gripper latch and logging (all optional)
+#   gripper_latch: true
+#   latch_dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/train
+#   latch_close_below: 20
+#   latch_open_above: 40
+#   seed_per_episode: true
+#   log_gripper: true
+
+run:
+  gui: false
+  rerun: false
