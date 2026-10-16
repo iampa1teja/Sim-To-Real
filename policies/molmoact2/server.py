@@ -42,7 +42,7 @@ def load_processor(checkpoint: str):
         options["additional_special_tokens"] = (
             tokenizer_config.get("additional_special_tokens") or []
         ) + extra_tokens
-    return AutoProcessor.from_pretrained(checkpoint, trust_remote_code=True, **options)
+    return AutoProcessor.from_pretrained(checkpoint, trust_remote_code=True, use_fast=True, **options)
 
 
 def decode_actions(actions: Any) -> np.ndarray:

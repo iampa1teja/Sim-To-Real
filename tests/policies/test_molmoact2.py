@@ -122,6 +122,7 @@ def test_load_processor_adapts_only_list_form_special_tokens(server, monkeypatch
     args, options = calls.pop()
     assert args == ("checkpoint",)
     assert options["trust_remote_code"] is True
+    assert options["use_fast"] is True
     if isinstance(extra_tokens, list):
         assert options["extra_special_tokens"] == {}
         assert options["additional_special_tokens"] == ["<existing>", *extra_tokens]
