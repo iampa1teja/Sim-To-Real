@@ -48,6 +48,7 @@ def test_defaults_start_the_policy_server_and_the_evaluator(tmp_path):
                      f"--cube_starts {DATASET}/pick_place_meta", "--checkpoint example/checkpoint-200000"):
         assert expected in client
     assert "--eval_set" not in client and "--gripper_latch" not in client
+    assert "--robot_usd" not in client
 
 
 def test_policy_options_reach_server_and_client(tmp_path):
@@ -129,6 +130,46 @@ def test_shipped_pick_place_config_is_valid():
     assert result.returncode == 0, result.stderr
 
 
+def test_molmo_config_selects_original_wrist_asset():
+    result = subprocess.run(["bash", str(SCRIPT), "pick_place_molmo_base.yaml", "--dry_run"],
+                            capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == 0, result.stderr
+    asset = "/workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd"
+    client = find(result, "docker exec -e POLICIES_DIR")
+    assert f"--robot_usd {asset}" in client
+    assert f"docker exec teleop test -f {asset}" in [line.rstrip() for line in commands(result)]
+
+
+def test_original_wrist_asset_composes_with_consistent_joint_anchors():
+    pytest.importorskip("pxr.Usd")
+    from pxr import Gf, Usd, UsdGeom, UsdPhysics
+
+    assets = ROOT / "source/sim_to_real_so101/assets/usd"
+    source = Usd.Stage.Open(str(assets / "SO-ARM101-USD.usd"))
+    stage = Usd.Stage.CreateInMemory()
+    robot = stage.DefinePrim("/Robot")
+    robot.GetReferences().AddReference(str(assets / "ARM_new.usd"))
+    assert stage.GetPrimAtPath("/Robot/gripper/visuals").IsValid()
+    assert stage.GetPrimAtPath("/Robot/jaw/collisions").IsValid()
+    previous = source.GetPrimAtPath("/so101_new_calib/gripper").GetAttribute("xformOp:orient").Get()
+    restored = stage.GetPrimAtPath("/Robot/gripper").GetAttribute("xformOp:orient").Get()
+    angle = (Gf.Rotation(previous) * Gf.Rotation(restored).GetInverse()).GetAngle()
+    assert abs((angle + 180) % 360 - 180) == pytest.approx(90, abs=.001)
+    cache = UsdGeom.XformCache()
+    joints = [UsdPhysics.Joint(prim) for prim in stage.Traverse() if prim.IsA(UsdPhysics.RevoluteJoint)]
+    assert len(joints) == 6
+    for joint in joints:
+        transforms = [cache.GetLocalToWorldTransform(stage.GetPrimAtPath(rel.GetTargets()[0]))
+                      for rel in (joint.GetBody0Rel(), joint.GetBody1Rel())]
+        positions = [transform.Transform(Gf.Vec3d(attr.Get())) for transform, attr in zip(
+            transforms, (joint.GetLocalPos0Attr(), joint.GetLocalPos1Attr()))]
+        rotations = [Gf.Rotation(attr.Get()) * transform.ExtractRotation() for transform, attr in zip(
+            transforms, (joint.GetLocalRot0Attr(), joint.GetLocalRot1Attr()))]
+        assert (positions[0] - positions[1]).GetLength() < 1e-5, joint.GetPath()
+        angle = (rotations[0] * rotations[1].GetInverse()).GetAngle()
+        assert abs((angle + 180) % 360 - 180) < .01, joint.GetPath()
+
+
 @pytest.mark.parametrize("yaml_text, message", [
     ("eval:\n  dataset: /d\n", "policy.checkpoint is required"),
     ("policy:\n  checkpoint: /abs/ckpt\neval:\n  dataset: /d\n", "relative path"),
@@ -141,6 +182,8 @@ def test_shipped_pick_place_config_is_valid():
     ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  eval_set: /e.json\n  splits: [nope]\n", "Invalid eval.splits"),
     ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  random_fraction: 2\n", "random_fraction"),
     ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  episode_length_s: -1\n", "finite and positive"),
+    ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  robot_usd: relative.usd\n", "eval.robot_usd"),
+    ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  robot_usd: true\n", "eval.robot_usd"),
     ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  start_mode: sideways\n", "start_mode"),
     ("policy:\n  checkpoint: a/b\n  port: 70000\neval:\n  dataset: /d\n", "policy.port"),
     ("policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  lang_by_color:\n    red: x\n", "lang_by_color"),

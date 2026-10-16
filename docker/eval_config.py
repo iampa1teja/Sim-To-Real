@@ -31,7 +31,7 @@ SECTIONS = {
     "policy": {"name", "checkpoint", "models_dir", "port", "server_image", "options"},
     "eval": {"dataset", "episodes", "start_mode", "random_fraction", "robot_start", "render_warmup",
              "episode_length_s", "action_horizon", "eval_set", "splits", "repeats", "lang",
-             "lang_by_color", "rename_map", "results_json"},
+             "lang_by_color", "rename_map", "results_json", "robot_usd"},
     "grasp": {"gripper_latch", "log_gripper", "seed_per_episode", "latch_close_below",
               "latch_open_above", "latch_confirm_steps", "latch_release_confirm", "latch_min_hold",
               "latch_dataset", "gripper_csv", "latch_steady_steps", "latch_steady_max_delta",
@@ -143,6 +143,10 @@ def build(data: dict) -> dict:
     if robot_start not in ("recorded", "default"):
         fail("eval.robot_start must be recorded or default.")
     out["robot_start"] = robot_start
+    robot_usd = run.get("robot_usd")
+    if robot_usd is not None and (not isinstance(robot_usd, str) or not robot_usd.startswith("/")):
+        fail("eval.robot_usd must be an absolute USD path inside teleop.")
+    out["robot_usd"] = robot_usd or ""
     warmup = run.get("render_warmup", 0)
     if isinstance(warmup, bool) or not isinstance(warmup, int) or warmup < 0:
         fail("eval.render_warmup must be a non-negative integer.")

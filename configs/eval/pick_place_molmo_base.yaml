@@ -1,4 +1,4 @@
-# Official base MolmoAct2 (no fine-tuning) on the same benchmark as pick_place.yaml.
+# Official base MolmoAct2 (no fine-tuning), using the original wrist neutral frame.
 # Run with:  ./docker/eval.sh pick_place_molmo_base.yaml [--dry_run]
 #
 # Official base weights (allenai/MolmoAct2). One-time setup: ./scripts/setup_molmoact2.sh
@@ -16,7 +16,7 @@ policy:
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     num_steps: 10                     # flow-matching solver steps
 
-# Everything below matches pick_place.yaml so results are comparable.
+# Uses the same benchmark starts as pick_place.yaml with a different wrist frame.
 eval:
   dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
@@ -25,6 +25,7 @@ eval:
   start_mode: cycle
   random_fraction: 0.0
   robot_start: recorded
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
   action_horizon: 8                   # at most the model's chunk length
   render_warmup: 2
   lang: Pick up the blue cube and place it in the white box

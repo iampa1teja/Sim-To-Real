@@ -142,7 +142,8 @@ class EvaluatorRolloutTests(unittest.TestCase):
     def evaluate(self, path, stop_after=None, args_override=None, task_episode_length_s=15., outcomes=None,
                  step_dt=1/30, expected_error=None, failure_stage=None, close_error=None, run_main=False):
         env = FakeEnvironment(outcomes, step_dt, failure_stage, close_error)
-        cfg = SimpleNamespace(scene=SimpleNamespace(num_envs=1), episode_length_s=task_episode_length_s,
+        robot = SimpleNamespace(spawn=SimpleNamespace(usd_path='/task/default.usd'))
+        cfg = SimpleNamespace(scene=SimpleNamespace(num_envs=1, robot=robot), episode_length_s=task_episode_length_s,
                               events=SimpleNamespace(spawn_cube=SimpleNamespace(params={})))
         args = SimpleNamespace(task='Lerobot-So101-Teleop-Pick-Place-Eval', device='cpu', num_envs=1,
                                disable_fabric=False, seed=17, num_episodes=3, random_fraction=0.,
@@ -150,7 +151,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
                                lang_instruction_by_color={'blue': 'blue task', 'red': 'red task'},
                                lang_instruction='fallback', results_json=path, checkpoint='checkpoint-10',
                                rerun=False, policy='groot_n17', policy_option=[], policy_api_token=None, policy_host='localhost', policy_port=None, action_horizon=16,
-                               episode_length_s=None)
+                               episode_length_s=None, robot_usd=None)
         for key, value in (vars(GraspConfig()) | {"seed_per_episode": False}).items():
             setattr(args, key, value)
         for key, value in (args_override or {}).items():
@@ -163,6 +164,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
                                      close=lambda: setattr(env, 'application_closed', True))
         def make_environment(*args, **kwargs):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
+            env.made_robot_usd = kwargs['cfg'].scene.robot.spawn.usd_path
             env.max_episode_length = math.ceil(env.made_episode_length_s / env.step_dt)
             return env
         env.progress_bars = []
@@ -238,8 +240,26 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(report['episode_length_s'], 15)
         self.assertEqual(report['action_horizon'], 16)
         self.assertEqual(report['step_dt'], 1/30)
+        self.assertEqual(report['robot_usd'], '/task/default.usd')
         self.assertEqual(env.made_episode_length_s, 15)
         self.assertEqual(json.loads(next(line for line in env.printed if line.startswith('{'))), report)
+
+    def test_robot_usd_override_is_applied_before_spawn_and_saved_in_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            asset = ROOT / 'source/sim_to_real_so101/assets/usd/ARM_new.usd'
+            env, _ = self.evaluate(path, args_override={'robot_usd': asset})
+            report = json.loads(path.read_text())
+        self.assertEqual(env.made_robot_usd, str(asset.resolve()))
+        self.assertEqual(report['robot_usd'], str(asset.resolve()))
+
+    def test_missing_robot_usd_is_rejected_before_spawn(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'robot_usd': Path(directory) / 'missing.usd'},
+                                   expected_error='Robot USD does not exist')
+            self.assertFalse(path.exists())
+        self.assertIsNone(env.made_episode_length_s)
 
     def test_progress_tracks_completed_successes_and_final_episode(self):
         with tempfile.TemporaryDirectory() as directory:

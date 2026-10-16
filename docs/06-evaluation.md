@@ -103,6 +103,7 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.dataset` | Required absolute teleop dataset root; expects `pick_place_meta/` (`--dataset`) |
 | `eval.episodes` | 20 (`--episodes`) |
 | `eval.random_fraction`, `eval.start_mode`, `eval.robot_start` | 0.0, `cycle`, `recorded` |
+| `eval.robot_usd` | Task asset; optional absolute USD path inside teleop (`--robot_usd`), saved in results |
 | `eval.episode_length_s` | Task default (15 s); finite positive seconds |
 | `eval.action_horizon` | 16; integer in 1-16 |
 | `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
@@ -111,6 +112,13 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.render_warmup`, `eval.results_json` | 0; absolute teleop path |
 | `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
+
+Molmo's `pick_place_molmo_base.yaml` selects `assets/usd/ARM_new.usd`, which layers
+over `SO-ARM101-USD.usd` and restores the original wrist-roll joint frame and the
+matching gripper/jaw zero-pose transforms. The existing USD and other policy
+configs retain their calibration. The wrist camera follows the gripper; the
+base pose, joint command mapping and benchmark starts are unchanged. Results
+record `robot_usd` so runs with different wrist frames can be identified.
 
 The former `eval_pick_place.sh --flag value` options map to `--set` using the table above, for instance
 `--episodes 5` becomes `--set eval.episodes=5` and `--gripper_latch` becomes `--set grasp.gripper_latch=true`.
