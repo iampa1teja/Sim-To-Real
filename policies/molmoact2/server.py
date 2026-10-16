@@ -27,6 +27,24 @@ DEFAULT_NUM_STEPS = 10
 NUM_JOINTS = 6
 
 
+def load_processor(checkpoint: str):
+    """Load list-form checkpoint special tokens with Transformers 4.57."""
+    from transformers import AutoProcessor
+    from transformers.models.auto.tokenization_auto import get_tokenizer_config
+
+    tokenizer_config = get_tokenizer_config(checkpoint)
+    extra_tokens = tokenizer_config.get("extra_special_tokens")
+    options = {}
+    if isinstance(extra_tokens, list):
+        # Newer checkpoint exports use a list; 4.57 expects a named-token dict.
+        # Keep those tokens special without changing their checkpoint token IDs.
+        options["extra_special_tokens"] = {}
+        options["additional_special_tokens"] = (
+            tokenizer_config.get("additional_special_tokens") or []
+        ) + extra_tokens
+    return AutoProcessor.from_pretrained(checkpoint, trust_remote_code=True, **options)
+
+
 def decode_actions(actions: Any) -> np.ndarray:
     """Return the model's action chunk as float32 (T, 6), dropping a leading batch dimension."""
     if hasattr(actions, "detach"):
@@ -74,10 +92,10 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             raise ValueError("dtype must be bfloat16 or float32")
 
         import torch
-        from transformers import AutoModelForImageTextToText, AutoProcessor
+        from transformers import AutoModelForImageTextToText
 
         dtype = getattr(torch, self.dtype_name)
-        self.processor = AutoProcessor.from_pretrained(checkpoint, trust_remote_code=True)
+        self.processor = load_processor(checkpoint)
         self.model = (
             AutoModelForImageTextToText.from_pretrained(checkpoint, trust_remote_code=True, dtype=dtype)
             .to(device)

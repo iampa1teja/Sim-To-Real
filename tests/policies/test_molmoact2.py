@@ -100,3 +100,31 @@ def test_load_rejects_missing_checkpoint(server):
         policy.load("/no/such/dir", "cuda", {})
     with pytest.raises(ValueError, match="dtype"):
         policy.load("/", "cuda", {"dtype": "int4"})
+
+
+@pytest.mark.parametrize("extra_tokens", [["<im_start>", "<im_end>"], {"image_token": "<im_start>"}, None])
+def test_load_processor_adapts_only_list_form_special_tokens(server, monkeypatch, extra_tokens):
+    """The official checkpoint list must not reach 4.57's dict-only argument."""
+    from types import ModuleType
+
+    calls = []
+    processor = object()
+    transformers = ModuleType("transformers")
+    transformers.AutoProcessor = SimpleNamespace(from_pretrained=lambda *a, **kw: (calls.append((a, kw)), processor)[1])
+    tokenization = ModuleType("transformers.models.auto.tokenization_auto")
+    tokenization.get_tokenizer_config = lambda checkpoint: {
+        "extra_special_tokens": extra_tokens,
+        "additional_special_tokens": ["<existing>"],
+    }
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setitem(sys.modules, "transformers.models.auto.tokenization_auto", tokenization)
+    assert server.load_processor("checkpoint") is processor
+    args, options = calls.pop()
+    assert args == ("checkpoint",)
+    assert options["trust_remote_code"] is True
+    if isinstance(extra_tokens, list):
+        assert options["extra_special_tokens"] == {}
+        assert options["additional_special_tokens"] == ["<existing>", *extra_tokens]
+    else:
+        assert "extra_special_tokens" not in options
+        assert "additional_special_tokens" not in options
