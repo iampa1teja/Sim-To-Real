@@ -503,9 +503,21 @@ class SimRemotePolicy:
         """Connect to the policy server and check it serves the configured policy."""
         from sim_to_real_so101.policy_client.adapter import build_plugin_client, check_server
 
+        policy_options = dict(self._policy_options)
+        if self._policy_name == "molmoact2":
+            # The shared sim interface emits -100..100 body joints. Molmo
+            # expects calibrated degrees in the older SO-100/101 joint frame.
+            # Derive the scales from this scene, including its pan calibration.
+            policy_options.setdefault("input_joint_units", "lerobot_normalized")
+            if policy_options["input_joint_units"] == "lerobot_normalized":
+                scales = (self._iface.mapping_joint_maxs - self._iface.mapping_joint_mins)[:5] / 200
+                policy_options.setdefault("arm_degrees_per_unit", ",".join(str(v) for v in scales.cpu().tolist()))
         self._client = build_plugin_client(
             self._policy_name, self._iface.SO101_JOINT_ORDER, host=self._host, port=self._port,
-            timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=self._policy_options)
+            timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=policy_options)
+        self.joint_transform = getattr(self._client.policy, "joint_transform", None)
+        if self.joint_transform is not None:
+            print(f"[INFO]: Policy joint transform: {self.joint_transform}")
         print(f"[INFO]: Connecting to the {self._policy_name} policy server at "
               f"{self._host}:{self._client.client.port}...")
         check_server(self._client)

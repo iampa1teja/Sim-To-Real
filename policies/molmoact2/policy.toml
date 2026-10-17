@@ -1,6 +1,6 @@
 [policy]
 name = "molmoact2"
-description = "Official allenai/MolmoAct2 base model (multi-embodiment, post-trained), served with trust_remote_code."
+description = "Official MolmoAct2 checkpoints, including the SO-100/101 fine-tune, with calibrated joint-frame conversion."
 enabled = true
 default_port = 5556
 

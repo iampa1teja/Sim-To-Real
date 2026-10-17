@@ -459,6 +459,8 @@ def _evaluate():
         )
         report['robot_start'] = args_cli.robot_start
         report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
+        if getattr(policy, "joint_transform", None) is not None:
+            report["policy_joint_transform"] = policy.joint_transform
         if grasp_kwargs:
             from dataclasses import asdict
             report["gripper_control"] = asdict(grasp_config)

@@ -15,7 +15,7 @@ from isaaclab.app import AppLauncher
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--config", type=Path, default=Path("pick_place_molmo_base.yaml"))
+parser.add_argument("--config", type=Path, default=Path("pick_place_molmo_so101.yaml"))
 parser.add_argument("--seed", type=int, default=1984)
 parser.add_argument("--out_dir", type=Path, default=ROOT / "outputs/preview_molmo")
 AppLauncher.add_app_launcher_args(parser)
