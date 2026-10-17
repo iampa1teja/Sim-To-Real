@@ -69,6 +69,35 @@ def sim_code():
                             {"SimRemotePolicy"}, context)
 
 
+@pytest.mark.parametrize("policy_name", ["molmoact2", "groot_n17"])
+def test_sim_connection_supplies_its_actual_joint_scales_only_to_molmo(monkeypatch, policy_name):
+    class CpuArray(np.ndarray):
+        def cpu(self):
+            return self
+
+    iface = SimpleNamespace(SO101_JOINT_ORDER=KEYS,
+        mapping_joint_mins=np.array([-116.279296875, -100, -100, -95, -160, -10]).view(CpuArray),
+        mapping_joint_maxs=np.array([119.794921875, 100, 90, 95, 160, 100]).view(CpuArray))
+    options = []
+    client = SimpleNamespace(client=SimpleNamespace(port=5556), policy=SimpleNamespace())
+
+    def build(*args, **kwargs):
+        options.append(kwargs["policy_options"])
+        return client
+
+    monkeypatch.setitem(sys.modules, "sim_to_real_so101.policy_client.adapter",
+                        SimpleNamespace(build_plugin_client=build, check_server=lambda _: None))
+    policy = sim_code().SimRemotePolicy(iface, policy_name=policy_name, policy_options={"num_steps": "10"})
+    policy.connect()
+    assert options[0]["num_steps"] == "10"
+    if policy_name == "molmoact2":
+        assert options[0]["input_joint_units"] == "lerobot_normalized"
+        scales = [float(v) for v in options[0]["arm_degrees_per_unit"].split(",")]
+        np.testing.assert_allclose(scales, [1.18037109375, 1, .95, .95, 1.6])
+    else:
+        assert options[0] == {"num_steps": "10"}
+
+
 class FakeClock:
     def __init__(self):
         self.now = 0.0
