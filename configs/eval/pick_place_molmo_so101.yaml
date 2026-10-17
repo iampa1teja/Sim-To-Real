@@ -1,5 +1,5 @@
-# Official SO-100/101 fine-tune of MolmoAct2 (allenai/MolmoAct2-SO100_101), zero-shot on the same benchmark
-# as pick_place.yaml. One-time setup: ./scripts/setup_molmoact2.sh --variant so101
+# Official SO-100/101 fine-tune of MolmoAct2 (allenai/MolmoAct2-SO100_101),
+# using the original wrist neutral frame. Setup: ./scripts/setup_molmoact2.sh --variant so101
 # Run with:  ./docker/eval.sh pick_place_molmo_so101.yaml [--dry_run]
 
 task: pick_place
@@ -15,7 +15,7 @@ policy:
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     num_steps: 10                     # flow-matching solver steps
 
-# Everything below matches pick_place.yaml so results are comparable.
+# Uses the fixed benchmark starts and the corrected wrist frame for Molmo.
 eval:
   dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
@@ -24,8 +24,9 @@ eval:
   start_mode: cycle
   random_fraction: 0.0
   robot_start: recorded
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
   action_horizon: 8                   # at most the model's chunk length
-  episode_length_s: 30                    # 900 steps (the task default is 15 s = 450 steps)
+  episode_length_s: 30                # 900 steps (the task default is 15 s = 450 steps)
   render_warmup: 2
   lang: Pick up the blue cube and place it in the white box
   rename_map:

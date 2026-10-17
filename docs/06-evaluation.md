@@ -113,19 +113,34 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
-Molmo's `pick_place_molmo_base.yaml` selects `assets/usd/ARM_new.usd`, which layers
+Molmo's `pick_place_molmo_so101.yaml` selects the SO-100/101 fine-tuned checkpoint;
+prepare it with `./scripts/setup_molmoact2.sh --variant so101`, then evaluate with
+`./docker/eval.sh pick_place_molmo_so101.yaml`. Both Molmo configs
+select `assets/usd/ARM_new.usd`, which layers
 over `SO-ARM101-USD.usd` and restores the original wrist-roll joint frame and the
 matching gripper/jaw zero-pose transforms. The existing USD and other policy
 configs retain their calibration. The wrist camera follows the gripper; the
 base pose, joint command mapping and benchmark starts are unchanged. Results
 record `robot_usd` so runs with different wrist frames can be identified.
 
+Molmo also needs a joint-unit conversion in both directions. Simulation derives
+the five arm degree scales from its configured joint mapping, then applies the
+[official SO-100/101 frame correction](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot):
+signs `[1, -1, 1, 1, 1, 1]`, offsets `[0, 90, 90, 0, 0, 0]` degrees. The gripper
+stays in 0–100 units. Returned actions undergo the inverse conversion before
+the simulator's normal joint-limit handling. The startup log and results field
+`policy_joint_transform` record the actual scales and offsets. Direct plugin
+clients default to `input_joint_units=lerobot_degrees`; normalized callers must
+provide `input_joint_units=lerobot_normalized` and five comma-separated
+`arm_degrees_per_unit` scales. `input_joint_units=model` accepts model-frame
+values directly. Restart an existing rollout to load the corrected client.
+
 To inspect the initial pose in Isaac without loading a policy, run:
 
 ```bash
 docker exec -it -w /workspace/Sim-to-Real-SO-101-Workshop teleop \
   /workspace/isaaclab/_isaac_sim/python.sh scripts/preview_eval_pose.py \
-  --config pick_place_molmo_base.yaml
+  --config pick_place_molmo_so101.yaml
 ```
 
 The preview uses the YAML's USD and first benchmark start, holds the reset pose
