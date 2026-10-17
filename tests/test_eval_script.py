@@ -130,12 +130,17 @@ def test_shipped_pick_place_config_is_valid():
     assert result.returncode == 0, result.stderr
 
 
-def test_molmo_config_selects_original_wrist_asset():
-    result = subprocess.run(["bash", str(SCRIPT), "pick_place_molmo_base.yaml", "--dry_run"],
+@pytest.mark.parametrize("config_name, checkpoint", [
+    ("pick_place_molmo_base.yaml", "molmoact2_base"),
+    ("pick_place_molmo_so101.yaml", "molmoact2_so101"),
+])
+def test_molmo_config_selects_original_wrist_asset(config_name, checkpoint):
+    result = subprocess.run(["bash", str(SCRIPT), config_name, "--dry_run"],
                             capture_output=True, text=True, cwd=ROOT)
     assert result.returncode == 0, result.stderr
     asset = "/workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd"
     client = find(result, "docker exec -e POLICIES_DIR")
+    assert f"--checkpoint /workspace/models/{checkpoint}" in find(result, "docker run")
     assert f"--robot_usd {asset}" in client
     assert f"docker exec teleop test -f {asset}" in [line.rstrip() for line in commands(result)]
 

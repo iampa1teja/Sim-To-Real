@@ -12,6 +12,68 @@ sys.path.insert(0, str(ROOT / "source"))
 spec = importlib.util.spec_from_file_location("molmoact2_server", ROOT / "policies/molmoact2/server.py")
 
 
+def client_policy(options=None):
+    from sim_to_real_so101.policy_client.contract import load_client_policy
+    from sim_to_real_so101.policy_client.discovery import load_manifest
+    manifest = load_manifest(ROOT / "policies/molmoact2")
+    return load_client_policy("molmoact2", manifest, options or {})
+
+
+JOINT_ORDER = ["shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos",
+               "wrist_flex.pos", "wrist_roll.pos", "gripper.pos"]
+
+
+def test_client_applies_official_degree_frame_and_inverse_actions():
+    client = client_policy()
+    state = np.array([0, -90, 90, 45, -30, 20], dtype=np.float32)
+    expected = np.array([0, 180, 180, 45, -30, 20], dtype=np.float32)
+    images = request()["images"]
+    built = client.build_request(state, images, "Pick the cube")
+    np.testing.assert_array_equal(built["state"], expected)
+    decoded = client.parse_response({"actions": np.tile(expected, (30, 1))}, JOINT_ORDER)
+    np.testing.assert_array_equal(decoded, np.tile(state, (30, 1)))
+    np.testing.assert_array_equal(state, [0, -90, 90, 45, -30, 20])
+
+
+def test_client_converts_normalized_units_and_preserves_gripper_percent():
+    client = client_policy({"input_joint_units": "lerobot_normalized",
+                            "arm_degrees_per_unit": "1.18,1,.95,.95,1.6"})
+    normalized = np.array([50, -100, 100, 0, 25, 40], dtype=np.float32)
+    expected = np.array([59, 190, 185, 0, 40, 40], dtype=np.float32)
+    built = client.build_request(normalized, request()["images"], "Pick the cube")
+    np.testing.assert_allclose(built["state"], expected, atol=1e-5)
+    decoded = client.parse_response({"actions": expected[None]}, JOINT_ORDER)
+    np.testing.assert_allclose(decoded[0], normalized, atol=1e-5)
+    # A model shoulder-lift target of 180 degrees must command -90 in
+    # LeRobot units, rather than +180 which would hit the opposite joint stop.
+    np.testing.assert_allclose(client.parse_response(
+        {"actions": [[0, 180, 180, 0, 0, 25]]}, JOINT_ORDER)[0],
+        [0, -90, 90 / .95, 0, 0, 25], atol=1e-5)
+
+
+def test_explicit_model_units_are_not_transformed_twice():
+    client = client_policy({"input_joint_units": "model"})
+    state = np.array([0, 189, 181, 60, -3, 1], dtype=np.float32)
+    np.testing.assert_array_equal(client.build_request(state, request()["images"], "task")["state"], state)
+    np.testing.assert_array_equal(client.parse_response({"actions": state[None]}, JOINT_ORDER), state[None])
+
+
+@pytest.mark.parametrize("scales", ["", "1,1,1,1", "1,1,1,1,0", "1,1,nan,1,1", "bad,1,1,1,1"])
+def test_normalized_joint_units_require_valid_calibrated_scales(scales):
+    with pytest.raises(ValueError, match="arm_degrees_per_unit"):
+        client_policy({"input_joint_units": "lerobot_normalized", "arm_degrees_per_unit": scales})
+
+
+def test_client_rejects_invalid_units_and_nonfinite_joints():
+    with pytest.raises(ValueError, match="input_joint_units"):
+        client_policy({"input_joint_units": "radians"})
+    client = client_policy()
+    with pytest.raises(ValueError, match="finite"):
+        client.build_request(np.full(6, np.nan), request()["images"], "task")
+    with pytest.raises(ValueError, match="finite"):
+        client.parse_response({"actions": np.full((8, 6), np.inf)}, JOINT_ORDER)
+
+
 def load_server():
     pytest.importorskip("zmq")
     module = importlib.util.module_from_spec(spec)
