@@ -15,6 +15,7 @@
 from collections import deque
 from pathlib import Path
 from datetime import datetime
+import os
 
 import numpy as np
 import torch
@@ -158,7 +159,13 @@ class LeRobotSO101Interface:
 
         random_session_name = f"eval_{uuid.uuid4().hex[:8]}"
         if visualize:
-            init_rerun(session_name=random_session_name)
+            viewer_url = os.environ.get("RERUN_CONNECT_URL")
+            if viewer_url:
+                import rerun as rr
+                rr.init(random_session_name)
+                rr.connect_grpc(viewer_url)
+            else:
+                init_rerun(session_name=random_session_name)
 
         print(f"[INFO]: Initialized LeRobot device at {self.port} with id {self.id}")
 
