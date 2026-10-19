@@ -76,14 +76,16 @@ Run the evaluation (a bare file name is looked up in `configs/eval/`):
 
 ```bash
 ./docker/eval.sh pick_place.yaml
-./docker/eval.sh pick_place.yaml --set eval.episodes=5 --set policy.checkpoint=so101_pick_place_v2_nvinit/checkpoint-9000
 ```
 
-Run it again with `checkpoint-9000` to compare both saved checkpoints. These commands use recorded
-cube starts and the corresponding recorded arm poses. Keep the dataset, seed and other options
-identical for the comparison. Command-line options: `--set section.key=value` (repeatable, overrides
-the YAML), `--dry_run`, `--external_server`, `--server_only`, `--gui`, `--rerun`,
-`--save_videos`, `--help`.
+To compare checkpoints, copy the YAML, change `policy.checkpoint`, and run the copied
+file. Keep the dataset, benchmark, seed and other settings identical. The launcher
+reads settings from YAML; its optional flags are `--dry_run`, `--external_server`,
+`--server_only`, `--gui`, `--rerun`, `--save_videos`, and `--help`.
+
+When `eval.eval_set` is configured, the selected benchmark starts and repeats
+determine the episode count; `eval.episodes` is used for runs without a fixed
+benchmark. The SO-101 Molmo profile selects 150 starts across its four splits.
 
 The policy is a plugin under `policies/<name>/` (see [07 policy plugins](07-policy-plugins.md)); the
 server runs in the generic `policy-server` image (`./policy_servers/build.sh`) and the first start of a
@@ -145,6 +147,12 @@ To watch and save each attempt's room and wrist views:
 ./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
 ```
 
+Run this from a host desktop terminal with `teleop` running. If a retained
+container is stopped, use `docker start teleop` first; a container created with
+`--rm` must be created again using the README launch block. Close the evaluation
+with Ctrl+C to clean up its evaluator, policy server and owned viewer. Stop the
+remaining idle container with `docker stop teleop` when finished.
+
 Videos are streamed to separate MP4 files per camera and attempt at the simulation
 frame rate, so playback duration follows simulation time. By default they are
 saved beside the results JSON in `<results_stem>_videos/`. Set `eval.video_dir`
@@ -153,8 +161,17 @@ to an absolute container path to choose another location; recording requires
 video paths. Existing video files are preserved, so use a fresh output directory
 for a new run.
 
-Both Molmo configs
-select `assets/usd/ARM_new.usd`, which layers
+For example, a successful attempt prints
+`time_to_success=12.50s sim (18.20s wall)`. An unsuccessful attempt prints
+`timeout_elapsed=300.00s sim (...)` at its configured limit. Both elapsed times
+are stored in JSON; success-time fields are null on failure. Completed videos
+are named `episode_000000_room.mp4` and `episode_000000_wrist.mp4`, with the
+paths stored in each episode's `videos` mapping. Ordinary Python exceptions
+finalize the current attempt's files; forced process termination can interrupt
+MP4 finalization. Frames are captured before environment stepping so automatic
+resets do not add the next attempt's initial pose to the preceding video.
+
+Both Molmo configs select `assets/usd/ARM_new.usd`, which layers
 over `SO-ARM101-USD.usd` and restores the original wrist-roll joint frame and the
 matching gripper/jaw zero-pose transforms. The existing USD and other policy
 configs retain their calibration. The wrist camera follows the gripper; the
@@ -190,8 +207,10 @@ for the evaluator's ten settling steps, then pauses physics. The Isaac window
 stays open for inspection. External/wrist images and `pose.json` are saved under
 `outputs/preview_molmo/` (`--out_dir` overrides this). Close Isaac to end it.
 
-The former `eval_pick_place.sh --flag value` options map to `--set` using the table above, for instance
-`--episodes 5` becomes `--set eval.episodes=5` and `--gripper_latch` becomes `--set grasp.gripper_latch=true`.
+The table maps former `eval_pick_place.sh` options to YAML keys. For example,
+set `eval.episodes: 5` for a five-attempt run without a fixed benchmark, and
+`grasp.gripper_latch: true` to enable the latch. This launcher has no `--set`
+override flag.
 
 Preflight checks Docker access without sudo, running `teleop`, the server image, checkpoint
 containment/existence, `config.json` and weight files, dataset and policies folders inside teleop,
@@ -223,6 +242,7 @@ paths need their own persistence. The console prints the exact output path.
 | `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
 | `by_start` | Aggregates for `recorded` and `random` (not individual ID groups) |
 | `by_zone`, `by_cube_color` | Aggregates for observed zones/colours |
+| `save_videos`, `video_dir` | Present when recording is enabled; the absolute video directory inside teleop |
 
 Rates are in [0,1], or null for an empty aggregate. `start_index=-1` means a random
 start; recorded indices refer to the sorted input sidecar list. If you pass a
@@ -273,12 +293,26 @@ is weak evidence of coverage.
 **Host**, repository root, DR with matching colour instructions:
 
 ```bash
-./docker/eval.sh pick_place.yaml \
-  --set policy.checkpoint=so101_pick_place_v2_nvinit/checkpoint-10000 \
-  --set policy.models_dir=~/sim2real/models \
-  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2 \
-  --set task=pick_place_dr --set eval.episodes=20 --set eval.random_fraction=0 --set eval.start_mode=cycle \
-  --set 'eval.lang_by_color={blue: Pick up the blue cube and place it in the white box, red: Pick up the red cube and place it in the white box}'
+cat > /tmp/pick_place_dr.yaml <<'YAML'
+task: pick_place_dr
+policy:
+  name: groot_n17
+  checkpoint: so101_pick_place_v2_nvinit/checkpoint-10000
+  models_dir: ~/sim2real/models
+  options:
+    embodiment_tag: NEW_EMBODIMENT
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2
+  episodes: 20
+  robot_start: recorded
+  action_horizon: 16
+  episode_length_s: 30
+  render_warmup: 2
+  lang_by_color:
+    blue: Pick up the blue cube and place it in the white box
+    red: Pick up the red cube and place it in the white box
+YAML
+./docker/eval.sh /tmp/pick_place_dr.yaml
 ```
 
 DR randomizes robot colour, blue/red cube colour and the measured room tube-light
@@ -336,7 +370,7 @@ MyRoom has no success/timeout terminations. Checkpoint metadata falls back to
 ## Smooth control
 
 Both clients share NumPy-only smoothing in
-[`gr00t_client/smoothing.py`](../source/sim_to_real_so101/gr00t_client/smoothing.py).
+[`policy_client/smoothing.py`](../source/sim_to_real_so101/policy_client/smoothing.py).
 All options default to off: the original real-arm action sequence and relative
 sleep loop, and the original simulation action queue, remain the default paths.
 Smoothing operates in the existing LeRobot joint units before the unchanged
@@ -461,16 +495,28 @@ To try ensemble instead, replace `--blend_steps 4` with
 
 ### N1.7 200k real arm
 
-These are the user's saved commands from October 5, 2026. Start the policy server
-in the first host terminal and keep it running after `SERVER_READY port=5560`:
+This preserves the user's saved milestone checkpoint, port 5560, action horizon 8,
+YUYV cameras and start pose. The server command uses the current YAML launcher.
+Start it in the first host terminal and keep it running after `SERVER_READY port=5560`:
 
 ```bash
-cd ~/Sim-to-Real-SO-101-Workshop && \
-./docker/eval.sh pick_place.yaml --server_only \
-  --set policy.checkpoint=so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
-  --set policy.models_dir=/external_storage/models \
-  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --set policy.port=5560
+cd ~/Sim-to-Real-SO-101-Workshop
+cat > /tmp/groot_n17_200k.yaml <<'YAML'
+task: pick_place
+policy:
+  name: groot_n17
+  checkpoint: so101_pick_place_sim_n17_200k/milestones/checkpoint-200000
+  models_dir: /external_storage/models
+  port: 5560
+  options:
+    embodiment_tag: NEW_EMBODIMENT
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  robot_start: recorded
+  action_horizon: 8
+  episode_length_s: 30
+YAML
+./docker/eval.sh /tmp/groot_n17_200k.yaml --server_only
 ```
 
 In the second host terminal, run the physical SO101 follower client:
@@ -504,7 +550,7 @@ start pose above. Stop the rollout with Ctrl+C.
 
 ### Optional grasp latch and diagnostics
 
-Both clients share `gr00t_client/grasp.py`. Everything below is off by default;
+Both clients share `policy_client/grasp.py`. Everything below is off by default;
 no model, training, joint mapping, or success/grasp detection logic changes.
 There is no dynamic horizon in these clients, so no `--h_grasp` option is added.
 The action horizon stays fixed (8 in the saved real-arm setup).
@@ -543,8 +589,8 @@ open≈88.67488, empty-closed≈1.22932 (empty threshold≈4.22932).
 `--seed_per_episode` reissues the same acknowledged server noise seed **before
 every inference query** within an episode. The benchmark supplies its existing
 per-start seed; other sim runs use `--seed` (1984 by default). A real client run is
-one episode, also with `--seed=1984` by default. The host runner selects
-`benchmark_server.py` when this flag is present, including `--server_only`.
+one episode, also with `--seed=1984` by default. The generic policy server exposes
+`seed_policy` and the GR00T plugin resets its RNGs through its reset endpoint.
 An external server must expose `seed_policy`; an absent acknowledgement fails
 explicitly. Keep one client per server when using this option.
 
@@ -594,11 +640,24 @@ For the **real arm**, first start a seeding-capable server:
 
 ```bash
 cd ~/Sim-to-Real-SO-101-Workshop
-./docker/eval.sh pick_place.yaml --server_only --set grasp.seed_per_episode=true \
-  --set policy.checkpoint=so101_pick_place_sim_n17_200k/milestones/checkpoint-200000 \
-  --set policy.models_dir=/external_storage/models \
-  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --set policy.port=5560
+cat > /tmp/groot_n17_200k_seeded.yaml <<'YAML'
+task: pick_place
+policy:
+  name: groot_n17
+  checkpoint: so101_pick_place_sim_n17_200k/milestones/checkpoint-200000
+  models_dir: /external_storage/models
+  port: 5560
+  options:
+    embodiment_tag: NEW_EMBODIMENT
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  robot_start: recorded
+  action_horizon: 8
+  episode_length_s: 30
+grasp:
+  seed_per_episode: true
+YAML
+./docker/eval.sh /tmp/groot_n17_200k_seeded.yaml --server_only
 ```
 
 Then run the saved camera/start-pose client with the optional controls:
@@ -777,21 +836,32 @@ Copy the capture out of teleop before passing it to a host-side generator.
 Run **one checkpoint**, on the host from the repository root:
 
 ```bash
-./docker/eval.sh pick_place.yaml \
-  --set policy.checkpoint=so101_pick_place_v1_n17_10k/checkpoint-50000 \
-  --set policy.models_dir=~/sim2real/models \
-  --set eval.dataset=/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
-  --set eval.eval_set=/workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json \
-  --set 'eval.splits=[id, ood, yaw, train]' --set eval.repeats=1 \
-  --set eval.episode_length_s=30 --set eval.action_horizon=8
+cat > /tmp/pick_place_benchmark.yaml <<'YAML'
+task: pick_place
+policy:
+  name: groot_n17
+  checkpoint: so101_pick_place_v1_n17_10k/checkpoint-50000
+  models_dir: ~/sim2real/models
+  options:
+    embodiment_tag: NEW_EMBODIMENT
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  splits: [id, ood, yaw, train]
+  repeats: 1
+  robot_start: recorded
+  episode_length_s: 30
+  action_horizon: 8
+  render_warmup: 2
+YAML
+./docker/eval.sh /tmp/pick_place_benchmark.yaml
 ```
 
-Add `--dry_run` to inspect commands without starting jobs. `--dr` retains the
-existing DR behavior; use the same DR setting and language configuration for
-both checkpoints. The wrapper uses a mounted `benchmark_server.py` entrypoint
-for benchmark runs; existing images need no rebuild. It preserves the pinned
-N1.7 offline launcher and adds an acknowledged server RNG seed endpoint. Direct
-clients must connect to this entrypoint too. Each (start ID, repeat) receives a
+Add `--dry_run` to inspect commands without starting jobs. Set `task: pick_place_dr`
+for DR and use the same task and language settings for both checkpoints. The
+launcher uses the generic policy-server image with `policies/groot_n17/` mounted;
+its reset endpoint accepts the benchmark's policy seed. Direct clients must
+connect to that same policy server. Each (start ID, repeat) receives a
 deterministic policy seed derived from the run seed and original file index,
 so split selection does not change its seed. The client requires server
 acknowledgement; setting only a local seed is insufficient for remote inference.
@@ -860,6 +930,12 @@ positions. Report per-split rates, denominators and consistency alongside it.
 No long benchmark run is performed by the implementation's smoke checks.
 
 ## Action-horizon sweep
+
+The sweep wrapper currently emits `--set` overrides that the YAML-only host
+runner does not accept. Its launch examples below describe the earlier sweep
+workflow and require updating before use. Individual checkpoint evaluations
+can use the YAML profile shown above; the comparison and summary utilities
+can still inspect existing result files.
 
 `action_horizon` is the number of actions the client executes from a returned
 chunk before querying again. GR00T's SO-arm processor returns 16 actions; a

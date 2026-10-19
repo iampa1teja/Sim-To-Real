@@ -34,17 +34,19 @@ There is no published fork image/tag in this repo to substitute for the build.
 
 Create `docker/env` as a file before starting containers; it is ignored by Git.
 The teleop entrypoint sources it, configures Isaac's libraries and installs the
-extension editable. The mount of `source/` also exposes `source/gui/`. `datasets/`
-and `outputs/` persist on the host. `scripts/` and the repository README are **not**
-mounted by the existing launch recipe: run preparation from a full checkout on a
-training machine, rather than assuming those paths exist inside teleop.
+extension editable. The complete checkout is mounted at
+`/workspace/Sim-to-Real-SO-101-Workshop`, including policies, evaluation configs,
+benchmark sets and the initial-pose preview script. `datasets/` and `outputs/`
+persist on the host. Run training preparation in the training environment with
+its required dependencies.
 
 **Host**, repository root, teleop launch (same mounts as the hub):
 
 ```bash
 xhost +
 docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
-  -e "PRIVACY_CONSENT=Y" -e DISPLAY \
+  -e "PRIVACY_CONSENT=Y" -e DISPLAY -e XDG_RUNTIME_DIR=/tmp/xdg-runtime-root \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v /dev:/dev -v /run/udev:/run/udev:ro \
   -v "$HOME/.Xauthority:/root/.Xauthority" \
   -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
@@ -57,10 +59,7 @@ docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --n
   -v ~/docker/isaac-sim/documents:/root/Documents:rw \
   -v ~/.cache/huggingface/lerobot/calibration:/root/.cache/huggingface/lerobot/calibration \
   -v "$(pwd)/docker/env:/root/env" \
-  -v "$(pwd)/source:/workspace/Sim-to-Real-SO-101-Workshop/source" \
-  -v "$(pwd)/outputs:/workspace/Sim-to-Real-SO-101-Workshop/outputs" \
-  -v "$(pwd)/datasets:/workspace/Sim-to-Real-SO-101-Workshop/datasets" \
-  -v "$(pwd)/docker/real/scripts:/workspace/Sim-to-Real-SO-101-Workshop/docker/real/scripts" \
+  -v "$(pwd):/workspace/Sim-to-Real-SO-101-Workshop" \
   teleop-docker:latest
 ```
 
@@ -135,8 +134,13 @@ New shells read saved settings; existing shells must reload or export them.
 | `STATS_JSON` | `so101_check_calibration.py`; defaults to adjacent `calibration_stats.json` |
 | `PICK_PLACE_EVAL_STARTS` | `mdp/resets.py`; fallback sidecar directory for Eval resets |
 | `PICK_PLACE_EVAL_CHECKPOINT`, `MODEL` | `lerobot_eval.py`; report checkpoint fallback, in that order, then `unknown` |
-| `MODELS_DIR` | Host evaluation shell script; `$HOME/models`; also a shell variable in our real-container launch |
+| `MODELS_DIR` | Real-container launch shell variable; the host evaluator reads `policy.models_dir` from YAML |
 | `DISPLAY` | Docker/X11; inherited from host |
+| `XDG_RUNTIME_DIR` | Simulation image; private mode-0700 runtime directory, `/tmp/xdg-runtime-root` |
+| `EVAL_LOG_DIR`, `EVAL_VERBOSE` | Host evaluator; override its run log directory, or set `1` for full terminal output |
+| `READY_TIMEOUT` | Host evaluator; policy-server startup timeout, 900 seconds |
+| `RERUN_PORT`, `RERUN_READY_TIMEOUT` | Host evaluator's native viewer; 9876 and 60 seconds |
+| `RERUN_CONNECT_URL` | Host evaluator and simulation interface; connect to an existing viewer instead of starting one |
 | `RERUN_FLUSH_NUM_BYTES`, `RERUN_MEMORY_LIMIT` | Real `so101_control.py`; `8000`, `10%` |
 
 `ACCEPT_EULA=Y` and `PRIVACY_CONSENT=Y` are passed to the Isaac base image by the

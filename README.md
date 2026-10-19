@@ -60,12 +60,7 @@ docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --n
   -v ~/docker/isaac-sim/documents:/root/Documents:rw \
   -v ~/.cache/huggingface/lerobot/calibration:/root/.cache/huggingface/lerobot/calibration \
   -v "$(pwd)/docker/env:/root/env" \
-  -v "$(pwd)/source:/workspace/Sim-to-Real-SO-101-Workshop/source" \
-  -v "$(pwd)/policies:/workspace/Sim-to-Real-SO-101-Workshop/policies" \
-  -v "$(pwd)/outputs:/workspace/Sim-to-Real-SO-101-Workshop/outputs" \
-  -v "$(pwd)/datasets:/workspace/Sim-to-Real-SO-101-Workshop/datasets" \
-  -v "$(pwd)/eval_sets:/workspace/Sim-to-Real-SO-101-Workshop/eval_sets" \
-  -v "$(pwd)/docker/real/scripts:/workspace/Sim-to-Real-SO-101-Workshop/docker/real/scripts" \
+  -v "$(pwd):/workspace/Sim-to-Real-SO-101-Workshop" \
   teleop-docker:latest
 ```
 
@@ -112,6 +107,26 @@ Choose **Download env**, merge the values into `docker/env`, then run
 later visit. Drafts are separate from `docker/env` and do not configure a running
 recorder. See [draft behavior and recovery](docs/01-setup.md#local-drafts) for
 reset, deletion and browser-storage details.
+
+## MolmoAct2 evaluation
+
+Use the SO-100/101 fine-tuned checkpoint with the corrected wrist frame. Start
+the `teleop` container with the display mounts above, then run on the host:
+
+```bash
+./scripts/setup_molmoact2.sh --variant so101
+./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
+```
+
+Each attempt allows up to 300 simulated seconds and logs simulation and wall
+time to success. `--save_videos` saves separate room/wrist MP4 files beside the
+results; omit that flag to disable recording. Detailed logs are retained under
+`/tmp/so101-eval/`. The fixed benchmark determines the number of attempts.
+
+An existing stopped container created without `--rm` can be restarted with
+`docker start teleop`. Use the launch block above when creating a new container.
+See [Evaluation](docs/06-evaluation.md#host-runner) for output paths, YAML settings,
+and viewer troubleshooting.
 
 ## Guides
 

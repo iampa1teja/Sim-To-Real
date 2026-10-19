@@ -3,12 +3,18 @@
 Validated on 2026-10-01 IST, RTX 4090, checkpoint
 `so101_pick_place_v1_n17_10k/checkpoint-50000`. No full sweep was executed.
 
+This is a historical validation report. The current evaluator reads settings
+from a positional YAML file and has no `--set` override flag. The sweep wrapper
+still emits those overrides, so its launch commands require updating before use
+with the current runner. Use the [current evaluation guide](06-evaluation.md#host-runner)
+for individual runs.
+
 ## Files changed
 
 - `.gitignore`: track the new sweep regression tests; existing local edits excluded.
 - `docker/sweep_action_horizon.sh`: shell entry point.
 - `scripts/sweep_action_horizon.py`: host argument/configuration handling, one-server lifecycle, horizon runs, logging, progress and resume.
-- `docker/eval.sh`: YAML-driven evaluation with shared-server ownership modes and `--set` overrides; the sweep calls it with `--config` as the base YAML.
+- `docker/eval.sh`: the runner at that revision supported YAML configuration, shared-server ownership modes and `--set` overrides. Current individual-run instructions are linked above.
 - `scripts/summarize_sweep.py` and `source/sim_to_real_so101/scripts/summarize_sweep.py`: repository and installed summary entry points, CSV/JSON/Markdown and plots.
 - `scripts/compare_eval_results.py` and `source/sim_to_real_so101/utils/eval_comparison.py`: one shared comparison implementation, allowing horizon differences only for same-checkpoint sweeps.
 - `source/sim_to_real_so101/utils/lerobot_interface.py` and `source/sim_to_real_so101/scripts/lerobot_eval.py`: per-episode inference calls, measured wall time and flushed episode progress.
@@ -47,8 +53,8 @@ Temporary packaging avoided the existing root-owned source egg-info directory.
   --horizons 1,2,4,6,8,12,16 --dry_run
 ```
 
-Output excerpt (the full command output is in
-[`action_horizon_dry_run.log`](../datasets/hyperparameters/action_horizon_dry_run.log)):
+Output excerpt (the original full output was saved locally to
+`datasets/hyperparameters/action_horizon_dry_run.log`; generated logs are not versioned):
 
 ```text
 # Check checkpoint files under .../so101_pick_place_v1_n17_10k/checkpoint-50000
@@ -101,7 +107,7 @@ AH 16: skipping complete 2 episodes
 
 No additional episodes or server launches occurred in that resume check.
 
-The full [smoke summary](../datasets/hyperparameters/so101_pick_place_v1_n17_10k_checkpoint-50000_smoke_eval_set_20260930-211949/summary.md) follows:
+The full local smoke summary (`datasets/hyperparameters/so101_pick_place_v1_n17_10k_checkpoint-50000_smoke_eval_set_20260930-211949/summary.md`, not versioned) follows:
 
 ### Action-horizon sweep
 
