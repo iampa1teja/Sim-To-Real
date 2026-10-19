@@ -109,6 +109,8 @@ parser.add_argument(
     help="Language instruction for the policy",
 )
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
+parser.add_argument("--save_videos", action="store_true", help="Save room/wrist MP4 videos per attempt")
+parser.add_argument("--video_dir", type=Path, default=None, help="Video output directory (default: beside results JSON)")
 parser.add_argument("--render_warmup", type=int, default=0,
                     help="0 (default): render the cameras every control step. N>0: render only the N steps before each "
                          "policy query (the policy reads images once per action chunk); the extra N-1 frames refresh "
@@ -328,6 +330,9 @@ def _evaluate():
     episodes = []
     successes = 0
     pbar = None
+    video_recorder = None
+    video_attempt = 0
+    video_dir = None
 
     def progress_summary():
         completed = len(episodes)
@@ -335,6 +340,18 @@ def _evaluate():
         return f"success={rate} ({successes}/{completed})"
 
     try:
+        if getattr(args_cli, "save_videos", False):
+            from sim_to_real_so101.utils.eval_video import EpisodeVideoRecorder
+            video_dir = getattr(args_cli, "video_dir", None)
+            if video_dir is None:
+                if args_cli.results_json:
+                    video_dir = args_cli.results_json.with_name(args_cli.results_json.stem + "_videos")
+                else:
+                    from datetime import datetime, timezone
+                    video_dir = Path("outputs/eval_videos") / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+            video_dir = video_dir.expanduser().resolve()
+            video_recorder = EpisodeVideoRecorder(video_dir, fps=1 / step_dt, rename_map=rename_map)
+            print(f"[INFO]: Saving attempt videos to {video_dir}", flush=True)
         obs, _ = env.reset()
         metadata = episode_metadata()
         if benchmark:
@@ -371,6 +388,9 @@ def _evaluate():
         while simulation_app.is_running() and len(episodes) < args_cli.num_episodes:
             with torch.inference_mode():
                 if step == 0:
+                    if video_recorder is not None:
+                        video_recorder.start_episode(video_attempt)
+                        video_attempt += 1
                     pbar = tqdm(total=env.unwrapped.max_episode_length,
                                 desc=f"Rollout (ep {len(episodes) + 1}/{args_cli.num_episodes})", unit="step")
                     pbar.set_postfix_str(progress_summary())
@@ -386,6 +406,9 @@ def _evaluate():
                     # Isaac Lab renders at physics substeps where counter % render_interval == 0; a huge
                     # interval skips this step's render (physics and termination checks are unaffected).
                     env.unwrapped.cfg.sim.render_interval = render_every if steps_to_query < render_warmup else 10**12
+                if video_recorder is not None:
+                    # The next observation may already belong to an automatic reset.
+                    video_recorder.write(obs["visual"])
                 obs, _, terminated, truncated, _ = env.step(actions)
                 step += 1
                 if grasp_config.enabled and benchmark and env.unwrapped._benchmark_trace.stages["grasped"]:
@@ -399,6 +422,13 @@ def _evaluate():
                            "success_step": step if is_terminated and not is_truncated else None,
                            "inference_calls": getattr(policy, "inference_calls", None),
                            "wall_time_s": monotonic() - episode_wall_start}
+                    # Both clocks start with the episode rollout, including the
+                    # ten settling steps. Wall time also includes inference/rendering.
+                    row["elapsed_sim_s"] = step * step_dt
+                    row["time_to_success_s"] = row["elapsed_sim_s"] if row["success"] else None
+                    row["wall_time_to_success_s"] = row["wall_time_s"] if row["success"] else None
+                    if video_recorder is not None:
+                        row["videos"] = video_recorder.finish_episode()
                     if benchmark:
                         row.update(env.unwrapped._benchmark_trace.finish(row['success']))
                         env.unwrapped._benchmark_trace = StageTrace()
@@ -410,8 +440,11 @@ def _evaluate():
                     pbar.close()
                     pbar = None
                     start = "random" if row['start_index'] == -1 else row['start_index']
+                    timing_label = "time_to_success" if row["success"] else "timeout_elapsed"
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
-                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step}", flush=True)
+                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step} "
+                          f"{timing_label}={row['elapsed_sim_s']:.2f}s sim "
+                          f"({row['wall_time_s']:.2f}s wall)", flush=True)
                     if len(episodes) == args_cli.num_episodes:
                         break
                     metadata = episode_metadata()
@@ -429,6 +462,8 @@ def _evaluate():
                     pbar.close()
                     pbar = None
                     print(f"[MANUAL RESET] Episode interrupted at step {step}; excluded from results")
+                    if video_recorder is not None:
+                        video_recorder.finish_episode()
                     obs, _ = env.reset()
                     policy.reset()
                     metadata = episode_metadata()
@@ -459,6 +494,9 @@ def _evaluate():
         )
         report['robot_start'] = args_cli.robot_start
         report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
+        if video_recorder is not None:
+            report["save_videos"] = True
+            report["video_dir"] = str(video_dir)
         if getattr(policy, "joint_transform", None) is not None:
             report["policy_joint_transform"] = policy.joint_transform
         if grasp_kwargs:
@@ -479,6 +517,8 @@ def _evaluate():
         status = 'complete' if report['complete'] else 'incomplete'
         print(f"[RESULT] {status}: {len(episodes)}/{args_cli.num_episodes} episodes; "
               f"success {overall['successes']}/{overall['episodes']} ({rate_text})")
+        if overall.get("median_time_to_success_s") is not None:
+            print(f"[RESULT] Median time to success: {overall['median_time_to_success_s']:.2f}s sim")
         for group_key, label in (('by_split', 'Split'), ('by_zone', 'Zone'), ('by_cube_color', 'Colour')):
             groups = report.get(group_key, {})
             if groups:
@@ -496,6 +536,8 @@ def _evaluate():
         # Kit may exit without flushing Python's redirected stdout during shutdown.
         sys.stdout.flush()
         try:
+            if video_recorder is not None:
+                video_recorder.close()
             if smoothing_kwargs.get("log_timing") or grasp_config.enabled:
                 policy.close_timing()
         finally:

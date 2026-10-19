@@ -82,7 +82,8 @@ Run the evaluation (a bare file name is looked up in `configs/eval/`):
 Run it again with `checkpoint-9000` to compare both saved checkpoints. These commands use recorded
 cube starts and the corresponding recorded arm poses. Keep the dataset, seed and other options
 identical for the comparison. Command-line options: `--set section.key=value` (repeatable, overrides
-the YAML), `--dry_run`, `--external_server`, `--server_only`, `--gui`, `--rerun`, `--help`.
+the YAML), `--dry_run`, `--external_server`, `--server_only`, `--gui`, `--rerun`,
+`--save_videos`, `--help`.
 
 The policy is a plugin under `policies/<name>/` (see [07 policy plugins](07-policy-plugins.md)); the
 server runs in the generic `policy-server` image (`./policy_servers/build.sh`) and the first start of a
@@ -126,12 +127,33 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
 | `eval.render_warmup`, `eval.results_json` | 0; absolute teleop path |
+| `eval.save_videos`, `eval.video_dir` | false (`--save_videos`); optional absolute video directory inside teleop |
 | `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
 Molmo's `pick_place_molmo_so101.yaml` selects the SO-100/101 fine-tuned checkpoint;
 prepare it with `./scripts/setup_molmoact2.sh --variant so101`, then evaluate with
-`./docker/eval.sh pick_place_molmo_so101.yaml`. Both Molmo configs
+`./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 300
+simulation seconds (five minutes); successful attempts end early. Each episode
+logs simulation elapsed time and actual wall time, with time to success reported
+for successful attempts. These clocks include settling steps; wall time includes
+inference, rendering and optional recording, and excludes model startup.
+
+To watch and save each attempt's room and wrist views:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
+```
+
+Videos are streamed to separate MP4 files per camera and attempt at the simulation
+frame rate, so playback duration follows simulation time. By default they are
+saved beside the results JSON in `<results_stem>_videos/`. Set `eval.video_dir`
+to an absolute container path to choose another location; recording requires
+`--save_videos` or `eval.save_videos: true`. The results record each attempt's
+video paths. Existing video files are preserved, so use a fresh output directory
+for a new run.
+
+Both Molmo configs
 select `assets/usd/ARM_new.usd`, which layers
 over `SO-ARM101-USD.usd` and restores the original wrist-roll joint frame and the
 matching gripper/jaw zero-pose transforms. The existing USD and other policy
@@ -177,9 +199,10 @@ valid values, and a free host port. Dry-run validates the YAML but skips the Doc
 The missing-teleop diagnostic extracts the launch block from the hub README.
 
 The script starts a uniquely named detached, auto-removed policy server, waits for TCP readiness,
-runs `lerobot_eval` inside teleop with Isaac's Python wrapper, and prints the JSON. It streams server
-logs to a temporary host file so failure logs survive automatic container removal. Exit/interrupt
-traps stop/remove only this run's server. It does not stop the user's teleop container. A readiness
+runs `lerobot_eval` inside teleop with Isaac's Python wrapper, and prints a compact summary.
+It retains server and evaluator logs so failure details survive automatic container removal.
+Exit/interrupt traps clean up this run's server, evaluator and owned viewer.
+The teleop container stays available. A readiness
 connection is not a complete inference health test.
 
 ### Results JSON
@@ -196,7 +219,7 @@ paths need their own persistence. The console prints the exact output path.
 | `requested_episodes`, `complete` | Requested count and whether it was reached |
 | `random_fraction` | Actual probability of random cube starts used by this run |
 | `episode_length_s`, `action_horizon`, `step_dt` | Configured episode seconds, executed chunk length and simulation seconds per control step |
-| `episodes` | Existing row fields plus `success_step`: 1-based control step where success fired, or null for timeout |
+| `episodes` | Per-attempt rows, including `success_step`, `elapsed_sim_s`, `time_to_success_s`, `wall_time_s`, `wall_time_to_success_s`, and optional `videos` paths |
 | `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
 | `by_start` | Aggregates for `recorded` and `random` (not individual ID groups) |
 | `by_zone`, `by_cube_color` | Aggregates for observed zones/colours |
@@ -209,7 +232,9 @@ The 15 s rate counts successes whose `success_step × step_dt` is at most 15 s,
 using all completed episodes as the denominator. The ordinary success rate uses
 the configured full episode window. Median time-to-success uses successful
 episodes only and is null when there are none. Start/zone/colour aggregates carry
-the same added metrics, and the printed JSON summary includes the run options.
+the same added metrics, and the saved JSON report includes the run options.
+`time_to_success_s` and `wall_time_to_success_s` are null for unsuccessful attempts;
+`elapsed_sim_s` and `wall_time_s` still record the time spent on those attempts.
 These fields are additive, so `schema_version` remains 1.
 
 ## Recorded starts and DR

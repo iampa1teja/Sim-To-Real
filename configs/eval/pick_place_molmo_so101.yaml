@@ -26,7 +26,7 @@ eval:
   robot_start: recorded
   robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
   action_horizon: 8                   # at most the model's chunk length
-  episode_length_s: 30                # 900 steps (the task default is 15 s = 450 steps)
+  episode_length_s: 300               # five simulated minutes per try = 9000 control steps
   render_warmup: 2
   lang: Pick up the blue cube and place it in the white box
   rename_map:
