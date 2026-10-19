@@ -67,6 +67,10 @@ RUN $PYTHON -m pip install --upgrade pip
 RUN mkdir -p /tmp/pycache && chmod 1777 /tmp/pycache
 ENV PYTHONPYCACHEPREFIX=/tmp/pycache
 
+# GUI libraries require a private, user-owned runtime directory.
+ENV XDG_RUNTIME_DIR=/tmp/xdg-runtime-root
+RUN install -d -m 0700 "$XDG_RUNTIME_DIR"
+
 RUN cat docker/utils.sh >> /root/.bashrc
 ENTRYPOINT ["/workspace/Sim-to-Real-SO-101-Workshop/docker/sim/entrypoint.sh"]
 CMD ["bash"]
