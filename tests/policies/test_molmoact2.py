@@ -58,6 +58,33 @@ def test_explicit_model_units_are_not_transformed_twice():
     np.testing.assert_array_equal(client.parse_response({"actions": state[None]}, JOINT_ORDER), state[None])
 
 
+def test_normalized_conversion_matches_lerobot_encoder_calibration():
+    # Independently derive both public LeRobot representations from encoder
+    # ticks. DEGREES is relative to the calibrated midpoint, even when that
+    # midpoint differs from the motor's half-turn home (2048 ticks).
+    lower = np.array([725, 831, 877, 888, 0, 2039], dtype=np.float64)
+    upper = np.array([3411, 3326, 3109, 3245, 4095, 3514], dtype=np.float64)
+    encoder = np.array([1900, 1200, 2800, 2400, 1600, 2500], dtype=np.float64)
+    normalized = (encoder - lower) / (upper - lower) * 200 - 100
+    normalized[-1] = (encoder[-1] - lower[-1]) / (upper[-1] - lower[-1]) * 100
+    degrees = (encoder[:5] - (lower[:5] + upper[:5]) / 2) * 360 / 4095
+    expected = np.concatenate((degrees, normalized[-1:]))
+    expected[1] = 90 - degrees[1]
+    expected[2] += 90
+    client = client_policy({
+        "input_joint_units": "lerobot_normalized",
+        "arm_degrees_per_unit": ",".join(str(v) for v in (upper[:5] - lower[:5]) * 360 / 4095 / 200),
+    })
+    built = client.build_request(normalized, request()["images"], "Pick the cube")
+    np.testing.assert_allclose(built["state"], expected, atol=2e-5)
+    # An action target at the encoder midpoint must become normalized zero;
+    # neither USD-limit midpoints nor the half-turn home belong in this frame.
+    model_targets = np.stack((expected, [0, 90, 90, 0, 0, 75]))
+    decoded = client.parse_response({"actions": model_targets}, JOINT_ORDER)
+    np.testing.assert_allclose(decoded[0], normalized, atol=2e-5)
+    np.testing.assert_allclose(decoded[1], [0, 0, 0, 0, 0, 75], atol=2e-5)
+
+
 @pytest.mark.parametrize("scales", ["", "1,1,1,1", "1,1,1,1,0", "1,1,nan,1,1", "bad,1,1,1,1"])
 def test_normalized_joint_units_require_valid_calibrated_scales(scales):
     with pytest.raises(ValueError, match="arm_degrees_per_unit"):

@@ -127,7 +127,11 @@ Molmo also needs a joint-unit conversion in both directions. Simulation derives
 the five arm degree scales from its configured joint mapping, then applies the
 [official SO-100/101 frame correction](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot):
 signs `[1, -1, 1, 1, 1, 1]`, offsets `[0, 90, 90, 0, 0, 0]` degrees. The gripper
-stays in 0–100 units. Returned actions undergo the inverse conversion before
+stays in 0–100 units. These are calibration-midpoint-centered degrees, so the
+asymmetric USD joint-range midpoint must not be added again. For example, the
+first benchmark's shoulder-lift value near `-99.19` becomes approximately
+`189.19` in the model frame. The first model state is printed each episode.
+Returned actions undergo the inverse conversion before
 the simulator's normal joint-limit handling. The startup log and results field
 `policy_joint_transform` record the actual scales and offsets. Direct plugin
 clients default to `input_joint_units=lerobot_degrees`; normalized callers must
