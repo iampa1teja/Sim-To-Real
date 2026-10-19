@@ -242,7 +242,9 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(report['step_dt'], 1/30)
         self.assertEqual(report['robot_usd'], '/task/default.usd')
         self.assertEqual(env.made_episode_length_s, 15)
-        self.assertEqual(json.loads(next(line for line in env.printed if line.startswith('{'))), report)
+        self.assertIn('[RESULT] complete: 3/3 episodes; success 2/3 (66.7%)', env.printed)
+        self.assertFalse(any(line.startswith('{') for line in env.printed))
+        self.assertIn(f'Results JSON: {path}', env.printed)
 
     def test_robot_usd_override_is_applied_before_spawn_and_saved_in_report(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -252,6 +254,17 @@ class EvaluatorRolloutTests(unittest.TestCase):
             report = json.loads(path.read_text())
         self.assertEqual(env.made_robot_usd, str(asset.resolve()))
         self.assertEqual(report['robot_usd'], str(asset.resolve()))
+
+    def test_rerun_flushes_and_disconnects_at_the_end_of_the_episode(self):
+        calls = []
+        recording = SimpleNamespace(flush=lambda **kw: calls.append(('flush', kw)))
+        rerun = SimpleNamespace(get_global_data_recording=lambda: recording,
+                                disconnect=lambda: calls.append(('disconnect', {})))
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rerun': rerun}):
+            env, _ = self.evaluate(Path(directory) / 'report.json', args_override={'rerun': True})
+        self.assertTrue(env.closed)
+        self.assertEqual(calls, [('flush', {'timeout_sec': 5}), ('disconnect', {})])
+
 
     def test_missing_robot_usd_is_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -385,6 +398,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertIsNone(report['overall']['success_rate'])
         self.assertFalse(report['complete'])
         self.assertIn('RuntimeError: Evaluation stopped after 0/3 episodes', env.stderr_at_close)
+        self.assertIn('[RESULT] incomplete: 0/3 episodes; success 0/0 (n/a)', env.printed)
         self.assertEqual(env.flushed_stderr_at_close, env.stderr_at_close)
 
     def test_zero_episode_error_is_visible_when_environment_cleanup_exits_zero(self):

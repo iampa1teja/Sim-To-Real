@@ -89,6 +89,22 @@ server runs in the generic `policy-server` image (`./policy_servers/build.sh`) a
 policy builds its environment, so allow for `READY_TIMEOUT` (default 900 s). The teleop container needs
 `./policies` mounted (see the README launch block).
 
+The launcher prints startup status, episode progress and a compact results summary.
+It retains complete output under `/tmp/so101-eval/<run>/`: `evaluation.log`,
+`server.log`, `rerun.log` when enabled, and a copy of `results.json`.
+Set `EVAL_LOG_DIR=/path/to/run` to choose a directory, or `EVAL_VERBOSE=1` to
+also print routine Isaac initialization details. Warnings and errors remain
+visible, and failed commands show their diagnostic log path and error context.
+
+`--rerun` starts a native host viewer before loading the model. The launcher
+caches the exact viewer binary shipped with the simulator's Rerun SDK, so an
+unrelated host Rerun installation cannot introduce a protocol mismatch. It
+uses the host's `DISPLAY`, falling back to the teleop container's display;
+start teleop from your desktop terminal using the README's X11 mounts.
+`RERUN_PORT` changes the default viewer port of 9876. Set `RERUN_CONNECT_URL`
+to connect to an existing viewer instead. The launcher cleans up its own
+viewer and policy server when the evaluation ends or is interrupted.
+
 YAML keys (old `eval_pick_place.sh` flag in parentheses):
 
 | Key | Default / interpretation |
