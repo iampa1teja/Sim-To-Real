@@ -473,18 +473,41 @@ def _evaluate():
                                    for key, default in smoothing_defaults.items()}
         report['requested_episodes'] = args_cli.num_episodes
         report['complete'] = len(episodes) == args_cli.num_episodes
-        print(json.dumps(report, indent=2))
+        overall = report['overall']
+        rate = overall['success_rate']
+        rate_text = f"{rate:.1%}" if rate is not None else 'n/a'
+        status = 'complete' if report['complete'] else 'incomplete'
+        print(f"[RESULT] {status}: {len(episodes)}/{args_cli.num_episodes} episodes; "
+              f"success {overall['successes']}/{overall['episodes']} ({rate_text})")
+        for group_key, label in (('by_split', 'Split'), ('by_zone', 'Zone'), ('by_cube_color', 'Colour')):
+            groups = report.get(group_key, {})
+            if groups:
+                values = ', '.join(f"{name} {stats['successes']}/{stats['episodes']}"
+                                   for name, stats in groups.items())
+                print(f"[RESULT] {label}: {values}")
         if args_cli.results_json:
             args_cli.results_json.parent.mkdir(parents=True, exist_ok=True)
             args_cli.results_json.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
             if benchmark:
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
+        else:
+            print(json.dumps(report, indent=2, allow_nan=False))
+        # Kit may exit without flushing Python's redirected stdout during shutdown.
+        sys.stdout.flush()
         try:
             if smoothing_kwargs.get("log_timing") or grasp_config.enabled:
                 policy.close_timing()
         finally:
-            env.close()
+            try:
+                if args_cli.rerun:
+                    import rerun as rr
+                    recording = rr.get_global_data_recording()
+                    if recording is not None:
+                        recording.flush(timeout_sec=5)
+                    rr.disconnect()
+            finally:
+                env.close()
 
 
 def main():

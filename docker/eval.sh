@@ -19,6 +19,8 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
 Needs the teleop container (README) running, python3 with PyYAML on the host, and the policy-server
 image (./policy_servers/build.sh). READY_TIMEOUT (seconds, default 900) bounds the server start-up,
 which includes the first-time uv environment build.
+Complete logs are retained under /tmp/so101-eval (override with EVAL_LOG_DIR).
+Set EVAL_VERBOSE=1 to show routine simulator initialization output as well.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -74,22 +76,75 @@ teleop_policies=${TELEOP_POLICIES_DIR:-/workspace/Sim-to-Real-SO-101-Workshop/po
 
 print_command() { printf '+ '; printf '%q ' "$@"; printf '\n'; }
 run() { if "$dry_run"; then print_command "$@"; else "$@"; fi; }
+run_logged() {
+    local logfile=$1
+    shift
+    if "$dry_run"; then print_command "$@"
+    else
+        # A background command plus the wait builtin lets Bash handle TERM immediately.
+        python3 "$repo_dir/docker/eval_output.py" --log "$logfile" -- "$@" &
+        active_log_pid=$!
+        local command_status=0
+        wait "$active_log_pid" || command_status=$?
+        active_log_pid=''
+        return "$command_status"
+    fi
+}
+check_rerun_viewer() {
+    if [[ -n $rerun_log_pid ]] && ! kill -0 "$rerun_log_pid" 2>/dev/null; then
+        python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
+        fail 'Rerun viewer exited; inspect its diagnostic log above.'
+    fi
+}
 server_started=false
 server_log=''
 server_log_pid=''
+server_failure_shown=false
+evaluator_started=false
+active_log_pid=''
+eval_run_id=${timestamp}-$$
+rerun_log_pid=''
+rerun_log=''
+rerun_connect_url=${RERUN_CONNECT_URL:-}
+log_dir=${EVAL_LOG_DIR:-${TMPDIR:-/tmp}/so101-eval/${timestamp}-$$}
 cleanup() {
     local status=$?
     trap - EXIT INT TERM
+    # Reap the host CLI before inspecting /proc, so an in-flight exec cannot race the first scan.
+    if [[ -n $active_log_pid ]]; then
+        kill "$active_log_pid" 2>/dev/null || true
+        wait "$active_log_pid" 2>/dev/null || true
+    fi
+    if "$evaluator_started" && ! "$dry_run"; then
+        # Stopping docker exec alone leaves Isaac running. Match only this invocation's tag.
+        local cleanup_code
+        cleanup_code=$(<"$repo_dir/docker/eval_cleanup.py")
+        if ! docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c "$cleanup_code" "$eval_run_id" >"$log_dir/evaluator-cleanup.log" 2>&1; then
+            cat "$log_dir/evaluator-cleanup.log" >&2
+            printf 'WARNING: Evaluation cleanup failed; inspect %s\n' "$log_dir/evaluator-cleanup.log" >&2
+        fi
+    fi
     if "$server_started"; then
-        run docker stop "$server_name" || true
-        # --rm may already have removed it after stop or a server failure.
-        run docker rm -f "$server_name" 2>/dev/null || true
+        if "$dry_run"; then
+            print_command docker stop "$server_name"
+            print_command docker rm -f "$server_name"
+        else
+            docker stop "$server_name" >>"$log_dir/cleanup.log" 2>&1 || true
+            # --rm may already have removed it after stop or a server failure.
+            docker rm -f "$server_name" >>"$log_dir/cleanup.log" 2>&1 || true
+        fi
     fi
     if [[ -n $server_log_pid ]]; then
         kill "$server_log_pid" 2>/dev/null || true
         wait "$server_log_pid" 2>/dev/null || true
     fi
-    [[ -z $server_log ]] || rm -f -- "$server_log"
+    if [[ -n $rerun_log_pid ]]; then
+        kill "$rerun_log_pid" 2>/dev/null || true
+        wait "$rerun_log_pid" 2>/dev/null || true
+    fi
+    if ((status != 0)) && [[ -n $server_log && -f $server_log ]] && ! "$server_failure_shown"; then
+        python3 "$repo_dir/docker/eval_output.py" --tail "$server_log"
+    fi
     exit "$status"
 }
 trap cleanup EXIT
@@ -141,6 +196,56 @@ fi
 if [[ -n $robot_usd ]]; then
     run docker exec teleop test -f "$robot_usd" || fail 'Robot USD missing inside teleop; check eval.robot_usd.'
 fi
+if ! "$dry_run"; then
+    mkdir -p -- "$log_dir"
+    printf 'Evaluation: policy=%s checkpoint=%s port=%s\n' "$policy_name" "$model" "$port"
+    printf 'Logs: %s\n' "$log_dir"
+fi
+if "$rerun" && ! "$server_only" && [[ -z $rerun_connect_url ]]; then
+    # Use a native viewer matching teleop's SDK; fail before loading policy weights if unavailable.
+    rerun_port=${RERUN_PORT:-9876}
+    rerun_connect_url="rerun+http://127.0.0.1:$rerun_port/proxy"
+    if "$dry_run"; then
+        print_command python3 "$repo_dir/docker/rerun_viewer.py" --container teleop --port "$rerun_port"
+    else
+        python3 - "$rerun_port" <<'PY'
+import socket, sys
+try:
+    with socket.socket() as sock:
+        sock.bind(('127.0.0.1', int(sys.argv[1])))
+except (OSError, ValueError, OverflowError) as error:
+    sys.exit(f'Rerun port {sys.argv[1]} is unavailable ({error}); set RERUN_PORT or RERUN_CONNECT_URL.')
+PY
+        rerun_log=$log_dir/rerun.log
+        python3 "$repo_dir/docker/eval_output.py" --log "$rerun_log" -- \
+            python3 "$repo_dir/docker/rerun_viewer.py" --container teleop --port "$rerun_port" &
+        rerun_log_pid=$!
+        rerun_ready=false
+        rerun_deadline=$((SECONDS + ${RERUN_READY_TIMEOUT:-60}))
+        while ((SECONDS < rerun_deadline)); do
+            if ! kill -0 "$rerun_log_pid" 2>/dev/null; then
+                wait "$rerun_log_pid" 2>/dev/null || true
+                python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
+                fail 'Rerun viewer exited before startup; evaluation was not started.'
+            fi
+            if python3 - "$rerun_port" <<'PY'
+import socket, sys
+try:
+    with socket.create_connection(('127.0.0.1', int(sys.argv[1])), timeout=1):
+        pass
+except OSError:
+    sys.exit(1)
+PY
+            then rerun_ready=true; break; fi
+            sleep 1
+        done
+        if ! "$rerun_ready"; then
+            python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
+            fail 'Rerun viewer readiness timed out; evaluation was not started.'
+        fi
+        printf 'Rerun viewer ready: %s\n' "$rerun_connect_url"
+    fi
+fi
 if "$external_server"; then
     : # The shared server owns the port.
 elif "$dry_run"; then
@@ -173,20 +278,22 @@ done
 if ! "$external_server"; then
     # Arm cleanup before launching so a signal during docker run cannot orphan the container.
     server_started=true
-    run "${server_cmd[@]}"
+    if "$dry_run"; then print_command "${server_cmd[@]}"
+    else
+        printf 'Starting policy server; loading %s...\n' "$model"
+        "${server_cmd[@]}" >"$log_dir/server-container.txt"
+    fi
     # Stream logs onto the host immediately: --rm removes container logs on exit.
     if "$dry_run"; then
         print_command docker logs --follow "$server_name"
     else
-        server_log=$(mktemp "${TMPDIR:-/tmp}/policy-eval-log.XXXXXX")
-        docker logs --follow "$server_name" >"$server_log" 2>&1 &
+        server_log=$log_dir/server.log
+        python3 "$repo_dir/docker/eval_output.py" --log "$server_log" -- docker logs --follow "$server_name" &
         server_log_pid=$!
     fi
     show_server_logs() {
-        if ! docker logs "$server_name" >&2; then
-            [[ -z $server_log_pid ]] || wait "$server_log_pid" 2>/dev/null || true
-            [[ -z $server_log ]] || cat "$server_log" >&2
-        fi
+        server_failure_shown=true
+        python3 "$repo_dir/docker/eval_output.py" --tail "$server_log"
     }
     if "$dry_run"; then
         print_command docker inspect -f '{{.State.Running}}' "$server_name"
@@ -197,6 +304,7 @@ if ! "$external_server"; then
         ready_timeout=${READY_TIMEOUT:-900}
         deadline=$((SECONDS + ready_timeout))
         while ((SECONDS < deadline)); do
+            check_rerun_viewer
             if [[ $(docker inspect -f '{{.State.Running}}' "$server_name" 2>/dev/null || true) != true ]]; then
                 show_server_logs
                 fail "The $policy_name policy server exited; check the checkpoint, GPU and server logs above."
@@ -218,6 +326,7 @@ PY
         fi
     fi
 fi
+if ! "$dry_run"; then printf 'Using policy server on port %s.\n' "$port"; fi
 if "$server_only"; then
     printf 'SERVER_READY port=%s\n' "$port"
     if ! "$dry_run"; then
@@ -231,8 +340,18 @@ fi
 
 # Use the README's Isaac Python wrapper: docker exec does not inherit the environment exported by the
 # container entrypoint. Run the lerobot_eval module.
-run docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m pip install tqdm
-eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" teleop /workspace/isaaclab/_isaac_sim/python.sh
+# Avoid installing (and warning about root pip) on every evaluation in the prebuilt simulator.
+if "$dry_run"; then
+    print_command docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c 'import tqdm'
+elif ! docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c 'import tqdm' >"$log_dir/dependencies.log" 2>&1; then
+    printf 'Installing missing evaluator dependency: tqdm...\n'
+    run_logged "$log_dir/dependencies-install.log" docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh \
+        -m pip install --quiet --disable-pip-version-check --root-user-action=ignore tqdm
+fi
+check_rerun_viewer
+rerun_env=()
+if "$rerun"; then rerun_env=(-e "RERUN_CONNECT_URL=$rerun_connect_url"); fi
+eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$eval_run_id" -e PYTHONUNBUFFERED=1 "${rerun_env[@]}" teleop /workspace/isaaclab/_isaac_sim/python.sh
     -m sim_to_real_so101.scripts.lerobot_eval --task "$task" --num_envs 1
     --cube_starts "$dataset/pick_place_meta" --start_mode "$start_mode" --random_fraction "$random_fraction"
     --robot_start "$robot_start"
@@ -251,7 +370,9 @@ eval_cmd+=("${grasp_args[@]}")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)
 "$rerun" && eval_cmd+=(--rerun)
-run "${eval_cmd[@]}"
-# The client prints the grouped summary; also retrieve the saved report.
-run docker exec teleop cat "$results"
+evaluator_started=true
+run_logged "$log_dir/evaluation.log" "${eval_cmd[@]}"
+# The client prints the grouped summary; keep the full report on disk without dumping it twice.
+if "$dry_run"; then print_command docker exec teleop cat "$results"
+else docker exec teleop cat "$results" >"$log_dir/results.json"; fi
 printf 'Results JSON (inside teleop): %s\n' "$results"
