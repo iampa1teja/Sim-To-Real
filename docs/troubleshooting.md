@@ -39,9 +39,20 @@ version even when schema validation passes.
 
 Check host `DISPLAY`, X authorization, GPU access and the launch mounts in
 [Setup](01-setup.md). `list_envs` opens a simulator window and has no headless CLI.
-The copied workshop teleop command uses host networking and Xauthority; unlike
-the real-robot command, it does not mount `/tmp/.X11-unix`. Whether that recipe
-works with your X server/socket configuration needs local validation.
+The current teleop command mounts `/tmp/.X11-unix` and Xauthority and passes
+`DISPLAY` and a private `XDG_RUNTIME_DIR`. Recreate an older container with the
+current launch block if its display configuration is missing.
+
+`./docker/eval.sh <config>.yaml --rerun` starts a native viewer matching the
+container's SDK. The viewer opens before model loading; camera panes receive
+data after evaluation begins. An initially empty viewer can therefore be normal.
+`--gui` separately opens Isaac's simulator window. For an X11 connection failure,
+check the display value in a host desktop terminal and the container's launch
+settings. The evaluator checks viewer startup before loading policy weights.
+
+Read `evaluation.log`, `server.log` and `rerun.log` under the printed
+`/tmp/so101-eval/<run>/` directory. Set `EVAL_VERBOSE=1` to include routine startup
+details in the terminal. Warnings and errors remain visible in normal output.
 
 The recorder browser is separate from Isaac's viewport. If it is blank, inspect
 browser network/console errors: React and Babel are fetched from a CDN. Keep
