@@ -31,7 +31,7 @@ SECTIONS = {
     "policy": {"name", "checkpoint", "models_dir", "port", "server_image", "options"},
     "eval": {"dataset", "episodes", "start_mode", "random_fraction", "robot_start", "render_warmup",
              "episode_length_s", "action_horizon", "eval_set", "splits", "repeats", "lang",
-             "lang_by_color", "rename_map", "results_json", "robot_usd"},
+             "lang_by_color", "rename_map", "results_json", "robot_usd", "save_videos", "video_dir"},
     "grasp": {"gripper_latch", "log_gripper", "seed_per_episode", "latch_close_below",
               "latch_open_above", "latch_confirm_steps", "latch_release_confirm", "latch_min_hold",
               "latch_dataset", "gripper_csv", "latch_steady_steps", "latch_steady_max_delta",
@@ -195,6 +195,14 @@ def build(data: dict) -> dict:
     if results and not str(results).startswith("/"):
         fail("eval.results_json must be an absolute path inside teleop.")
     out["results_json"] = str(results or "")
+    save_videos = run.get("save_videos", False)
+    if not isinstance(save_videos, bool):
+        fail("eval.save_videos must be true or false.")
+    out["save_videos"] = "true" if save_videos else "false"
+    video_dir = run.get("video_dir")
+    if video_dir is not None and (not isinstance(video_dir, str) or not video_dir.startswith("/")):
+        fail("eval.video_dir must be an absolute path inside teleop.")
+    out["video_dir"] = video_dir or ""
 
     grasp_args: list[str] = []
     for key, value in (data.get("grasp") or {}).items():

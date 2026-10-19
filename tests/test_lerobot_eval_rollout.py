@@ -102,7 +102,9 @@ class FakeEnvironment:
         # Physical drift distinguishes holding the reset pose from following
         # each subsequent observation during the settling period.
         position = self.reset_pose() + self.episode_step * .01
-        return {'policy': {'joint_pos_obs': [SimpleNamespace(clone=lambda: position.copy())]}, 'visual': {}}
+        pixels = np.full((1, 16, 24, 3), min(255, 40 + self.episode * 60 + self.episode_step), dtype=np.uint8)
+        return {'policy': {'joint_pos_obs': [SimpleNamespace(clone=lambda: position.copy())]},
+                'visual': {'rgb_realsense_rgb': pixels, 'rgb_wrist_cam': pixels.copy()}}
 
     def metadata(self):
         self._pick_place_start_index = [self.episode]
@@ -255,6 +257,52 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(env.made_robot_usd, str(asset.resolve()))
         self.assertEqual(report['robot_usd'], str(asset.resolve()))
 
+    def test_video_option_saves_playable_views_without_crossing_auto_reset(self):
+        if importlib.util.find_spec('av') is None:
+            self.skipTest('PyAV is required for real video encoding')
+        import av
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'save_videos': True, 'num_episodes': 2},
+                                   outcomes=[(2, True, False), (3, False, True)])
+            report = json.loads(path.read_text())
+            self.assertTrue(report['save_videos'])
+            self.assertEqual(report['video_dir'], str(Path(directory) / 'report_videos'))
+            for row, frame_count, lower, upper in zip(report['episodes'], (2, 3), (30, 90), (60, 120)):
+                self.assertEqual(set(row['videos']), {'room', 'wrist'})
+                for filename in row['videos'].values():
+                    with av.open(filename) as recording:
+                        self.assertEqual(recording.streams.video[0].average_rate, 30)
+                        frames = [frame.to_ndarray(format='rgb24') for frame in recording.decode(video=0)]
+                    self.assertEqual(len(frames), frame_count)
+                    self.assertTrue(all(lower < frame.mean() < upper for frame in frames))
+            self.assertEqual(len(list(Path(report['video_dir']).glob('*.mp4'))), 4)
+        self.assertTrue(env.closed)
+
+    def test_disabled_video_needs_no_recorder_import_or_output_directory(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(sys.modules, {'sim_to_real_so101.utils.eval_video': None}):
+            path = Path(directory) / 'report.json'
+            self.evaluate(path)
+            self.assertFalse((Path(directory) / 'report_videos').exists())
+            self.assertNotIn('videos', json.loads(path.read_text())['episodes'][0])
+
+    def test_video_files_are_finalized_when_the_rollout_fails(self):
+        if importlib.util.find_spec('av') is None:
+            self.skipTest('PyAV is required for real video encoding')
+        import av
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'save_videos': True}, failure_stage='step')
+            report = json.loads(path.read_text())
+            self.assertFalse(report['complete'])
+            files = list(Path(report['video_dir']).glob('*.mp4'))
+            self.assertEqual(len(files), 2)
+            for filename in files:
+                with av.open(str(filename)) as recording:
+                    self.assertEqual(len(list(recording.decode(video=0))), 1)
+        self.assertTrue(env.closed)
+
     def test_rerun_flushes_and_disconnects_at_the_end_of_the_episode(self):
         calls = []
         recording = SimpleNamespace(flush=lambda **kw: calls.append(('flush', kw)))
@@ -264,7 +312,6 @@ class EvaluatorRolloutTests(unittest.TestCase):
             env, _ = self.evaluate(Path(directory) / 'report.json', args_override={'rerun': True})
         self.assertTrue(env.closed)
         self.assertEqual(calls, [('flush', {'timeout_sec': 5}), ('disconnect', {})])
-
 
     def test_missing_robot_usd_is_rejected_before_spawn(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -376,6 +423,28 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual(report['by_zone']['FR']['success_rate_within_15s'], 0.)
         self.assertEqual(report['by_cube_color']['red']['success_rate_within_15s'], 0.)
         self.assertEqual(env.explicit_resets, 1)
+
+    def test_five_minute_attempt_records_success_and_timeout_on_both_clocks(self):
+        with tempfile.TemporaryDirectory() as directory, patch('time.monotonic', side_effect=[100., 104.5, 200., 650.]):
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'episode_length_s': 300., 'num_episodes': 2},
+                                   outcomes=[(60, True, False), (9000, False, True)])
+            report = json.loads(path.read_text())
+        self.assertEqual(env.made_episode_length_s, 300.)
+        success, timeout = report['episodes']
+        self.assertEqual(success['time_to_success_s'], 2.)
+        self.assertEqual(success['elapsed_sim_s'], 2.)
+        self.assertEqual(success['wall_time_to_success_s'], 4.5)
+        self.assertEqual(success['wall_time_s'], 4.5)
+        self.assertEqual(timeout['elapsed_sim_s'], 300.)
+        self.assertEqual(timeout['wall_time_s'], 450.)
+        self.assertIsNone(timeout['time_to_success_s'])
+        self.assertIsNone(timeout['wall_time_to_success_s'])
+        episode_logs = [line for line in env.printed if line.startswith('[EPISODE')]
+        self.assertIn('time_to_success=2.00s sim (4.50s wall)', episode_logs[0])
+        self.assertIn('timeout_elapsed=300.00s sim (450.00s wall)', episode_logs[1])
+        self.assertEqual(report['overall']['median_time_to_success_s'], 2.)
+        self.assertIn('[RESULT] Median time to success: 2.00s sim', env.printed)
 
     def test_closed_app_writes_partial_report_and_fails(self):
         with tempfile.TemporaryDirectory() as directory:

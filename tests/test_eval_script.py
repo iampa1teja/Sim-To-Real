@@ -54,12 +54,32 @@ def test_defaults_start_the_policy_server_and_the_evaluator(tmp_path):
     assert "--robot_usd" not in client
     assert "-e SO101_EVAL_RUN_ID=" in client
     assert "-e PYTHONUNBUFFERED=1" in client
+    assert "--save_videos" not in client and "--video_dir" not in client
 
 
+def test_save_videos_cli_and_yaml_options_reach_evaluator(tmp_path):
+    result = run(tmp_path, BASE, "--save_videos")
+    assert result.returncode == 0, result.stderr
+    client = find(result, "docker exec -e POLICIES_DIR")
+    assert "--save_videos" in client and "--video_dir" not in client
+    result = run(tmp_path, BASE + "  save_videos: true\n  video_dir: /workspace/outputs/custom_videos\n")
+    assert result.returncode == 0, result.stderr
+    client = find(result, "docker exec -e POLICIES_DIR")
+    assert "--save_videos" in client and "--video_dir /workspace/outputs/custom_videos" in client
 
 
+@pytest.mark.parametrize("value", ['"yes"', "1", "null"])
+def test_video_save_option_requires_yaml_boolean(tmp_path, value):
+    result = run(tmp_path, BASE + f"  save_videos: {value}\n")
+    assert result.returncode != 0
+    assert "eval.save_videos" in result.stderr
 
 
+@pytest.mark.parametrize("value", ["relative/videos", "true", "123"])
+def test_video_directory_requires_absolute_container_path(tmp_path, value):
+    result = run(tmp_path, BASE + f"  video_dir: {value}\n")
+    assert result.returncode != 0
+    assert "eval.video_dir" in result.stderr
 
 
 def test_policy_options_reach_server_and_client(tmp_path):

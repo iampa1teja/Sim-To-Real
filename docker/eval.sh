@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Host-side evaluation runner. Every setting comes from one YAML file:
-#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun]
+#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos]
 # A bare file name is looked up under configs/eval/. See configs/eval/pick_place.yaml for the schema.
 set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 usage() {
     cat <<'EOF'
-Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun]
+Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos]
 
   <config>.yaml      Evaluation settings (policy, checkpoint, dataset, episodes, ...). A bare file
                      name is looked up in configs/eval/.
@@ -15,6 +15,7 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
   --external_server  Use a policy server that is already running on the configured port.
   --server_only      Start the policy server and wait until interrupted; no evaluation.
   --gui, --rerun     Show the simulator window / enable Rerun (also settable under run: in the YAML).
+  --save_videos      Save room/wrist MP4 videos for each attempt (also eval.save_videos in YAML).
 
 Needs the teleop container (README) running, python3 with PyYAML on the host, and the policy-server
 image (./policy_servers/build.sh). READY_TIMEOUT (seconds, default 900) bounds the server start-up,
@@ -24,7 +25,7 @@ Set EVAL_VERBOSE=1 to show routine simulator initialization output as well.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false
+config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false
 while (($#)); do
     case "$1" in
         --external_server) external_server=true; shift ;;
@@ -32,6 +33,7 @@ while (($#)); do
         --dry_run) dry_run=true; shift ;;
         --gui) gui_flag=true; shift ;;
         --rerun) rerun_flag=true; shift ;;
+        --save_videos) save_videos_flag=true; shift ;;
         --help|-h) usage; exit 0 ;;
         -*) fail "Unknown option $1; see --help." ;;
         *) [[ -z $config ]] || fail 'Give exactly one config file.'; config=$1; shift ;;
@@ -45,12 +47,13 @@ if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=
 
 # Variables defined by the helper: dr task policy_name model models_dir port server_image dataset
 # episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon
-# eval_set splits lang lang_by_color rename_map results_json seed_per_episode gui rerun
+# eval_set splits lang lang_by_color rename_map results_json save_videos video_dir seed_per_episode gui rerun
 # and the arrays policy_options (KEY=VALUE) and grasp_args.
 config_vars=$(python3 "$repo_dir/docker/eval_config.py" "$config") || exit 1
 eval "$config_vars"
 "$gui_flag" && gui=true
 "$rerun_flag" && rerun=true
+"$save_videos_flag" && save_videos=true
 
 if [[ -z $port ]]; then
     port=$(python3 - "$repo_dir/policies/$policy_name/policy.toml" <<'PY'
@@ -370,6 +373,8 @@ eval_cmd+=("${grasp_args[@]}")
 [[ -z $lang_by_color ]] || eval_cmd+=(--lang_instruction_by_color "$lang_by_color")
 "$gui" || eval_cmd+=(--headless)
 "$rerun" && eval_cmd+=(--rerun)
+"$save_videos" && eval_cmd+=(--save_videos)
+[[ -z $video_dir ]] || eval_cmd+=(--video_dir "$video_dir")
 evaluator_started=true
 run_logged "$log_dir/evaluation.log" "${eval_cmd[@]}"
 # The client prints the grouped summary; keep the full report on disk without dumping it twice.
