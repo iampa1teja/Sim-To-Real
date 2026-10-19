@@ -46,7 +46,8 @@ docker build -t teleop-docker -f docker/sim/Dockerfile .
 ```bash
 xhost +
 docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \
-  -e "PRIVACY_CONSENT=Y" -e DISPLAY \
+  -e "PRIVACY_CONSENT=Y" -e DISPLAY -e XDG_RUNTIME_DIR=/tmp/xdg-runtime-root \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
   -v /dev:/dev -v /run/udev:/run/udev:ro \
   -v "$HOME/.Xauthority:/root/.Xauthority" \
   -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
