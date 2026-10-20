@@ -7,6 +7,10 @@ from copy import deepcopy
 EYE_IN_BASE = (-0.25, 0.35, 0.85)
 TARGET_IN_BASE = (-0.025, -0.14, 0.04)
 SENSOR_NAME = "camera_molmo_room"
+# Endpoints of the packaged tabletop's front edge in the robot base frame,
+# ordered toward camera-right. They set camera roll without moving its aim.
+TABLE_EDGE_IN_BASE = ((1.824393, 0.048087, 0.030076),
+                      (-0.614616, 0.048028, 0.030076))
 
 
 def _camera_pose(base_position, base_quaternion):
@@ -17,7 +21,15 @@ def _camera_pose(base_position, base_quaternion):
                                   Gf.Vec3d(*(float(value) for value in base_quaternion[1:]))))
     eye = position + rotation.TransformDir(Gf.Vec3d(*EYE_IN_BASE))
     target = position + rotation.TransformDir(Gf.Vec3d(*TARGET_IN_BASE))
-    transform = Gf.Matrix4d().SetLookAt(eye, target, Gf.Vec3d(0, 0, 1)).GetInverse()
+    forward = (target - eye).GetNormalized()
+    # Project the actual edge rays onto the optical plane. Projecting only its
+    # 3D direction leaves a slope when perspective changes along the edge.
+    rays = [position + rotation.TransformDir(Gf.Vec3d(*point)) - eye
+            for point in TABLE_EDGE_IN_BASE]
+    right = (rays[1] / Gf.Dot(rays[1], forward)
+             - rays[0] / Gf.Dot(rays[0], forward)).GetNormalized()
+    up = Gf.Cross(right, forward).GetNormalized()
+    transform = Gf.Matrix4d().SetLookAt(eye, target, up).GetInverse()
     quaternion = transform.ExtractRotation().GetQuat()
     return tuple(eye), (quaternion.GetReal(), *quaternion.GetImaginary()), tuple(target)
 
@@ -66,6 +78,7 @@ def add_molmo_overhead_camera(env_cfg):
         "target": list(target),
         "orientation_wxyz": list(quaternion),
         "convention": "opengl",
+        "alignment": "table_front_edge",
         "width": camera.width,
         "height": camera.height,
     }

@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "source"))
-from sim_to_real_so101.utils.molmo_camera import add_molmo_overhead_camera
+from sim_to_real_so101.utils.molmo_camera import add_molmo_overhead_camera, TABLE_EDGE_IN_BASE
 
 
 def environment():
@@ -83,3 +83,20 @@ def test_existing_extra_sensor_is_not_overwritten():
     with pytest.raises(ValueError, match="already exists"):
         add_molmo_overhead_camera(cfg)
     assert cfg.scene.camera_molmo_room is existing
+
+
+def test_actual_table_edge_is_horizontal_without_inverting_the_view():
+    Gf = pytest.importorskip("pxr.Gf")
+    cfg = environment()
+    metadata = add_molmo_overhead_camera(cfg)
+    q = metadata["orientation_wxyz"]
+    camera_rotation = Gf.Rotation(Gf.Quatd(q[0], Gf.Vec3d(*q[1:])))
+    eye = Gf.Vec3d(*metadata["position"])
+    base = Gf.Vec3d(*cfg.scene.robot.init_state.pos)
+    points = [camera_rotation.GetInverse().TransformDir(base + Gf.Vec3d(*point) - eye)
+              for point in TABLE_EDGE_IN_BASE]
+    normalized = [(point[0] / -point[2], point[1] / -point[2]) for point in points]
+    assert normalized[1][0] > normalized[0][0]
+    assert normalized[0][1] == pytest.approx(normalized[1][1], abs=1e-12)
+    assert camera_rotation.TransformDir(Gf.Vec3d(0, 1, 0))[2] > 0
+    assert metadata["alignment"] == "table_front_edge"
