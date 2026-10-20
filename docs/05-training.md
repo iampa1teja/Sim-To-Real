@@ -7,26 +7,40 @@
 The v2 workflow uses NVIDIA's official
 [SO_ARM_Starter_Gr00tN17](https://huggingface.co/nvidia/SO_ARM_Starter_Gr00tN17)
 checkpoint at revision `93a5a88f78a395939f784a5fe3685184913dcc60`, with GR00T N1.7
-GA code pinned to `51d4c89f72fda44cbf77285c6a8114b52676b8a1`. Keep a separate
-checkout at `~/Isaac-GR00T-N1.7`; its Python 3.12, Torch, Transformers and video
-reader differ from the old N1.6 environment. The setup helper installs the locked
-N1.7 environment and the converter's extra dependencies without replacing its
-Torch version.
+GA code pinned to `51d4c89f72fda44cbf77285c6a8114b52676b8a1`. Training and data
+preparation run in `so101-groot-train:n1.7`. Its pinned checkout and Python
+environment are inside the image at `/Isaac-GR00T`; training needs no host GR00T
+checkout or virtual environment. The image shares the existing N1.7 serving
+layers and adds the pinned LeRobot converter, PyAV and 8-bit optimizer.
 
-**Training machine**, workshop root, with Git and uv installed:
+**Training machine**, workshop root, with Docker and NVIDIA Container Toolkit:
 
 ```bash
-bash scripts/setup_gr00t_n17.sh
-source ~/Isaac-GR00T-N1.7/.venv/bin/activate
-export PYTHONDONTWRITEBYTECODE=1
+./docker/train/build.sh
+./docker/train.sh check
 ```
 
-Training needs a CUDA GPU. Preparation and verification are CPU checks requiring
+`check` verifies the GR00T revision, library pins, converter/reader imports and
+CUDA access without loading model weights or starting training. The build uses
+`real-robot:n1.7`, building that base first if needed. Training containers run
+offline, remove themselves on exit and write as the host user. The workshop,
+selected datasets, models, output storage and Hugging Face cache are bind-mounted
+at their host paths; checkpoints and logs persist after container removal. New
+training outputs default to `/external_storage/models`.
+
+Training needs a CUDA GPU. Preparation and verification use CPU containers with
 NumPy, PyArrow, PyAV, FFmpeg, LeRobot's converter and the pinned GR00T reader.
 N1.7 uses TorchCodec and requires an FFmpeg 4–7 runtime; the verification command
-checks actual video decoding. Do not replace Isaac's simulation packages with
-training packages. Use a complete workshop checkout on the training machine:
-the standard teleop mount exposes `source/`, not these top-level scripts.
+checks actual video decoding. Use a complete workshop checkout on the training
+machine. The training image is independent of the teleop container.
+
+The original `scripts/train_pick_place*.sh` and `train_dit.sh` entry points route
+through Docker automatically. `--dry_run` prints the Docker command without
+creating output or starting a container. `--preflight_only` runs the existing
+dataset/model/disk/GPU checks inside the container and stops before training.
+Keep `~/Isaac-GR00T` while using the saved host real-arm client: that workflow
+still imports its source, and the checkout may contain recorded datasets. Moving
+training to Docker does not migrate or delete those files.
 
 The legacy `so100_n16` preparation profile still uses the original
 `ead52833afbbf4243f8cd5e7664f48a94de03b19` pin and front/wrist, relative-arm
@@ -43,16 +57,14 @@ sidecars. This is not a general converter for the paired real camera names.
 Encode all saved episodes first.
 
 **Training machine**, workshop root, after encoding the new yaw-aligned v2
-recordings and activating the N1.7 environment above:
+recordings:
 
 ```bash
-python scripts/check_pick_place_demo_alignment.py --dataset datasets/pick_place_v2
-python scripts/prepare_pick_place_gr00t.py \
-  --model_profile so_arm_n17 \
-  --groot ~/Isaac-GR00T-N1.7 \
+./docker/train.sh python scripts/check_pick_place_demo_alignment.py --dataset datasets/pick_place_v2
+./docker/train.sh prepare \
   --source datasets/pick_place_v2 \
   --output datasets/pick_place_v2_gr00t
-PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+./docker/train.sh verify \
   --dataset datasets/pick_place_v2_gr00t
 ```
 
@@ -70,13 +82,11 @@ is an example only; use the failure IDs you actually reviewed.
 **Training machine**, workshop root:
 
 ```bash
-python scripts/prepare_pick_place_gr00t.py \
-  --model_profile so_arm_n17 \
-  --groot ~/Isaac-GR00T-N1.7 \
+./docker/train.sh prepare \
   --source datasets/pick_place_v2 \
   --output datasets/pick_place_v2_gr00t_filtered \
   --exclude_episodes 0,6
-PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+./docker/train.sh verify \
   --dataset datasets/pick_place_v2_gr00t_filtered
 ```
 
@@ -121,7 +131,7 @@ instead.
 
 ## Fine-tune
 
-The starter model lives directly at `~/sim2real/models/nv_so_arm_n17`, with
+The starter model lives directly at `/external_storage/models/nv_so_arm_n17`, with
 `config.json`, processor/statistics/embodiment files, a safetensors index and model
 weight shards at that root. It is **not** a `checkpoint-10000` subdirectory.
 Training writes new `checkpoint-*` directories under a separate output root.
@@ -144,7 +154,7 @@ hf download nvidia/SO_ARM_Starter_Gr00tN17 \
   --include config.json --include processor_config.json \
   --include embodiment_id.json --include statistics.json \
   --include 'model-*.safetensors' --include model.safetensors.index.json \
-  --local-dir ~/sim2real/models/nv_so_arm_n17
+  --local-dir /external_storage/models/nv_so_arm_n17
 hf download nvidia/Cosmos-Reason2-2B
 ```
 
@@ -173,11 +183,14 @@ sources are preserved.
 preparation, compatibility and the memory probe have passed:
 
 ```bash
-DRY_RUN=1 bash scripts/train_pick_place.sh
-bash scripts/train_pick_place.sh
+./docker/train.sh --dry_run
+./docker/train.sh --preflight_only
+./docker/train.sh
 ```
 
-[train_pick_place.sh](../scripts/train_pick_place.sh) prints its complete command,
+[docker/train.sh](../docker/train.sh) prints the Docker command and runs
+[train_pick_place.sh](../scripts/train_pick_place.sh) inside the image. That script
+prints the fine-tuning command,
 checks for a busy GPU and at least **50 GiB free** on the output filesystem,
 refuses an output with existing checkpoints unless `RESUME=1`, and logs through
 `tee` to `$OUT/train.log`. It trains **10,000 steps**, saves every **1,000 steps**,
@@ -193,10 +206,11 @@ pretrained weights; it does not rebuild the model architecture.
 
 | Environment variable | Default |
 | --- | --- |
-| `GROOT` | `$HOME/Isaac-GR00T-N1.7` at the N1.7 GA pin |
-| `BASE_MODEL` | `$HOME/sim2real/models/nv_so_arm_n17` |
+| `TRAIN_IMAGE` | `so101-groot-train:n1.7` |
+| `GROOT` | `/Isaac-GR00T` inside the image; the host setting is ignored |
+| `BASE_MODEL` | `/external_storage/models/nv_so_arm_n17` |
 | `DATASET` | `$REPO/datasets/pick_place_v2_gr00t` |
-| `OUT` | `$HOME/sim2real/models/so101_pick_place_v2_nvinit` |
+| `OUT` | `/external_storage/models/so101_pick_place_v2_nvinit` |
 | `MAX_STEPS`, `SAVE_STEPS`, `SAVE_TOTAL_LIMIT` | `10000`, `1000`, `2` |
 | `BATCH` | `16`; validated by the N1.7 30-step memory probe |
 | `MEASURED_S_PER_STEP` | `0.3902`; measured N1.7 batch-16 compute timing |
@@ -252,9 +266,7 @@ The copy was created with this command; preparation refuses to overwrite the
 completed directory:
 
 ```bash
-python scripts/prepare_pick_place_gr00t.py \
-  --model_profile so_arm_n17 \
-  --groot ~/Isaac-GR00T-N1.7 \
+./docker/train.sh prepare \
   --source datasets/pick_place_v1 \
   --output datasets/pick_place_v1_gr00t_n17 \
   --exclude_episodes 0,6
@@ -265,10 +277,10 @@ command for the requested 10k run. The Cosmos cache and batch-16 N1.7 probe have
 been verified; the full training run has not been started.
 
 ```bash
-PYTHONPATH="$HOME/Isaac-GR00T-N1.7" python scripts/verify_pick_place_training.py \
+./docker/train.sh verify \
   --dataset datasets/pick_place_v1_gr00t_n17
 DATASET="$PWD/datasets/pick_place_v1_gr00t_n17" \
-OUT="$HOME/sim2real/models/so101_pick_place_v1_n17_10k" \
+OUT="/external_storage/models/so101_pick_place_v1_n17_10k" \
 BATCH=16 MAX_STEPS=10000 SAVE_STEPS=1000 SAVE_TOTAL_LIMIT=2 \
 bash scripts/train_pick_place.sh
 ```
@@ -389,7 +401,7 @@ contains exactly the selected DiT parameters. CPU tests exercise these failure
 boundaries, block selection and gradients through the frozen decoder:
 
 ```bash
-~/Isaac-GR00T-N1.7/.venv/bin/python -m unittest discover \
+./docker/train.sh python -m unittest discover \
   -s tests -p test_train_dit_only.py -v
 ```
 
@@ -485,14 +497,16 @@ starts, overall and by split. Multi-checkpoint p-values are unadjusted.
 
 ## CPU preparation regression tests
 
-**Training machine**, workshop root with the preparation dependencies:
+**Training machine**, workshop root; the container supplies the pinned N1.7
+reader and converter dependencies:
 
 ```bash
-GROOT_CHECKOUT='<path_to_Isaac-GR00T>' \
-  python -m unittest discover -s tests -p test_prepare_pick_place_gr00t.py -v
+./docker/train.sh python -m unittest discover -s tests -p test_prepare_pick_place_gr00t.py -v
 ```
 
-The synthetic five-episode suite excludes 0 and 3 and tests renumbering, values,
+The N1.7 integration cases run against `/Isaac-GR00T` in the image. Legacy N1.6
+cases still need their separate checkout and environment. The synthetic
+five-episode suite excludes 0 and 3 and tests renumbering, values,
 video bytes, sidecars, stats, unchanged source hashes, actual GR00T reads and
 resume. `PREPARATION_BASELINE` optionally names a saved pre-change script for a
 default-output byte comparison; only provenance/variable report fields differ.
@@ -502,8 +516,8 @@ default-output byte comparison; only provenance/variable report fields differ.
 Run the CPU-only audit against the original v1 recordings:
 
 ```bash
-~/Isaac-GR00T-N1.7/.venv/bin/python scripts/audit_grasps.py
-~/Isaac-GR00T-N1.7/.venv/bin/python -m unittest discover \
+./docker/train.sh python scripts/audit_grasps.py
+./docker/train.sh python -m unittest discover \
   -s tests -p test_audit_grasps.py -v
 ```
 

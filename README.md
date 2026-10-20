@@ -108,6 +108,23 @@ later visit. Drafts are separate from `docker/env` and do not configure a runnin
 recorder. See [draft behavior and recovery](docs/01-setup.md#local-drafts) for
 reset, deletion and browser-storage details.
 
+## GR00T training in Docker
+
+Build the pinned N1.7 training image and verify its runtime:
+
+```bash
+./docker/train/build.sh
+./docker/train.sh check
+```
+
+Prepare and verify a dataset with `./docker/train.sh prepare` and
+`./docker/train.sh verify`, then use `./docker/train.sh --preflight_only` before
+`./docker/train.sh`. Existing training shell scripts also route through Docker.
+Checkpoints default to `/external_storage/models` and survive container removal.
+See [Training](docs/05-training.md) for dataset preparation, model downloads and
+training settings. The saved host real-arm client still uses `~/Isaac-GR00T`;
+keep its source and recorded datasets when cleaning up host environments.
+
 ## MolmoAct2 evaluation
 
 Use the SO-100/101 fine-tuned checkpoint with the corrected wrist frame. Start
