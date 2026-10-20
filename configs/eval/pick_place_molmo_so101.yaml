@@ -14,6 +14,7 @@ policy:
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     action_dtype: float32             # retain original expert precision with a BF16 backbone
+    include_original_room: true       # send new room, wrist, then unchanged original room to Molmo
     num_steps: 10                     # flow-matching solver steps
 
 # Uses the fixed benchmark starts and the corrected wrist frame for Molmo.

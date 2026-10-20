@@ -127,9 +127,13 @@ precision; the five-episode smoke test checks the resulting execution and grasps
 
 The SO-101 profile also enables `eval.molmo_overhead_camera`: an additional
 camera behind and above the arm supplies Molmo's `room` view alongside `wrist`.
-The original room camera stays in place and appears as `original_room` in Rerun
-and saved videos. Other profiles and the default scene configuration are
-unchanged. Set this option to `false` to use the original room view again.
+Its image roll follows the table's front edge.
+With `policy.options.include_original_room: true`, this profile sends the
+original room image as a third input, after `room` and `wrist`. The original
+camera stays in place and appears as `original_room` in Rerun and saved videos.
+Other profiles keep their two-view inputs and default scenes. To compare the
+original two-camera setup, disable both `include_original_room` and
+`eval.molmo_overhead_camera`.
 
 The SO-101 profile executes the full 30-action chunk at the simulation's 30 Hz control rate,
 querying again every simulated second (`action_repeat: 1`). This keeps visual

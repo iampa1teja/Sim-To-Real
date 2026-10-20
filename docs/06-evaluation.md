@@ -237,14 +237,20 @@ extrinsics and jaw geometry are preserved; the user has checked the simulated
 camera views against the real setup.
 
 The SO-101 profile enables `eval.molmo_overhead_camera: true` to add a separate
-view behind and above the arm. It leaves both existing cameras in place. Molmo
+view behind and above the arm, with image roll aligned to the table's front
+edge. It leaves both existing cameras in place. Molmo
 receives the new `molmo_room` camera as `room` and the existing wrist camera as
-`wrist`; the original room view is retained as `original_room` for Rerun and
-videos. This option is available through `--molmo-overhead-camera` on the host
+`wrist`. The SO-101 profile also opts into
+`policy.options.include_original_room: true`, which appends the unchanged
+original room image as a third model input: `room`, `wrist`, `original_room`.
+Omitting this policy option or setting it to `false` retains the default two
+model inputs; the original room image remains available in Rerun and videos.
+The added camera is available through `--molmo-overhead-camera` on the host
 runner or direct evaluator, and is restricted to Molmo pick-place tasks. It
 changes only the requested evaluation configuration instance, not the default
-scene or other policy profiles. Set it to `false` to compare the original room
-view; the standard room/wrist mapping is restored automatically. Enabled runs
+scene or other policy profiles. To compare the original room/wrist setup,
+disable both `eval.molmo_overhead_camera` and `policy.options.include_original_room`;
+the standard room/wrist mapping is restored automatically. Enabled runs
 record the added camera's pose and settings under `molmo_overhead_camera` in
 their results.
 
@@ -310,6 +316,7 @@ paths need their own persistence. The console prints the exact output path.
 | `episode_length_s`, `action_horizon`, `action_repeat`, `step_dt` | Configured episode seconds, predicted targets per query, control steps per target and simulation seconds per control step |
 | `replan_interval_s` | Nominal simulation seconds per query: `action_horizon * action_repeat * step_dt` |
 | `molmo_overhead_camera` | Added camera pose/settings when the optional Molmo view is enabled; absent otherwise |
+| `policy_cameras` | Actual Molmo image inputs in request order, also printed once at connection |
 | `episodes` | Per-attempt rows, including `success_step`, `elapsed_sim_s`, `time_to_success_s`, `wall_time_s`, `wall_time_to_success_s`, and optional `videos` paths |
 | `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
 | `by_start` | Aggregates for `recorded` and `random` (not individual ID groups) |

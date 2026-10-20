@@ -37,6 +37,37 @@ def test_client_applies_official_degree_frame_and_inverse_actions():
     np.testing.assert_array_equal(state, [0, -90, 90, 45, -30, 20])
 
 
+@pytest.mark.parametrize("option", [None, False, "false", "False"])
+def test_original_room_image_is_not_sent_by_default_or_when_disabled(option):
+    client = client_policy({} if option is None else {"include_original_room": option})
+    images = dict(request()["images"], original_room=np.full((4, 5, 3), 113, np.uint8))
+    built = client.build_request(np.zeros(6), images, "Pick the cube")
+    assert list(built["images"]) == ["room", "wrist"]
+
+
+@pytest.mark.parametrize("option", [True, "true", "True"])
+def test_original_room_image_is_appended_after_the_two_existing_views(option):
+    client = client_policy({"include_original_room": option})
+    original = np.full((4, 5, 3), 113, np.uint8)
+    images = dict(request()["images"], original_room=original, unrelated=np.zeros_like(original))
+    built = client.build_request(np.zeros(6), images, "Pick the cube")
+    assert list(built["images"]) == ["room", "wrist", "original_room"]
+    np.testing.assert_array_equal(built["images"]["original_room"], original)
+    np.testing.assert_array_equal(built["images"]["room"], images["room"])
+    np.testing.assert_array_equal(built["images"]["wrist"], images["wrist"])
+
+
+def test_enabled_original_room_requires_the_extra_image():
+    with pytest.raises(KeyError, match="original_room"):
+        client_policy({"include_original_room": "true"}).build_request(np.zeros(6), request()["images"], "task")
+
+
+@pytest.mark.parametrize("option", [0, 1, None, [], {}, "yes", "no", "on", "off", "1", "0", ""])
+def test_original_room_option_rejects_ambiguous_boolean_values(option):
+    with pytest.raises(ValueError, match="include_original_room must be true or false"):
+        client_policy({"include_original_room": option})
+
+
 def test_client_converts_normalized_units_and_preserves_gripper_percent():
     client = client_policy({"input_joint_units": "lerobot_normalized",
                             "arm_degrees_per_unit": "1.18,1,.95,.95,1.6"})
@@ -156,6 +187,39 @@ def test_infer_returns_float32_chunk_and_passes_model_arguments(server, no_gpu_t
     assert call["norm_tag"] == "so100_so101_molmoact2" and call["task"] == "Pick up the blue cube"
     assert len(call["images"]) == 2 and call["inference_action_mode"] == "continuous"
     np.testing.assert_array_equal(call["state"], np.arange(6, dtype=np.float32))
+
+
+def test_third_view_survives_plugin_adapter_and_reaches_model(server, no_gpu_torch, monkeypatch):
+    from sim_to_real_so101.policy_client.discovery import load_manifest
+
+    # Exercise the real adapter without requiring the optional ZMQ/msgpack
+    # transport dependencies on CPU-only test hosts.
+    transport_name = "sim_to_real_so101.policy_client.transport"
+    monkeypatch.setitem(sys.modules, transport_name, SimpleNamespace(PolicyClient=object))
+    adapter_spec = importlib.util.spec_from_file_location("sim_to_real_so101.policy_client._camera_test_adapter",
+                        ROOT / "source/sim_to_real_so101/policy_client/adapter.py")
+    adapter_module = importlib.util.module_from_spec(adapter_spec)
+    adapter_spec.loader.exec_module(adapter_module)
+
+    policy = ready(server, np.zeros((30, 6), dtype=np.float32))
+    endpoints = []
+
+    def call(endpoint, payload):
+        endpoints.append(endpoint)
+        return policy.infer(payload)
+
+    manifest = load_manifest(ROOT / "policies/molmoact2")
+    adapter = adapter_module.PluginClient(SimpleNamespace(call_endpoint=call),
+                           client_policy({"include_original_room": "true"}), manifest, JOINT_ORDER)
+    images = dict(request()["images"], original_room=np.full((4, 5, 3), 113, np.uint8))
+    actions = adapter.get_action({"state": np.zeros(6), "images": images, "instruction": "Pick the cube"})
+    assert endpoints == ["get_action"]
+    assert actions.shape == (30, 6)
+    assert manifest.cameras == ("room", "wrist")
+    seen = policy.model.calls[0]["images"]
+    assert len(seen) == 3
+    for image, camera in zip(seen, ("room", "wrist", "original_room")):
+        np.testing.assert_array_equal(np.asarray(image), images[camera])
 
 
 def test_decode_actions_validates_shape(server):
