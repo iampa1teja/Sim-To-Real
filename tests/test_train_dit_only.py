@@ -182,16 +182,20 @@ class WeightLoadingTests(unittest.TestCase):
 
 class SavedConfigTests(unittest.TestCase):
     def test_complete_saved_data_and_preprocessing_survive_training_overrides(self):
+        import os
+        import subprocess
         import sys
 
         import yaml
 
-        groot = Path.home() / "Isaac-GR00T-N1.7"
+        groot = Path(os.environ.get("GROOT", Path.home() / "Isaac-GR00T-N1.7"))
         if (
             not groot.exists()
             or not (Path(launcher.DEFAULT_INIT) / "experiment_cfg/config.yaml").is_file()
         ):
             self.skipTest("Pinned GR00T checkout or saved init config unavailable")
+        if subprocess.check_output(["git", "-C", str(groot), "rev-parse", "HEAD"], text=True).strip() != launcher.PIN:
+            self.skipTest("Run saved-config integration in the pinned training container")
         sys.path.insert(0, str(groot))
         from gr00t.configs.base_config import _build_safe_tree
 

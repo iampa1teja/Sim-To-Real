@@ -14,6 +14,9 @@
 #      CLEAN, FAILED, GROOT, plus anything scripts/train_pick_place.sh accepts.
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+    exec bash "$REPO/docker/train.sh" failures "$@"
+fi
 RUN=so101_pick_place_sim_n17_200k_failures_ft
 export GROOT="${GROOT:-$HOME/Isaac-GR00T}"
 export BASE_MODEL="${BASE_MODEL:-/external_storage/models/so101_pick_place_sim_n17_200k/milestones/checkpoint-200000}"

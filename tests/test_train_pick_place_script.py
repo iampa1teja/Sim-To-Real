@@ -43,6 +43,7 @@ class TrainingScriptTests(unittest.TestCase):
                     "PYTORCH_TRANSFORMERS_CACHE", "PYTORCH_PRETRAINED_BERT_CACHE"):
             self.env.pop(key, None)
         self.env.update(PATH=f"{self.bin}:{os.environ['PATH']}",
+                        SO101_TRAIN_IN_CONTAINER="1",
                         TRAIN_TEST_LOG=str(self.log), GROOT=str(self.groot),
                         BASE_MODEL=str(self.base), DATASET=str(self.dataset), OUT=str(self.out),
                         HF_HUB_CACHE=str(self.hub_cache))

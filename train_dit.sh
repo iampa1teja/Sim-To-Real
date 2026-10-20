@@ -2,6 +2,9 @@
 # Continue the saved 200k run with only its diffusion transformer trainable.
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+    exec bash "$REPO/docker/train.sh" dit "$@"
+fi
 GROOT="${GROOT:-$HOME/Isaac-GR00T-N1.7}"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 NO_ALBUMENTATIONS_UPDATE=1

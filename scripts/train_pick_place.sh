@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+    exec bash "$REPO/docker/train.sh" train "$@"
+fi
 GROOT="${GROOT:-$HOME/Isaac-GR00T-N1.7}"
 BASE_MODEL="${BASE_MODEL:-$HOME/sim2real/models/nv_so_arm_n17}"
 DATASET="${DATASET:-$REPO/datasets/pick_place_v2_gr00t}"
