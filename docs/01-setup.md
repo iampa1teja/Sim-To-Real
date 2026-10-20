@@ -12,7 +12,7 @@ are not guarantees for every driver/VRAM combination. No minimum driver version
 is pinned in this repository. Verify the image/vendor requirements for your GPU.
 
 For sim teleop you need an SO-101 leader with USB serial access and its calibration.
-For paired collection or real evaluation, add a powered SO-101 follower, a fixed
+For paired collection, add a powered SO-101 follower, a fixed
 external RGB camera (the packaged scene models a RealSense), and a wrist RGB
 camera. Match their resolution, mounting and orientation to your measured scene.
 Mount the arms securely and keep their travel area clear.
@@ -63,49 +63,22 @@ docker run --name teleop -it --privileged --gpus all -e "ACCEPT_EULA=Y" --rm --n
   teleop-docker:latest
 ```
 
-**Host**, repository root, build the real-robot image for your architecture;
-replace `ada` with `blackwell` for that build:
+**Host**, repository root, build the current GR00T policy-server image:
 
 ```bash
-./docker/real/build.sh ada
+./docker/real/build.sh ada n17
 ```
 
-The build script accepts only positional `ada` or `blackwell`. Both Dockerfiles
-pin GR00T to `ead52833afbbf4243f8cd5e7664f48a94de03b19`. Ada uses CUDA 12.8 and
-uv; Blackwell uses CUDA 13.0, nightly PyTorch and a source FlashAttention build.
-Do not assume the two Python environments are interchangeable.
-
-**Host**, repository root, start the real-robot container:
-
-```bash
-export MODELS_DIR=~/sim2real/models
-mkdir -p "$MODELS_DIR"
-docker run -it --rm --name real-robot --network host --privileged --gpus all \
-  -e DISPLAY \
-  -v /dev:/dev -v /run/udev:/run/udev:ro \
-  -v "$HOME/.Xauthority:/root/.Xauthority" \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v ~/.cache/huggingface/lerobot/calibration:/root/.cache/huggingface/lerobot/calibration \
-  -v "$(pwd)/docker/env:/root/env" \
-  -v "$MODELS_DIR:/workspace/models" \
-  -v "$(pwd)/docker/real/scripts:/Isaac-GR00T/gr00t/eval/real_robot/SO100" \
-  real-robot /bin/bash
-```
-
-That script mount replaces the SO100 directory at runtime. Python dependencies
-were installed at build time. Models persist in the host directory; the real
-container's other generated files disappear when the `--rm` container exits.
+The `real-robot:n1.7` image supplies GR00T serving and is the base for the
+[training image](05-training.md). The host evaluator manages server containers;
+the physical-arm rollout client has been removed. Training and serving do not
+need a host Isaac-GR00T checkout. The build script also retains legacy N1.6
+images with `./docker/real/build.sh ada n16` (or `blackwell n16`).
 
 **Host**, extra teleop shell:
 
 ```bash
 docker exec -it teleop bash
-```
-
-**Host**, extra real-robot shell (a different terminal):
-
-```bash
-docker exec -it real-robot bash
 ```
 
 An interactive shell reads the sourced environment helper from `.bashrc`.
@@ -129,24 +102,20 @@ New shells read saved settings; existing shells must reload or export them.
 | `CAMERA_GRIPPER`, `CAMERA_EXTERNAL` | Both recorder parsers; unset means no corresponding real camera |
 | `CAMERA_WIDTH`, `CAMERA_HEIGHT` | Both recorders; 640, 480 |
 | `CAMERA_FOURCC` | Both recorders; unset/empty means backend default |
-| `CONTROL_FPS` | Both recorder parsers; 30; does not set real-eval rate |
+| `CONTROL_FPS` | Both recorder parsers; 30 |
 | `ROOM_USD_PATH` | `tasks/my_room_env_cfg.py`; unset uses packaged room |
 | `STATS_JSON` | `so101_check_calibration.py`; defaults to adjacent `calibration_stats.json` |
 | `PICK_PLACE_EVAL_STARTS` | `mdp/resets.py`; fallback sidecar directory for Eval resets |
 | `PICK_PLACE_EVAL_CHECKPOINT`, `MODEL` | `lerobot_eval.py`; report checkpoint fallback, in that order, then `unknown` |
-| `MODELS_DIR` | Real-container launch shell variable; the host evaluator reads `policy.models_dir` from YAML |
 | `DISPLAY` | Docker/X11; inherited from host |
 | `XDG_RUNTIME_DIR` | Simulation image; private mode-0700 runtime directory, `/tmp/xdg-runtime-root` |
 | `EVAL_LOG_DIR`, `EVAL_VERBOSE` | Host evaluator; override its run log directory, or set `1` for full terminal output |
 | `READY_TIMEOUT` | Host evaluator; policy-server startup timeout, 900 seconds |
 | `RERUN_PORT`, `RERUN_READY_TIMEOUT` | Host evaluator's native viewer; 9876 and 60 seconds |
 | `RERUN_CONNECT_URL` | Host evaluator and simulation interface; connect to an existing viewer instead of starting one |
-| `RERUN_FLUSH_NUM_BYTES`, `RERUN_MEMORY_LIMIT` | Real `so101_control.py`; `8000`, `10%` |
 
 `ACCEPT_EULA=Y` and `PRIVACY_CONSENT=Y` are passed to the Isaac base image by the
-launch recipe. Read the vendor terms before using them. Camera variables do not
-automatically configure `so101_eval.py`; its explicit camera dictionary is in
-[Evaluation](06-evaluation.md).
+launch recipe. Read the vendor terms before using them.
 
 ### Configure with the browser form
 
@@ -295,21 +264,6 @@ Its four options are `--calib-dir` (default `real_robot/sample_callibrations`),
 (`real_robot/calibration_stats.png`) and `--exclude` (zero or more file stems).
 The defaults are historical paths; supply paths that actually exist. Rebuilding
 this baseline changes a mounted file; review it before saving it to Git.
-
-**Teleop container**, passive control (review the source's initial/home poses
-before using active mode on your own hardware):
-
-```bash
-python docker/real/scripts/so101_control.py \
-  --robot.type=so101_follower --robot.port="$ROBOT_PORT" --robot.id="$ROBOT_ID" \
-  --passive_mode=true
-```
-
-The Draccus `SetupConfig` supports `robot`, `play_sounds=false`,
-`passive_mode=false`, `rerun=false`. Active mode moves to the script's initial
-pose on connection and home pose on disconnection. Passive mode disables torque
-and prints the final pose. These poses are setup-specific; inspect
-[so101_control.py](../docker/real/scripts/so101_control.py) before commanding motion.
 
 **Teleop container**, alternative per-joint keyboard controller:
 

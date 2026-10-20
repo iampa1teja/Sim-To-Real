@@ -1,7 +1,7 @@
 """Glue between a robot-side control loop and a policy plugin.
 
-The simulator wrapper (utils/lerobot_interface.py) and the real-robot adapter (so101_eval.py)
-both need the same three steps: build the plugin's request, call the server, parse the reply into
+The simulator wrapper (utils/lerobot_interface.py) needs three steps:
+build the plugin's request, call the server, parse the reply into
 an (T, J) action array. PluginClient does exactly that and keeps the small client interface
 (ping / reset / call_endpoint / get_action) the control loops already use.
 """

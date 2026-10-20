@@ -122,8 +122,8 @@ Prepare and verify a dataset with `./docker/train.sh prepare` and
 `./docker/train.sh`. Existing training shell scripts also route through Docker.
 Checkpoints default to `/external_storage/models` and survive container removal.
 See [Training](docs/05-training.md) for dataset preparation, model downloads and
-training settings. The saved host real-arm client still uses `~/Isaac-GR00T`;
-keep its source and recorded datasets when cleaning up host environments.
+training settings. Training and serving use their container environments; no
+host GR00T checkout or physical-arm rollout client is required.
 
 ## MolmoAct2 evaluation
 
@@ -189,7 +189,7 @@ and viewer troubleshooting.
 | [03 Define a task](docs/03-define-a-task.md) | Config layers, scene objects, reset and success logic |
 | [04 Recording](docs/04-recording.md) | Recorder flags, GUI, storage, coverage and failed demos |
 | [05 Training](docs/05-training.md) | Filtered preparation, verification and GR00T fine-tuning |
-| [06 Evaluation](docs/06-evaluation.md) | Recorded starts, DR, results and real deployment |
+| [06 Evaluation](docs/06-evaluation.md) | Recorded starts, DR, results and simulation diagnostics |
 | [Troubleshooting](docs/troubleshooting.md) | Symptoms, recovery and known implementation gaps |
 
 ## Repository layout
@@ -228,11 +228,9 @@ The table also covers repository host scripts and direct Python utilities.
 | `docker/sim/entrypoint.sh` | Automatic container initialization; [Setup](docs/01-setup.md) |
 | `docker/utils.sh` | Sourced `setenv` helper; [Setup](docs/01-setup.md) |
 | `source/sim_to_real_so101/scripts/spawn.py` | Generic teleop cube spawn client; [Recording](docs/04-recording.md) |
-| `docker/real/scripts/so101_control.py` | Home/passive control; [Setup](docs/01-setup.md) |
 | `docker/real/scripts/so101_manual_control.py` | Keyboard joint control; [Setup](docs/01-setup.md) |
 | `docker/real/scripts/so101_calibration_stats.py` | Build calibration baseline; [Setup](docs/01-setup.md) |
 | `docker/real/scripts/so101_check_calibration.py` | File/live calibration checks; [Setup](docs/01-setup.md) |
-| `docker/real/scripts/so101_eval.py` | Real policy rollout; [Evaluation](docs/06-evaluation.md) |
 
 External LeRobot discovery/calibration commands are covered in [Setup](docs/01-setup.md);
 GR00T's launcher and server are covered in [Training](docs/05-training.md) and

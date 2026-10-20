@@ -149,9 +149,7 @@ These were found while documenting; no code fixes are bundled with these docs.
 | --- | --- |
 | `lerobot_push_dataset:main` is declared, but no `main` exists | Broken console entry point; use the existing module path pending a code fix |
 | `list_envs` launches at import and only closes the app in its module `__main__` block | Console invocation may leave Isaac running until manually closed; no headless parser |
-| `so101_eval.py` defines `timeout` but never uses it | Do not promise a 60-second bounded run; stop with Ctrl+C |
-| Real eval plot docstring says JSON + PNG, but only PNG is written | No real result/trajectory JSON or success-rate output exists there |
-| `SO101Control` hard-codes initial/home poses; sim eval has a ten-step hard-coded initial action | Must be checked/adapted for other setups, not described as calibrated universal poses |
+| Sim eval has a ten-step hard-coded initial action | Must be checked/adapted for other setups, not described as calibrated universal poses |
 | Sidecars omit contact, box transform and success labels | Exact offline success scoring cannot be reconstructed from them alone |
 | Newly created zero-episode datasets enter resume loader path | Empty-dataset relaunch is not guaranteed; needs a dedicated implementation/test |
 | Generic task registration is insufficient for recorded-start eval | Recorder, direct evaluator and host script have fixed PickPlace names/IDs |

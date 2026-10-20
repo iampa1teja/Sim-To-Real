@@ -1,6 +1,9 @@
 # Project notes
 
-For the user's GR00T N1.7 200k real-arm rollout, use the saved commands in
-[docs/06-evaluation.md](docs/06-evaluation.md#n17-200k-real-arm).
-The policy server uses port 5560 and the external-storage milestone checkpoint;
-the host client uses action horizon 8, room/wrist YUYV cameras, and the saved start pose.
+GR00T training and preparation run through `./docker/train.sh`; see
+[docs/05-training.md](docs/05-training.md). Policy serving and simulation evaluation
+use `./docker/eval.sh`; see [docs/06-evaluation.md](docs/06-evaluation.md).
+The host Isaac-GR00T checkout, its virtual environment and the physical-arm
+rollout client were removed to reclaim space. Keep model weights, datasets and
+completed evaluation results. The `real-robot:n1.7` image remains necessary for
+GR00T serving and as the training image's base.

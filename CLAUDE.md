@@ -10,14 +10,14 @@ handles teleop and datasets, and GR00T (N1.6 legacy, N1.7 current) handles train
 The `docs/01..06-*.md` guides are the maintained reference for every workflow; `README.md` is the hub
 and command index.
 
-For the user's GR00T N1.7 200k real-arm rollout, use the saved commands in
-[docs/06-evaluation.md](docs/06-evaluation.md#n17-200k-real-arm). The server uses port 5560 and the
-external-storage milestone checkpoint (`/external_storage/models`). The client uses action horizon 8,
-room/wrist YUYV cameras and the saved start pose. See also `AGENTS.md`.
+Training and preparation use `./docker/train.sh`; simulation policy rollouts use
+`./docker/eval.sh`. The host GR00T checkout, host real-arm environment and physical
+rollout client were removed to reclaim space. See `AGENTS.md` and the maintained
+training/evaluation guides. Model weights and recorded datasets remain in storage.
 
 ## Execution environments (important)
 
-Code runs in four separate places. Check which one a command belongs to before you run it:
+Code runs in three container environments, plus an optional host test environment. Check which one a command belongs to before you run it:
 
 1. **Teleop/sim container** (`teleop-docker`, built from `docker/sim/Dockerfile`, Isaac Sim Python 3.11).
    `source/`, `outputs/`, `datasets/` and `docker/real/scripts` are bind-mounted at
@@ -26,12 +26,13 @@ Code runs in four separate places. Check which one a command belongs to before y
    exist here. `setenv` is a helper sourced from `docker/utils.sh`.
 2. **Policy-server container** (`real-robot:n1.7`, built with `./docker/real/build.sh ada n17`).
    `docker/eval.sh <config>.yaml` starts and stops it from the host.
-3. **Host uv env**: `uv run --project source/sim_to_real_so101`. The `host` dependency group holds
-   torch, lerobot 0.4.2, pytest and similar packages. They live in a dependency group rather than
-   `[project]` deps so the container's editable install doesn't pull them into Isaac Sim's Python. The
-   real-arm client `docker/real/scripts/so101_eval.py` runs here, with `--no-sync --with feetech-servo-sdk ...`.
-4. **Pinned GR00T checkout** at `~/Isaac-GR00T-N1.7/.venv/bin/python`, with pins in
-   `scripts/gr00t_model_profiles.py`. Training, dataset preparation and the GPU-free training tests use it.
+3. **Training container** (`so101-groot-train:n1.7`, built with `./docker/train/build.sh`).
+   `./docker/train.sh` runs preparation, verification and training against the pinned
+   GR00T checkout at `/Isaac-GR00T` inside the image. Checkpoints default to
+   `/external_storage/models`; no host GR00T checkout or virtual environment is needed.
+
+CPU-only tests can use an existing host Python environment with their dependencies;
+do not recreate the deleted real-arm environment just to run them.
 
 Isaac-dependent modules (`tasks/`, `mdp/`, `assets/real_setup.py`, anything that imports `pxr`, `isaaclab`
 or `isaacsim`) can't be imported on the host.
@@ -44,14 +45,14 @@ file by path. The test files mix `unittest` and plain pytest functions, so use p
 The host has ROS Jazzy on its path, and ROS's pytest plugins break collection. Disable plugin autoload:
 
 ```bash
-# full suite (host uv env)
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --project source/sim_to_real_so101 --no-sync python -m pytest tests -q
+# CPU-only suites in an environment with their dependencies installed
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests -q
 # single file / single test
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --project source/sim_to_real_so101 --no-sync python -m pytest tests/test_smoothing.py -q
-PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run --project source/sim_to_real_so101 --no-sync python -m pytest tests/test_grasp.py -k latch -q
-# GR00T-dependent suites use the pinned GR00T venv (as the docs do)
-~/Isaac-GR00T-N1.7/.venv/bin/python -m unittest discover -s tests -p test_train_dit_only.py -v
-GROOT_CHECKOUT=<path_to_Isaac-GR00T> python -m unittest discover -s tests -p test_prepare_pick_place_gr00t.py -v
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/test_smoothing.py -q
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/test_grasp.py -k latch -q
+# GR00T-dependent suites run inside the training image
+./docker/train.sh python -m unittest discover -s tests -p test_train_dit_only.py -v
+./docker/train.sh python -m unittest discover -s tests -p test_prepare_pick_place_gr00t.py -v
 ```
 
 Some tests skip or fail on the host because `isaaclab` or the GR00T checkout is missing. Read the error
@@ -78,19 +79,17 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   (`source/gui/app.jsx`, served by `utils/recording_web_gui.py`, http://localhost:8765). The
   `utils/recording_*`, `episode_*`, `rerecording.py` and `replay_*` modules handle dataset writing,
   sidecar metadata, resume and replay.
-- **Policy client**: `gr00t_client/` is a vendored, Isaac-free GR00T client. `server_client.py` is a ZMQ
-  and msgpack `PolicyClient`. `smoothing.py` covers action chunk blending, EMA, temporal ensembling,
-  async inference and fixed-rate scheduling. `grasp.py` holds the optional gripper latch and grasp
-  diagnostics. Sim eval (`scripts/lerobot_eval.py` via `utils/lerobot_interface.GR00TRemotePolicy`) and
-  the real client (`docker/real/scripts/so101_eval.py`) both use this one module, so a change there
-  affects both paths.
+- **Policy client**: `policy_client/` is an Isaac-free plugin client with ZMQ/msgpack
+  transport, joint transforms and plugin discovery. `smoothing.py` covers blending,
+  EMA and temporal ensembling; `grasp.py` holds optional gripper latching and diagnostics.
+  Simulation evaluation uses it through `utils/lerobot_interface.SimRemotePolicy`.
 - **Evaluation**: `docker/eval.sh <config>.yaml` is the host-side orchestrator. It starts the GR00T server
   container (or uses `--external_server`/`--server_only`), runs `lerobot_eval` in the teleop container
   and writes results JSON. Fixed start sets live in `eval_sets/*.json`, built with
   `make_pick_place_eval_set`. Keep the same set (and its hash) across checkpoints you compare. Benchmark
   stages and success logic are in `utils/pick_place_benchmark*.py` and `utils/pick_place_eval.py`.
   `scripts/compare_eval_results.py` runs paired McNemar comparisons.
-- **Training pipeline** (`scripts/`, run in the GR00T venv): `prepare_pick_place_gr00t.py` makes an
+- **Training pipeline** (`scripts/`, run through `./docker/train.sh`): `prepare_pick_place_gr00t.py` makes an
   independent v2.1 copy of a recorded dataset and never modifies the source. `verify_pick_place_training.py`
   checks it. `launch_pick_place_n17.py` and `train_pick_place*.sh` wrap the official, unmodified GR00T
   fine-tune launcher. `train_dit_only.py` and `train_dit.sh` continue a checkpoint with only

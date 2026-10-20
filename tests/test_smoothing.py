@@ -1,12 +1,10 @@
-"""CPU-only tests of the shared smoother and the actual real/sim client paths."""
+"""CPU-only tests of the shared smoother and the actual simulation client path."""
 
 import ast
 import argparse
 from collections import deque
 import csv
-from dataclasses import dataclass
 from datetime import datetime
-import logging
 import json
 import math
 import os
@@ -14,7 +12,6 @@ from pathlib import Path
 import sys
 import threading
 import time
-from typing import Any, Dict, List
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -24,8 +21,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "source"))
 from sim_to_real_so101.policy_client.smoothing import (
-    ActionSmoother, FixedRateScheduler, InferenceResult, InferenceWorker, JointEMA,
-    SimulationSmoother, SmoothingConfig, TimingLog, blend_actions, log_late,
+    ActionSmoother, FixedRateScheduler, InferenceWorker, JointEMA,
+    SimulationSmoother, SmoothingConfig, TimingLog, blend_actions,
 )
 
 KEYS = ("shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos",
@@ -48,17 +45,6 @@ def load_client_code(path, names, context):
              and node.name in names]
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), "exec"), context)
     return SimpleNamespace(**context)
-
-
-def real_code(clock=time):
-    context = dict(dataclass=dataclass, datetime=datetime, RobotConfig=object, PolicyClient=object, PluginClient=object,
-                   Dict=Dict, List=List, Any=Any, np=np, time=clock, logging=logging,
-                   ActionSmoother=ActionSmoother, SmoothingConfig=SmoothingConfig,
-                   FixedRateScheduler=FixedRateScheduler, InferenceWorker=InferenceWorker,
-                   TimingLog=TimingLog, log_late=log_late)
-    return load_client_code(ROOT / "docker/real/scripts/so101_eval.py",
-                            {"EvalConfig", "So100Adapter", "smoothing_config",
-                             "run_control_loop", "run_smooth_control_loop"}, context)
 
 
 def sim_code():
@@ -140,36 +126,6 @@ class FakeClient:
         chunk = np.array([[a[k] for k in KEYS] for a in actions(100 * chunk_id)])
         self.finished.set()
         return chunk
-
-
-class FakeRobot:
-    def __init__(self, steps, clock=time):
-        self.steps = steps
-        self.clock = clock
-        self.sent = []
-        self.ticks = []
-        self.logged = []
-        self.observations = 0
-
-    def get_observation(self):
-        self.observations += 1
-        return {**dict.fromkeys(KEYS, float(len(self.sent))),
-                "room": np.zeros((2, 2, 3), dtype=np.uint8),
-                "wrist": np.zeros((2, 2, 3), dtype=np.uint8)}
-
-    get_observation_cameras_unlocked = get_observation
-
-    def get_joint_positions(self):
-        return dict.fromkeys(KEYS, float(len(self.sent)))
-
-    def send_action(self, action):
-        if len(self.sent) == self.steps:
-            raise KeyboardInterrupt
-        self.ticks.append(self.clock.monotonic())
-        self.sent.append(action.copy())
-
-    def update_log_action(self, action):
-        self.logged.append(action.copy())
 
 
 class FakeInterface:
@@ -264,39 +220,6 @@ def test_invalid_action_repeat_fails_before_querying(repeat):
         make_sim_policy(action_repeat=repeat)
 
 
-def test_default_real_path_matches_original_actions_and_timing_exactly():
-    clock = FakeClock()
-    code = real_code(clock)
-    client = FakeClient(.150, clock)
-    robot = FakeRobot(27, clock)
-    cfg = code.EvalConfig(action_horizon=8)
-    policy = code.So100Adapter(client, camera_keys=["room", "wrist"])
-    with pytest.raises(KeyboardInterrupt):
-        code.run_control_loop(cfg, robot, policy, [], [])
-
-    # Run the original loop as an independent reference, including its sleeps.
-    reference_clock = FakeClock()
-    reference = FakeRobot(27, reference_clock)
-    reference_policy = code.So100Adapter(FakeClient(.150, reference_clock), ["room", "wrist"])
-    with pytest.raises(KeyboardInterrupt):
-        while True:
-            observation = reference.get_observation()
-            observation["lang"] = cfg.lang_instruction
-            predicted = reference_policy.get_action(observation)
-            for action in predicted[:cfg.action_horizon]:
-                tic = reference_clock.time()
-                reference.send_action(action)
-                reference.update_log_action(action)
-                toc = reference_clock.time()
-                if toc - tic < 1.0 / 30:
-                    reference_clock.sleep(1.0 / 30 - (toc - tic))
-    assert robot.sent == reference.sent
-    assert robot.logged == reference.logged
-    assert robot.ticks == reference.ticks
-    assert clock.sleeps == reference_clock.sleeps
-    assert robot.observations == reference.observations
-
-
 @pytest.mark.parametrize("horizon", [1, 8, 12, 16])
 def test_default_sim_policy_matches_original_sequence_exactly(horizon):
     policy = make_sim_policy(action_horizon=horizon)
@@ -310,86 +233,6 @@ def test_default_sim_policy_matches_original_sequence_exactly(horizon):
     assert policy.inference_calls == (35 + horizon - 1) // horizon
     assert policy._smoothing is None
     assert policy._timing is None
-
-
-def test_150ms_client_does_not_leave_gaps_in_real_30hz_ticks(tmp_path, capsys, caplog):
-    code = real_code()
-    cfg = code.EvalConfig(action_horizon=12, prefetch_steps=4, blend_steps=4,
-                          ema_alpha=.6, log_timing=True, timing_csv=str(tmp_path / "ticks.csv"))
-    client = FakeClient(.150)
-    robot = FakeRobot(32)
-    policy = code.So100Adapter(client, ["room", "wrist"])
-    with caplog.at_level(logging.INFO), pytest.raises(KeyboardInterrupt):
-        code.run_control_loop(cfg, robot, policy, [], [])
-    assert client.finished.wait(1)
-    intervals = np.diff(robot.ticks)
-    # Allow OS scheduling jitter, but not an inference-sized 150ms gap.
-    assert intervals.max() < 1 / 30 + .025
-    assert abs(intervals.mean() - 1 / 30) < .002
-    assert len(set(client.threads[1:])) == 1
-    assert client.threads[0] != client.threads[1]
-    rows = list(csv.DictReader((tmp_path / "ticks.csv").open()))
-    assert len(rows) == len(robot.sent)
-    assert any(int(row["chunk_id"]) > 0 for row in rows)
-    for row, sent in zip(rows, robot.sent):
-        assert [float(row[f"sent_{k}"]) for k in KEYS] == [sent[k] for k in KEYS]
-    assert "dropping" in caplog.text
-    assert "inference mean=" in capsys.readouterr().out
-
-
-def test_late_real_response_holds_last_sent_target_and_drops_elapsed_steps(tmp_path, caplog):
-    clock = FakeClock()
-    code = real_code(clock)
-    robot = FakeRobot(20, clock)
-    client = FakeClient()
-    policy = code.So100Adapter(client, ["room", "wrist"])
-    smoother_instances = []
-
-    class RecordedSmoother(ActionSmoother):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            smoother_instances.append(self)
-
-    class StepWorker:
-        def __init__(self, observe, query, current_step):
-            self.observe, self.query, self.current_step = observe, query, current_step
-            self.pending = None
-            self.chunk_id = 1
-
-        def submit(self):
-            if self.pending is not None:
-                return False
-            origin = self.current_step()
-            chunk = self.query(self.observe())
-            self.pending = (origin + 5, InferenceResult(origin, chunk, .150, self.chunk_id))
-            self.chunk_id += 1
-            return True
-
-        def poll(self):
-            if self.pending is not None and self.current_step() >= self.pending[0]:
-                _, result = self.pending
-                self.pending = None
-                return result
-
-        def close(self):
-            pass
-
-    code.run_smooth_control_loop.__globals__.update(
-        ActionSmoother=RecordedSmoother, InferenceWorker=StepWorker,
-        FixedRateScheduler=lambda: FixedRateScheduler(clock=clock.monotonic, sleep=clock.sleep))
-    cfg = code.EvalConfig(action_horizon=12, prefetch_steps=4, ema_alpha=.6,
-                          log_timing=True, timing_csv=str(tmp_path / "late.csv"))
-    with caplog.at_level(logging.INFO), pytest.raises(KeyboardInterrupt):
-        code.run_control_loop(cfg, robot, policy, [], [])
-    rows = list(csv.DictReader((tmp_path / "late.csv").open()))
-    assert rows[12]["held"] == "1"
-    assert robot.sent[12] == robot.sent[11]  # EMA must not creep during a hold.
-    assert rows[13]["chunk_id"] == "1"
-    assert float(rows[13]["raw_shoulder_pan.pos"]) == 105
-    assert smoother_instances[0].stale_actions_dropped == 5
-    np.testing.assert_allclose(np.diff(robot.ticks), 1 / 30, rtol=0, atol=1e-15)
-    assert "holding last target" in caplog.text
-    assert "dropping 5 stale actions" in caplog.text
 
 
 def test_stale_chunk_expires_without_replaying_old_actions():
@@ -677,39 +520,3 @@ def test_timing_summary_uses_once_per_inference_latency_and_arm_jerk(tmp_path, c
     summary = capsys.readouterr().out
     assert "mean=0.150000s p95=0.195000s" in summary
     assert "overruns=1; mean joint jerk=1.000000" in summary
-
-
-def test_worker_capture_keeps_camera_waits_outside_the_hardware_lock():
-    """A slow camera read on the inference thread must not delay send_action on the control thread."""
-    path = ROOT / "docker/real/scripts/so101_control.py"
-    tree = ast.parse(path.read_text())
-    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "SO101Control")
-    methods = [node for node in cls.body if isinstance(node, ast.FunctionDef)
-               and node.name in ("send_action", "get_observation_cameras_unlocked")]
-    context = {"Dict": Dict, "Any": Any}
-    cls.body, cls.bases, cls.decorator_list = methods, [], []
-    exec(compile(ast.Module(body=[cls], type_ignores=[]), str(path), "exec"), context)
-
-    class Bus:
-        def sync_read(self, register):
-            return {key[:-4]: 1.0 for key in KEYS}
-
-    class SlowCamera:
-        def async_read(self):
-            time.sleep(0.2)
-            return np.zeros((2, 2, 3), dtype=np.uint8)
-
-    sent = []
-    control = object.__new__(context["SO101Control"])
-    control._hw_lock = threading.Lock()
-    control.robot = SimpleNamespace(bus=Bus(), cameras={"room": SlowCamera()},
-                                    send_action=lambda action: sent.append(time.monotonic()))
-    capture = threading.Thread(target=lambda: control.get_observation_cameras_unlocked())
-    capture.start()
-    time.sleep(0.05)  # capture is now inside the slow camera read
-    started = time.monotonic()
-    control.send_action({})
-    assert sent and sent[0] - started < 0.05
-    capture.join()
-    observation = control.get_observation_cameras_unlocked()
-    assert set(observation) == set(KEYS) | {"room"}
