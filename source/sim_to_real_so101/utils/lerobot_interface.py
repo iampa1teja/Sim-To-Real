@@ -518,13 +518,16 @@ class SimRemotePolicy:
 
         policy_options = dict(self._policy_options)
         if self._policy_name == "molmoact2":
-            # The shared sim interface emits -100..100 body joints. Molmo
-            # expects calibrated degrees in the older SO-100/101 joint frame.
-            # Derive the scales from this scene, including its pan calibration.
-            policy_options.setdefault("input_joint_units", "lerobot_normalized")
-            if policy_options["input_joint_units"] == "lerobot_normalized":
+            # Recover physical USD degrees from the shared normalized interface
+            # before applying Molmo's old joint frame. Its fixed calibrated zero
+            # is independent of the simulator's asymmetric range midpoints.
+            policy_options.setdefault("input_joint_units", "usd_normalized")
+            if policy_options["input_joint_units"] in ("lerobot_normalized", "usd_normalized"):
                 scales = (self._iface.mapping_joint_maxs - self._iface.mapping_joint_mins)[:5] / 200
                 policy_options.setdefault("arm_degrees_per_unit", ",".join(str(v) for v in scales.cpu().tolist()))
+                if policy_options["input_joint_units"] == "usd_normalized":
+                    zeros = (self._iface.mapping_joint_maxs + self._iface.mapping_joint_mins)[:5] / 2
+                    policy_options.setdefault("arm_zero_degrees", ",".join(str(v) for v in zeros.cpu().tolist()))
         self._client = build_plugin_client(
             self._policy_name, self._iface.SO101_JOINT_ORDER, host=self._host, port=self._port,
             timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=policy_options)

@@ -92,9 +92,11 @@ def test_sim_connection_supplies_its_actual_joint_scales_only_to_molmo(monkeypat
     policy.connect()
     assert options[0]["num_steps"] == "10"
     if policy_name == "molmoact2":
-        assert options[0]["input_joint_units"] == "lerobot_normalized"
+        assert options[0]["input_joint_units"] == "usd_normalized"
         scales = [float(v) for v in options[0]["arm_degrees_per_unit"].split(",")]
         np.testing.assert_allclose(scales, [1.18037109375, 1, .95, .95, 1.6])
+        zeros = [float(v) for v in options[0]["arm_zero_degrees"].split(",")]
+        np.testing.assert_allclose(zeros, [1.7578125, 0, -5, 0, 0])
     else:
         assert options[0] == {"num_steps": "10"}
 
