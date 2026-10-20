@@ -20,10 +20,31 @@ normalized LeRobot joints and simulation radians, including `sim_joint_mapping`.
 Its `rename_map` translates sim camera names to checkpoint keys. For the prepared
 v2 N1.7 starter profile use `{"realsense_rgb":"room","wrist_cam":"wrist"}`.
 Both RGB views and language must match training. Legacy N1.6 front/wrist
-checkpoints need their original rename map. `--action_horizon` defaults to 16
+checkpoints need their original rename map. For GR00T, `--action_horizon` defaults to 16
 executed actions before another query and accepts integers **1–16**. Setting it
 to 8 executes the first eight actions and replans; it does not change the
 checkpoint's 16-step SO-arm training horizon or its padded model capacity.
+MolmoAct2 instead defaults to **30** and accepts **1–30**. `action_repeat`
+controls how many control steps hold each predicted target (default **1**).
+The SO-101 profile uses the complete 30-step prediction with **action_repeat=1**:
+30 control steps at the simulator's 30 Hz control rate give **one simulated second between queries**,
+preserving the predicted motion and gripper timing. For an explicit slower
+comparison, `eval.action_repeat: 5` stretches the same 30 targets over five
+simulated seconds. It slows the motion fivefold and reduces visual feedback;
+it does not make the checkpoint predict 150 distinct future actions. Lowering
+`action_horizon` executes fewer predicted targets before another observation.
+
+The SO-101 Molmo profile sets `policy.options.dtype: bfloat16` and
+`policy.options.action_dtype: float32`. Large backbone matrices stay in BF16;
+the action expert, normalization modules, and RoPE retain FP32 storage with
+BF16 autocast for eligible operations. Original checkpoint tensors are restored
+before GPU transfer, avoiding a full-FP32 backbone or widening already rounded
+weights. The expert adds approximately **1.1 GiB** over all-BF16 storage; simulator
+and activation memory are additional. Omitting `action_dtype` uses `dtype`,
+preserving the base profile's default. Physical action denormalization always
+uses FP32, preventing the extra whole-degree rounding that BF16 absolute angles
+near 180 degrees would introduce. This addresses numerical precision, without
+establishing that grasp accuracy is solved.
 
 `--episode_length_s` overrides the task config before the environment is created.
 When omitted, it uses the task's value (**15 s for Pick-Place-Eval**). Explicit
@@ -81,11 +102,41 @@ Run the evaluation (a bare file name is looked up in `configs/eval/`):
 To compare checkpoints, copy the YAML, change `policy.checkpoint`, and run the copied
 file. Keep the dataset, benchmark, seed and other settings identical. The launcher
 reads settings from YAML; its optional flags are `--dry_run`, `--external_server`,
-`--server_only`, `--gui`, `--rerun`, `--save_videos`, and `--help`.
+`--server_only`, `--gui`, `--rerun`, `--save_videos`, `--smoke-test`,
+`--molmo-overhead-camera`, and `--help`.
 
 When `eval.eval_set` is configured, the selected benchmark starts and repeats
 determine the episode count; `eval.episodes` is used for runs without a fixed
 benchmark. The SO-101 Molmo profile selects 150 starts across its four splits.
+
+For a five-episode check with Rerun and no saved evaluation artifacts:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --smoke-test
+```
+
+`--smoke-test` forces five episodes and enables Rerun, overriding the benchmark
+count and any report, video or CSV saving options. It uses the first five
+scheduled benchmark starts; selections shorter than five are repeated to reach
+five attempts. The configured episode timeout stays in effect (300 simulated
+seconds per attempt in the SO-101 Molmo profile). Progress, success timing and
+the final summary appear in the terminal. No results JSON, heatmap, MP4,
+gripper/timing CSV or launcher log directory is written, even on failure or
+interruption; `EVAL_LOG_DIR` is ignored. Model/viewer caches and simulator-owned
+diagnostic logs follow their usual behavior. Smoke mode works with
+`--external_server` and an existing `RERUN_CONNECT_URL`; it cannot be combined
+with `--server_only`.
+
+Molmo pick-place smoke tests also print one `[GRASP N]` diagnostic per episode.
+It reports the closest tool-to-cube error (XYZ in the fixed gripper frame,
+millimetres), the live gap between opposing CAD fingertips versus cube width,
+gripper commands, and joint tracking error. The same measurements are reported
+at the first and closest closing commands. These measurements run before the
+environment's automatic reset and stay in memory; they do not change actions,
+contacts or success criteria. A small tool error with an insufficient jaw gap
+shows whether the closing command leaves enough clearance for the cube;
+joint tracking error distinguishes a missed predicted target from a target the
+arm did not execute. These measurements do not establish a calibration defect.
 
 The policy is a plugin under `policies/<name>/` (see [07 policy plugins](07-policy-plugins.md)); the
 server runs in the generic `policy-server` image (`./policy_servers/build.sh`) and the first start of a
@@ -93,7 +144,7 @@ policy builds its environment, so allow for `READY_TIMEOUT` (default 900 s). The
 `./policies` mounted (see the README launch block).
 
 The launcher prints startup status, episode progress and a compact results summary.
-It retains complete output under `/tmp/so101-eval/<run>/`: `evaluation.log`,
+Outside smoke mode, it retains complete output under `/tmp/so101-eval/<run>/`: `evaluation.log`,
 `server.log`, `rerun.log` when enabled, and a copy of `results.json`.
 Set `EVAL_LOG_DIR=/path/to/run` to choose a directory, or `EVAL_VERBOSE=1` to
 also print routine Isaac initialization details. Warnings and errors remain
@@ -107,6 +158,8 @@ start teleop from your desktop terminal using the README's X11 mounts.
 `RERUN_PORT` changes the default viewer port of 9876. Set `RERUN_CONNECT_URL`
 to connect to an existing viewer instead. The launcher cleans up its own
 viewer and policy server when the evaluation ends or is interrupted.
+Camera frames are timestamped and JPEG-compressed in memory, so scrubbing the
+recording replays the room and wrist views alongside the joint values.
 
 YAML keys (old `eval_pick_place.sh` flag in parentheses):
 
@@ -124,7 +177,9 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.random_fraction`, `eval.start_mode`, `eval.robot_start` | 0.0, `cycle`, `recorded` |
 | `eval.robot_usd` | Task asset; optional absolute USD path inside teleop (`--robot_usd`), saved in results |
 | `eval.episode_length_s` | Task default (15 s); finite positive seconds |
-| `eval.action_horizon` | 16; integer in 1-16 |
+| `eval.action_horizon` | MolmoAct2: 30, integer in 1-30; other policies: 16, integer in 1-16 |
+| `eval.action_repeat` | 1; positive integer control steps per target. SO-101 Molmo profile: 1 (one-second query interval with horizon 30 at 30 Hz) |
+| `eval.molmo_overhead_camera` | false; Molmo pick-place only. Add a camera behind/above the arm and use it as `room`; SO-101 profile enables it |
 | `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
 | `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
@@ -177,6 +232,21 @@ matching gripper/jaw zero-pose transforms. The existing USD and other policy
 configs retain their calibration. The wrist camera follows the gripper; the
 base pose, joint command mapping and benchmark starts are unchanged. Results
 record `robot_usd` so runs with different wrist frames can be identified.
+The camera and replacement mount use gripper-local coordinates. Original camera
+extrinsics and jaw geometry are preserved; the user has checked the simulated
+camera views against the real setup.
+
+The SO-101 profile enables `eval.molmo_overhead_camera: true` to add a separate
+view behind and above the arm. It leaves both existing cameras in place. Molmo
+receives the new `molmo_room` camera as `room` and the existing wrist camera as
+`wrist`; the original room view is retained as `original_room` for Rerun and
+videos. This option is available through `--molmo-overhead-camera` on the host
+runner or direct evaluator, and is restricted to Molmo pick-place tasks. It
+changes only the requested evaluation configuration instance, not the default
+scene or other policy profiles. Set it to `false` to compare the original room
+view; the standard room/wrist mapping is restored automatically. Enabled runs
+record the added camera's pose and settings under `molmo_overhead_camera` in
+their results.
 
 Molmo also needs a joint-unit conversion in both directions. Simulation derives
 the five arm degree scales from its configured joint mapping, then applies the
@@ -237,7 +307,9 @@ paths need their own persistence. The console prints the exact output path.
 | `task`, `checkpoint`, `seed`, `time` | Run identity; `time` is UTC ISO text |
 | `requested_episodes`, `complete` | Requested count and whether it was reached |
 | `random_fraction` | Actual probability of random cube starts used by this run |
-| `episode_length_s`, `action_horizon`, `step_dt` | Configured episode seconds, executed chunk length and simulation seconds per control step |
+| `episode_length_s`, `action_horizon`, `action_repeat`, `step_dt` | Configured episode seconds, predicted targets per query, control steps per target and simulation seconds per control step |
+| `replan_interval_s` | Nominal simulation seconds per query: `action_horizon * action_repeat * step_dt` |
+| `molmo_overhead_camera` | Added camera pose/settings when the optional Molmo view is enabled; absent otherwise |
 | `episodes` | Per-attempt rows, including `success_step`, `elapsed_sim_s`, `time_to_success_s`, `wall_time_s`, `wall_time_to_success_s`, and optional `videos` paths |
 | `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
 | `by_start` | Aggregates for `recorded` and `random` (not individual ID groups) |
@@ -358,7 +430,8 @@ lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
   --headless
 ```
 
-The direct parser additionally accepts `--disable_fabric`, `--rerun`,
+The direct parser additionally accepts `--disable_fabric`, `--rerun`, `--action_repeat`,
+`--smoke-test`, `--molmo-overhead-camera`,
 `--start_mode` (cycle), `--random_fraction` (0.0), `--robot_start` (recorded), `--lang_instruction_by_color`
 (JSON), and the inherited [Isaac launcher flags](04-recording.md#inherited-isaac-launcher-options).
 Its defaults differ from the host runner: MyRoom task, 10 episodes, seed 1984,
@@ -380,7 +453,7 @@ manual resets; each real-client invocation is a fresh rollout.
 
 | Option | Default / behavior |
 | --- | --- |
-| `--prefetch_steps P` | 0, off; require `0 <= P < action_horizon` |
+| `--prefetch_steps P` | 0, off; require `0 <= P < action_horizon` (simulation: `action_horizon * action_repeat`) |
 | `--blend_steps K` | 0, off; linearly cross-fade old unexecuted predictions into a replacement over K steps, with new weights `1/K, 2/K, ..., 1` |
 | `--ema_alpha A` | 1.0, off; `sent = A * action + (1-A) * previous_sent`, finite `0 < A <= 1`; first action passes through |
 | `--smooth_gripper` | False; include gripper in EMA. Otherwise gripper passes through EMA; blend and ensemble still include it |
@@ -433,6 +506,11 @@ selected actions. In ensemble mode, queries occur at steps `0, M, 2M, ...`;
 all queries after startup deliver P steps later, even when several are pending.
 Weights include only delivered predictions that cover the current step.
 `--render_warmup` uses this adjusted query schedule to refresh camera frames.
+When simulation uses `action_repeat > 1`, each native target is expanded into
+that many control ticks before smoothing. Its effective execution horizon is
+`action_horizon * action_repeat`, and chunk length, prefetch, blending and
+ensemble intervals all count those expanded control ticks. The simulation
+formula above then uses the effective horizon and expanded chunk length.
 
 The CSV contains control step, active/latest contributing chunk ID, that chunk's
 inference latency in seconds, per-tick overrun, hold indicator, and raw/sent values

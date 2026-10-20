@@ -118,10 +118,39 @@ the `teleop` container with the display mounts above, then run on the host:
 ./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
 ```
 
+The SO-101 profile uses a BF16 backbone with the action expert, norms, and RoPE
+in FP32 (`policy.options.action_dtype: float32`). It restores the original
+checkpoint values before GPU transfer, adding about 1.1 GiB for the expert
+compared with all-BF16 storage. Action denormalization also uses FP32 to avoid
+rounding absolute joint targets to whole degrees. These preserve numerical
+precision; the five-episode smoke test checks the resulting execution and grasps.
+
+The SO-101 profile also enables `eval.molmo_overhead_camera`: an additional
+camera behind and above the arm supplies Molmo's `room` view alongside `wrist`.
+The original room camera stays in place and appears as `original_room` in Rerun
+and saved videos. Other profiles and the default scene configuration are
+unchanged. Set this option to `false` to use the original room view again.
+
+The SO-101 profile executes the full 30-action chunk at the simulation's 30 Hz control rate,
+querying again every simulated second (`action_repeat: 1`). This keeps visual
+feedback and gripper timing at the predicted speed. Setting `action_repeat: 5`
+holds each target for five ticks and queries every five simulated seconds,
+slowing the motion fivefold; use it only for an explicit timing comparison.
 Each attempt allows up to 300 simulated seconds and logs simulation and wall
-time to success. `--save_videos` saves separate room/wrist MP4 files beside the
+time to success. `--save_videos` saves separate camera MP4 files beside the
 results; omit that flag to disable recording. Detailed logs are retained under
 `/tmp/so101-eval/`. The fixed benchmark determines the number of attempts.
+
+To watch five attempts in Rerun without saving evaluation reports, heatmaps,
+videos, CSVs or run logs:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --smoke-test
+```
+
+Smoke mode overrides saving options and limits even a fixed benchmark to five
+attempts. Each attempt keeps the configured timeout (300 simulated seconds for
+this Molmo profile); progress and success timing appear in the terminal.
 
 An existing stopped container created without `--rm` can be restarted with
 `docker start teleop`. Use the launch block above when creating a new container.
