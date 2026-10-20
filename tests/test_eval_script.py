@@ -1,6 +1,8 @@
 """docker/eval.sh and docker/eval_config.py: YAML validation and the commands --dry_run prints."""
 import os
+import json
 import signal
+import shlex
 import shutil
 import subprocess
 import sys
@@ -47,11 +49,12 @@ def test_defaults_start_the_policy_server_and_the_evaluator(tmp_path):
     assert "-v policy-cache:/opt/cache" in server and "--gpus all" in server
     client = find(result, "docker exec -e POLICIES_DIR")
     for expected in ("--task Lerobot-So101-Teleop-Pick-Place-Eval", "--policy groot_n17", "--policy_port 5555",
-                     "--num_episodes 20", "--action_horizon 16", "--headless",
+                     "--num_episodes 20", "--action_horizon 16", "--action_repeat 1", "--headless",
                      f"--cube_starts {DATASET}/pick_place_meta", "--checkpoint example/checkpoint-200000"):
         assert expected in client
     assert "--eval_set" not in client and "--gripper_latch" not in client
     assert "--robot_usd" not in client
+    assert "--molmo-overhead-camera" not in client
     assert "-e SO101_EVAL_RUN_ID=" in client
     assert "-e PYTHONUNBUFFERED=1" in client
     assert "--save_videos" not in client and "--video_dir" not in client
@@ -66,6 +69,105 @@ def test_save_videos_cli_and_yaml_options_reach_evaluator(tmp_path):
     assert result.returncode == 0, result.stderr
     client = find(result, "docker exec -e POLICIES_DIR")
     assert "--save_videos" in client and "--video_dir /workspace/outputs/custom_videos" in client
+
+
+def test_smoke_test_forces_five_rerun_episodes_and_overrides_saved_outputs(tmp_path):
+    result = run(tmp_path, BASE + """  episodes: 99
+  eval_set: /workspace/fixed_eval_set.json
+  splits: [id, train]
+  save_videos: true
+  video_dir: /workspace/outputs/ignored_videos
+  results_json: /workspace/outputs/ignored_report.json
+run:
+  rerun: false
+""", "--smoke-test", "--save_videos")
+    assert result.returncode == 0, result.stderr
+    client = find(result, "docker exec -e POLICIES_DIR")
+    for expected in ("--num_episodes 5", "--smoke-test", "--rerun", "--eval_set /workspace/fixed_eval_set.json"):
+        assert expected in client
+    for forbidden in ("--results_json", "--save_videos", "--video_dir"):
+        assert forbidden not in client
+    assert not any(line.startswith("docker exec teleop cat ") for line in commands(result))
+
+
+def test_smoke_test_rejects_server_only(tmp_path):
+    result = run(tmp_path, BASE, "--smoke-test", "--server_only")
+    assert result.returncode != 0
+    assert "smoke" in result.stderr.lower() and "server_only" in result.stderr
+
+
+@pytest.mark.parametrize("mode, existing_log_dir", [("success", False), ("failure", True), ("interrupt", False)])
+def test_smoke_lifecycle_creates_no_output_files_even_on_failure_or_interrupt(tmp_path, mode, existing_log_dir):
+    # The fake CLI writes harness markers only; evaluator output directories must remain untouched.
+    docker = tmp_path / "docker"
+    calls, ready, cleaned = (tmp_path / name for name in ("calls.jsonl", "ready", "cleaned"))
+    docker.write_text(f'''#!{sys.executable}
+import json, os, pathlib, sys, time
+args = sys.argv[1:]
+with open({str(calls)!r}, "a") as output:
+    output.write(json.dumps(args) + "\\n")
+if args[0] == "inspect":
+    print("true")
+elif "sim_to_real_so101.scripts.lerobot_eval" in args:
+    assert args[args.index("--num_episodes")+1] == "5", args
+    assert "--smoke-test" in args and "--rerun" in args, args
+    assert not any(flag in args for flag in ["--results_json", "--save_videos", "--video_dir"]), args
+    print("WARNING: smoke diagnostic remains visible", flush=True)
+    if {mode!r} == "interrupt":
+        pathlib.Path({str(ready)!r}).write_text("started")
+        time.sleep(60)
+    if {mode!r} == "failure":
+        print("ERROR: smoke inference failed", flush=True)
+        sys.exit(7)
+    print("[RESULT] Smoke episodes: 5", flush=True)
+elif args[:3] == ["exec", "teleop", "cat"]:
+    sys.exit("Smoke test must not retrieve a saved report")
+elif args[:4] == ["exec", "teleop", "/workspace/isaaclab/_isaac_sim/python.sh", "-c"] and "SO101_EVAL_RUN_ID=" in args[4]:
+    pathlib.Path({str(cleaned)!r}).write_text(args[5])
+''')
+    docker.chmod(0o755)
+    config = tmp_path / "case.yaml"
+    config.write_text(textwrap.dedent(BASE + "  save_videos: true\n  video_dir: /workspace/ignored_videos\n"
+                                      "  results_json: /workspace/ignored_report.json\n"))
+    log_dir, runtime_dir = tmp_path / "must_not_write_logs", tmp_path / "runtime"
+    runtime_dir.mkdir()
+    if existing_log_dir:
+        log_dir.mkdir()
+        (log_dir / "sentinel").write_bytes(b"keep existing log directory untouched")
+    before = {path.name: path.read_bytes() for path in log_dir.iterdir()} if log_dir.exists() else None
+    env = os.environ | {"PATH": f"{tmp_path}:{os.environ['PATH']}", "EVAL_LOG_DIR": str(log_dir),
+                        "TMPDIR": str(runtime_dir), "RERUN_CONNECT_URL": "rerun+http://127.0.0.1:9999/proxy"}
+    process = subprocess.Popen(["bash", str(SCRIPT), str(config), "--external_server", "--smoke-test", "--save_videos"],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=ROOT,
+                               env=env, start_new_session=True)
+    try:
+        if mode == "interrupt":
+            deadline = time.monotonic() + 5
+            while not ready.exists() and time.monotonic() < deadline:
+                time.sleep(.02)
+            assert ready.exists()
+            process.terminate()
+        stdout, stderr = process.communicate(timeout=5)
+        assert process.returncode == {"success": 0, "failure": 7, "interrupt": 143}[mode], stderr
+        assert "smoke diagnostic remains visible" in stdout
+        if mode == "failure":
+            assert "smoke inference failed" in stdout + stderr
+        if mode == "success":
+            assert "Smoke episodes: 5" in stdout
+        assert "Diagnostic log:" not in stderr
+        assert cleaned.read_text()
+        after = {path.name: path.read_bytes() for path in log_dir.iterdir()} if log_dir.exists() else None
+        assert after == before
+        assert list(runtime_dir.iterdir()) == []
+        recorded_calls = [json.loads(line) for line in calls.read_text().splitlines()]
+        assert not any(args[:3] == ["exec", "teleop", "cat"] for args in recorded_calls)
+        assert not any(args[0] == "run" for args in recorded_calls)
+    finally:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait(timeout=2)
 
 
 @pytest.mark.parametrize("value", ['"yes"', "1", "null"])
@@ -97,6 +199,85 @@ eval:
     assert "--port 6001" in find(result, "docker run")
     client = find(result, "docker exec -e POLICIES_DIR")
     assert "--policy_option embodiment_tag=OTHER_TAG" in client and "--policy_port 6001" in client
+
+
+@pytest.mark.parametrize("horizon", [None, 1, 30])
+def test_molmo_horizon_uses_full_chunk_default_and_accepts_boundaries(tmp_path, horizon):
+    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1)
+    if horizon is not None:
+        config += f"  action_horizon: {horizon}\n"
+    result = run(tmp_path, config)
+    assert result.returncode == 0, result.stderr
+    expected = 30 if horizon is None else horizon
+    assert f"--action_horizon {expected}" in find(result, "docker exec -e POLICIES_DIR")
+
+
+def test_molmo_horizon_above_chunk_length_is_rejected_before_launch(tmp_path):
+    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1) + "  action_horizon: 31\n"
+    result = run(tmp_path, config)
+    assert result.returncode != 0
+    assert "1..30" in result.stderr and "molmoact2" in result.stderr
+    assert not commands(result)
+
+
+@pytest.mark.parametrize("setting, flag, enabled", [(None, False, False), (False, False, False),
+                                                   (True, False, True), (False, True, True)])
+def test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view(tmp_path, setting, flag, enabled):
+    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1)
+    if setting is not None:
+        config += f"  molmo_overhead_camera: {str(setting).lower()}\n"
+    result = run(tmp_path, config, *(["--molmo-overhead-camera"] if flag else []))
+    assert result.returncode == 0, result.stderr
+    client = shlex.split(find(result, "docker exec -e POLICIES_DIR"))
+    assert ("--molmo-overhead-camera" in client) is enabled
+    rename = json.loads(client[client.index("--rename_map") + 1])
+    assert rename == ({"realsense_rgb": "original_room", "molmo_room": "room", "wrist_cam": "wrist"}
+                      if enabled else {"realsense_rgb": "room", "wrist_cam": "wrist"})
+
+
+@pytest.mark.parametrize("flag", [False, True])
+def test_overhead_camera_rejects_other_policies_before_launch(tmp_path, flag):
+    result = run(tmp_path, BASE + ("" if flag else "  molmo_overhead_camera: true\n"),
+                 *(["--molmo-overhead-camera"] if flag else []))
+    assert result.returncode != 0
+    assert "requires molmoact2" in result.stderr
+    assert commands(result) == []
+
+
+@pytest.mark.parametrize("value", ['"true"', '1', '0', 'null'])
+def test_overhead_camera_rejects_non_boolean_yaml_values(tmp_path, value):
+    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1)
+    result = run(tmp_path, config + f"  molmo_overhead_camera: {value}\n")
+    assert result.returncode != 0
+    assert "molmo_overhead_camera must be true or false" in result.stderr
+
+
+def test_disabling_overhead_camera_restores_the_original_room_policy_input(tmp_path):
+    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1) + """  molmo_overhead_camera: false
+  rename_map:
+    realsense_rgb: original_room
+    molmo_room: room
+    wrist_cam: wrist
+"""
+    result = run(tmp_path, config)
+    assert result.returncode == 0, result.stderr
+    client = shlex.split(find(result, "docker exec -e POLICIES_DIR"))
+    assert "--molmo-overhead-camera" not in client
+    assert json.loads(client[client.index("--rename_map") + 1]) == {"realsense_rgb": "room", "wrist_cam": "wrist"}
+
+
+def test_action_repeat_reaches_the_evaluator(tmp_path):
+    result = run(tmp_path, BASE + "  action_repeat: 5\n")
+    assert result.returncode == 0, result.stderr
+    assert "--action_repeat 5" in find(result, "docker exec -e POLICIES_DIR")
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "true", "1.5"])
+def test_action_repeat_requires_positive_integer_before_launch(tmp_path, value):
+    result = run(tmp_path, BASE + f"  action_repeat: {value}\n")
+    assert result.returncode != 0
+    assert "eval.action_repeat" in result.stderr
+    assert not commands(result)
 
 
 def test_eval_set_grasp_dr_and_rerun_flags(tmp_path):
@@ -281,6 +462,14 @@ def test_molmo_config_selects_original_wrist_asset(config_name, checkpoint):
     assert f"--checkpoint /workspace/models/{checkpoint}" in find(result, "docker run")
     assert f"--robot_usd {asset}" in client
     assert f"docker exec teleop test -f {asset}" in [line.rstrip() for line in commands(result)]
+    if checkpoint == "molmoact2_so101":
+        assert "--option action_dtype=float32" in find(result, "docker run")
+        assert "--action_horizon 30" in client
+        assert "--action_repeat 1" in client
+        assert "--render_warmup" not in client
+        assert "--molmo-overhead-camera" in client
+    else:
+        assert "--molmo-overhead-camera" not in client
 
 
 def test_original_wrist_asset_composes_with_consistent_joint_anchors():

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep complete evaluator output on disk and concise, live output in the terminal.
+"""Show concise, live evaluator output, optionally retaining complete output on disk.
 
 Only routine banners and known initialization details are omitted. Warnings,
 errors and otherwise unrecognized output always remain visible.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import codecs
 from collections import deque
+from contextlib import nullcontext
 import os
 from pathlib import Path
 import re
@@ -111,12 +112,13 @@ def show_tail(path: Path, stream=sys.stderr) -> None:
     print("\n".join(tail), file=stream)
 
 
-def run(command: list[str], logfile: Path, *, verbose=False) -> int:
-    logfile.parent.mkdir(parents=True, exist_ok=True)
+def run(command: list[str], logfile: Path | None, *, verbose=False) -> int:
+    if logfile is not None:
+        logfile.parent.mkdir(parents=True, exist_ok=True)
     output = LiveOutput(verbose=verbose)
     decoder = codecs.getincrementaldecoder("utf-8")("replace")
     pending = ""
-    with logfile.open("wb") as log:
+    with logfile.open("wb") if logfile is not None else nullcontext() as log:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         interrupted = None
         def forward(signum, _frame):
@@ -129,8 +131,9 @@ def run(command: list[str], logfile: Path, *, verbose=False) -> int:
         signal.signal(signal.SIGINT, forward)
         signal.signal(signal.SIGTERM, forward)
         while chunk := os.read(process.stdout.fileno(), 8192):
-            log.write(chunk)
-            log.flush()
+            if log is not None:
+                log.write(chunk)
+                log.flush()
             pending += decoder.decode(chunk)
             records = re.split(r"(?<=[\r\n])", pending)
             pending = records.pop()
@@ -143,7 +146,8 @@ def run(command: list[str], logfile: Path, *, verbose=False) -> int:
     output.finish()
     if status and not interrupted:
         print(f"Command failed (exit {status}).", file=sys.stderr)
-        show_tail(logfile)
+        if logfile is not None:
+            show_tail(logfile)
     if interrupted is not None:
         return 128+interrupted
     return status if status >= 0 else 128-status
@@ -151,7 +155,9 @@ def run(command: list[str], logfile: Path, *, verbose=False) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--log", type=Path)
+    destination = parser.add_mutually_exclusive_group()
+    destination.add_argument("--log", type=Path)
+    destination.add_argument("--no-log", action="store_true", help="Stream to the terminal without saving a log")
     parser.add_argument("--tail", type=Path)
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("command", nargs=argparse.REMAINDER)
@@ -160,12 +166,13 @@ def main():
         show_tail(args.tail)
         return 0
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
-    if not args.log or not command:
-        parser.error("--log PATH and a command after -- are required")
+    if not (args.log or args.no_log) or not command:
+        parser.error("--log PATH or --no-log and a command after -- are required")
     try:
         return run(command, args.log, verbose=args.verbose or os.environ.get("EVAL_VERBOSE") == "1")
     except OSError as exc:
-        print(f"ERROR: {exc}; diagnostic log: {args.log}", file=sys.stderr)
+        location = f"; diagnostic log: {args.log}" if args.log else ""
+        print(f"ERROR: {exc}{location}", file=sys.stderr)
         return 1
 
 

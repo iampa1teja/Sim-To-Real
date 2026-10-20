@@ -13,6 +13,7 @@ policy:
   options:
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
+    action_dtype: float32             # retain original expert precision with a BF16 backbone
     num_steps: 10                     # flow-matching solver steps
 
 # Uses the fixed benchmark starts and the corrected wrist frame for Molmo.
@@ -25,12 +26,15 @@ eval:
   random_fraction: 0.0
   robot_start: recorded
   robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
-  action_horizon: 8                   # at most the model's chunk length
+  action_horizon: 30                  # execute the released SO-101 checkpoint's full action chunk
+  action_repeat: 1                    # 30 Hz simulation control; query every simulated second
+  molmo_overhead_camera: true         # extra behind/above-arm view; original room camera stays unchanged
   episode_length_s: 300               # five simulated minutes per try = 9000 control steps
-  render_warmup: 2
+  render_warmup: 0                    # update Rerun cameras continuously between policy queries
   lang: Pick up the blue cube and place it in the white box
   rename_map:
-    realsense_rgb: room
+    realsense_rgb: original_room
+    molmo_room: room
     wrist_cam: wrist
 
 run:

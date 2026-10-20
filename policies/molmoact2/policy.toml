@@ -14,7 +14,7 @@ cameras = ["room", "wrist"]
 language = true
 
 [action]
-default_horizon = 8
+default_horizon = 30
 representation = "absolute_joint"
 
 [runtime.env]

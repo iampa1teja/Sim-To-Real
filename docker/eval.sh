@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Host-side evaluation runner. Every setting comes from one YAML file:
-#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos]
+#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--smoke-test] [--molmo-overhead-camera]
 # A bare file name is looked up under configs/eval/. See configs/eval/pick_place.yaml for the schema.
 set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 usage() {
     cat <<'EOF'
-Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos]
+Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--smoke-test] [--molmo-overhead-camera]
 
   <config>.yaml      Evaluation settings (policy, checkpoint, dataset, episodes, ...). A bare file
                      name is looked up in configs/eval/.
@@ -16,16 +16,20 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
   --server_only      Start the policy server and wait until interrupted; no evaluation.
   --gui, --rerun     Show the simulator window / enable Rerun (also settable under run: in the YAML).
   --save_videos      Save room/wrist MP4 videos for each attempt (also eval.save_videos in YAML).
+  --smoke-test       Run exactly five episodes with Rerun; save no reports, videos, CSVs or run logs.
+                     Keeps the configured episode timeout. Overrides output settings in the YAML.
+  --molmo-overhead-camera  Add a camera behind/above the arm for Molmo pick-place inputs.
+                     Preserve the original room/wrist cameras and log all three in Rerun.
 
 Needs the teleop container (README) running, python3 with PyYAML on the host, and the policy-server
 image (./policy_servers/build.sh). READY_TIMEOUT (seconds, default 900) bounds the server start-up,
 which includes the first-time uv environment build.
-Complete logs are retained under /tmp/so101-eval (override with EVAL_LOG_DIR).
+Complete logs are retained under /tmp/so101-eval (override with EVAL_LOG_DIR), except in smoke mode.
 Set EVAL_VERBOSE=1 to show routine simulator initialization output as well.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false
+config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false smoke_test=false molmo_overhead_camera_flag=false
 while (($#)); do
     case "$1" in
         --external_server) external_server=true; shift ;;
@@ -34,6 +38,8 @@ while (($#)); do
         --gui) gui_flag=true; shift ;;
         --rerun) rerun_flag=true; shift ;;
         --save_videos) save_videos_flag=true; shift ;;
+        --smoke-test) smoke_test=true; shift ;;
+        --molmo-overhead-camera) molmo_overhead_camera_flag=true; shift ;;
         --help|-h) usage; exit 0 ;;
         -*) fail "Unknown option $1; see --help." ;;
         *) [[ -z $config ]] || fail 'Give exactly one config file.'; config=$1; shift ;;
@@ -41,19 +47,29 @@ while (($#)); do
 done
 [[ -n $config ]] || { usage >&2; fail 'Provide a config YAML, e.g. ./docker/eval.sh pick_place.yaml.'; }
 ! "$external_server" || ! "$server_only" || fail 'Choose only one server mode.'
+! "$smoke_test" || ! "$server_only" || fail '--smoke-test cannot be combined with --server_only.'
 command -v python3 >/dev/null || fail 'Install python3 on the host for config, path and TCP checks.'
 if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=configs/eval/$config; fi
 [[ -f $config ]] || fail "Config file not found: $config"
 
 # Variables defined by the helper: dr task policy_name model models_dir port server_image dataset
-# episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon
+# episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon action_repeat molmo_overhead_camera
 # eval_set splits lang lang_by_color rename_map results_json save_videos video_dir seed_per_episode gui rerun
 # and the arrays policy_options (KEY=VALUE) and grasp_args.
-config_vars=$(python3 "$repo_dir/docker/eval_config.py" "$config") || exit 1
+config_args=("$config")
+"$molmo_overhead_camera_flag" && config_args+=(--molmo-overhead-camera)
+config_vars=$(python3 "$repo_dir/docker/eval_config.py" "${config_args[@]}") || exit 1
 eval "$config_vars"
 "$gui_flag" && gui=true
 "$rerun_flag" && rerun=true
 "$save_videos_flag" && save_videos=true
+if "$smoke_test"; then
+    episodes=5
+    rerun=true
+    save_videos=false
+    video_dir=''
+    results_json=''
+fi
 
 if [[ -z $port ]]; then
     port=$(python3 - "$repo_dir/policies/$policy_name/policy.toml" <<'PY'
@@ -85,7 +101,9 @@ run_logged() {
     if "$dry_run"; then print_command "$@"
     else
         # A background command plus the wait builtin lets Bash handle TERM immediately.
-        python3 "$repo_dir/docker/eval_output.py" --log "$logfile" -- "$@" &
+        local log_args=(--log "$logfile")
+        if "$smoke_test"; then log_args=(--no-log); fi
+        python3 "$repo_dir/docker/eval_output.py" "${log_args[@]}" -- "$@" &
         active_log_pid=$!
         local command_status=0
         wait "$active_log_pid" || command_status=$?
@@ -93,10 +111,13 @@ run_logged() {
         return "$command_status"
     fi
 }
+show_log() {
+    if ! "$smoke_test"; then python3 "$repo_dir/docker/eval_output.py" --tail "$1"; fi
+}
 check_rerun_viewer() {
     if [[ -n $rerun_log_pid ]] && ! kill -0 "$rerun_log_pid" 2>/dev/null; then
-        python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
-        fail 'Rerun viewer exited; inspect its diagnostic log above.'
+        show_log "$rerun_log"
+        fail 'Rerun viewer exited; inspect the diagnostics above.'
     fi
 }
 server_started=false
@@ -120,17 +141,22 @@ cleanup() {
     fi
     if "$evaluator_started" && ! "$dry_run"; then
         # Stopping docker exec alone leaves Isaac running. Match only this invocation's tag.
-        local cleanup_code
+        local cleanup_code cleanup_output
         cleanup_code=$(<"$repo_dir/docker/eval_cleanup.py")
-        if ! docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c "$cleanup_code" "$eval_run_id" >"$log_dir/evaluator-cleanup.log" 2>&1; then
-            cat "$log_dir/evaluator-cleanup.log" >&2
-            printf 'WARNING: Evaluation cleanup failed; inspect %s\n' "$log_dir/evaluator-cleanup.log" >&2
+        if cleanup_output=$(docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c "$cleanup_code" "$eval_run_id" 2>&1); then
+            if ! "$smoke_test"; then printf '%s\n' "$cleanup_output" >"$log_dir/evaluator-cleanup.log"; fi
+        else
+            printf '%s\nWARNING: Evaluation cleanup failed.\n' "$cleanup_output" >&2
+            if ! "$smoke_test"; then printf '%s\n' "$cleanup_output" >"$log_dir/evaluator-cleanup.log"; fi
         fi
     fi
     if "$server_started"; then
         if "$dry_run"; then
             print_command docker stop "$server_name"
             print_command docker rm -f "$server_name"
+        elif "$smoke_test"; then
+            docker stop "$server_name" >/dev/null 2>&1 || true
+            docker rm -f "$server_name" >/dev/null 2>&1 || true
         else
             docker stop "$server_name" >>"$log_dir/cleanup.log" 2>&1 || true
             # --rm may already have removed it after stop or a server failure.
@@ -200,10 +226,13 @@ if [[ -n $robot_usd ]]; then
     run docker exec teleop test -f "$robot_usd" || fail 'Robot USD missing inside teleop; check eval.robot_usd.'
 fi
 if ! "$dry_run"; then
-    mkdir -p -- "$log_dir"
     printf 'Evaluation: policy=%s checkpoint=%s port=%s\n' "$policy_name" "$model" "$port"
-    printf 'Logs: %s\n' "$log_dir"
+    if ! "$smoke_test"; then
+        mkdir -p -- "$log_dir"
+        printf 'Logs: %s\n' "$log_dir"
+    fi
 fi
+if "$smoke_test"; then printf 'Smoke test: 5 episodes with Rerun; no evaluation artifacts will be saved.\n'; fi
 if "$rerun" && ! "$server_only" && [[ -z $rerun_connect_url ]]; then
     # Use a native viewer matching teleop's SDK; fail before loading policy weights if unavailable.
     rerun_port=${RERUN_PORT:-9876}
@@ -220,7 +249,9 @@ except (OSError, ValueError, OverflowError) as error:
     sys.exit(f'Rerun port {sys.argv[1]} is unavailable ({error}); set RERUN_PORT or RERUN_CONNECT_URL.')
 PY
         rerun_log=$log_dir/rerun.log
-        python3 "$repo_dir/docker/eval_output.py" --log "$rerun_log" -- \
+        log_args=(--log "$rerun_log")
+        if "$smoke_test"; then log_args=(--no-log); fi
+        python3 "$repo_dir/docker/eval_output.py" "${log_args[@]}" -- \
             python3 "$repo_dir/docker/rerun_viewer.py" --container teleop --port "$rerun_port" &
         rerun_log_pid=$!
         rerun_ready=false
@@ -228,7 +259,7 @@ PY
         while ((SECONDS < rerun_deadline)); do
             if ! kill -0 "$rerun_log_pid" 2>/dev/null; then
                 wait "$rerun_log_pid" 2>/dev/null || true
-                python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
+                show_log "$rerun_log"
                 fail 'Rerun viewer exited before startup; evaluation was not started.'
             fi
             if python3 - "$rerun_port" <<'PY'
@@ -243,7 +274,7 @@ PY
             sleep 1
         done
         if ! "$rerun_ready"; then
-            python3 "$repo_dir/docker/eval_output.py" --tail "$rerun_log"
+            show_log "$rerun_log"
             fail 'Rerun viewer readiness timed out; evaluation was not started.'
         fi
         printf 'Rerun viewer ready: %s\n' "$rerun_connect_url"
@@ -284,19 +315,25 @@ if ! "$external_server"; then
     if "$dry_run"; then print_command "${server_cmd[@]}"
     else
         printf 'Starting policy server; loading %s...\n' "$model"
-        "${server_cmd[@]}" >"$log_dir/server-container.txt"
+        if "$smoke_test"; then "${server_cmd[@]}" >/dev/null
+        else "${server_cmd[@]}" >"$log_dir/server-container.txt"; fi
     fi
     # Stream logs onto the host immediately: --rm removes container logs on exit.
     if "$dry_run"; then
         print_command docker logs --follow "$server_name"
     else
-        server_log=$log_dir/server.log
-        python3 "$repo_dir/docker/eval_output.py" --log "$server_log" -- docker logs --follow "$server_name" &
+        log_args=(--no-log)
+        if ! "$smoke_test"; then
+            server_log=$log_dir/server.log
+            log_args=(--log "$server_log")
+        fi
+        python3 "$repo_dir/docker/eval_output.py" "${log_args[@]}" -- docker logs --follow "$server_name" &
         server_log_pid=$!
     fi
     show_server_logs() {
         server_failure_shown=true
-        python3 "$repo_dir/docker/eval_output.py" --tail "$server_log"
+        if "$smoke_test"; then docker logs --tail 50 "$server_name" >&2 || true
+        else show_log "$server_log"; fi
     }
     if "$dry_run"; then
         print_command docker inspect -f '{{.State.Running}}' "$server_name"
@@ -344,9 +381,11 @@ fi
 # Use the README's Isaac Python wrapper: docker exec does not inherit the environment exported by the
 # container entrypoint. Run the lerobot_eval module.
 # Avoid installing (and warning about root pip) on every evaluation in the prebuilt simulator.
+dependency_output=$log_dir/dependencies.log
+if "$smoke_test"; then dependency_output=/dev/null; fi
 if "$dry_run"; then
     print_command docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c 'import tqdm'
-elif ! docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c 'import tqdm' >"$log_dir/dependencies.log" 2>&1; then
+elif ! docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c 'import tqdm' >"$dependency_output" 2>&1; then
     printf 'Installing missing evaluator dependency: tqdm...\n'
     run_logged "$log_dir/dependencies-install.log" docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh \
         -m pip install --quiet --disable-pip-version-check --root-user-action=ignore tqdm
@@ -358,10 +397,13 @@ eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$
     -m sim_to_real_so101.scripts.lerobot_eval --task "$task" --num_envs 1
     --cube_starts "$dataset/pick_place_meta" --start_mode "$start_mode" --random_fraction "$random_fraction"
     --robot_start "$robot_start"
-    --rename_map "$rename_map" --action_horizon "$action_horizon"
+    --rename_map "$rename_map" --action_horizon "$action_horizon" --action_repeat "$action_repeat"
     --policy "$policy_name" "${client_options[@]}"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
-    --num_episodes "$episodes" --checkpoint "$model" --results_json "$results")
+    --num_episodes "$episodes" --checkpoint "$model")
+if "$smoke_test"; then eval_cmd+=(--smoke-test)
+else eval_cmd+=(--results_json "$results"); fi
+"$molmo_overhead_camera" && eval_cmd+=(--molmo-overhead-camera)
 if [[ -n $eval_set ]]; then
     eval_cmd+=(--eval_set "$eval_set" --repeats "$repeats")
     [[ -z $splits ]] || eval_cmd+=(--splits "$splits")
@@ -378,6 +420,8 @@ eval_cmd+=("${grasp_args[@]}")
 evaluator_started=true
 run_logged "$log_dir/evaluation.log" "${eval_cmd[@]}"
 # The client prints the grouped summary; keep the full report on disk without dumping it twice.
-if "$dry_run"; then print_command docker exec teleop cat "$results"
-else docker exec teleop cat "$results" >"$log_dir/results.json"; fi
-printf 'Results JSON (inside teleop): %s\n' "$results"
+if ! "$smoke_test"; then
+    if "$dry_run"; then print_command docker exec teleop cat "$results"
+    else docker exec teleop cat "$results" >"$log_dir/results.json"; fi
+    printf 'Results JSON (inside teleop): %s\n' "$results"
+fi
