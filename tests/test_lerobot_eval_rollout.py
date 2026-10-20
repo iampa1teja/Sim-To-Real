@@ -59,14 +59,16 @@ class FakePolicy:
 
     def __init__(self, **kwargs):
         self.instructions = []
+        self.reset_seeds = []
         self.options = kwargs
         self.instances.append(self)
 
     def connect(self):
         pass
 
-    def reset(self):
+    def reset(self, **kwargs):
         self.instructions.append(getattr(self, '_lang_instruction', None))
+        self.reset_seeds.append(kwargs.get('seed'))
 
     def get_action(self, *args, **kwargs):
         return np.zeros(6)
@@ -110,6 +112,9 @@ class FakeEnvironment:
         self._pick_place_start_index = [self.episode]
         self._pick_place_start_zone = ['NL' if self.episode % 2 == 0 else 'FR']
         self._pick_place_cube_color = ['blue' if self.episode % 2 == 0 else 'red']
+        if getattr(self, 'benchmark', None) is not None:
+            self.benchmark.sample()
+            self._benchmark_start = self.benchmark.current
 
     def reset(self):
         self.explicit_resets += 1
@@ -167,7 +172,12 @@ class EvaluatorRolloutTests(unittest.TestCase):
         def make_environment(*args, **kwargs):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
             env.made_robot_usd = kwargs['cfg'].scene.robot.spawn.usd_path
+            env.made_overhead_camera = getattr(kwargs['cfg'].scene, 'camera_molmo_room', None)
             env.max_episode_length = math.ceil(env.made_episode_length_s / env.step_dt)
+            params = kwargs['cfg'].events.spawn_cube.params
+            if params.get('eval_set'):
+                from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
+                env.benchmark = EvalSetStarts(params['eval_set'], params['splits'], params['repeats'], cfg.seed)
             return env
         env.progress_bars = []
 
@@ -176,10 +186,14 @@ class EvaluatorRolloutTests(unittest.TestCase):
             env.progress_bars.append(bar)
             return bar
 
+        def make_interface(**options):
+            env.interface_options = options
+            return interface
+
         context = dict(GraspConfig=GraspConfig, args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
                        KeyboardControl=lambda: SimpleNamespace(reset_world=False), torch=torch, np=np, random=random,
                        json=json, math=math, sys=sys, traceback=traceback,
-                       LeRobotSO101Interface=lambda **kw: interface, SimRemotePolicy=FakePolicy,
+                       LeRobotSO101Interface=make_interface, SimRemotePolicy=FakePolicy,
                        simulation_app=simulation, tqdm=progress_bar)
         tree = ast.parse(EVALUATOR.read_text())
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
@@ -198,8 +212,15 @@ class EvaluatorRolloutTests(unittest.TestCase):
             if options.get('file') is stderr:
                 real_print(*values, **options)
 
+        modules = {'sim_to_real_so101.utils.pick_place_eval': HELPERS}
+        if getattr(args, 'eval_set', None):
+            from sim_to_real_so101.utils.pick_place_benchmark import StageTrace, load_eval_set
+            scene = load_eval_set(args.eval_set)['scene']
+            modules['sim_to_real_so101.utils.pick_place_benchmark_runtime'] = SimpleNamespace(
+                capture_scene=lambda _: scene,
+                install_stage_tracking=lambda raw: setattr(raw, '_benchmark_trace', StageTrace()))
         env.on_close = observe_close
-        with patch.dict(sys.modules, {'sim_to_real_so101.utils.pick_place_eval': HELPERS}), \
+        with patch.dict(sys.modules, modules), \
                 patch('builtins.print', side_effect=capture_print) as printer, redirect_stderr(stderr):
             if close_error is not None:
                 with self.assertRaises(type(close_error)) as raised:
@@ -219,6 +240,138 @@ class EvaluatorRolloutTests(unittest.TestCase):
         env.printed = [call.args[0] for call in printer.call_args_list]
         env.stderr = stderr.getvalue()
         return env, cfg
+
+    def test_smoke_test_runs_five_episodes_and_overrides_all_saved_outputs(self):
+        recording = SimpleNamespace(flush=unittest.mock.Mock())
+        rerun = SimpleNamespace(get_global_data_recording=lambda: recording, disconnect=unittest.mock.Mock())
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
+                'rerun': rerun, 'sim_to_real_so101.utils.eval_video': None}):
+            root = Path(directory)
+            env, _ = self.evaluate(root / 'reports/report.json',
+                                   args_override={'smoke_test': True, 'num_episodes': 99,
+                                                  'episode_length_s': 300., 'save_videos': True,
+                                                  'video_dir': root / 'videos', 'log_timing': True,
+                                                  'timing_csv': str(root / 'timing.csv'), 'log_gripper': True,
+                                                  'gripper_csv': str(root / 'gripper.csv')},
+                                   outcomes=[(1, True, False)] * 6)
+            self.assertEqual(list(root.iterdir()), [])
+        self.assertEqual(env.episode, 5)
+        self.assertEqual(env.made_episode_length_s, 300.)
+        self.assertTrue(env.closed)
+        self.assertEqual(len(env.progress_bars), 5)
+        self.assertNotIn('log_timing', FakePolicy.instances[-1].options)
+        self.assertNotIn('timing_csv', FakePolicy.instances[-1].options)
+        self.assertNotIn('grasp_config', FakePolicy.instances[-1].options)
+        self.assertIn('[RESULT] complete: 5/5 episodes; success 5/5 (100.0%)', env.printed)
+        self.assertFalse(any(line.startswith(('Results JSON:', '{')) for line in env.printed))
+        recording.flush.assert_called_once_with(timeout_sec=5)
+        rerun.disconnect.assert_called_once_with()
+
+    def test_smoke_test_caps_fixed_benchmark_and_repeats_small_selections(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, eval_set_digest
+        benchmark_path = ROOT / 'eval_sets/pick_place_v1_seed1984.json'
+        for start_count in (150, 2):
+            with self.subTest(starts=start_count), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                selection = json.loads(benchmark_path.read_text())
+                selection['starts'] = selection['starts'][:start_count]
+                selection['eval_set_id'] = eval_set_digest(selection)
+                selected_path = root / 'selection.json'
+                selected_path.write_text(json.dumps(selection))
+                rerun = SimpleNamespace(get_global_data_recording=lambda: None, disconnect=lambda: None)
+                with patch.dict(sys.modules, {'rerun': rerun, 'sim_to_real_so101.utils.eval_video': None}):
+                    env, cfg = self.evaluate(root / 'report.json',
+                                            args_override={'smoke_test': True, 'eval_set': selected_path,
+                                                           'splits': None, 'repeats': 1, 'save_videos': True},
+                                            outcomes=[(1, True, False)] * 6)
+                self.assertEqual(env.episode, 5)
+                self.assertEqual(list(root.iterdir()), [selected_path])
+                repeats = cfg.events.spawn_cube.params['repeats']
+                self.assertEqual(repeats, 1 if start_count >= 5 else 3)
+                plan = EvalSetStarts(selected_path, repeats=repeats, seed=17)
+                self.assertEqual(FakePolicy.instances[-1].reset_seeds,
+                                 [s['policy_seed'] for s in plan.schedule[:5]])
+                self.assertIn('[RESULT] complete: 5/5 episodes; success 5/5 (100.0%)', env.printed)
+
+    def test_molmo_smoke_diagnostics_are_console_only_and_reset_each_episode(self):
+        from sim_to_real_so101.utils.grasp_diagnostics import GraspTrace
+        trace = GraspTrace()
+        install = unittest.mock.Mock(return_value=trace)
+        rerun = SimpleNamespace(get_global_data_recording=lambda: None, disconnect=lambda: None)
+        module = SimpleNamespace(install_grasp_diagnostics=install)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
+                'rerun': rerun, 'sim_to_real_so101.utils.grasp_diagnostics': module}):
+            root = Path(directory)
+            env, _ = self.evaluate(root / 'report.json',
+                                   args_override={'smoke_test': True, 'policy': 'molmoact2',
+                                                  'action_horizon': 30},
+                                   outcomes=[(1, True, False)] * 5)
+            self.assertEqual(list(root.iterdir()), [])
+        install.assert_called_once()
+        lines = [line for line in env.printed if line.startswith('[GRASP ')]
+        self.assertEqual(len(lines), 5)
+        self.assertTrue(all(json.loads(line.split('] ', 1)[1])['closest'] is None for line in lines))
+        self.assertTrue(any('Replanning every 1.00s sim' in line for line in env.printed))
+
+    def test_smoke_test_failure_closes_environment_without_saving_partial_report(self):
+        rerun = SimpleNamespace(get_global_data_recording=lambda: None, disconnect=lambda: None)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rerun': rerun}):
+            root = Path(directory)
+            env, _ = self.evaluate(root / 'report.json', args_override={'smoke_test': True, 'save_videos': True},
+                                   failure_stage='step')
+            self.assertEqual(list(root.iterdir()), [])
+        self.assertTrue(env.closed)
+        self.assertIn('[RESULT] incomplete: 0/5 episodes; success 0/0 (n/a)', env.printed)
+
+    def test_molmo_overhead_camera_is_added_before_spawn_and_identified_in_report(self):
+        camera = object()
+        metadata = {'camera': 'molmo_room', 'position': [-.5, 0., .8]}
+        calls = []
+
+        def add_camera(cfg):
+            calls.append(cfg)
+            cfg.scene.camera_molmo_room = camera
+            return metadata
+
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
+                'sim_to_real_so101.utils.molmo_camera': SimpleNamespace(add_molmo_overhead_camera=add_camera)}):
+            path = Path(directory) / 'report.json'
+            env, cfg = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
+                                                        'molmo_overhead_camera': True,
+                                                        'rename_map': '{"realsense_rgb":"room","wrist_cam":"wrist"}'})
+            report = json.loads(path.read_text())
+        self.assertEqual(calls, [cfg])
+        self.assertIs(env.made_overhead_camera, camera)
+        self.assertEqual(env.interface_options['rename_map'],
+                         {'realsense_rgb': 'original_room', 'molmo_room': 'room', 'wrist_cam': 'wrist'})
+        self.assertEqual(report['molmo_overhead_camera'], metadata)
+
+    def test_default_rollout_never_imports_or_adds_molmo_camera(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
+                'sim_to_real_so101.utils.molmo_camera': None}):
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path)
+            report = json.loads(path.read_text())
+        self.assertIsNone(env.made_overhead_camera)
+        self.assertNotIn('molmo_overhead_camera', report)
+        self.assertIsNone(env.interface_options['rename_map'])
+
+    def test_disabling_molmo_camera_restores_original_room_mapping(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
+                'sim_to_real_so101.utils.molmo_camera': None}):
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
+                                   'molmo_overhead_camera': False,
+                                   'rename_map': '{"realsense_rgb":"original_room","molmo_room":"room","wrist_cam":"wrist"}'})
+        self.assertIsNone(env.made_overhead_camera)
+        self.assertEqual(env.interface_options['rename_map'], {'realsense_rgb': 'room', 'wrist_cam': 'wrist'})
+
+    def test_molmo_overhead_rejects_other_policy_or_task_before_environment_creation(self):
+        for changes in ({'policy': 'groot_n17'}, {'policy': 'molmoact2', 'task': 'Lerobot-So101-Teleop-MyRoom'}):
+            with self.subTest(changes=changes):
+                env, _ = self.evaluate(None, args_override={'molmo_overhead_camera': True, **changes},
+                                       expected_error='requires molmoact2 and a pick-place Eval task')
+                self.assertIsNone(env.made_episode_length_s)
 
     def test_autoreset_preserves_episode_metadata_and_exact_count(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -407,6 +560,66 @@ class EvaluatorRolloutTests(unittest.TestCase):
                 self.assertEqual(json.loads(path.read_text())['action_horizon'], horizon)
                 self.assertEqual(FakePolicy.instances[-1].options['action_horizon'], horizon)
 
+    def test_molmo_full_chunk_horizon_and_default_are_forwarded(self):
+        for horizon in (None, 1, 30):
+            with self.subTest(action_horizon=horizon), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'report.json'
+                self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': horizon})
+                expected = 30 if horizon is None else horizon
+                self.assertEqual(json.loads(path.read_text())['action_horizon'], expected)
+                self.assertEqual(FakePolicy.instances[-1].options['action_horizon'], expected)
+
+    def test_molmo_horizon_above_chunk_length_never_creates_environment(self):
+        env, _ = self.evaluate(None, args_override={'policy': 'molmoact2', 'action_horizon': 31},
+                               expected_error='action_horizon must be in 1..30')
+        self.assertIsNone(env.made_episode_length_s)
+
+    def test_action_repeat_defaults_to_one_and_reports_nominal_replan_interval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            self.evaluate(path)
+            report = json.loads(path.read_text())
+        self.assertEqual(FakePolicy.instances[-1].options['action_repeat'], 1)
+        self.assertEqual(report['action_repeat'], 1)
+        self.assertAlmostEqual(report['replan_interval_s'], 16/30)
+
+    def test_molmo_repeat_five_reports_five_second_replan_interval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
+                                                      'action_repeat': 5, 'prefetch_steps': 149})
+            report = json.loads(path.read_text())
+        self.assertEqual(FakePolicy.instances[-1].options['action_repeat'], 5)
+        self.assertEqual(FakePolicy.instances[-1].options['prefetch_steps'], 149)
+        self.assertEqual(report['action_repeat'], 5)
+        self.assertEqual(report['replan_interval_s'], 5.)
+        self.assertTrue(any('Replanning every 5.00s sim' in line for line in env.printed))
+
+    def test_invalid_action_repeat_and_prefetch_fail_before_environment_creation(self):
+        for repeat in (0, -1, True, False, 1.5):
+            with self.subTest(action_repeat=repeat):
+                env, _ = self.evaluate(None, args_override={'action_repeat': repeat},
+                                       expected_error='action_repeat must be a positive integer')
+                self.assertIsNone(env.made_episode_length_s)
+        env, _ = self.evaluate(None, args_override={'policy': 'molmoact2', 'action_horizon': 30,
+                                                   'action_repeat': 5, 'prefetch_steps': 150},
+                               expected_error='prefetch_steps')
+        self.assertIsNone(env.made_episode_length_s)
+
+    def test_remote_decoder_preserves_every_action_of_full_thirty_step_chunk(self):
+        tree = ast.parse((ROOT / 'source/sim_to_real_so101/utils/lerobot_interface.py').read_text())
+        policy = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'SimRemotePolicy')
+        decoder = next(node for node in policy.body if isinstance(node, ast.FunctionDef) and node.name == '_decode_action_chunk')
+        context = {'np': np}
+        exec(compile(ast.Module(body=[decoder], type_ignores=[]), 'lerobot_interface.py', 'exec'), context)
+        joint_order = HELPERS.SO101_JOINTS
+        client = SimpleNamespace(_action_horizon=30, _action_repeat=1,
+                                 _iface=SimpleNamespace(SO101_JOINT_ORDER=joint_order))
+        chunk = np.arange(30 * 6, dtype=np.float32).reshape(30, 6)
+        decoded = context['_decode_action_chunk'](client, chunk)
+        self.assertEqual(len(decoded), 30)
+        np.testing.assert_array_equal([[row[name] for name in joint_order] for row in decoded], chunk)
+
     def test_30_second_rollout_distinguishes_boundary_late_success_and_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'report.json'
@@ -562,12 +775,56 @@ class EvaluatorCliTests(unittest.TestCase):
         args = self.parse_cli([])
         self.assertIsNone(args.episode_length_s)
         self.assertEqual(args.action_horizon, 16)
+        self.assertEqual(args.action_repeat, 1)
+        self.assertFalse(args.molmo_overhead_camera)
         self.assertEqual(args.random_fraction, 0.)
         self.assertEqual(args.robot_start, 'recorded')
         for horizon in ('1', '16'):
             args = self.parse_cli(['--action_horizon', horizon, '--episode_length_s', '30'])
             self.assertEqual(args.action_horizon, int(horizon))
             self.assertEqual(args.episode_length_s, 30.)
+
+    def test_molmo_cli_defaults_to_thirty_and_accepts_full_chunk(self):
+        args = self.parse_cli(['--policy', 'molmoact2'])
+        self.assertEqual(args.action_horizon, 30)
+        for horizon in ('1', '30'):
+            args = self.parse_cli(['--policy', 'molmoact2', '--action_horizon', horizon])
+            self.assertEqual(args.action_horizon, int(horizon))
+
+    def test_molmo_cli_above_chunk_length_fails_before_simulator_launch(self):
+        with self.assertRaises(SystemExit) as error:
+            self.parse_cli(['--policy', 'molmoact2', '--action_horizon', '31'])
+        self.assertEqual(error.exception.code, 2)
+        self.assertEqual(self.Launcher.launches, 0)
+
+    def test_molmo_overhead_cli_accepts_only_molmo_pick_place(self):
+        for task in ('Lerobot-So101-Teleop-Pick-Place-Eval', 'Lerobot-So101-Teleop-Pick-Place-DR-Eval'):
+            args = self.parse_cli(['--policy', 'molmoact2', '--task', task, '--molmo-overhead-camera'])
+            self.assertTrue(args.molmo_overhead_camera)
+        for arguments in (['--molmo-overhead-camera'],
+                          ['--policy', 'molmoact2', '--molmo-overhead-camera'],
+                          ['--task', 'Lerobot-So101-Teleop-Pick-Place-Eval', '--molmo-overhead-camera']):
+            with self.subTest(arguments=arguments), self.assertRaises(SystemExit) as error:
+                self.parse_cli(arguments)
+            self.assertEqual(error.exception.code, 2)
+            self.assertEqual(self.Launcher.launches, 0)
+
+    def test_repeat_cli_prefetch_uses_effective_physical_chunk_length(self):
+        args = self.parse_cli(['--policy', 'molmoact2', '--action_repeat', '5', '--prefetch_steps', '149'])
+        self.assertEqual(args.action_horizon, 30)
+        self.assertEqual(args.action_repeat, 5)
+        self.assertEqual(args.prefetch_steps, 149)
+        with self.assertRaises(SystemExit) as error:
+            self.parse_cli(['--policy', 'molmoact2', '--action_repeat', '5', '--prefetch_steps', '150'])
+        self.assertEqual(error.exception.code, 2)
+        self.assertEqual(self.Launcher.launches, 0)
+
+    def test_invalid_repeat_cli_fails_before_simulator_launch(self):
+        for repeat in ('0', '-1', 'true', 'false', '1.5'):
+            with self.subTest(action_repeat=repeat), self.assertRaises(SystemExit) as error:
+                self.parse_cli(['--action_repeat', repeat])
+            self.assertEqual(error.exception.code, 2)
+            self.assertEqual(self.Launcher.launches, 0)
 
     def test_invalid_cli_options_fail_before_simulator_launch(self):
         options = [('episode_length_s', value) for value in ('0', '-1', 'nan', 'inf', '-inf', 'bad')]

@@ -187,6 +187,80 @@ def make_sim_policy(**options):
     return policy
 
 
+class ThirtyTargetClient(FakeClient):
+    def get_action(self, observation):
+        chunk_id = len(self.calls)
+        self.calls.append(observation)
+        return np.array([[row[key] for key in KEYS] for row in actions(100 * chunk_id, length=30)])
+
+
+def test_repeated_native_chunk_replans_every_five_seconds_and_resets_its_clock():
+    policy = make_sim_policy(action_horizon=30, action_repeat=5)
+    policy._client = ThirtyTargetClient()
+    sent, remaining = [], []
+    for step in range(301):
+        remaining.append(policy.steps_until_query)
+        sent.append(policy.get_action(np.full(6, step), {}))
+    query_steps = [int(call["joints"][0]) for call in policy._client.calls]
+    assert query_steps == [0, 150, 300]
+    assert [step / 30 for step in query_steps] == [0, 5, 10]
+    assert remaining[:7] == [0, 149, 148, 147, 146, 145, 144]
+    assert remaining[149:152] == [1, 0, 149]
+    expected = []
+    for step in range(301):
+        row = actions(100 * (step // 150), length=30)[step % 150 // 5]
+        expected.append(FakeInterface().get_mapped_actions_vectorized(
+            FakeInterface().get_raw_actions_tensor(row)))
+    np.testing.assert_array_equal(sent, expected)
+    assert policy.inference_calls == 3
+    policy.reset()
+    assert policy.steps_until_query == 0
+    np.testing.assert_array_equal(policy.get_action(np.zeros(6), {}), expected[0])
+    assert policy.inference_calls == 1
+
+
+def test_repeated_targets_and_ema_use_the_same_physical_control_clock():
+    policy = make_sim_policy(action_horizon=30, action_repeat=5, ema_alpha=.6)
+    policy._client = ThirtyTargetClient()
+    sent = [policy.get_action(np.full(6, step), {}) for step in range(301)]
+    assert [int(call["joints"][0]) for call in policy._client.calls] == [0, 150, 300]
+    assert policy._smoothing.smoother.horizon == 150
+    previous, reference = None, []
+    for step in range(301):
+        row = actions(100 * (step // 150), length=30)[step % 150 // 5]
+        raw = FakeInterface().get_raw_actions_tensor(row)
+        filtered = raw.copy()
+        if previous is not None:
+            filtered[:5] = .6 * raw[:5] + .4 * previous[:5]
+        previous = filtered
+        reference.append(FakeInterface().get_mapped_actions_vectorized(filtered))
+    np.testing.assert_allclose(sent, reference)
+    policy.reset()
+    assert policy.steps_until_query == 0
+    np.testing.assert_array_equal(policy.get_action(np.zeros(6), {}), reference[0])
+
+
+def test_grasp_controller_observes_expanded_chunk_in_control_ticks():
+    policy = make_sim_policy(action_horizon=8, action_repeat=5)
+    policy._client = ThirtyTargetClient()
+    policy._iface.get_raw_actions_from_radians = lambda joints: joints
+    observed = []
+    policy.grasp = SimpleNamespace(gripper_index=5,
+        observe_chunk=lambda chunk, chunk_id: observed.append((chunk, chunk_id)),
+        process=lambda raw, sent, chunk_id: raw)
+    policy.get_action(np.zeros(6), {})
+    chunk, chunk_id = observed[0]
+    assert chunk_id == 0 and len(chunk) == 150
+    assert [row[KEYS[0]] for row in chunk[:10]] == [0] * 5 + [1] * 5
+    assert policy.steps_until_query == 39
+
+
+@pytest.mark.parametrize("repeat", [0, -1, True, False, 1.5, "5", None])
+def test_invalid_action_repeat_fails_before_querying(repeat):
+    with pytest.raises(ValueError, match="action_repeat"):
+        make_sim_policy(action_repeat=repeat)
+
+
 def test_default_real_path_matches_original_actions_and_timing_exactly():
     clock = FakeClock()
     code = real_code(clock)

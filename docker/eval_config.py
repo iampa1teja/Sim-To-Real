@@ -6,6 +6,7 @@ Needs PyYAML on the host (pip install pyyaml).
 """
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import re
@@ -30,7 +31,7 @@ SECTIONS = {
     "task": None,
     "policy": {"name", "checkpoint", "models_dir", "port", "server_image", "options"},
     "eval": {"dataset", "episodes", "start_mode", "random_fraction", "robot_start", "render_warmup",
-             "episode_length_s", "action_horizon", "eval_set", "splits", "repeats", "lang",
+             "episode_length_s", "action_horizon", "action_repeat", "molmo_overhead_camera", "eval_set", "splits", "repeats", "lang",
              "lang_by_color", "rename_map", "results_json", "robot_usd", "save_videos", "video_dir"},
     "grasp": {"gripper_latch", "log_gripper", "seed_per_episode", "latch_close_below",
               "latch_open_above", "latch_confirm_steps", "latch_release_confirm", "latch_min_hold",
@@ -93,7 +94,7 @@ def options_list(options, name: str) -> list[str]:
     return pairs
 
 
-def build(data: dict) -> dict:
+def build(data: dict, *, molmo_overhead_camera: bool = False) -> dict:
     out: dict = {}
     task = data.get("task", "pick_place")
     if task not in TASKS:
@@ -156,10 +157,19 @@ def build(data: dict) -> dict:
         if isinstance(length, bool) or not isinstance(length, (int, float)) or not math.isfinite(length) or length <= 0:
             fail("eval.episode_length_s must be finite and positive.")
     out["episode_length_s"] = "" if length is None else length
-    horizon = run.get("action_horizon", 16)
-    if isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= 16:
-        fail("eval.action_horizon must be an integer in 1..16.")
+    max_horizon = 30 if name == "molmoact2" else 16
+    horizon = run.get("action_horizon", max_horizon)
+    if isinstance(horizon, bool) or not isinstance(horizon, int) or not 1 <= horizon <= max_horizon:
+        fail(f"eval.action_horizon must be an integer in 1..{max_horizon} for {name}.")
     out["action_horizon"] = horizon
+    out["action_repeat"] = positive_int(run.get("action_repeat", 1), "eval.action_repeat")
+    overhead = run.get("molmo_overhead_camera", False)
+    if not isinstance(overhead, bool):
+        fail("eval.molmo_overhead_camera must be true or false.")
+    overhead = overhead or molmo_overhead_camera
+    if overhead and (name != "molmoact2" or task not in ("pick_place", "pick_place_dr")):
+        fail("eval.molmo_overhead_camera requires molmoact2 and a pick-place task.")
+    out["molmo_overhead_camera"] = "true" if overhead else "false"
 
     eval_set = run.get("eval_set")
     splits = run.get("splits")
@@ -190,6 +200,11 @@ def build(data: dict) -> dict:
             isinstance(rename.get(c), str) and rename[c].strip() for c in DEFAULT_RENAME) \
             or rename["realsense_rgb"] == rename["wrist_cam"]:
         fail("eval.rename_map must map realsense_rgb and wrist_cam to distinct nonempty camera names.")
+    if overhead:
+        rename = dict(rename, realsense_rgb="original_room", molmo_room="room", wrist_cam="wrist")
+    elif name == "molmoact2" and rename.get("molmo_room") == "room" and rename.get("realsense_rgb") == "original_room":
+        rename = dict(rename, realsense_rgb="room")
+        rename.pop("molmo_room")
     out["rename_map"] = json.dumps(rename)
     results = run.get("results_json")
     if results and not str(results).startswith("/"):
@@ -233,6 +248,8 @@ def emit(values: dict) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Usage: eval_config.py <config.yaml>")
-    emit(build(load(Path(sys.argv[1]))))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("config", type=Path)
+    parser.add_argument("--molmo-overhead-camera", action="store_true")
+    args = parser.parse_args()
+    emit(build(load(args.config), molmo_overhead_camera=args.molmo_overhead_camera))

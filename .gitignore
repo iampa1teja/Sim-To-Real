@@ -274,6 +274,9 @@ docker/env
 !/tests/test_eval_output.py
 !/tests/test_eval_video.py
 !/tests/test_rerun_viewer.py
+!/tests/test_rerun_logging.py
+!/tests/test_grasp_diagnostics.py
+!/tests/test_molmo_camera.py
 !/tests/test_smoothing.py
 # Domain-randomized replay tests.
 !/tests/_fakes.py

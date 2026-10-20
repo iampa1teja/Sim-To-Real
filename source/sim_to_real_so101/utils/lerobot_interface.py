@@ -40,7 +40,8 @@ from lerobot.utils.constants import ACTION, OBS_STR
 from lerobot.utils.control_utils import predict_action
 from lerobot.utils.utils import get_safe_torch_device
 from lerobot.policies.utils import make_robot_action
-from lerobot.utils.visualization_utils import init_rerun, log_rerun_data
+from lerobot.utils.visualization_utils import init_rerun
+from sim_to_real_so101.utils.rerun_logging import log_rerun_data
 
 
 # Ideally, we should make a base class for all robot interfaces,
@@ -476,7 +477,10 @@ class SimRemotePolicy:
         policy_options: dict | None = None,
         api_token: str | None = None,
         timeout_ms: int = 15000,
+        action_repeat: int = 1,
     ):
+        if not isinstance(action_repeat, int) or isinstance(action_repeat, bool) or action_repeat < 1:
+            raise ValueError("action_repeat must be a positive integer")
         self.grasp = None
         if grasp_config is not None and grasp_config.enabled:
             from source.sim_to_real_so101.policy_client.grasp import GraspController
@@ -492,18 +496,20 @@ class SimRemotePolicy:
         self._api_token = api_token
         self._timeout_ms = timeout_ms
         self._action_horizon = action_horizon
+        self._action_repeat = action_repeat
+        self._effective_action_horizon = action_horizon * action_repeat
         self._lang_instruction = lang_instruction
         self._action_queue: deque = deque()
         self._client = None
         self.inference_calls = 0
         options = SmoothingConfig(prefetch_steps, blend_steps, ema_alpha, smooth_gripper,
                                   temporal_ensemble, te_decay, log_timing)
-        options.validate(action_horizon)
+        options.validate(self._effective_action_horizon)
         self._timing = None
         if log_timing:
             path = timing_csv or f"outputs/timing/sim_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
             self._timing = TimingLog(path, robot_iface.SO101_JOINT_ORDER)
-        self._smoothing = (SimulationSmoother(options, action_horizon, robot_iface.SO101_JOINT_ORDER,
+        self._smoothing = (SimulationSmoother(options, self._effective_action_horizon, robot_iface.SO101_JOINT_ORDER,
                                               self._timing, grasp=self.grasp) if options.enabled else None)
 
     def connect(self):
@@ -581,7 +587,7 @@ class SimRemotePolicy:
     # ------------------------------------------------------------------
 
     def _decode_action_chunk(self, action_chunk: np.ndarray, full_chunk: bool = False) -> list[dict[str, float]]:
-        """Decode a policy action chunk into per-timestep joint-name dicts.
+        """Decode native targets, repeating each over physical control ticks.
 
         Args:
             action_chunk: Array of shape (T, 6) in joint order, real-robot degree space.
@@ -589,7 +595,8 @@ class SimRemotePolicy:
                 and temporal overlap; the smoother caps execution separately.
 
         Returns:
-            List of dicts mapping joint name → float (real-robot degree space).
+            One joint-name dictionary per control tick; repeated targets retain
+            their native order and do not trigger additional policy queries.
         """
         action_chunk = np.asarray(action_chunk)
         T = action_chunk.shape[0]
@@ -599,6 +606,7 @@ class SimRemotePolicy:
         return [
             {name: float(action_chunk[t][i]) for i, name in enumerate(joint_order)}
             for t in range(horizon)
+            for _ in range(self._action_repeat)
         ]
 
     # ------------------------------------------------------------------
@@ -660,7 +668,7 @@ class SimRemotePolicy:
                 decoded = self._decode_action_chunk(action_chunk, full_chunk=self.grasp is not None)
                 if self.grasp is not None:
                     self.grasp.observe_chunk(decoded, self.inference_calls - 1)
-                self._action_queue.extend(decoded[:self._action_horizon])
+                self._action_queue.extend(decoded[:self._effective_action_horizon])
 
             action_dict = self._action_queue.popleft()
             if self.grasp is not None:

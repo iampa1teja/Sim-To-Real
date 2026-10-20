@@ -86,6 +86,59 @@ def test_command_failure_retains_exact_bytes_exit_status_and_diagnostic_context(
     assert "last context" in result.stderr and str(logfile) in result.stderr
 
 
+@pytest.mark.parametrize("status", [0, 7])
+def test_no_log_streams_console_diagnostics_without_creating_files(tmp_path, status):
+    code = ("import sys; print('[INFO] Event Manager: hidden detail'); "
+            "print('WARNING: visible console warning'); print('Rollout (ep 1/5): 100%| | 5/5'); "
+            f"print('ERROR: console failure' if {status} else '[RESULT] five episodes'); sys.exit({status})")
+    result = subprocess.run([sys.executable, str(HELPER), "--no-log", "--", sys.executable, "-c", code],
+                            capture_output=True, text=True, cwd=tmp_path)
+    assert result.returncode == status, result.stderr
+    assert "visible console warning" in result.stdout
+    assert "Rollout" in result.stdout
+    assert "hidden detail" not in result.stdout
+    if status:
+        assert "console failure" in result.stdout + result.stderr
+    else:
+        assert "five episodes" in result.stdout
+    assert "Diagnostic log:" not in result.stderr
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_no_log_preserves_forwarded_signal_status_when_child_exits_zero(tmp_path):
+    code = """import signal, sys, time
+def stop(_signum, _frame):
+    print('child stopped cleanly', flush=True)
+    sys.exit(0)
+signal.signal(signal.SIGTERM, stop)
+print('ready', flush=True)
+time.sleep(60)
+"""
+    process = subprocess.Popen([sys.executable, str(HELPER), "--no-log", "--", sys.executable, "-c", code],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=tmp_path)
+    try:
+        deadline = time.monotonic() + 5
+        # Poll the pipe so a missing --no-log implementation fails rather than hanging the test.
+        import select
+        while process.poll() is None and time.monotonic() < deadline:
+            if select.select([process.stdout], [], [], .1)[0]:
+                assert process.stdout.readline().strip() == "ready"
+                break
+        else:
+            stdout, stderr = process.communicate(timeout=2)
+            pytest.fail(f"Console logger never reached child: {stdout} {stderr}")
+        process.terminate()
+        stdout, stderr = process.communicate(timeout=5)
+        assert process.returncode == 143
+        assert "child stopped cleanly" in stdout
+        assert "Diagnostic log:" not in stderr
+        assert list(tmp_path.iterdir()) == []
+    finally:
+        if process.poll() is None:
+            process.kill()
+        process.wait(timeout=2)
+
+
 def test_failure_tail_retains_earlier_error_when_last_lines_are_shutdown_noise(tmp_path):
     logfile = tmp_path / "full.log"
     logfile.write_text("ERROR: real failure\n" + "shutdown info\n"*30)

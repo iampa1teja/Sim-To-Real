@@ -40,6 +40,13 @@ def _nonnegative_int(value):
     return number
 
 
+def _positive_int(value):
+    number = int(value)
+    if isinstance(value, bool) or number < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
+
+
 def _ema_alpha(value):
     number = _positive_float(value)
     if number > 1:
@@ -85,8 +92,10 @@ parser.add_argument("--policy_host", "--host", type=str, default="localhost", he
 parser.add_argument("--policy_port", "--port", type=int, default=None,
                     help="Policy server port (default: the plugin manifest's default_port)")
 parser.add_argument("--policy_api_token", default=os.environ.get("POLICY_API_TOKEN"), help="Server API token")
-parser.add_argument("--action_horizon", type=int, choices=range(1, 17), default=16,
-                    help="Number of action steps per server query (1..16; SO-arm checkpoint chunk length is 16)")
+parser.add_argument("--action_horizon", type=int, default=None,
+                    help="Action steps per query: MolmoAct2 1..30 (default 30), other policies 1..16 (default 16)")
+parser.add_argument("--action_repeat", type=_positive_int, default=1,
+                    help="Control ticks to hold each predicted joint target (default 1)")
 parser.add_argument("--prefetch_steps", type=_nonnegative_int, default=0,
                     help="Query P steps early; sim delivers P steps later and drops the first P actions (0: off)")
 parser.add_argument("--blend_steps", type=_nonnegative_int, default=0,
@@ -109,6 +118,10 @@ parser.add_argument(
     help="Language instruction for the policy",
 )
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
+parser.add_argument("--smoke-test", action="store_true",
+                    help="Run five episodes with Rerun, without saving evaluation reports, videos or CSVs")
+parser.add_argument("--molmo-overhead-camera", action="store_true",
+                    help="Add a behind/above-arm room view for Molmo pick-place, preserving the existing cameras")
 parser.add_argument("--save_videos", action="store_true", help="Save room/wrist MP4 videos per attempt")
 parser.add_argument("--video_dir", type=Path, default=None, help="Video output directory (default: beside results JSON)")
 parser.add_argument("--render_warmup", type=int, default=0,
@@ -139,8 +152,16 @@ add_grasp_arguments(parser)
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
-if args_cli.prefetch_steps >= args_cli.action_horizon:
-    parser.error("prefetch_steps must be less than action_horizon")
+if args_cli.molmo_overhead_camera and (args_cli.policy != "molmoact2" or args_cli.task not in (
+        "Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")):
+    parser.error("molmo_overhead_camera requires molmoact2 and a pick-place Eval task")
+max_horizon = 30 if args_cli.policy == "molmoact2" else 16
+if args_cli.action_horizon is None:
+    args_cli.action_horizon = max_horizon
+if not 1 <= args_cli.action_horizon <= max_horizon:
+    parser.error(f"action_horizon must be in 1..{max_horizon} for {args_cli.policy}")
+if args_cli.prefetch_steps >= args_cli.action_horizon * args_cli.action_repeat:
+    parser.error("prefetch_steps must be less than action_horizon * action_repeat")
 if args_cli.temporal_ensemble and args_cli.blend_steps:
     parser.error("temporal_ensemble and blend_steps are mutually exclusive")
 
@@ -172,8 +193,30 @@ from sim_to_real_so101.utils.lerobot_interface import (
 
 def _evaluate():
     from time import monotonic
-    if not 1 <= args_cli.action_horizon <= 16:
-        raise ValueError("action_horizon must be in 1..16")
+    smoke_test = getattr(args_cli, "smoke_test", False)
+    if smoke_test:
+        args_cli.num_episodes = 5
+        args_cli.rerun = True
+        args_cli.results_json = None
+        args_cli.save_videos = False
+        args_cli.video_dir = None
+        args_cli.log_timing = False
+        args_cli.timing_csv = ""
+        args_cli.log_gripper = False
+        args_cli.gripper_csv = ""
+        print("[SMOKE TEST] Five episodes with Rerun; evaluation output is console-only.")
+    max_horizon = 30 if args_cli.policy == "molmoact2" else 16
+    if args_cli.action_horizon is None:
+        args_cli.action_horizon = max_horizon
+    if (isinstance(args_cli.action_horizon, bool) or not isinstance(args_cli.action_horizon, int)
+            or not 1 <= args_cli.action_horizon <= max_horizon):
+        raise ValueError(f"action_horizon must be in 1..{max_horizon} for {args_cli.policy}")
+    action_repeat = getattr(args_cli, "action_repeat", 1)
+    if isinstance(action_repeat, bool) or not isinstance(action_repeat, int) or action_repeat < 1:
+        raise ValueError("action_repeat must be a positive integer")
+    args_cli.action_repeat = action_repeat
+    if getattr(args_cli, "prefetch_steps", 0) >= args_cli.action_horizon * action_repeat:
+        raise ValueError("prefetch_steps must be less than action_horizon * action_repeat")
     render_warmup = getattr(args_cli, "render_warmup", 0)
     if render_warmup < 0:
         raise ValueError("render_warmup must be >= 0")
@@ -185,7 +228,11 @@ def _evaluate():
         from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, StageTrace, benchmark_report, save_heatmap, polygons_match
         from sim_to_real_so101.utils.pick_place_benchmark_runtime import install_stage_tracking, capture_scene
         benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
-        args_cli.num_episodes = len(benchmark.schedule)
+        if smoke_test and len(benchmark.schedule) < 5:
+            # Repeat small selections so smoke mode still executes exactly five attempts.
+            args_cli.repeats *= math.ceil(5 / len(benchmark.schedule))
+            benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
+        args_cli.num_episodes = 5 if smoke_test else len(benchmark.schedule)
         if args_cli.random_fraction != 0:
             raise ValueError('--eval_set cannot be combined with random_fraction')
     elif getattr(args_cli, 'splits', None) or getattr(args_cli, 'repeats', 1) != 1:
@@ -212,6 +259,11 @@ def _evaluate():
     if not math.isfinite(episode_length_s) or episode_length_s <= 0:
         raise ValueError("episode_length_s must be finite and greater than 0")
     pick_place = args_cli.task in ("Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")
+    use_molmo_overhead = getattr(args_cli, "molmo_overhead_camera", False)
+    if not isinstance(use_molmo_overhead, bool):
+        raise ValueError("molmo_overhead_camera must be true or false")
+    if use_molmo_overhead and (args_cli.policy != "molmoact2" or not pick_place):
+        raise ValueError("molmo_overhead_camera requires molmoact2 and a pick-place Eval task")
     if args_cli.num_episodes < 1 or not 0 <= args_cli.random_fraction <= 1:
         raise ValueError("num_episodes must be positive and random_fraction must be in [0, 1]")
     if pick_place:
@@ -235,9 +287,18 @@ def _evaluate():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+    molmo_overhead_metadata = None
+    if use_molmo_overhead:
+        from sim_to_real_so101.utils.molmo_camera import add_molmo_overhead_camera
+        molmo_overhead_metadata = add_molmo_overhead_camera(env_cfg)
+
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
     step_dt = float(env.unwrapped.step_dt)
+    replan_interval_s = step_dt * args_cli.action_horizon * action_repeat
+    if action_repeat > 1 or args_cli.policy == "molmoact2":
+        print(f"[INFO]: Replanning every {replan_interval_s:.2f}s sim "
+              f"({args_cli.action_horizon} targets held for {action_repeat} control ticks each).", flush=True)
     if benchmark:
         install_stage_tracking(env.unwrapped)
 
@@ -261,6 +322,12 @@ def _evaluate():
 
     # lerobot interface (provides sim↔real coordinate transforms)
     rename_map = json.loads(args_cli.rename_map) if args_cli.rename_map else None
+    if use_molmo_overhead:
+        rename_map = dict(rename_map or {}, realsense_rgb="original_room", molmo_room="room", wrist_cam="wrist")
+    elif (args_cli.policy == "molmoact2" and rename_map and rename_map.get("molmo_room") == "room"
+          and rename_map.get("realsense_rgb") == "original_room"):
+        rename_map = dict(rename_map, realsense_rgb="room")
+        rename_map.pop("molmo_room")
     robot_iface = LeRobotSO101Interface(
         device=env.unwrapped.device,
         port=None,
@@ -299,6 +366,7 @@ def _evaluate():
         host=args_cli.policy_host,
         port=args_cli.policy_port,
         action_horizon=args_cli.action_horizon,
+        action_repeat=action_repeat,
         lang_instruction=args_cli.lang_instruction,
         **smoothing_kwargs,
         **grasp_kwargs,
@@ -306,6 +374,12 @@ def _evaluate():
     if grasp_config.enabled:
         policy.grasp.clock = lambda: step * step_dt
     policy.connect()
+
+    grasp_diagnostics = None
+    if smoke_test and pick_place and args_cli.policy == "molmoact2":
+        from sim_to_real_so101.utils.grasp_diagnostics import install_grasp_diagnostics
+        grasp_diagnostics = install_grasp_diagnostics(env.unwrapped, robot_iface, step_dt)
+        print("[INFO]: Smoke grasp diagnostics enabled (millimetres; in memory only).", flush=True)
 
     from sim_to_real_so101.utils.pick_place_eval import select_instruction, results_report
 
@@ -399,6 +473,9 @@ def _evaluate():
                 else:
                     joint_positions = obs["policy"]["joint_pos_obs"][0].clone()
                     actions[:] = policy.get_action(joint_positions, obs["visual"], log=args_cli.rerun)
+                    if grasp_diagnostics is not None:
+                        grasp_diagnostics.command = actions[0].clone()
+                        grasp_diagnostics.step = step + 1
                 if render_warmup:
                     # The first query uses the obs after settling step 9; later
                     # queries follow the policy's chunk/prefetch/ensemble clock.
@@ -434,6 +511,9 @@ def _evaluate():
                         env.unwrapped._benchmark_trace = StageTrace()
                     if grasp_config.enabled:
                         row.update(policy.grasp.finish_episode(reason="success" if row["success"] else "timeout"))
+                    if grasp_diagnostics is not None:
+                        row['grasp_diagnostics'] = grasp_diagnostics.summary()
+                        grasp_diagnostics.reset()
                     episodes.append(row)
                     successes += int(row['success'])
                     pbar.set_postfix_str(progress_summary())
@@ -445,6 +525,8 @@ def _evaluate():
                           f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step} "
                           f"{timing_label}={row['elapsed_sim_s']:.2f}s sim "
                           f"({row['wall_time_s']:.2f}s wall)", flush=True)
+                    if grasp_diagnostics is not None:
+                        print(f"[GRASP {len(episodes)}] " + json.dumps(row['grasp_diagnostics']), flush=True)
                     if len(episodes) == args_cli.num_episodes:
                         break
                     metadata = episode_metadata()
@@ -464,6 +546,8 @@ def _evaluate():
                     print(f"[MANUAL RESET] Episode interrupted at step {step}; excluded from results")
                     if video_recorder is not None:
                         video_recorder.finish_episode()
+                    if grasp_diagnostics is not None:
+                        grasp_diagnostics.reset()
                     obs, _ = env.reset()
                     policy.reset()
                     metadata = episode_metadata()
@@ -493,7 +577,11 @@ def _evaluate():
             action_horizon=args_cli.action_horizon, step_dt=step_dt,
         )
         report['robot_start'] = args_cli.robot_start
+        report['action_repeat'] = action_repeat
+        report['replan_interval_s'] = replan_interval_s
         report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
+        if molmo_overhead_metadata is not None:
+            report['molmo_overhead_camera'] = molmo_overhead_metadata
         if video_recorder is not None:
             report["save_videos"] = True
             report["video_dir"] = str(video_dir)
@@ -531,7 +619,7 @@ def _evaluate():
             if benchmark:
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
-        else:
+        elif not smoke_test:
             print(json.dumps(report, indent=2, allow_nan=False))
         # Kit may exit without flushing Python's redirected stdout during shutdown.
         sys.stdout.flush()
