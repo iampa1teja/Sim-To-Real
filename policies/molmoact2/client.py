@@ -2,7 +2,8 @@
 
 Convert calibrated LeRobot joint values into the released SO-100/101 model frame
 before inference, and invert that conversion for every returned action.
-The simulator supplies its own degree-per-range-unit scales. Direct clients
+The simulator supplies its degree-per-range-unit scales and USD zero offsets.
+Its range midpoints are not the original model's calibrated joint zeros. Direct clients
 default to LeRobot degrees (gripper remains RANGE_0_100).
 Wire format:
   request  = {"state": float32 (6,), "images": {camera: uint8 (H, W, 3)}, "instruction": str}
@@ -32,26 +33,37 @@ def _include_original_room(value: Any) -> bool:
 class MolmoAct2ClientPolicy(ClientPolicy):
     def __init__(self, cameras: tuple[str, ...], language: bool,
                  input_joint_units: str = "lerobot_degrees", arm_degrees_per_unit: str = "",
-                 include_original_room: bool = False) -> None:
+                 include_original_room: bool = False, arm_zero_degrees: str = "") -> None:
         if not isinstance(include_original_room, bool):
             raise ValueError("include_original_room must be true or false")
         self.cameras = tuple(cameras)
         if include_original_room and "original_room" not in self.cameras:
             self.cameras += ("original_room",)
         self.language = language
-        if input_joint_units not in ("lerobot_degrees", "lerobot_normalized", "model"):
-            raise ValueError("input_joint_units must be lerobot_degrees, lerobot_normalized, or model")
+        if input_joint_units not in ("lerobot_degrees", "lerobot_normalized", "usd_normalized", "model"):
+            raise ValueError("input_joint_units must be lerobot_degrees, lerobot_normalized, usd_normalized, or model")
         # Official LeRobot joint-frame correction for the released checkpoint:
         # https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot
         self.scale = np.asarray([1, -1, 1, 1, 1, 1], dtype=np.float32)
         self.offset = np.asarray([0, 90, 90, 0, 0, 0], dtype=np.float32)
-        if input_joint_units == "lerobot_normalized":
+        if input_joint_units in ("lerobot_normalized", "usd_normalized"):
             try:
                 degrees = np.asarray([float(v) for v in arm_degrees_per_unit.split(",")], dtype=np.float32)
             except ValueError as exc:
                 raise ValueError("arm_degrees_per_unit needs five finite nonzero scales") from exc
             if degrees.shape != (5,) or not np.isfinite(degrees).all() or np.any(degrees == 0):
                 raise ValueError("arm_degrees_per_unit needs five finite nonzero scales")
+            if input_joint_units == "usd_normalized":
+                try:
+                    zeros = np.asarray([float(v) for v in arm_zero_degrees.split(",")], dtype=np.float32)
+                except ValueError as exc:
+                    raise ValueError("arm_zero_degrees needs five finite USD joint midpoints") from exc
+                if zeros.shape != (5,) or not np.isfinite(zeros).all():
+                    raise ValueError("arm_zero_degrees needs five finite USD joint midpoints")
+                # Reconstruct the actual USD angles before the model's frame
+                # correction. Old LeRobot degrees use a fixed calibrated zero,
+                # rather than the midpoint of each normalized simulator range.
+                self.offset[:5] += self.scale[:5] * zeros
             self.scale[:5] *= degrees
         elif input_joint_units == "model":
             self.scale[:] = 1
@@ -68,7 +80,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
         return cls(manifest.cameras, manifest.language,
                    options.get("input_joint_units", "lerobot_degrees"),
                    options.get("arm_degrees_per_unit", ""),
-                   _include_original_room(options.get("include_original_room", False)))
+                   _include_original_room(options.get("include_original_room", False)),
+                   options.get("arm_zero_degrees", ""))
 
     def build_request(
         self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str
