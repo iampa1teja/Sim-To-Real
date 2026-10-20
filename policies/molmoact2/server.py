@@ -4,14 +4,18 @@ Wire format (see client.py):
   request  = {"state": float32 (6,), "images": {camera: uint8 (H, W, 3)}, "instruction": str}
   response = {"actions": float32 (T, 6)}  absolute joint targets, full model chunk
 The model is loaded with trust_remote_code and queried through its own predict_action().
+Action denormalization uses float32 even when model storage is bfloat16.
 
 Options (--option KEY=VALUE):
   norm_tag    normalization statistics inside the checkpoint's norm_stats.json (default so100_so101_molmoact2)
   dtype       bfloat16 (default, under 16 GB) or float32 (about 26 GB)
+  action_dtype defaults to dtype; float32 keeps the action expert/norms/RoPE in
+               original checkpoint precision with a bfloat16 backbone (~1.1 GB extra)
   num_steps   flow-matching solver steps (default 10)
 """
 from __future__ import annotations
 
+import json
 import os
 import random
 from pathlib import Path
@@ -57,6 +61,99 @@ def decode_actions(actions: Any) -> np.ndarray:
     return actions
 
 
+def preserve_action_denormalization_precision(model: Any) -> None:
+    """Keep the loaded model's physical joint targets out of bfloat16.
+
+    The released normalizer returns the input tensor's dtype. In bf16 mode,
+    predict_action therefore rounds absolute angles near 180 degrees to whole
+    degrees before its final float32 cast. Promote only the normalized actions
+    entering this model instance's cached statistics; weights and flow inference
+    retain their configured dtype, and the checkpoint's statistics stay intact.
+    """
+    import torch
+
+    stats = model._get_robot_stats()
+    if getattr(stats, "_so101_float32_action_denormalization", False):
+        return
+    original = stats.unnormalize_action
+
+    def unnormalize_action(action: Any, norm_tag: str) -> Any:
+        if torch.is_tensor(action):
+            action = action.float()
+        return original(action, norm_tag)
+
+    stats.unnormalize_action = unnormalize_action
+    stats._so101_float32_action_denormalization = True
+
+
+def _is_text_rotary(module: Any) -> bool:
+    return type(module).__name__ == "MolmoAct2RotaryEmbedding"
+
+
+def restore_float32_action_modules(model: Any, checkpoint: str) -> None:
+    """Restore the official low-memory FP32 module layout from original weights.
+
+    Loading everything as bf16 and merely widening these modules would retain
+    rounded weights. Read only promoted tensors from safetensors on CPU before
+    moving the model to its execution device. This avoids a full-FP32 backbone.
+    """
+    import torch
+    from safetensors import safe_open
+
+    expert = getattr(getattr(model, "model", None), "action_expert", None)
+    if expert is None:
+        raise ValueError("action_dtype=float32 requires a MolmoAct2 action expert")
+    expert.float()
+    gate = getattr(model.model, "action_expert_depth_gate", None)
+    if gate is not None:
+        gate.float()
+    for module in model.modules():
+        if (isinstance(module, torch.nn.LayerNorm)
+                or type(module).__name__ in {"ActionExpertRMSNorm", "MolmoAct2RMSNorm"}
+                or _is_text_rotary(module)):
+            module.float()
+
+    # The optional mixed profile applies only to this model's dtype tree.
+    targets = {name: value for name, value in model.state_dict(keep_vars=True).items()
+               if value.is_floating_point() and value.dtype == torch.float32}
+    root = Path(checkpoint)
+    if not root.is_dir():
+        from huggingface_hub import snapshot_download
+
+        root = Path(snapshot_download(checkpoint, allow_patterns=["*.safetensors", "model.safetensors.index.json"]))
+    index = root / "model.safetensors.index.json"
+    if index.is_file():
+        weight_map = json.loads(index.read_text())["weight_map"]
+    else:
+        with safe_open(str(root / "model.safetensors"), framework="pt", device="cpu") as weights:
+            weight_map = dict.fromkeys(weights.keys(), "model.safetensors")
+    missing = targets.keys() - weight_map.keys()
+    if missing:
+        raise ValueError(f"FP32 module weights missing from checkpoint: {sorted(missing)}")
+    by_shard: dict[str, list[str]] = {}
+    for name in targets:
+        by_shard.setdefault(weight_map[name], []).append(name)
+    with torch.no_grad():
+        for shard, names in by_shard.items():
+            with safe_open(str(root / shard), framework="pt", device="cpu") as weights:
+                for name in names:
+                    original = weights.get_tensor(name)
+                    if original.shape != targets[name].shape:
+                        raise ValueError(f"FP32 module shape mismatch for {name}")
+                    targets[name].copy_(original)
+
+
+def reset_float32_rotary_caches(model: Any) -> None:
+    """Refresh the non-buffer RoPE alias after dtype/device moves."""
+    import torch
+
+    for module in model.modules():
+        if _is_text_rotary(module):
+            module.original_inv_freq = module.inv_freq
+            module._pos_sin_cache = torch.empty(0, device=module.inv_freq.device, dtype=torch.float32)
+            module._pos_cos_cache = torch.empty(0, device=module.inv_freq.device, dtype=torch.float32)
+
+
 def seed_everything(seed: int) -> None:
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("seed must be a uint32 integer")
@@ -75,6 +172,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.checkpoint = ""
         self.norm_tag = DEFAULT_NORM_TAG
         self.dtype_name = DEFAULT_DTYPE
+        self.action_dtype_name = DEFAULT_DTYPE
         self.num_steps = DEFAULT_NUM_STEPS
         self.device = "cuda"
 
@@ -87,20 +185,29 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.device = device
         self.norm_tag = options.get("norm_tag", DEFAULT_NORM_TAG)
         self.dtype_name = options.get("dtype", DEFAULT_DTYPE)
+        self.action_dtype_name = options.get("action_dtype", self.dtype_name)
         self.num_steps = int(options.get("num_steps", DEFAULT_NUM_STEPS))
         if self.dtype_name not in ("bfloat16", "float32"):
             raise ValueError("dtype must be bfloat16 or float32")
+        if self.action_dtype_name not in ("bfloat16", "float32"):
+            raise ValueError("action_dtype must be bfloat16 or float32")
+        if self.dtype_name == "float32" and self.action_dtype_name != "float32":
+            raise ValueError("action_dtype=bfloat16 requires dtype=bfloat16")
 
         import torch
         from transformers import AutoModelForImageTextToText
 
         dtype = getattr(torch, self.dtype_name)
         self.processor = load_processor(checkpoint)
-        self.model = (
-            AutoModelForImageTextToText.from_pretrained(checkpoint, trust_remote_code=True, dtype=dtype)
-            .to(device)
-            .eval()
-        )
+        self.model = AutoModelForImageTextToText.from_pretrained(checkpoint, trust_remote_code=True, dtype=dtype)
+        mixed_action_precision = self.dtype_name == "bfloat16" and self.action_dtype_name == "float32"
+        if mixed_action_precision:
+            restore_float32_action_modules(self.model, checkpoint)
+        self.model.to(device).eval()
+        if mixed_action_precision:
+            reset_float32_rotary_caches(self.model)
+        if self.dtype_name == "bfloat16":
+            preserve_action_denormalization_precision(self.model)
 
     def reset(self, seed: int | None = None) -> dict:
         if seed is not None:
@@ -136,6 +243,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             "name": "molmoact2",
             "norm_tag": self.norm_tag,
             "dtype": self.dtype_name,
+            "action_dtype": self.action_dtype_name,
+            "action_denormalization_dtype": "float32",
             "checkpoint": Path(self.checkpoint).name if self.checkpoint else "",
         }
 

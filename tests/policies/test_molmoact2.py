@@ -1,4 +1,5 @@
-"""MolmoAct2 plugin: request handling with a fake model (no torch, no weights)."""
+"""MolmoAct2 request handling and CPU-only action precision regressions."""
+import importlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -8,7 +9,8 @@ import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "source"))
+sys.path[:0] = [str(ROOT), str(ROOT / "source")]
+sys.modules.setdefault("server_core", importlib.import_module("policy_servers.core"))
 spec = importlib.util.spec_from_file_location("molmoact2_server", ROOT / "policies/molmoact2/server.py")
 
 
@@ -102,7 +104,6 @@ def test_client_rejects_invalid_units_and_nonfinite_joints():
 
 
 def load_server():
-    pytest.importorskip("zmq")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -110,11 +111,7 @@ def load_server():
 
 @pytest.fixture
 def server():
-    try:
-        module = load_server()
-    except ModuleNotFoundError as error:  # server_core is mounted at /opt/so101 in the container
-        pytest.skip(str(error))
-    return module
+    return load_server()
 
 
 class FakeModel:
@@ -218,3 +215,231 @@ def test_load_processor_adapts_only_list_form_special_tokens(server, monkeypatch
     else:
         assert "extra_special_tokens" not in options
         assert "additional_special_tokens" not in options
+
+
+@pytest.mark.parametrize("dtype_name", ["bfloat16", "float32"])
+def test_loaded_policy_preserves_physical_target_precision_without_changing_weights(server, monkeypatch, dtype_name):
+    """Exercise load -> native predict_action -> decode, without a GPU/model load."""
+    from contextlib import nullcontext
+    from types import ModuleType
+
+    torch = pytest.importorskip("torch")
+
+    class Stats:
+        def unnormalize_action(self, actions, norm_tag):
+            assert norm_tag == server.DEFAULT_NORM_TAG
+            # Match the released normalizer's affine in float32 followed by
+            # its cast back into the incoming trajectory dtype.
+            return (actions.float() * 20 + 189.140625).to(actions.dtype)
+
+    class Model(torch.nn.Module):
+        def __init__(self, dtype):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor([.12345], dtype=dtype))
+            self.stats = Stats()
+
+        def _get_robot_stats(self):
+            return self.stats
+
+        def predict_action(self, **kwargs):
+            normalized = torch.zeros((1, 30, 6), dtype=self.weight.dtype)
+            return SimpleNamespace(actions=self.stats.unnormalize_action(normalized, kwargs["norm_tag"]).float())
+
+    models = []
+
+    def from_pretrained(checkpoint, **kwargs):
+        model = Model(kwargs["dtype"])
+        models.append(model)
+        return model
+
+    transformers = ModuleType("transformers")
+    transformers.AutoModelForImageTextToText = SimpleNamespace(from_pretrained=from_pretrained)
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setattr(server, "load_processor", lambda checkpoint: object())
+    monkeypatch.setattr(torch, "autocast", lambda *args, **kwargs: nullcontext())
+    policy = server.MolmoAct2ServerPolicy()
+    policy.load("fake-checkpoint", "cpu", {"dtype": dtype_name})
+    before = models[0].weight.detach().clone()
+    result = policy.infer(request())
+    np.testing.assert_array_equal(result["actions"], np.full((30, 6), 189.140625, dtype=np.float32))
+    assert models[0].weight.dtype == getattr(torch, dtype_name)
+    assert torch.equal(before, models[0].weight)
+    assert policy.info()["action_denormalization_dtype"] == "float32"
+
+
+def test_precision_hook_is_idempotent_and_scoped_to_one_models_stats(server):
+    torch = pytest.importorskip("torch")
+
+    class Stats:
+        def unnormalize_action(self, action, norm_tag):
+            return (action.float() + 189.140625).to(action.dtype)
+
+    patched, untouched = Stats(), Stats()
+    model = SimpleNamespace(_get_robot_stats=lambda: patched)
+    server.preserve_action_denormalization_precision(model)
+    wrapper = patched.unnormalize_action
+    server.preserve_action_denormalization_precision(model)
+    assert patched.unnormalize_action is wrapper
+    values = torch.zeros((1, 6), dtype=torch.bfloat16)
+    precise = patched.unnormalize_action(values, "tag")
+    assert precise.dtype == torch.float32
+    assert precise[0, 0].item() == 189.140625
+    assert untouched.unnormalize_action(values, "tag").dtype == torch.bfloat16
+
+
+def test_released_checkpoint_normalizer_retains_subdegree_targets_on_cpu(server):
+    """Use the installed checkpoint's actual normalizer and stats, not its weights."""
+    import ast
+    import json
+    import os
+    from typing import Any, Mapping, Optional
+
+    torch = pytest.importorskip("torch")
+    checkpoint = Path(os.environ.get("MOLMOACT2_TEST_CHECKPOINT", "/external_storage/molmoact2/molmoact2_so101"))
+    source_path, stats_path = checkpoint / "modeling_molmoact2.py", checkpoint / "norm_stats.json"
+    if not source_path.is_file() or not stats_path.is_file():
+        pytest.skip("Set MOLMOACT2_TEST_CHECKPOINT to run the released-normalizer regression")
+    # Isolate this pure CPU class from the checkpoint's heavy model imports.
+    tree = ast.parse(source_path.read_text())
+    names = {"_to_array", "_to_mask", "_FeatureNormalizer"}
+    nodes = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names]
+    assert len(nodes) == len(names)
+    namespace = {"Any": Any, "Optional": Optional, "Mapping": Mapping, "np": np, "torch": torch}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source_path), "exec"), namespace)
+    payload = json.loads(stats_path.read_text())
+    metadata = payload["metadata_by_tag"][server.DEFAULT_NORM_TAG]
+    normalizer = namespace["_FeatureNormalizer"].from_stats(metadata["action_stats"], payload["norm_mode"])
+    stats = SimpleNamespace(unnormalize_action=lambda action, tag: normalizer.unnormalize(action))
+    normalized = torch.linspace(-1, 1, 401).to(torch.bfloat16)[:, None].expand(-1, 6)
+    original = stats.unnormalize_action(normalized, server.DEFAULT_NORM_TAG).float()
+    expected = normalizer.unnormalize(normalized.float())
+    assert (original - expected).abs().amax().item() > .4
+    server.preserve_action_denormalization_precision(SimpleNamespace(_get_robot_stats=lambda: stats))
+    actual = stats.unnormalize_action(normalized, server.DEFAULT_NORM_TAG)
+    assert actual.dtype == torch.float32
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.fixture
+def precision_checkpoint(tmp_path):
+    """Tiny original-FP32 weights with the released model's module boundaries."""
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("safetensors")
+
+    class MolmoAct2RMSNorm(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.full((2,), .1234567))
+
+    class MolmoAct2RotaryEmbedding(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("inv_freq", torch.tensor([1., .01234567]))
+            self.original_inv_freq = self.inv_freq
+            self.register_buffer("_pos_sin_cache", torch.ones(2), persistent=False)
+            self.register_buffer("_pos_cos_cache", torch.ones(2), persistent=False)
+
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.model = torch.nn.Module()
+            self.model.action_expert = torch.nn.Module()
+            self.model.action_expert.action_embed = torch.nn.Linear(2, 2)
+            self.model.action_expert.norm = torch.nn.LayerNorm(2)
+            self.model.action_expert_depth_gate = torch.nn.Linear(2, 1)
+            self.model.norm = MolmoAct2RMSNorm()
+            self.model.rotary = MolmoAct2RotaryEmbedding()
+            self.model.vision = torch.nn.Linear(2, 2)
+            with torch.no_grad():
+                for parameter in self.parameters():
+                    parameter.fill_(.1234567)
+
+    model = Model()
+    original = {name: value.clone() for name, value in model.state_dict().items()}
+    model.bfloat16()
+    return model, original, tmp_path
+
+
+@pytest.mark.parametrize("sharded", [False, True])
+def test_mixed_action_profile_restores_original_fp32_values_and_keeps_backbone_bf16(server, precision_checkpoint, sharded):
+    import json
+    import torch
+    from safetensors.torch import save_file
+
+    model, original, directory = precision_checkpoint
+    if sharded:
+        weight_map = {}
+        for index in range(2):
+            shard = f"model-0000{index+1}-of-00002.safetensors"
+            selected = {name: value for position, (name, value) in enumerate(original.items()) if position % 2 == index}
+            save_file(selected, directory / shard)
+            weight_map.update(dict.fromkeys(selected, shard))
+        (directory / "model.safetensors.index.json").write_text(json.dumps({"weight_map": weight_map}))
+    else:
+        save_file(original, directory / "model.safetensors")
+    old_expert = model.model.action_expert.action_embed.weight.detach().float().clone()
+    assert not torch.equal(old_expert, original["model.action_expert.action_embed.weight"])
+    server.restore_float32_action_modules(model, str(directory))
+    server.reset_float32_rotary_caches(model)
+    for name, value in model.state_dict().items():
+        if name.startswith("model.vision."):
+            assert value.dtype == torch.bfloat16
+            torch.testing.assert_close(value, original[name].bfloat16(), rtol=0, atol=0)
+        else:
+            assert value.dtype == torch.float32, name
+            torch.testing.assert_close(value, original[name], rtol=0, atol=0)
+    assert model.model.action_expert.action_embed.weight.dtype == torch.float32
+    assert model.model.rotary.original_inv_freq is model.model.rotary.inv_freq
+    assert model.model.rotary._pos_sin_cache.numel() == 0
+    assert model.model.rotary._pos_cos_cache.dtype == torch.float32
+
+
+@pytest.mark.parametrize("corruption", ["missing", "shape"])
+def test_mixed_action_restore_rejects_incompatible_checkpoints(server, precision_checkpoint, corruption):
+    import torch
+    from safetensors.torch import save_file
+
+    model, original, directory = precision_checkpoint
+    name = "model.action_expert.action_embed.weight"
+    if corruption == "missing":
+        del original[name]
+    else:
+        original[name] = torch.ones((5,))
+    save_file(original, directory / "model.safetensors")
+    with pytest.raises(ValueError, match="missing" if corruption == "missing" else "shape mismatch"):
+        server.restore_float32_action_modules(model, str(directory))
+
+
+def test_load_restores_action_precision_before_gpu_move_and_refreshes_rotary_alias_after(server, monkeypatch):
+    from types import ModuleType
+
+    torch = pytest.importorskip("torch")
+    calls = []
+
+    class Model:
+        def to(self, device):
+            calls.append(("to", device))
+            return self
+
+        def eval(self):
+            return self
+
+    model = Model()
+    transformers = ModuleType("transformers")
+    transformers.AutoModelForImageTextToText = SimpleNamespace(from_pretrained=lambda *args, **kwargs: model)
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setattr(server, "load_processor", lambda checkpoint: object())
+    monkeypatch.setattr(server, "restore_float32_action_modules", lambda loaded, checkpoint: calls.append(("restore", checkpoint)))
+    monkeypatch.setattr(server, "reset_float32_rotary_caches", lambda loaded: calls.append(("rotary", loaded)))
+    monkeypatch.setattr(server, "preserve_action_denormalization_precision", lambda loaded: calls.append(("denorm", loaded)))
+    policy = server.MolmoAct2ServerPolicy()
+    policy.load("checkpoint", "cuda", {"dtype": "bfloat16", "action_dtype": "float32"})
+    assert calls == [("restore", "checkpoint"), ("to", "cuda"), ("rotary", model), ("denorm", model)]
+    assert policy.info()["dtype"] == "bfloat16"
+    assert policy.info()["action_dtype"] == "float32"
+
+
+@pytest.mark.parametrize("options", [{"action_dtype": "float16"}, {"dtype": "float32", "action_dtype": "bfloat16"}])
+def test_load_rejects_unsupported_action_precision_before_loading_weights(server, options):
+    with pytest.raises(ValueError, match="action_dtype"):
+        server.MolmoAct2ServerPolicy().load("checkpoint", "cpu", options)
