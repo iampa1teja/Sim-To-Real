@@ -55,17 +55,21 @@ bounds, set `policy.options.action_range_diagnostics: true`. The server's
 maxima and out-of-range counts before clipping. This option defaults to false;
 enabling it preserves the returned actions, checkpoint statistics and clipping.
 
-For the installed checkpoint and the unchanged `ARM_new.usd` benchmark layout,
-an offline check of the actual joint anchors and jaw collision surfaces found
-that this pan interval cannot conventionally place a held 20 mm cube into the
-box. A grasp-centre placement inside the walls needs approximately **87.10
-degrees or more**, or the opposite branch at **-75.59 degrees or less**. This
-bound concerns static placement, not tossing or large dynamic overshoot. In
-three controlled replays of a captured held-cube state, even the pre-clipping
-pan predictions stayed below **48.91 degrees**. Removing clipping alone would
-not resolve that stalled pose. The added camera enabled a grasp and lift in
-both the two-image and three-image trials, but each completed attempt timed out
-before placement; these checks do not establish a successful benchmark policy.
+For the installed checkpoint, unchanged `ARM_new.usd` benchmark layout and
+CAD-aligned simulator conversion described below, an offline check of the
+actual joint anchors and jaw collision surfaces found a remaining action-range
+constraint. A grasp-centre placement inside the walls needs pan approximately
+**88.86 degrees or more**, or the opposite branch at **-73.83 degrees or less**.
+Allowing contact anywhere on the moving jaw still leaves a conservative
+**22.25 mm** gap between a held 20 mm cube and the box at clipped joint targets.
+These bounds assume static tracking and physical surface contact; they do not
+cover tossing or large dynamic overshoot. Before the simulator conversion was
+corrected, three controlled replays of a captured held-cube state produced
+pre-clipping pan values below **48.91 degrees**. Removing clipping alone would
+not resolve that captured prediction. The added camera enabled a grasp and lift
+in both the two-image and three-image trials, but each completed attempt timed
+out before placement. Those results predate the conversion correction and do
+not establish the corrected policy's task performance.
 
 `--episode_length_s` overrides the task config before the environment is created.
 When omitted, it uses the task's value (**15 s for Pick-Place-Eval**). Explicit
@@ -275,21 +279,36 @@ the standard room/wrist mapping is restored automatically. Enabled runs
 record the added camera's pose and settings under `molmo_overhead_camera` in
 their results.
 
-Molmo also needs a joint-unit conversion in both directions. Simulation derives
-the five arm degree scales from its configured joint mapping, then applies the
-[official SO-100/101 frame correction](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot):
-signs `[1, -1, 1, 1, 1, 1]`, offsets `[0, 90, 90, 0, 0, 0]` degrees. The gripper
-stays in 0–100 units. These are calibration-midpoint-centered degrees, so the
-asymmetric USD joint-range midpoint must not be added again. For example, the
-first benchmark's shoulder-lift value near `-99.19` becomes approximately
-`189.19` in the model frame. The first model state is printed each episode.
-Returned actions undergo the inverse conversion before
-the simulator's normal joint-limit handling. The startup log and results field
-`policy_joint_transform` record the actual scales and offsets. Direct plugin
-clients default to `input_joint_units=lerobot_degrees`; normalized callers must
-provide `input_joint_units=lerobot_normalized` and five comma-separated
-`arm_degrees_per_unit` scales. `input_joint_units=model` accepts model-frame
-values directly. Restart an existing rollout to load the corrected client.
+Molmo also needs a joint-unit conversion in both directions. Simulation selects
+`input_joint_units=usd_normalized` and reconstructs each actual USD arm angle
+as `normalized * (maximum - minimum) / 200 + (maximum + minimum) / 2`, using
+`sim_joint_mapping`. Matching the canonical arm CAD to `ARM_new.usd` establishes
+the model angles as `[pan, 90 - lift, 90 + elbow, wrist_flex, wrist_roll]` in
+degrees. This uses the signs and offsets from the
+[official SO-100/101 frame correction](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot),
+applied to the reconstructed USD angles. The gripper stays in 0–100 units.
+For example, zero normalized pan reconstructs `1.7578125` USD/model degrees;
+zero normalized elbow reconstructs `-5` USD degrees and `85` model degrees.
+Discarding these range midpoints previously introduced pan and elbow offsets.
+
+The original LeRobot
+[degree calibration](https://github.com/huggingface/lerobot/blob/b536f47e3ff8c3b340fc5efa52f0ece0a7212a57/lerobot/common/robot_devices/robots/feetech_calibration.py#L421)
+uses a fixed physical zero pose. Current LeRobot hardware
+[`DEGREES`](https://github.com/huggingface/lerobot/blob/v0.6.1/src/lerobot/motors/motors_bus.py#L874)
+instead centres on the recorded range midpoint. The simulator conversion is therefore
+explicitly separate from the existing real-client conversion; saved hardware
+calibration is unchanged. Direct plugin clients default to
+`input_joint_units=lerobot_degrees`; real normalized callers use
+`input_joint_units=lerobot_normalized` with five comma-separated
+`arm_degrees_per_unit` scales. Simulator callers additionally supply the five
+`arm_zero_degrees` range midpoints with `usd_normalized`.
+`input_joint_units=model` accepts model-frame values directly.
+
+Returned actions undergo the exact inverse conversion before the simulator's
+normal joint-limit handling. The startup log and results field
+`policy_joint_transform` record the actual scales and offsets; the first model
+state is printed each episode. Restart an existing rollout to load the
+corrected client.
 
 To inspect the initial pose in Isaac without loading a policy, run:
 
