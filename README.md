@@ -115,7 +115,7 @@ the `teleop` container with the display mounts above, then run on the host:
 
 ```bash
 ./scripts/setup_molmoact2.sh --variant so101
-./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
+./docker/eval.sh pick_place_molmo_so101.yaml --save_videos
 ```
 
 The SO-101 profile uses a BF16 backbone with the action expert, norms, and RoPE
@@ -125,15 +125,17 @@ compared with all-BF16 storage. Action denormalization also uses FP32 to avoid
 rounding absolute joint targets to whole degrees. These preserve numerical
 precision; the five-episode smoke test checks the resulting execution and grasps.
 
-The SO-101 profile also enables `eval.molmo_overhead_camera`: an additional
-camera behind and above the arm supplies Molmo's `room` view alongside `wrist`.
-Its image roll follows the table's front edge.
-With `policy.options.include_original_room: true`, this profile sends the
-original room image as a third input, after `room` and `wrist`. The original
-camera stays in place and appears as `original_room` in Rerun and saved videos.
-Other profiles keep their two-view inputs and default scenes. To compare the
-original two-camera setup, disable both `include_original_room` and
-`eval.molmo_overhead_camera`.
+The SO-101 profile uses the original front camera as `room` and the gripper
+camera as `wrist`. Both `eval.molmo_overhead_camera` and
+`policy.options.include_original_room` are disabled. The existing camera poses
+and default environment remain unchanged. An added view behind and above the
+arm, aligned with the table edge, remains available as an optional comparison;
+see [Evaluation](docs/06-evaluation.md).
+
+The profile also opts into experimental pan adaptation fitted from the local
+training demonstrations. It consistently rescales pan observations and actions
+while preserving the checkpoint weights, statistics and physical calibration.
+Its settings and validation results are documented in the evaluation guide.
 
 The SO-101 profile executes the full 30-action chunk at the simulation's 30 Hz control rate,
 querying again every simulated second (`action_repeat: 1`). This keeps visual

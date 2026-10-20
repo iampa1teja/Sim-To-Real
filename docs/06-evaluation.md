@@ -55,9 +55,9 @@ bounds, set `policy.options.action_range_diagnostics: true`. The server's
 maxima and out-of-range counts before clipping. This option defaults to false;
 enabling it preserves the returned actions, checkpoint statistics and clipping.
 
-For the installed checkpoint, unchanged `ARM_new.usd` benchmark layout and
-CAD-aligned simulator conversion described below, an offline check of the
-actual joint anchors and jaw collision surfaces found a remaining action-range
+For the installed checkpoint **without pan adaptation**, unchanged `ARM_new.usd`
+benchmark layout and CAD-aligned simulator conversion described below, an offline
+check of the actual joint anchors and jaw collision surfaces found a remaining action-range
 constraint. A grasp-centre placement inside the walls needs pan approximately
 **88.86 degrees or more**, or the opposite branch at **-73.83 degrees or less**.
 Allowing contact anywhere on the moving jaw still leaves a conservative
@@ -69,7 +69,53 @@ pre-clipping pan values below **48.91 degrees**. Removing clipping alone would
 not resolve that captured prediction. The added camera enabled a grasp and lift
 in both the two-image and three-image trials, but each completed attempt timed
 out before placement. Those results predate the conversion correction and do
-not establish the corrected policy's task performance.
+not establish the corrected policy's task performance. With the corrected
+conversion alone, the same first start also grasped and lifted the cube but
+timed out after 300 simulated seconds while pan tracked its clipped target.
+
+The SO-101 evaluation profile opts into an **experimental pan adaptation**:
+`policy.options.pan_model_scale: 0.49016972984379564` and
+`policy.options.pan_model_offset: 3.5352321757436442`. Together they apply
+`model_pan = scale * physical_USD_pan + offset` to observations and the exact
+inverse to actions. The released model pan limits then correspond to about
+**-93.16 to 91.84 physical degrees**. All other joints retain the corrected
+conversion. Omit **both** options for the released policy's native pan range;
+supplying one alone, nonfinite values, a nonpositive scale, or using a real-client
+unit mode is rejected. Enabled runs record the adaptation in
+`policy_joint_transform.pan_adaptation`.
+
+These values match the pan action q01/q99 of all 75 local training demonstrations
+(16,448 frames, `datasets/pick_place_v1`, declared `train: 0:75`) to the
+checkpoint's pan q01/q99. Quantiles are frame-weighted with NumPy's linear
+method after the existing simulator joint conversion. Evaluation target
+positions were not used for the fit. The checkpoint weights, normalization
+statistics, USD geometry and scene remain unchanged. This is a change to policy
+action semantics, not a physical calibration correction or an official
+zero-shot deployment recipe. In an earlier H30/R1 three-camera run,
+start `id-000` and policy seed `2177438227`, adaptation completed the task in
+**15.37 simulated seconds / 23.79 wall seconds**. The unadapted corrected
+baseline timed out at 300 simulated seconds on the same start and seed. Both
+runs seeded the server once at episode reset, allowing inference noise
+to advance between queries. That three-camera smoke run completed one episode;
+five-episode validation used the original front and wrist cameras instead.
+The selected SO-101 profile now
+uses the original front and wrist cameras, with the same pan adaptation and
+H30/R1 timing. Its native five-episode smoke test completed normally with
+**2/5 successes (40%)** and a median time to success of **19.85 simulated
+seconds**. Starts `id-000` (MC) and `id-002` (MR) succeeded; `id-001` (FR),
+`id-003` (NL) and `id-004` (FL) each timed out after 300 simulated seconds.
+This verifies successful pick-and-place on two starts; five attempts and three
+timeouts do not establish reliability across the full benchmark. The full
+150-start benchmark remains unmeasured for this profile.
+
+Separate helper trials enabled `--seed_per_episode`, which resets the same
+noise seed before **every inference query**. In that mode, H30/R1 succeeded in
+**161.23 simulated seconds / 237.21 wall seconds**, while H16/R1 missed the grasp
+and timed out at 300 simulated seconds / 475.89 wall seconds (562 queries).
+Those two helper trials compare horizons within that fixed-noise mode; their
+timings cannot be compared directly with the standard profile's advancing
+noise. These limited results do not establish reliability or a globally optimal
+horizon.
 
 `--episode_length_s` overrides the task config before the environment is created.
 When omitted, it uses the task's value (**15 s for Pick-Place-Eval**). Explicit
@@ -204,7 +250,7 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.episode_length_s` | Task default (15 s); finite positive seconds |
 | `eval.action_horizon` | MolmoAct2: 30, integer in 1-30; other policies: 16, integer in 1-16 |
 | `eval.action_repeat` | 1; positive integer control steps per target. SO-101 Molmo profile: 1 (one-second query interval with horizon 30 at 30 Hz) |
-| `eval.molmo_overhead_camera` | false; Molmo pick-place only. Add a camera behind/above the arm and use it as `room`; SO-101 profile enables it |
+| `eval.molmo_overhead_camera` | false; Molmo pick-place only. Optionally add a camera behind/above the arm and use it as `room`; the SO-101 profile keeps the original front/wrist views |
 | `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
 | `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
@@ -221,14 +267,15 @@ logs simulation elapsed time and actual wall time, with time to success reported
 for successful attempts. These clocks include settling steps; wall time includes
 inference, rendering and optional recording, and excludes model startup.
 
-To watch and save each attempt's room and wrist views:
+To run the full benchmark and save each attempt's front and wrist views:
 
 ```bash
-./docker/eval.sh pick_place_molmo_so101.yaml --rerun --save_videos
+./docker/eval.sh pick_place_molmo_so101.yaml --save_videos
 ```
 
-Run this from a host desktop terminal with `teleop` running. If a retained
-container is stopped, use `docker start teleop` first; a container created with
+Run this on the host with `teleop` running. Add `--rerun` from a desktop terminal
+to watch live. If a retained container is stopped, use `docker start teleop`
+first; a container created with
 `--rm` must be created again using the README launch block. Close the evaluation
 with Ctrl+C to clean up its evaluator, policy server and owned viewer. Stop the
 remaining idle container with `docker stop teleop` when finished.
@@ -261,23 +308,29 @@ The camera and replacement mount use gripper-local coordinates. Original camera
 extrinsics and jaw geometry are preserved; the user has checked the simulated
 camera views against the real setup.
 
-The SO-101 profile enables `eval.molmo_overhead_camera: true` to add a separate
+The SO-101 profile uses the two original cameras: `realsense_rgb` maps to
+Molmo's `room` input and `wrist_cam` maps to `wrist`. Both
+`eval.molmo_overhead_camera` and `policy.options.include_original_room` are
+`false`. The original front/wrist images also appear under these names in
+Rerun and saved videos. Results record `policy_cameras: [room, wrist]`.
+
+For an optional camera comparison, `--molmo-overhead-camera` adds a separate
 view behind and above the arm, with image roll aligned to the table's front
-edge. It leaves both existing cameras in place. Molmo
-receives the new `molmo_room` camera as `room` and the existing wrist camera as
-`wrist`. The SO-101 profile also opts into
-`policy.options.include_original_room: true`, which appends the unchanged
-original room image as a third model input: `room`, `wrist`, `original_room`.
-Omitting this policy option or setting it to `false` retains the default two
-model inputs; the original room image remains available in Rerun and videos.
-The added camera is available through `--molmo-overhead-camera` on the host
-runner or direct evaluator, and is restricted to Molmo pick-place tasks. It
-changes only the requested evaluation configuration instance, not the default
-scene or other policy profiles. To compare the original room/wrist setup,
-disable both `eval.molmo_overhead_camera` and `policy.options.include_original_room`;
-the standard room/wrist mapping is restored automatically. Enabled runs
-record the added camera's pose and settings under `molmo_overhead_camera` in
-their results.
+edge. It leaves both original cameras in place. The new `molmo_room` sensor
+then supplies `room`, the wrist remains `wrist`, and the original front view
+remains available as `original_room` in Rerun and videos. To send that original
+front image as a third model input, after `room` and `wrist`, first set
+`policy.options.include_original_room: true` in the YAML, then run:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --rerun --molmo-overhead-camera
+```
+
+The added camera is restricted to Molmo pick-place tasks and changes only the
+requested evaluation configuration instance. Default scenes and other policy
+profiles retain their existing cameras. Enabled runs record the added camera's
+pose and settings under `molmo_overhead_camera` in their results. Disabling both
+options restores the original front/wrist input pair.
 
 Molmo also needs a joint-unit conversion in both directions. Simulation selects
 `input_joint_units=usd_normalized` and reconstructs each actual USD arm angle
