@@ -112,7 +112,7 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 
 **`source/sim_to_real_so101/scripts/new_policy.py`**: `main()` takes a name, validates it, copies `policies/_template/` to `policies/<name>/`, rewrites the name in `policy.toml` and `pyproject.toml`. Register it in `pyproject.toml` `[project.scripts]` as `new_policy`.
 
-**Edits**: `utils/lerobot_interface.py` (use `RemotePolicy`), `scripts/lerobot_eval.py` (`--policy` via `cli.py`), `docker/real/scripts/so101_eval.py`, `scripts/sweep_action_horizon.py`, `scripts/plot_grasp.py` (imports only).
+**Edits**: `utils/lerobot_interface.py` (use `RemotePolicy`), `scripts/lerobot_eval.py` (`--policy` via `cli.py`), `scripts/sweep_action_horizon.py`, `scripts/plot_grasp.py` (imports only).
 
 **Tests**
 - `tests/policy_client/test_transport.py`, `test_smoothing.py`, `test_grasp.py`: moved with new import paths.

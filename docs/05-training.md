@@ -38,9 +38,9 @@ The original `scripts/train_pick_place*.sh` and `train_dit.sh` entry points rout
 through Docker automatically. `--dry_run` prints the Docker command without
 creating output or starting a container. `--preflight_only` runs the existing
 dataset/model/disk/GPU checks inside the container and stops before training.
-Keep `~/Isaac-GR00T` while using the saved host real-arm client: that workflow
-still imports its source, and the checkout may contain recorded datasets. Moving
-training to Docker does not migrate or delete those files.
+The host GR00T checkout and physical-arm rollout client have been removed.
+Container training and serving retain their own GR00T sources and dependencies;
+datasets and model checkpoints remain in their mounted host storage.
 
 The legacy `so100_n16` preparation profile still uses the original
 `ead52833afbbf4243f8cd5e7664f48a94de03b19` pin and front/wrist, relative-arm

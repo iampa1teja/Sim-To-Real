@@ -1,4 +1,4 @@
-"""CPU-only grasp-control tests, including the actual sim/real client methods."""
+"""CPU-only grasp-control tests, including the actual simulation client methods."""
 import csv
 from dataclasses import replace
 import json
@@ -13,7 +13,7 @@ from sim_to_real_so101.policy_client.grasp import (
     GraspConfig, GraspController, GripperLatch, dither_score, seed_query, training_bounds,
 )
 from sim_to_real_so101.policy_client.smoothing import ActionSmoother, SmoothingConfig
-from test_smoothing import KEYS, FakeClient, FakeClock, FakeRobot, actions, make_sim_policy, real_code
+from test_smoothing import KEYS, actions, make_sim_policy
 
 
 @pytest.fixture
@@ -194,22 +194,6 @@ def test_fixed_noise_resets_before_every_query_and_rejects_missing_ack():
     policy._client.call_endpoint = lambda *args: None
     with pytest.raises(RuntimeError, match='ACK'):
         seed_query(policy._client, 33)
-
-
-def test_real_latch_reads_joints_each_step_without_extra_camera_reads(dataset):
-    clock = FakeClock()
-    code = real_code(clock)
-    robot = FakeRobot(40, clock)
-    reads = []
-    robot.get_joint_positions = lambda: reads.append(1) or {'gripper.pos': 25}
-    policy = code.So100Adapter(FakeClient(clock=clock), ['room', 'wrist'])
-    policy.grasp = controller(dataset, gripper_latch=True)
-    policy.grasp_started = 0
-    with pytest.raises(KeyboardInterrupt):
-        code.run_control_loop(code.EvalConfig(action_horizon=8), robot, policy, [], [])
-    assert len(reads) == 41  # final attempted send is interrupted by the test robot
-    assert robot.observations == 6  # chunk queries only
-    assert all(r['measured_gripper'] == 25 for r in policy.grasp.rows)
 
 
 def test_sim_latch_uses_measured_joint_and_reset(dataset):

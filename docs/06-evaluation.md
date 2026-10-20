@@ -1,4 +1,4 @@
-# 06 — Evaluate in simulation, with DR, and on the robot
+# 06 — Evaluate in simulation and with DR
 
 [Guide hub](../README.md) · Previous: [Training](05-training.md) · [Troubleshooting](troubleshooting.md)
 
@@ -542,14 +542,14 @@ MyRoom has no success/timeout terminations. Checkpoint metadata falls back to
 
 ## Smooth control
 
-Both clients share NumPy-only smoothing in
+The simulation client uses NumPy-only smoothing in
 [`policy_client/smoothing.py`](../source/sim_to_real_so101/policy_client/smoothing.py).
-All options default to off: the original real-arm action sequence and relative
-sleep loop, and the original simulation action queue, remain the default paths.
+All options default to off; the original simulation action queue remains the
+default path.
 Smoothing operates in the existing LeRobot joint units before the unchanged
 simulation joint mapping. It does not change the checkpoint, server, or success
 criteria. EMA and prediction history reset on every simulation episode, including
-manual resets; each real-client invocation is a fresh rollout.
+manual resets.
 
 | Option | Default / behavior |
 | --- | --- |
@@ -560,39 +560,10 @@ manual resets; each real-client invocation is a fresh rollout.
 | `--temporal_ensemble M` | 0, off; query every M control steps and average every prediction that covers the current step |
 | `--te_decay k` | 0.01; ensemble weights `exp(-k*i)`, `i=0` oldest, normalized over the current overlaps; finite `k >= 0` |
 | `--log_timing` | False; per-action CSV and exit summary |
-| `--timing_csv PATH` | Empty; optional CSV destination, otherwise `outputs/timing/{real,sim}_<timestamp>.csv` relative to the working directory |
-| `--fixed_rate` | Real only, False; enable the fixed-rate scheduler by itself |
+| `--timing_csv PATH` | Empty; optional CSV destination, otherwise `outputs/timing/sim_<timestamp>.csv` relative to the working directory |
 
 `--temporal_ensemble` and `--blend_steps` are mutually exclusive. EMA may follow
-either. Real Draccus booleans take values, e.g. `--log_timing=true` and
-`--smooth_gripper=true`; sim argparse booleans are bare flags.
-
-**Real timing.** The first observation/query bootstraps the action buffer before
-the 30 Hz clock starts. With prefetch, a single background thread takes a fresh
-observation when at most P executable actions remain and calls the policy while
-the main thread continues sending targets. A ready response replaces the active
-chunk on the next tick; if d actions have been sent since its observation, discard
-its first d predictions. Execute at most `min(action_horizon, chunk_length-d)`
-of the remaining predictions. Preserve any extra tail for the next cross-fade.
-If the old tail has run out, blend from the last sent target. A completely stale
-response is discarded and a fresh request follows. While waiting beyond the
-execution horizon, send the last **sent** target each tick, without advancing EMA,
-and log the late response's latency and stale count.
-
-Ensemble mode uses that same worker and the full prediction chunks; M replaces
-the chunk-based query cadence. Only one request can be outstanding. With a server
-faster than M ticks, queries occur every M ticks; if a request is still running,
-the next query takes a fresh observation as soon as it completes, without queuing
-obsolete observations. There is no achievable M-tick inference cadence when a
-single server request takes longer than M ticks. Ensemble uses all completed,
-unexpired overlaps, and holds the last target if none cover the current tick.
-
-Enabling prefetch, blend, EMA, ensemble, timing logging, or `--fixed_rate=true`
-selects monotonic absolute deadlines (`next_tick += 1/30`) and counts missed
-deadlines. Prefetch/ensemble inference never waits on the control thread after
-bootstrap. Motor/camera I/O, plotting, and OS scheduling can still overrun a tick;
-the counter records those overruns. Blend/EMA alone retain synchronous inference;
-use prefetch as well to remove inference pauses.
+either. Argparse booleans such as `--log_timing` and `--smooth_gripper` are bare flags.
 
 **Simulation timing.** There is no wall-clock scheduler or inference thread.
 The first query delivers immediately. In chunk mode, query synchronously from
@@ -625,7 +596,7 @@ Recommended starting preset:
 `--action_horizon 12 --prefetch_steps 4 --blend_steps 4 --ema_alpha 0.6`.
 Compare against the saved unsmoothed rollout with the same checkpoint and starts.
 
-With the [N1.7 200k server below](#n17-200k-real-arm) already serving on port
+With the [N1.7 200k server below](#gr00t-n17-200k-simulation-server) already serving on port
 5560, run the smooth **simulation** client inside teleop:
 
 ```bash
@@ -640,42 +611,14 @@ lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
   --log_timing --timing_csv /tmp/so101_sim_smooth.csv --headless
 ```
 
-For the smooth **real-arm** client, keep that same server running and use the
-saved host environment, YUYV cameras, and start pose:
-
-```bash
-source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
-cd ~/Isaac-GR00T && \
-PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
-uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
-  --no-sync \
-  --with feetech-servo-sdk \
-  --with pyzmq \
-  --with msgpack \
-  --with msgpack-numpy \
-  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
-  --robot.type=so101_follower \
-  --robot.port="$ROBOT_PORT" \
-  --robot.id="$ROBOT_ID" \
-  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
-  --policy_host=localhost \
-  --policy_port=5560 \
-  --action_horizon=12 --prefetch_steps=4 --blend_steps=4 --ema_alpha=0.6 \
-  --log_timing=true --timing_csv=/tmp/so101_real_smooth.csv \
-  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
-  --lang_instruction='Pick up the blue cube and place it in the white box'
-```
-
 To try ensemble instead, replace `--blend_steps 4` with
-`--temporal_ensemble 4 --te_decay 0.01` (use `=` syntax for the real client).
+`--temporal_ensemble 4 --te_decay 0.01`.
 
-## Real-robot rollout
+## GR00T N1.7 200k simulation server
 
-### N1.7 200k real arm
-
-This preserves the user's saved milestone checkpoint, port 5560, action horizon 8,
-YUYV cameras and start pose. The server command uses the current YAML launcher.
-Start it in the first host terminal and keep it running after `SERVER_READY port=5560`:
+This serves the external-storage milestone checkpoint on port 5560 for the
+simulation client. Start it in a host terminal and keep it running after
+`SERVER_READY port=5560`:
 
 ```bash
 cd ~/Sim-to-Real-SO-101-Workshop
@@ -697,41 +640,11 @@ YAML
 ./docker/eval.sh /tmp/groot_n17_200k.yaml --server_only
 ```
 
-In the second host terminal, run the physical SO101 follower client:
-
-```bash
-source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
-cd ~/Isaac-GR00T && \
-PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
-uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
-  --no-sync \
-  --with feetech-servo-sdk \
-  --with pyzmq \
-  --with msgpack \
-  --with msgpack-numpy \
-  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
-  --robot.type=so101_follower \
-  --robot.port="$ROBOT_PORT" \
-  --robot.id="$ROBOT_ID" \
-  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
-  --policy_host=localhost \
-  --policy_port=5560 \
-  --action_horizon=8 \
-  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
-  --lang_instruction='Pick up the blue cube and place it in the white box'
-```
-
-The client obtains the serial port, calibration ID, and camera paths from
-`docker/env`. Both cameras use 640×480 at 30 FPS with YUYV. This saved command
-executes eight actions per inference request and uses the explicit six-joint
-start pose above. Stop the rollout with Ctrl+C.
-
 ### Optional grasp latch and diagnostics
 
-Both clients share `policy_client/grasp.py`. Everything below is off by default;
+The simulation client uses `policy_client/grasp.py`. Everything below is off by default;
 no model, training, joint mapping, or success/grasp detection logic changes.
-There is no dynamic horizon in these clients, so no `--h_grasp` option is added.
-The action horizon stays fixed (8 in the saved real-arm setup).
+The configured action horizon stays fixed; there is no `--h_grasp` option.
 
 `--gripper_latch` enables the following sequence, after any arm/gripper smoothing:
 
@@ -745,9 +658,8 @@ The action horizon stays fixed (8 in the saved real-arm setup).
   needs predictions above `closed + 0.80 * (open - closed)` for 5 consecutive
   steps, with at least 30 steps since engagement. Held/stale commands do not count
   as new close/release evidence. Only the gripper is overridden.
-- Read measured gripper position each step. Real uses a locked, calibrated
-  follower joint-bus read with **no camera read**; sim reverses the existing joint
-  mapping. The empty-closed reference defaults to the minimum **state** gripper
+- Read measured gripper position each step by reversing the existing simulation
+  joint mapping. The empty-closed reference defaults to the minimum **state** gripper
   position in training metadata. Override with `--gripper_empty_closed`.
 - If latched and measured position is at most `empty_closed + 3` for 15 consecutive
   steps, log `missed grasp`, release, command fully open for 15 steps, then require
@@ -766,8 +678,7 @@ open≈88.67488, empty-closed≈1.22932 (empty threshold≈4.22932).
 
 `--seed_per_episode` reissues the same acknowledged server noise seed **before
 every inference query** within an episode. The benchmark supplies its existing
-per-start seed; other sim runs use `--seed` (1984 by default). A real client run is
-one episode, also with `--seed=1984` by default. The generic policy server exposes
+per-start seed; other sim runs use `--seed` (1984 by default). The generic policy server exposes
 `seed_policy` and the GR00T plugin resets its RNGs through its reset endpoint.
 An external server must expose `seed_policy`; an absent acknowledgement fails
 explicitly. Keep one client per server when using this option.
@@ -786,9 +697,7 @@ there was no grasp. This helps move C into a hover region. The dither score coun
 arm direction reversals, summed over the five **commanded** arm joints in that
 same window; changes ≤1e-6 units are treated as zero. It ignores gripper movement
 and velocities crossing the window boundary. The benchmark uses its unchanged
-StageTrace grasp signal, not latch engagement. Real runs have no verified grasp
-signal, so their diagnostic window ends at Ctrl+C; measured obstruction alone
-is not reported as a confirmed grasp. Grasp time includes the sim's ten settling
+StageTrace grasp signal, not latch engagement. Grasp time includes the sim's ten settling
 steps; diagnostic command samples start after settling.
 
 Run this 200-start on/off comparison **after training releases the GPU**. Each
@@ -814,113 +723,6 @@ and mean dither score (all episodes). JSON also includes paired on-only/off-only
 success counts and metric differences. Incomplete schedules cannot qualify for
 comparison/resume. Add `--dry_run` to inspect commands without GPU work.
 
-For the **real arm**, first start a seeding-capable server:
-
-```bash
-cd ~/Sim-to-Real-SO-101-Workshop
-cat > /tmp/groot_n17_200k_seeded.yaml <<'YAML'
-task: pick_place
-policy:
-  name: groot_n17
-  checkpoint: so101_pick_place_sim_n17_200k/milestones/checkpoint-200000
-  models_dir: /external_storage/models
-  port: 5560
-  options:
-    embodiment_tag: NEW_EMBODIMENT
-eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
-  robot_start: recorded
-  action_horizon: 8
-  episode_length_s: 30
-grasp:
-  seed_per_episode: true
-YAML
-./docker/eval.sh /tmp/groot_n17_200k_seeded.yaml --server_only
-```
-
-Then run the saved camera/start-pose client with the optional controls:
-
-```bash
-source ~/Sim-to-Real-SO-101-Workshop/docker/env && \
-cd ~/Isaac-GR00T && \
-PYTHONPATH=$HOME/Isaac-GR00T:$HOME/Sim-to-Real-SO-101-Workshop/source:$HOME/Sim-to-Real-SO-101-Workshop/docker/real/scripts \
-uv run --project ~/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101 \
-  --no-sync --with feetech-servo-sdk --with pyzmq --with msgpack --with msgpack-numpy \
-  python ~/Sim-to-Real-SO-101-Workshop/docker/real/scripts/so101_eval.py \
-  --robot.type=so101_follower --robot.port="$ROBOT_PORT" --robot.id="$ROBOT_ID" \
-  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30, fourcc: YUYV}, room: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30, fourcc: YUYV}}" \
-  --policy_host=localhost --policy_port=5560 --action_horizon=8 \
-  --start_pose=-3.3,-99.0,99.2,75.6,-1.6,2.9 \
-  --lang_instruction='Pick up the blue cube and place it in the white box' \
-  --gripper_latch=true --seed_per_episode=true --log_gripper=true \
-  --latch_dataset="$HOME/Sim-to-Real-SO-101-Workshop/datasets/pick_place_sim" \
-  --gripper_csv="$HOME/Sim-to-Real-SO-101-Workshop/outputs/gripper/real.csv"
-```
-
-After stopping the client, plot the recorded predictions, measurements, commands,
-thresholds, chunk boundaries, and dither window:
-
-```bash
-cd ~/Sim-to-Real-SO-101-Workshop
-python3 scripts/plot_grasp.py outputs/gripper/real.csv
-```
-
-### Legacy N1.6 real arm
-
-The commands below retain the legacy N1.6 real-robot workflow. Build its image
-with `./docker/real/build.sh ada n16`, then use [Setup](01-setup.md) to start the
-real-robot container and calibrate hardware. The new N1.7 image supplies policy
-serving for the simulation runner; it does not include this physical LeRobot
-client environment.
-Validate the script's `SO101Control.initial_pose`/`home_pose` against your actual
-setup before running; connection/disconnection can move the arm. Stop any other
-process that owns its serial port or cameras. The real rollout does not inherit
-Isaac's success monitor or simulation collision constraints.
-
-**Real-robot container**, first shell, serve the checkpoint:
-
-```bash
-cd /Isaac-GR00T
-export MODEL=so101_pick_place_v1/checkpoint-10000
-python gr00t/eval/run_gr00t_server.py --model-path "/workspace/models/$MODEL" --port 5555
-```
-
-The pinned Tyro `ServerConfig` supports `--model-path` (default `None`),
-`--embodiment-tag` (`NEW_EMBODIMENT`), `--device` (`cuda`), `--host` (`0.0.0.0`),
-`--port` (5555), `--strict` (true), `--use-sim-policy-wrapper` (false),
-`--dataset-path`, `--modality-config-path` and `--execution-horizon` (all `None`).
-The latter dataset options support upstream replay use; they are not needed for
-the trained model command. Do not run this extra server alongside the host runner
-on the same port.
-
-**Host**, second terminal, attach:
-
-```bash
-docker exec -it real-robot bash
-```
-
-**Real-robot container**, second shell, after checking environment and cameras:
-
-```bash
-cd /Isaac-GR00T
-python gr00t/eval/real_robot/SO100/so101_eval.py \
-  --robot.type=so101_follower --robot.port="$ROBOT_PORT" --robot.id="$ROBOT_ID" \
-  --robot.cameras="{wrist: {type: opencv, index_or_path: $CAMERA_GRIPPER, width: 640, height: 480, fps: 30}, front: {type: opencv, index_or_path: $CAMERA_EXTERNAL, width: 640, height: 480, fps: 30}}" \
-  --policy_host=localhost --policy_port=5555 --action_horizon=16 \
-  --lang_instruction='Pick up the blue cube and place it in the white box'
-```
-
-The local Draccus `EvalConfig` has `robot=None`, `policy_host=0.0.0.0`,
-`policy_port=5555`, `action_horizon=16`, language `Grab markers and place into pen
-holder.`, and `play_sounds`, `rerun`, `passive_mode`, `plot` all false. Boolean
-options use Draccus values, e.g. `--plot=true`. It also defines `--timeout` with
-60, but **the loop never reads it**: rollout runs until interrupted, not for a
-bounded episode count. The loop targets 30 Hz action timing, queries again after
-each executed chunk, and has no automatic success scoring. With plotting enabled,
-current code writes a PNG under `outputs/plots/` relative to the working directory;
-its docstring promises JSON too, but the implementation does not write JSON.
-Copy desired plots out before the ephemeral container is removed.
-
 ## Iterate deliberately
 
 Evaluate plain and DR with fixed checkpoint/start lists and seeds. Inspect low
@@ -928,8 +730,6 @@ success zones and colours; review trajectories/videos to separate miscalibration
 missed grasps, failed transport and failed release. Record targeted demonstrations
 for the failing starts, preserve scene versions, exclude known failed saved demos
 from the training copy, then retrain and compare the same evaluation protocol.
-Keep real outcomes as an explicit human-scored log until a real success sensor
-or scorer is implemented.
 
 ## Benchmark protocol
 

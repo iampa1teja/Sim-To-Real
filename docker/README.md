@@ -6,10 +6,11 @@ The maintained container guide is [01 — Setup](../docs/01-setup.md). It includ
 both image builds, exact launch mounts, additional shells, device discovery,
 calibration, persistent `docker/env` settings and editable extension installation.
 
-- [Simulation and real-robot launch commands](../docs/01-setup.md#build-and-start)
+- [Simulation launch and policy-server image builds](../docs/01-setup.md#build-and-start)
+- [Docker training and data preparation](../docs/05-training.md)
 - [Calibration and manual control](../docs/01-setup.md#calibration-diagnostics-and-manual-control)
 - [Host evaluation runner and every flag](../docs/06-evaluation.md#host-runner)
-- [Real policy server and rollout](../docs/06-evaluation.md#real-robot-rollout)
+- [GR00T N1.7 milestone policy server](../docs/06-evaluation.md#gr00t-n17-200k-simulation-server)
 - [Troubleshooting](../docs/troubleshooting.md)
 
 The teleop launch block also remains in the hub because `eval.sh`
