@@ -46,6 +46,27 @@ uses FP32, preventing the extra whole-degree rounding that BF16 absolute angles
 near 180 degrees would introduce. This addresses numerical precision, without
 establishing that grasp accuracy is solved.
 
+The released SO-101 normalizer also clips normalized actions to `[-1, 1]`
+before converting them to joint units. Its pan output is consequently limited
+to approximately **-42.13 to 48.55 degrees** in the model frame, which is narrower
+than the arm's physical range. To inspect whether a prediction exceeds these
+bounds, set `policy.options.action_range_diagnostics: true`. The server's
+`describe` response then includes `last_raw_action_range`: per-joint minima,
+maxima and out-of-range counts before clipping. This option defaults to false;
+enabling it preserves the returned actions, checkpoint statistics and clipping.
+
+For the installed checkpoint and the unchanged `ARM_new.usd` benchmark layout,
+an offline check of the actual joint anchors and jaw collision surfaces found
+that this pan interval cannot conventionally place a held 20 mm cube into the
+box. A grasp-centre placement inside the walls needs approximately **87.10
+degrees or more**, or the opposite branch at **-75.59 degrees or less**. This
+bound concerns static placement, not tossing or large dynamic overshoot. In
+three controlled replays of a captured held-cube state, even the pre-clipping
+pan predictions stayed below **48.91 degrees**. Removing clipping alone would
+not resolve that stalled pose. The added camera enabled a grasp and lift in
+both the two-image and three-image trials, but each completed attempt timed out
+before placement; these checks do not establish a successful benchmark policy.
+
 `--episode_length_s` overrides the task config before the environment is created.
 When omitted, it uses the task's value (**15 s for Pick-Place-Eval**). Explicit
 values must be finite and greater than zero. A 30 s run reports success within
