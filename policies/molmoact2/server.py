@@ -12,6 +12,8 @@ Options (--option KEY=VALUE):
   action_dtype defaults to dtype; float32 keeps the action expert/norms/RoPE in
                original checkpoint precision with a bfloat16 backbone (~1.1 GB extra)
   num_steps   flow-matching solver steps (default 10)
+  action_range_diagnostics false (default); true exposes the last pre-clipping
+               normalized action range through describe, without changing actions
 """
 from __future__ import annotations
 
@@ -154,6 +156,45 @@ def reset_float32_rotary_caches(model: Any) -> None:
             module._pos_cos_cache = torch.empty(0, device=module.inv_freq.device, dtype=torch.float32)
 
 
+def _strict_bool_option(value: Any, name: str) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.lower() in ("true", "false"):
+        return value.lower() == "true"
+    raise ValueError(f"{name} must be true or false")
+
+
+def capture_action_range_diagnostics(model: Any, record: Any) -> None:
+    """Observe this instance's trajectory before the unchanged normalizer clips it."""
+    import torch
+
+    stats = model._get_robot_stats()
+    original = stats.unnormalize_action
+
+    def unnormalize_action(action: Any, norm_tag: str) -> Any:
+        values = action.detach().float().cpu().numpy() if torch.is_tensor(action) else np.asarray(action)
+        shape = list(values.shape)
+        values = np.atleast_1d(values)
+        features = values.shape[-1]
+        flat = values.reshape(-1, features) if features else np.empty((0, 0))
+        minimum = flat.min(axis=0) if flat.shape[0] else np.full(features, np.nan)
+        maximum = flat.max(axis=0) if flat.shape[0] else np.full(features, np.nan)
+        record({
+            "norm_tag": norm_tag,
+            "shape": shape,
+            "min": [float(value) if np.isfinite(value) else None for value in minimum],
+            "max": [float(value) if np.isfinite(value) else None for value in maximum],
+            "below_minus_one": (flat < -1).sum(axis=0).tolist(),
+            "above_one": (flat > 1).sum(axis=0).tolist(),
+            "nonfinite": (~np.isfinite(flat)).sum(axis=0).tolist(),
+        })
+        # Delegate the original tensor unchanged. Existing FP32 denormalization
+        # remains inside this wrapper, and all released clipping/statistics apply.
+        return original(action, norm_tag)
+
+    stats.unnormalize_action = unnormalize_action
+
+
 def seed_everything(seed: int) -> None:
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError("seed must be a uint32 integer")
@@ -175,6 +216,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.action_dtype_name = DEFAULT_DTYPE
         self.num_steps = DEFAULT_NUM_STEPS
         self.device = "cuda"
+        self.action_range_diagnostics = False
+        self._last_raw_action_range = None
 
     def load(self, checkpoint: str, device: str, options: dict[str, str]) -> None:
         if not checkpoint:
@@ -187,6 +230,9 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.dtype_name = options.get("dtype", DEFAULT_DTYPE)
         self.action_dtype_name = options.get("action_dtype", self.dtype_name)
         self.num_steps = int(options.get("num_steps", DEFAULT_NUM_STEPS))
+        self.action_range_diagnostics = _strict_bool_option(
+            options.get("action_range_diagnostics", False), "action_range_diagnostics")
+        self._last_raw_action_range = None
         if self.dtype_name not in ("bfloat16", "float32"):
             raise ValueError("dtype must be bfloat16 or float32")
         if self.action_dtype_name not in ("bfloat16", "float32"):
@@ -208,6 +254,9 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             reset_float32_rotary_caches(self.model)
         if self.dtype_name == "bfloat16":
             preserve_action_denormalization_precision(self.model)
+        if self.action_range_diagnostics:
+            capture_action_range_diagnostics(
+                self.model, lambda value: setattr(self, "_last_raw_action_range", value))
 
     def reset(self, seed: int | None = None) -> dict:
         if seed is not None:
@@ -239,7 +288,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         return {"actions": decode_actions(out.actions)}
 
     def info(self) -> dict:
-        return {
+        info = {
             "name": "molmoact2",
             "norm_tag": self.norm_tag,
             "dtype": self.dtype_name,
@@ -247,6 +296,10 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             "action_denormalization_dtype": "float32",
             "checkpoint": Path(self.checkpoint).name if self.checkpoint else "",
         }
+        if self.action_range_diagnostics:
+            info["action_range_diagnostics"] = True
+            info["last_raw_action_range"] = self._last_raw_action_range
+        return info
 
 
 def create() -> ServerPolicy:

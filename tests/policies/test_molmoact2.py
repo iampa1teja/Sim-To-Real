@@ -331,6 +331,81 @@ def test_loaded_policy_preserves_physical_target_precision_without_changing_weig
     assert policy.info()["action_denormalization_dtype"] == "float32"
 
 
+@pytest.mark.parametrize("dtype_name", ["bfloat16", "float32"])
+def test_opt_in_raw_ranges_capture_before_clipping_without_changing_actions_or_other_instances(server, monkeypatch, dtype_name):
+    from contextlib import nullcontext
+    from types import ModuleType
+
+    torch = pytest.importorskip("torch")
+
+    class Stats:
+        def unnormalize_action(self, action, tag):
+            return (action.float().clamp(-1, 1) * 20 + 189.140625).to(action.dtype)
+
+    class Model(torch.nn.Module):
+        def __init__(self, dtype):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.tensor([.12345], dtype=dtype))
+            self.stats = Stats()
+            self.raw = torch.tensor([[[-1.75, -.25, 1.25, 0., .125, 2.],
+                                      [1.5, .75, -1.25, .5, .125, -2.5]]], dtype=dtype)
+
+        def _get_robot_stats(self):
+            return self.stats
+
+        def predict_action(self, **kwargs):
+            return SimpleNamespace(actions=self.stats.unnormalize_action(self.raw, kwargs["norm_tag"]))
+
+    transformers = ModuleType("transformers")
+    transformers.AutoModelForImageTextToText = SimpleNamespace(
+        from_pretrained=lambda *args, **kwargs: Model(kwargs["dtype"]))
+    monkeypatch.setitem(sys.modules, "transformers", transformers)
+    monkeypatch.setattr(server, "load_processor", lambda checkpoint: object())
+    monkeypatch.setattr(torch, "autocast", lambda *args, **kwargs: nullcontext())
+    plain, diagnostic, isolated = [server.MolmoAct2ServerPolicy() for _ in range(3)]
+    plain.load("checkpoint", "cpu", {"dtype": dtype_name})
+    diagnostic.load("checkpoint", "cpu", {"dtype": dtype_name, "action_range_diagnostics": "true"})
+    isolated.load("checkpoint", "cpu", {"dtype": dtype_name, "action_range_diagnostics": True})
+    assert "action_range_diagnostics" not in plain.info()
+    assert "last_raw_action_range" not in plain.info()
+    assert diagnostic.info()["last_raw_action_range"] is None
+    assert isolated.info()["last_raw_action_range"] is None
+    raw_before = diagnostic.model.raw.clone()
+    weight_before = diagnostic.model.weight.detach().clone()
+    expected = plain.infer(request())["actions"]
+    actual = diagnostic.infer(request())["actions"]
+    np.testing.assert_array_equal(actual, expected)
+    assert torch.equal(diagnostic.model.raw, raw_before)
+    assert torch.equal(diagnostic.model.weight, weight_before)
+    assert isolated.info()["last_raw_action_range"] is None
+    assert "last_raw_action_range" not in plain.info()
+    info = diagnostic.info()
+    assert info["action_range_diagnostics"] is True
+    assert info["last_raw_action_range"] == {
+        "norm_tag": server.DEFAULT_NORM_TAG, "shape": [1, 2, 6],
+        "min": [-1.75, -.25, -1.25, 0., .125, -2.5],
+        "max": [1.5, .75, 1.25, .5, .125, 2.],
+        "below_minus_one": [1, 0, 1, 0, 0, 1],
+        "above_one": [1, 0, 1, 0, 0, 1], "nonfinite": [0] * 6}
+    # A later prediction replaces the range; metadata is scoped to this model.
+    diagnostic.model.raw.zero_()
+    diagnostic.infer(request())
+    assert diagnostic.info()["last_raw_action_range"]["max"] == [0.] * 6
+    assert isolated.info()["last_raw_action_range"] is None
+
+
+@pytest.mark.parametrize("value, expected", [(True, True), (False, False), ("true", True),
+                                             ("false", False), ("True", True), ("False", False)])
+def test_raw_range_option_accepts_explicit_boolean_values(server, value, expected):
+    assert server._strict_bool_option(value, "action_range_diagnostics") is expected
+
+
+@pytest.mark.parametrize("value", [0, 1, None, [], {}, "yes", "no", "1", "0", ""])
+def test_invalid_raw_range_option_is_rejected_before_loading_weights(server, value):
+    with pytest.raises(ValueError, match="action_range_diagnostics must be true or false"):
+        server.MolmoAct2ServerPolicy().load("checkpoint", "cpu", {"action_range_diagnostics": value})
+
+
 def test_precision_hook_is_idempotent_and_scoped_to_one_models_stats(server):
     torch = pytest.importorskip("torch")
 
@@ -374,7 +449,7 @@ def test_released_checkpoint_normalizer_retains_subdegree_targets_on_cpu(server)
     metadata = payload["metadata_by_tag"][server.DEFAULT_NORM_TAG]
     normalizer = namespace["_FeatureNormalizer"].from_stats(metadata["action_stats"], payload["norm_mode"])
     stats = SimpleNamespace(unnormalize_action=lambda action, tag: normalizer.unnormalize(action))
-    normalized = torch.linspace(-1, 1, 401).to(torch.bfloat16)[:, None].expand(-1, 6)
+    normalized = torch.linspace(-1.3, 1.3, 401).to(torch.bfloat16)[:, None].expand(-1, 6)
     original = stats.unnormalize_action(normalized, server.DEFAULT_NORM_TAG).float()
     expected = normalizer.unnormalize(normalized.float())
     assert (original - expected).abs().amax().item() > .4
@@ -382,6 +457,13 @@ def test_released_checkpoint_normalizer_retains_subdegree_targets_on_cpu(server)
     actual = stats.unnormalize_action(normalized, server.DEFAULT_NORM_TAG)
     assert actual.dtype == torch.float32
     torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    captured = []
+    server.capture_action_range_diagnostics(SimpleNamespace(_get_robot_stats=lambda: stats), captured.append)
+    observed = stats.unnormalize_action(normalized, server.DEFAULT_NORM_TAG)
+    torch.testing.assert_close(observed, actual, rtol=0, atol=0)
+    assert captured[0]["max"][0] > 1 and captured[0]["min"][0] < -1
+    assert all(count > 0 for count in captured[0]["above_one"])
+    assert all(count > 0 for count in captured[0]["below_minus_one"])
 
 
 @pytest.fixture
