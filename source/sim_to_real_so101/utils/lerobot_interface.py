@@ -528,6 +528,9 @@ class SimRemotePolicy:
         self._client = build_plugin_client(
             self._policy_name, self._iface.SO101_JOINT_ORDER, host=self._host, port=self._port,
             timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=policy_options)
+        if self._policy_name == "molmoact2":
+            self.policy_cameras = list(self._client.policy.cameras)
+            print(f"[INFO]: Molmo camera inputs: {self.policy_cameras}", flush=True)
         self.joint_transform = getattr(self._client.policy, "joint_transform", None)
         if self.joint_transform is not None:
             print(f"[INFO]: Policy joint transform: {self.joint_transform}")

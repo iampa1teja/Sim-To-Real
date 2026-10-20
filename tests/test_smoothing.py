@@ -79,7 +79,8 @@ def test_sim_connection_supplies_its_actual_joint_scales_only_to_molmo(monkeypat
         mapping_joint_mins=np.array([-116.279296875, -100, -100, -95, -160, -10]).view(CpuArray),
         mapping_joint_maxs=np.array([119.794921875, 100, 90, 95, 160, 100]).view(CpuArray))
     options = []
-    client = SimpleNamespace(client=SimpleNamespace(port=5556), policy=SimpleNamespace())
+    client = SimpleNamespace(client=SimpleNamespace(port=5556),
+                             policy=SimpleNamespace(cameras=("room", "wrist")))
 
     def build(*args, **kwargs):
         options.append(kwargs["policy_options"])

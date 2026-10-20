@@ -7,6 +7,9 @@ default to LeRobot degrees (gripper remains RANGE_0_100).
 Wire format:
   request  = {"state": float32 (6,), "images": {camera: uint8 (H, W, 3)}, "instruction": str}
   response = {"actions": float32 (T, 6)} model-frame absolute joint targets
+
+Client option include_original_room=true appends that image after room/wrist;
+the default remains the manifest's two cameras.
 """
 from __future__ import annotations
 
@@ -18,10 +21,23 @@ from sim_to_real_so101.policy_client.contract import ClientPolicy
 from sim_to_real_so101.policy_client.discovery import PolicyManifest
 
 
+def _include_original_room(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.lower() in ("true", "false"):
+        return value.lower() == "true"
+    raise ValueError("include_original_room must be true or false")
+
+
 class MolmoAct2ClientPolicy(ClientPolicy):
     def __init__(self, cameras: tuple[str, ...], language: bool,
-                 input_joint_units: str = "lerobot_degrees", arm_degrees_per_unit: str = "") -> None:
-        self.cameras = cameras
+                 input_joint_units: str = "lerobot_degrees", arm_degrees_per_unit: str = "",
+                 include_original_room: bool = False) -> None:
+        if not isinstance(include_original_room, bool):
+            raise ValueError("include_original_room must be true or false")
+        self.cameras = tuple(cameras)
+        if include_original_room and "original_room" not in self.cameras:
+            self.cameras += ("original_room",)
         self.language = language
         if input_joint_units not in ("lerobot_degrees", "lerobot_normalized", "model"):
             raise ValueError("input_joint_units must be lerobot_degrees, lerobot_normalized, or model")
@@ -51,7 +67,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
     def from_manifest(cls, manifest: PolicyManifest, options: dict[str, str]) -> "MolmoAct2ClientPolicy":
         return cls(manifest.cameras, manifest.language,
                    options.get("input_joint_units", "lerobot_degrees"),
-                   options.get("arm_degrees_per_unit", ""))
+                   options.get("arm_degrees_per_unit", ""),
+                   _include_original_room(options.get("include_original_room", False)))
 
     def build_request(
         self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str
