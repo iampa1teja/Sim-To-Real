@@ -230,7 +230,7 @@ def load_eval_set(path):
 
 class EvalSetStarts:
     """Ordered trials, repeated with deterministic seeds; same reset interface."""
-    def __init__(self, path, splits=None, repeats=1, seed=1984, start_offset=0):
+    def __init__(self, path, splits=None, repeats=1, seed=1984, start_offset=0, selection='all'):
         self.data = load_eval_set(path)
         if isinstance(splits, str):
             splits = splits.split(',')
@@ -242,6 +242,11 @@ class EvalSetStarts:
             raise ValueError('No selected eval starts')
         self.schedule = [dict(s, repeat=r, policy_seed=int(np.random.SeedSequence([seed, r, self.data['starts'].index(s)]).generate_state(1)[0]))
                          for r in range(repeats) for s in self.starts]
+        if selection == 'one_per_zone':
+            from .eval_smoke import one_per_zone
+            self.schedule = one_per_zone(self.schedule)
+        elif selection != 'all':
+            raise ValueError('Benchmark selection must be all or one_per_zone')
         if type(start_offset) is not int or not 0 <= start_offset <= len(self.schedule):
             raise ValueError('start_offset must be within the benchmark schedule')
         self.cursor = start_offset

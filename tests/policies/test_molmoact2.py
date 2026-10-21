@@ -187,7 +187,6 @@ def test_infer_returns_float32_chunk_and_passes_model_arguments(server, no_gpu_t
     assert call["norm_tag"] == "so100_so101_molmoact2" and call["task"] == "Pick up the blue cube"
     assert len(call["images"]) == 2 and call["inference_action_mode"] == "continuous"
     assert call["num_steps"] == 10 and call["enable_depth_reasoning"] is False
-    assert call["normalize_language"] is True and call["enable_cuda_graph"] is True
     np.testing.assert_array_equal(call["state"], np.arange(6, dtype=np.float32))
 
 
@@ -591,3 +590,79 @@ def test_load_restores_action_precision_before_gpu_move_and_refreshes_rotary_ali
 def test_load_rejects_unsupported_action_precision_before_loading_weights(server, options):
     with pytest.raises(ValueError, match="action_dtype"):
         server.MolmoAct2ServerPolicy().load("checkpoint", "cpu", options)
+
+
+def test_fp32_expert_compute_matches_reference_inside_outer_autocast(server):
+    """Use the released expert implementation, not a mock Linear-only stand-in."""
+    import ast
+    import math
+    import os
+    import typing
+    from dataclasses import dataclass
+    from pathlib import Path
+
+    torch = pytest.importorskip('torch')
+    source = Path(os.environ.get('MOLMOACT2_TEST_CHECKPOINT', '/external_storage/molmoact2/molmoact2_so101')) / 'modeling_molmoact2.py'
+    if not source.is_file():
+        pytest.skip('Released checkpoint source required for action compute precision regression')
+    tree = ast.parse(source.read_text())
+    expert_node = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'ActionExpert')
+    names = {'_modulate', '_round_up_multiple', '_init_linear', 'SinusoidalTimeEmbedding', 'ActionExpert'}
+    nodes = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+             and (n.name in names or n.name.startswith('ActionExpert')) and n.lineno <= expert_node.lineno]
+    namespace = dict(vars(typing), torch=torch, nn=torch.nn, F=torch.nn.functional, math=math,
+                     dataclass=dataclass, MolmoAct2ActionExpertConfig=SimpleNamespace, __name__=__name__)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), namespace)
+    config = SimpleNamespace(num_layers=2, hidden_size=32, num_heads=4, timestep_embed_dim=16,
+        max_action_dim=6, context_layer_norm=True, mlp_ratio=2., ffn_multiple_of=8, attn_dropout=0.,
+        dropout=0., qk_norm=True, qk_norm_eps=1e-6, rope=True, max_action_horizon=30, causal_attn=False)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(1984)
+        expert = namespace['ActionExpert'](config, llm_dim=32, llm_kv_dim=32, llm_num_layers=2).float().eval()
+        with torch.no_grad():
+            for module in expert.modules():
+                if isinstance(module, torch.nn.Linear):
+                    torch.nn.init.normal_(module.weight, std=.04)
+                    if module.bias is not None:
+                        torch.nn.init.normal_(module.bias, std=.01)
+        kv = [(torch.randn(1,12,32).bfloat16(), torch.randn(1,12,32).bfloat16()) for _ in range(2)]
+        actions = torch.randn(1,30,6)
+    original_actions = actions.clone()
+    weights = {name: value.clone() for name, value in expert.state_dict().items()}
+    kwargs = dict(batch_size=1, seq_len=30, device=actions.device, dtype=torch.float32)
+    t = torch.tensor([.5])
+    with torch.inference_mode(), torch.autocast('cpu', dtype=torch.bfloat16):
+        before_context = expert.prepare_context(encoder_kv_states=kv, **kwargs)
+        before = expert.forward_with_context(actions, t, context=before_context)
+    assert all(p.dtype == torch.float32 for p in expert.parameters())
+    assert before.dtype == torch.bfloat16
+    with torch.inference_mode(), torch.autocast('cpu', enabled=False):
+        context = expert.prepare_context(encoder_kv_states=[(k.float(), v.float()) for k,v in kv], **kwargs)
+        expected = expert.forward_with_context(actions, t, context=context)
+    model = SimpleNamespace(model=SimpleNamespace(action_expert=expert, action_cuda_graph_manager=SimpleNamespace(action_flow_graph=object())))
+    server.preserve_float32_action_compute(model)
+    installed = expert.prepare_context
+    server.preserve_float32_action_compute(model)
+    assert expert.prepare_context is installed
+    assert model.model.action_cuda_graph_manager.action_flow_graph is None
+    with torch.inference_mode(), torch.autocast('cpu', dtype=torch.bfloat16):
+        context = expert.prepare_context(encoder_kv_states=kv, **kwargs)
+        modulation = expert.get_or_prepare_modulation_cache([t], cache_key='test')[0]
+        actual = expert.forward_with_context(actions, t, context=context, modulation=modulation)
+    assert context.kv_contexts[0][0].dtype == torch.float32
+    assert modulation.conditioning.dtype == torch.float32
+    assert actual.dtype == torch.float32
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    assert not torch.equal(before.float(), expected)
+    torch.testing.assert_close(actions, original_actions, rtol=0, atol=0)
+    assert all(torch.equal(value, weights[name]) for name, value in expert.state_dict().items())
+    assert all(k.dtype == v.dtype == torch.bfloat16 for k, v in kv)
+
+
+@pytest.mark.parametrize('options', [
+    {'action_compute_dtype': 'float16'},
+    {'action_dtype': 'bfloat16', 'action_compute_dtype': 'float32'},
+])
+def test_invalid_action_compute_precision_fails_before_model_load(server, options):
+    with pytest.raises(ValueError, match='action_compute_dtype'):
+        server.MolmoAct2ServerPolicy().load('checkpoint', 'cuda', options)

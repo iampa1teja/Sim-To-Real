@@ -127,7 +127,8 @@ The 2026-10-21 Rerun smoke check then completed five 180-second rollouts on
 not improved grasp performance. The rollout finished, but its host launcher
 exited with a parse error after the script was edited while Bash was executing
 it; fresh-launch lifecycle checks pass. Avoid editing `docker/eval.sh` during a
-run. The full benchmark remains stopped with its previous results preserved.
+run. The full benchmark was stopped at that point with its previous results preserved;
+it can subsequently continue through `--resume`.
 
 Separate helper trials enabled `--seed_per_episode`, which resets the same
 noise seed before **every inference query**. In that mode, H30/R1 succeeded in
@@ -453,7 +454,7 @@ revision `152569fe57914d97be91055800035f54e250d009`:
 | Normalization | Original `norm_stats.json`, tag `so100_so101_molmoact2`; the model performs normalization and denormalization |
 | Images | RGB front and wrist images; the model card permits arbitrary camera order |
 | Prediction | Continuous actions, depth reasoning disabled, 10 flow solver steps |
-| Language and CUDA graphs | Explicitly enabled, matching the model-card defaults |
+| Language and CUDA graphs | Use the installed checkpoint's defaults (both enabled), matching the saved 4/11 run |
 | Chunk | Checkpoint maximum 30 targets; H30/R1 executes them at 30 Hz |
 
 All five installed weight-shard SHA-256 hashes were checked against that
@@ -472,6 +473,15 @@ uses this module split; the model card's reference evaluation uses full FP32 and
 also offers BF16 for lower-memory GPUs. This adapter additionally keeps action
 denormalization in FP32 to avoid rounding absolute angles near 180 degrees.
 Consequently this profile is not a bit-for-bit reproduction of full-FP32 evaluation.
+FP32 weight storage alone also does not prevent the outer BF16 autocast from
+evaluating expert projections in BF16. The optional research setting
+`policy.options.action_compute_dtype: float32` additionally promotes incoming
+VLM KV tensors and disables autocast around expert context projection,
+modulation and flow prediction. It requires `action_dtype: float32`; the default
+`autocast` retains the saved benchmark's computation. A CPU regression using a
+tiny instance of the released expert implementation verifies unchanged weights and exact output
+agreement with a separate FP32 expert reference. This does not establish better
+rollout performance. Neither setting changes model normalization or clipping.
 
 The existing `pan_model_scale` and `pan_model_offset` in the workshop YAML are
 **experimental local policy adaptation**, not an official Molmo setting or a
@@ -481,6 +491,48 @@ released policy, copy the YAML and remove both options; start a separate report
 because resume checks the transform. Camera geometry, simulator control frequency,
 timeout and benchmark starts are also local evaluation choices. No visual-servo
 or gripper override is enabled by this profile.
+
+#### Progress-gated, per-zone Molmo smoke test
+
+```bash
+./docker/eval.sh pick_place_molmo_so101_smoke.yaml --smoke-test
+```
+
+This separate config keeps the released SO-101 weights, original front/wrist
+inputs, H30/R1 and the existing experimental pan adaptation. It selects the
+first original scheduled example in each available zone: MC, FR, MR, NL, FL,
+NC, FC, ML and OUT. OUT is the benchmark's OOD label; no example is invented for
+an unrepresented table zone. Original start IDs, poses, recorded robot starts
+and seeds are retained. Selection happens after the full schedule's seed
+assignment, so reducing coverage cannot accidentally reassign seeds.
+
+The evaluation clock allows 60 **simulated** seconds to reach the cube, then
+30 seconds from each new ordered milestone: reached, grasped, lifted, over box,
+placed. For example, a first reach at 20 seconds sets the next deadline to
+50 seconds. Reaching or grasping again cannot refresh an earlier milestone;
+knocking the cube upward without grasping it does not earn more time. Progress
+on the deadline is accepted, but progress after expiration cannot revive the
+attempt. The configured 210-second ceiling is only the mathematical maximum
+when every new milestone arrives just in time; an unreached cube still stops
+the attempt at 60 seconds. Native task success and physics are unchanged.
+
+The deadline adds evaluation truncation, not a controller: model observations
+and actions are untouched. The profile has no visual servo, gripper latch,
+action smoothing, modified weights, or task-specific action generator. Rerun
+shows each attempt. No evaluator report, recording, CSV or run log is saved.
+The final `[SMOKE_RESULT]` console record supports automated comparisons; normal
+console filtering hides that machine record, while `EVAL_VERBOSE=1` displays it.
+Legacy `--smoke-test` configs without this section still run five episodes with
+their existing fixed timeout. The ordinary 180-second full-evaluation config
+and its resume fingerprint remain unchanged.
+
+For research comparisons, hold these starts, seeds, deadlines and rendering
+settings fixed. Compare the existing pan-adapted baseline separately from the
+native unwarped frame; the latter retains the learned pan-range constraint
+described above. Test one inference change at a time, repeat promising results
+with additional seeds, and report reach, grasp, placement, time and regressions.
+A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
+Failed candidates cannot prove that every possible tuning is exhausted.
 
 To inspect the initial pose in Isaac without loading a policy, run:
 

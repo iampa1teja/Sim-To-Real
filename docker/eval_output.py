@@ -24,7 +24,7 @@ ERROR = re.compile(r"error|exception|traceback|fatal|out of memory", re.I)
 WARNING = re.compile(r"\b(?:warn(?:ing)?|\w*Warning)\b", re.I)
 MESSAGE_START = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:|"
                            r"\[(?:INFO|WARN(?:ING)?|ERROR|FATAL|GRASP|DIAGNOSTIC|VISUAL_SERVO(?:_EVENT)?|"
-                           r"GRIPPER_EXECUTION|EPISODE|RESULT)(?: \d+)?\]|"
+                           r"GRIPPER_EXECUTION|EPISODE|RESULT|SMOKE_RESULT)(?: \d+)?\]|"
                            r"\b(?:\w*(?:Warning|Error|Exception)|WARNING):", re.I)
 TABLE_BORDER = re.compile(r"^[|+][-=+|]+[|+]$")
 ROUTINE = re.compile(
@@ -88,6 +88,8 @@ class LiveOutput:
             self.stream.write(("\r" if terminal else "") + line + ("" if terminal else "\n"))
             self.stream.flush()
             self.progress_visible = terminal
+            return
+        if not self.verbose and stripped.startswith('[SMOKE_RESULT] '):
             return
         if not self.verbose and (not stripped or (not ERROR.search(line) and (
                 WARNING.search(stripped) or border or table_row or ROUTINE.search(stripped)))):

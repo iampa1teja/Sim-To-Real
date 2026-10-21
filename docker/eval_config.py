@@ -39,6 +39,7 @@ SECTIONS = {
               "latch_dataset", "gripper_csv", "latch_steady_steps", "latch_steady_max_delta",
               "gripper_empty_closed", "latch_empty_margin", "latch_empty_confirm", "latch_reopen_steps"},
     "run": {"gui", "rerun"},
+    "smoke_test": {"selection", "reach_timeout_s", "progress_timeout_s"},
 }
 GRASP_FLAGS = {"gripper_latch", "log_gripper", "seed_per_episode"}
 
@@ -236,12 +237,31 @@ def build(data: dict, *, molmo_overhead_camera: bool = False) -> dict:
     out["seed_per_episode"] = "true" if "--seed_per_episode" in grasp_args else "false"
     out["grasp_args"] = grasp_args
 
+    smoke = data.get("smoke_test") or {}
+    selection = smoke.get("selection", "first_five")
+    if selection not in ("first_five", "one_per_zone"):
+        fail("smoke_test.selection must be first_five or one_per_zone.")
+    if selection == "one_per_zone" and not eval_set:
+        fail("smoke_test.selection=one_per_zone requires eval.eval_set.")
+    out["smoke_selection"] = selection
+    reach, progress = smoke.get("reach_timeout_s"), smoke.get("progress_timeout_s")
+    if (reach is None) != (progress is None):
+        fail("Set both smoke_test.reach_timeout_s and progress_timeout_s.")
+    for key, value in (("reach_timeout_s", reach), ("progress_timeout_s", progress)):
+        if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))
+                                  or not math.isfinite(value) or value <= 0):
+            fail(f"smoke_test.{key} must be finite and positive.")
+        out["smoke_" + key] = "" if value is None else value
+    if reach is not None and (name != "molmoact2" or not eval_set):
+        fail("Smoke progress deadlines require molmoact2 and a fixed eval.eval_set.")
+
     flags = data.get("run") or {}
     for key in ("gui", "rerun"):
         if not isinstance(flags.get(key, False), bool):
             fail(f"run.{key} must be true or false.")
         out[key] = "true" if flags.get(key, False) else "false"
-    ignored = {"gui", "rerun", "results_json", "save_videos", "video_dir", "video_encoder", "port", "server_image"}
+    ignored = {"gui", "rerun", "results_json", "save_videos", "video_dir", "video_encoder", "port", "server_image",
+               "smoke_selection", "smoke_reach_timeout_s", "smoke_progress_timeout_s"}
     identity = {key: value for key, value in out.items() if key not in ignored}
     out["config_fingerprint"] = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     return out

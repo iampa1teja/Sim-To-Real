@@ -18,8 +18,9 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
   --save_videos      Save room/wrist MP4 videos for each attempt (also eval.save_videos in YAML).
   --resume [JSON]    Continue the latest matching fixed-benchmark report, or an explicit absolute
                      results JSON path inside teleop. Completed attempts and videos are retained.
-  --smoke-test       Run exactly five episodes with Rerun; save no reports, videos, CSVs or run logs.
-                     Keeps the configured episode timeout. Overrides output settings in the YAML.
+  --smoke-test       Run five episodes, or one per zone when smoke_test.selection=one_per_zone.
+                     Rerun is enabled; no reports, videos, CSVs or run logs are saved.
+                     Optional smoke_test deadlines stop stalled attempts. Overrides output settings.
   --molmo-overhead-camera  Add a camera behind/above the arm for Molmo pick-place inputs.
                      Preserve the original room/wrist cameras and log all three in Rerun.
 
@@ -69,6 +70,9 @@ config_args=("$config")
 "$molmo_overhead_camera_flag" && config_args+=(--molmo-overhead-camera)
 config_vars=$(python3 "$repo_dir/docker/eval_config.py" "${config_args[@]}") || exit 1
 eval "$config_vars"
+if ! "$smoke_test" && [[ $smoke_selection != first_five || -n $smoke_reach_timeout_s ]]; then
+    fail 'This smoke protocol requires --smoke-test; it cannot change a normal evaluation.'
+fi
 ! "$resume" || [[ -n $eval_set ]] || fail '--resume requires eval.eval_set (a fixed benchmark schedule).'
 "$gui_flag" && gui=true
 "$rerun_flag" && rerun=true
@@ -259,7 +263,11 @@ if ! "$dry_run"; then
         printf 'Logs: %s\n' "$log_dir"
     fi
 fi
-if "$smoke_test"; then printf 'Smoke test: 5 episodes with Rerun; no evaluation artifacts will be saved.\n'; fi
+if "$smoke_test"; then
+    coverage='5 episodes'
+    [[ $smoke_selection != one_per_zone ]] || coverage='one original example per zone'
+    printf 'Smoke test: %s with Rerun; no evaluation artifacts will be saved.\n' "$coverage"
+fi
 if "$rerun" && ! "$server_only" && [[ -z $rerun_connect_url ]]; then
     # Use a native viewer matching teleop's SDK; fail before loading policy weights if unavailable.
     rerun_port=${RERUN_PORT:-9876}
@@ -429,7 +437,12 @@ eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
     --num_episodes "$episodes" --checkpoint "$model" --config_fingerprint "$config_fingerprint")
 "$resume" && eval_cmd+=(--resume)
-if "$smoke_test"; then eval_cmd+=(--smoke-test)
+if "$smoke_test"; then
+    eval_cmd+=(--smoke-test --smoke-selection "$smoke_selection")
+    if [[ -n $smoke_reach_timeout_s ]]; then
+        eval_cmd+=(--smoke-reach-timeout-s "$smoke_reach_timeout_s"
+                   --smoke-progress-timeout-s "$smoke_progress_timeout_s")
+    fi
 else eval_cmd+=(--results_json "$results"); fi
 "$molmo_overhead_camera" && eval_cmd+=(--molmo-overhead-camera)
 if [[ -n $eval_set ]]; then

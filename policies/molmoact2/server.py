@@ -11,6 +11,8 @@ Options (--option KEY=VALUE):
   dtype       bfloat16 (default, under 16 GB) or float32 (about 26 GB)
   action_dtype defaults to dtype; float32 keeps the action expert/norms/RoPE in
                original checkpoint precision with a bfloat16 backbone (~1.1 GB extra)
+  action_compute_dtype autocast (default, preserves the saved baseline) or float32;
+               float32 isolates expert compute from the backbone's BF16 autocast
   num_steps   flow-matching solver steps (default 10)
   action_range_diagnostics false (default); true exposes the last pre-clipping
                normalized action range through describe, without changing actions
@@ -156,6 +158,50 @@ def reset_float32_rotary_caches(model: Any) -> None:
             module._pos_cos_cache = torch.empty(0, device=module.inv_freq.device, dtype=torch.float32)
 
 
+def preserve_float32_action_compute(model: Any) -> None:
+    """Run the complete FP32 expert outside the VLM's outer autocast scope.
+
+    FP32 weight storage alone does not prevent autocast from evaluating Linear
+    layers in BF16. Promote incoming VLM KV tensors at the expert boundary, then
+    keep context projection, modulation and flow predictions in FP32. Released
+    weights, input/state processing, noise sampling and normalization are intact.
+    """
+    from functools import wraps
+    import torch
+
+    expert = model.model.action_expert
+    if getattr(expert, '_so101_float32_compute', False):
+        return
+    if any(p.dtype != torch.float32 for p in expert.parameters() if p.is_floating_point()):
+        raise ValueError('FP32 action compute requires FP32 action-expert weights')
+    original_context = expert.prepare_context
+
+    @wraps(original_context)
+    def prepare_context(*args, **kwargs):
+        kwargs = dict(kwargs)
+        kwargs['encoder_kv_states'] = tuple((key.float(), value.float())
+                                            for key, value in kwargs['encoder_kv_states'])
+        with torch.autocast(next(expert.parameters()).device.type, enabled=False):
+            return original_context(*args, **kwargs)
+
+    def without_autocast(original):
+        @wraps(original)
+        def wrapped(*args, **kwargs):
+            with torch.autocast(next(expert.parameters()).device.type, enabled=False):
+                return original(*args, **kwargs)
+        return wrapped
+
+    expert.prepare_context = prepare_context
+    expert.get_or_prepare_modulation_cache = without_autocast(expert.get_or_prepare_modulation_cache)
+    expert.forward_with_context = without_autocast(expert.forward_with_context)
+    expert._modulation_cache_key = None
+    expert._modulation_cache_value = None
+    manager = getattr(model.model, 'action_cuda_graph_manager', None)
+    if manager is not None:
+        manager.action_flow_graph = None
+    expert._so101_float32_compute = True
+
+
 def _strict_bool_option(value: Any, name: str) -> bool:
     if isinstance(value, bool):
         return value
@@ -214,6 +260,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.norm_tag = DEFAULT_NORM_TAG
         self.dtype_name = DEFAULT_DTYPE
         self.action_dtype_name = DEFAULT_DTYPE
+        self.action_compute_dtype = 'autocast'
         self.num_steps = DEFAULT_NUM_STEPS
         self.device = "cuda"
         self.action_range_diagnostics = False
@@ -229,6 +276,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.norm_tag = options.get("norm_tag", DEFAULT_NORM_TAG)
         self.dtype_name = options.get("dtype", DEFAULT_DTYPE)
         self.action_dtype_name = options.get("action_dtype", self.dtype_name)
+        self.action_compute_dtype = options.get('action_compute_dtype', 'autocast')
         self.num_steps = int(options.get("num_steps", DEFAULT_NUM_STEPS))
         self.action_range_diagnostics = _strict_bool_option(
             options.get("action_range_diagnostics", False), "action_range_diagnostics")
@@ -239,6 +287,10 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             raise ValueError("action_dtype must be bfloat16 or float32")
         if self.dtype_name == "float32" and self.action_dtype_name != "float32":
             raise ValueError("action_dtype=bfloat16 requires dtype=bfloat16")
+        if self.action_compute_dtype not in ('autocast', 'float32'):
+            raise ValueError('action_compute_dtype must be autocast or float32')
+        if self.action_compute_dtype == 'float32' and self.action_dtype_name != 'float32':
+            raise ValueError('action_compute_dtype=float32 requires action_dtype=float32')
 
         import torch
         from transformers import AutoModelForImageTextToText
@@ -252,6 +304,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.model.to(device).eval()
         if mixed_action_precision:
             reset_float32_rotary_caches(self.model)
+        if self.action_compute_dtype == 'float32':
+            preserve_float32_action_compute(self.model)
         if self.dtype_name == "bfloat16":
             preserve_action_denormalization_precision(self.model)
         if self.action_range_diagnostics:
@@ -284,8 +338,6 @@ class MolmoAct2ServerPolicy(ServerPolicy):
                 inference_action_mode="continuous",
                 num_steps=self.num_steps,
                 enable_depth_reasoning=False,
-                normalize_language=True,
-                enable_cuda_graph=True,
             )
         return {"actions": decode_actions(out.actions)}
 
@@ -295,6 +347,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             "norm_tag": self.norm_tag,
             "dtype": self.dtype_name,
             "action_dtype": self.action_dtype_name,
+            "action_compute_dtype": self.action_compute_dtype,
             "action_denormalization_dtype": "float32",
             "checkpoint": Path(self.checkpoint).name if self.checkpoint else "",
         }
