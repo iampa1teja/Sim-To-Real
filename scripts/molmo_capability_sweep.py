@@ -90,6 +90,14 @@ def validate_result(report, expected, horizon, options=None, overhead=False):
     return report
 
 
+def rank_result(item):
+    rows = item['report']['episodes']
+    successes = [row for row in rows if row['success']]
+    mean_success_time = sum(row['elapsed_sim_s'] for row in successes) / len(successes) if successes else 0.
+    # Fast failures are not a speed improvement. Time only completed placements.
+    return (len(successes), sum(row['stages']['grasped'] for row in rows), -mean_success_time)
+
+
 class Investigation:
     def __init__(self, args):
         import yaml
@@ -341,10 +349,7 @@ def main():
         if max(item['report']['overall']['successes'] for item in investigation.results) <= investigation.results[0]['report']['overall']['successes']:
             investigation.trial('fp32_explicit_task_instruction', fp32, instruction=
                 'Move the arm towards the blue cube, grasp it, lift it up, and drop it into the white box.')
-        ranked = sorted(investigation.results, key=lambda item: (
-            item['report']['overall']['successes'],
-            sum(r['stages']['grasped'] for r in item['report']['episodes']),
-            -sum(r['elapsed_sim_s'] for r in item['report']['episodes'])), reverse=True)
+        ranked = sorted(investigation.results, key=rank_result, reverse=True)
         leader = ranked[0]
         # Paired verification tests both the control and the leader under the
         # same extra seeds; it never silently increases any time budget.

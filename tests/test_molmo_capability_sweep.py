@@ -100,3 +100,13 @@ def test_gpu_memory_wait_does_not_replace_other_work(monkeypatch):
     monkeypatch.setattr(m.time, 'sleep', sleeps.append)
     worker.wait_for_gpu_memory()
     assert phases == ['waiting_for_gpu_memory'] and sleeps == [30]
+
+
+def test_fast_failure_does_not_improve_the_speed_ranking():
+    def candidate(success_time, failure_time):
+        return dict(report=dict(episodes=[
+            dict(success=True, elapsed_sim_s=success_time, stages=dict(grasped=True)),
+            dict(success=False, elapsed_sim_s=failure_time, stages=dict(grasped=False))]))
+    slower_placement = candidate(20, 60)
+    faster_placement = candidate(10, 90)
+    assert m.rank_result(faster_placement) > m.rank_result(slower_placement)
