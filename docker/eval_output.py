@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Show concise, live evaluator output, optionally retaining complete output on disk.
 
-Only routine banners and known initialization details are omitted. Warnings,
-errors and otherwise unrecognized output always remain visible.
+Routine startup output and warnings stay in the complete log. Errors remain
+visible; verbose mode also displays all initialization details and warnings.
 """
 from __future__ import annotations
 
@@ -20,7 +20,12 @@ import time
 
 
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
-DIAGNOSTIC = re.compile(r"warn|error|exception|traceback|fatal", re.I)
+ERROR = re.compile(r"error|exception|traceback|fatal|out of memory", re.I)
+WARNING = re.compile(r"\b(?:warn(?:ing)?|\w*Warning)\b", re.I)
+MESSAGE_START = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:|"
+                           r"\[(?:INFO|WARN(?:ING)?|ERROR|FATAL|GRASP|DIAGNOSTIC|VISUAL_SERVO(?:_EVENT)?|"
+                           r"GRIPPER_EXECUTION|EPISODE|RESULT)(?: \d+)?\]|"
+                           r"\b(?:\w*(?:Warning|Error|Exception)|WARNING):", re.I)
 TABLE_BORDER = re.compile(r"^[|+][-=+|]+[|+]$")
 ROUTINE = re.compile(
     r"^(?:"
@@ -31,6 +36,11 @@ ROUTINE = re.compile(
     r"|\[INFO\]: (?:Parsing configuration from:|Base environment:|Scene manager:|"
     r"Time taken for |Gym observation space:|Gym action space:|Click 'R'|"
     r"Initializing device with Rerun visualization:|Initialized LeRobot device)"
+    r"|\[INFO\]: (?:Molmo model state|Policy joint transform:)"
+    r"|Loading checkpoint shards:"
+    r"|Loading user config located at:"
+    r"|`use_fast` is set to"
+    r"|\d{4}-\d{2}-\d{2} [\d:,]+ INFO (?:server_core\.server|__main__):"
     r"|(?:Environment device|Environment seed|Physics step-size|Rendering step-size|"
     r"Environment step-size|Number of environments|Environment spacing|Source prim name|"
     r"Global prim paths|Replicate physics)\s*:"
@@ -48,6 +58,7 @@ class LiveOutput:
         self.episode = None
         self.progress_visible = False
         self.in_table = False
+        self.progress_stage = None
 
     def emit(self, record: str) -> None:
         line = ANSI.sub("", record).strip("\r\n")
@@ -56,23 +67,30 @@ class LiveOutput:
         table_row = self.in_table and stripped.startswith("|")
         self.in_table = border or table_row
         # tqdm can share a line with a log printed during inference.
-        if line.startswith("Rollout") and not DIAGNOSTIC.search(line):
-            split = re.search(r"\[(?:INFO)\]", line)
+        if line.startswith("Rollout"):
+            split = MESSAGE_START.search(line)
             if split:
                 self.emit(line[:split.start()] + "\r")
                 self.emit(line[split.start():] + "\n")
                 return
             now = self.clock()
             episode = line.partition(":")[0]
+            stage = re.search(r"stage=[^\]]*?(?=,\s*success=|\]|$)", line)
+            stage = stage.group(0) if stage else None
+            count = re.search(r"\b(\d+)/(\d+)\s*(?:\[|$)", line)
+            completed = count[1] == count[2] if count else "100%" in line
             terminal = self.stream.isatty()
-            if not terminal and episode == self.episode and now-self.last_progress < 5 and "100%" not in line:
+            if (not terminal and episode == self.episode and stage == self.progress_stage
+                    and now-self.last_progress < 5 and not completed and not ERROR.search(line)):
                 return
             self.last_progress, self.episode = now, episode
+            self.progress_stage = stage
             self.stream.write(("\r" if terminal else "") + line + ("" if terminal else "\n"))
             self.stream.flush()
             self.progress_visible = terminal
             return
-        if not self.verbose and (not stripped or (not DIAGNOSTIC.search(line) and (border or table_row or ROUTINE.search(stripped)))):
+        if not self.verbose and (not stripped or (not ERROR.search(line) and (
+                WARNING.search(stripped) or border or table_row or ROUTINE.search(stripped)))):
             return
         if self.progress_visible:
             self.stream.write("\n")

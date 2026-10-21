@@ -19,7 +19,7 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
-def test_filters_only_known_routine_output_and_preserves_diagnostics():
+def test_default_console_hides_warnings_and_routine_output_but_preserves_errors():
     stream = io.StringIO()
     output = module.LiveOutput(stream)
     for line in (
@@ -35,8 +35,9 @@ def test_filters_only_known_routine_output_and_preserves_diagnostics():
         output.emit(line)
     text = stream.getvalue()
     assert "Event Manager" not in text and "spawn_cube" not in text and "Audited" not in text
-    for required in ("unexpected warning", "surprising warning", "UserWarning", "CUDA out of memory",
-                     "ARM_new.usd", "unknown format", "Success rate", "Results JSON"):
+    for hidden in ("unexpected warning", "surprising warning", "UserWarning"):
+        assert hidden not in text
+    for required in ("CUDA out of memory", "ARM_new.usd", "unknown format", "Success rate", "Results JSON"):
         assert required in text
 
 
@@ -61,16 +62,51 @@ def test_interactive_progress_overwrites_line_and_separates_diagnostics():
     stream = Terminal()
     output = module.LiveOutput(stream)
     output.emit("Rollout (ep 1/1): 0%| | 0/10\r")
-    output.emit("WARNING: keep visible\n")
-    assert stream.getvalue() == "\rRollout (ep 1/1): 0%| | 0/10\nWARNING: keep visible\n"
+    output.emit("WARNING: stored in full log\n")
+    output.emit("ERROR: keep visible\n")
+    assert stream.getvalue() == "\rRollout (ep 1/1): 0%| | 0/10\nERROR: keep visible\n"
 
 
-def test_progress_never_throttles_a_warning_appended_without_newline():
+def test_rounded_100_percent_is_throttled_until_actual_completion():
+    stream = io.StringIO()
+    output = module.LiveOutput(stream, clock=lambda: 0)
+    for step in (5375, 5380, 5390, 5399, 5400):
+        output.emit(f'Rollout (ep 1/1): 100%|all| {step}/5400 [stage=reached]\r')
+    assert stream.getvalue().count('Rollout') == 2
+    assert '5400/5400' in stream.getvalue()
+
+
+def test_progress_separates_and_hides_an_appended_warning():
     stream = io.StringIO()
     output = module.LiveOutput(stream, clock=lambda: 0)
     output.emit("Rollout (ep 1/1): 0%| | 0/10\r")
     output.emit("Rollout (ep 1/1): 1%| | 1/10[Warning] unknown GPU warning\n")
-    assert "unknown GPU warning" in stream.getvalue()
+    assert "unknown GPU warning" not in stream.getvalue()
+
+
+def test_stage_changes_and_appended_events_bypass_progress_throttling():
+    stream = io.StringIO()
+    output = module.LiveOutput(stream, clock=lambda: 0)
+    output.emit('Rollout (ep 1/1): 0%| | 1/100 [stage=approaching, success=N/A (0/0)]\r')
+    output.emit('Rollout (ep 1/1): 1%| | 2/100 [stage=grasped, held=yes, success=N/A (0/0)]\r')
+    output.emit('Rollout (ep 1/1): 2%| | 3/100 [stage=lifted, held=yes, success=N/A (0/0)][VISUAL_SERVO_EVENT] handoff\n')
+    output.emit('Rollout (ep 1/1): 3%| | 4/100 RuntimeError: inference failed\n')
+    text = stream.getvalue()
+    assert 'stage=approaching' in text and 'stage=grasped' in text and 'stage=lifted' in text
+    assert '[VISUAL_SERVO_EVENT] handoff' in text
+    assert 'RuntimeError: inference failed' in text
+
+
+def test_verbose_mode_keeps_warnings_while_default_console_hides_model_state():
+    stream = io.StringIO()
+    output = module.LiveOutput(stream)
+    output.emit('[INFO]: Molmo model state (arm degrees, gripper 0-100): [1, 2, 3]\n')
+    output.emit('Loading checkpoint shards: 100%|all shards loaded\n')
+    output.emit('WARNING: suppressed only in normal console\n')
+    assert stream.getvalue() == ''
+    verbose = module.LiveOutput(stream, verbose=True)
+    verbose.emit('WARNING: visible in verbose mode\n')
+    assert 'visible in verbose mode' in stream.getvalue()
 
 
 def test_command_failure_retains_exact_bytes_exit_status_and_diagnostic_context(tmp_path):
@@ -82,7 +118,8 @@ def test_command_failure_retains_exact_bytes_exit_status_and_diagnostic_context(
     assert result.returncode == 7
     assert logfile.read_bytes() == original
     assert "hidden detail" not in result.stdout
-    assert "Warning: keep me" in result.stdout and "ERROR: inference failed" in result.stderr
+    assert "Warning: keep me" not in result.stdout
+    assert "ERROR: inference failed" in result.stderr
     assert "last context" in result.stderr and str(logfile) in result.stderr
 
 
@@ -94,7 +131,7 @@ def test_no_log_streams_console_diagnostics_without_creating_files(tmp_path, sta
     result = subprocess.run([sys.executable, str(HELPER), "--no-log", "--", sys.executable, "-c", code],
                             capture_output=True, text=True, cwd=tmp_path)
     assert result.returncode == status, result.stderr
-    assert "visible console warning" in result.stdout
+    assert "visible console warning" not in result.stdout
     assert "Rollout" in result.stdout
     assert "hidden detail" not in result.stdout
     if status:

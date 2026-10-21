@@ -175,7 +175,7 @@ elif args[:4] == ["exec", "teleop", "/workspace/isaaclab/_isaac_sim/python.sh", 
             process.terminate()
         stdout, stderr = process.communicate(timeout=5)
         assert process.returncode == {"success": 0, "failure": 7, "interrupt": 143}[mode], stderr
-        assert "smoke diagnostic remains visible" in stdout
+        assert "smoke diagnostic remains visible" not in stdout
         if mode == "failure":
             assert "smoke inference failed" in stdout + stderr
         if mode == "success":
@@ -419,9 +419,11 @@ elif sys.argv[1:4] == ["exec", "teleop", "cat"]:
                             capture_output=True, text=True, cwd=ROOT, env=env)
     assert result.returncode == eval_exit, result.stderr
     assert "full init detail" not in result.stdout
-    assert "new warning remains visible" in result.stdout and "Success rate" in result.stdout
+    assert "new warning remains visible" not in result.stdout
+    assert "Success rate" in result.stdout
     assert "raw_report_detail" not in result.stdout
     assert "full init detail" in (tmp_path / "logs/evaluation.log").read_text()
+    assert "new warning remains visible" in (tmp_path / "logs/evaluation.log").read_text()
     if eval_exit:
         assert "real inference failure" in result.stderr
         assert str(tmp_path / "logs/evaluation.log") in result.stderr
@@ -432,9 +434,11 @@ elif sys.argv[1:4] == ["exec", "teleop", "cat"]:
     assert "pip" not in (tmp_path / "calls.jsonl").read_text()
 
 
-def test_term_interrupts_host_wait_and_runs_owned_container_cleanup(tmp_path):
+@pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+def test_repeated_interrupt_cannot_abort_owned_container_cleanup(tmp_path, signum):
     docker = tmp_path / "docker"
     ready, cleaned = tmp_path / "ready", tmp_path / "cleaned"
+    cleaning = tmp_path / "cleaning"
     docker.write_text(f'''#!{sys.executable}
 import os, pathlib, sys, time
 if sys.argv[1] == "inspect":
@@ -444,6 +448,8 @@ elif "sim_to_real_so101.scripts.lerobot_eval" in sys.argv:
     time.sleep(60)
 elif sys.argv[1:5] == ["exec", "teleop", "/workspace/isaaclab/_isaac_sim/python.sh", "-c"]:
     assert "SO101_EVAL_RUN_ID=" in sys.argv[5]
+    pathlib.Path({str(cleaning)!r}).write_text("cleanup started")
+    time.sleep(.2)
     pathlib.Path({str(cleaned)!r}).write_text(sys.argv[6])
 ''')
     docker.chmod(0o755)
@@ -458,11 +464,18 @@ elif sys.argv[1:5] == ["exec", "teleop", "/workspace/isaaclab/_isaac_sim/python.
         while not ready.exists() and time.monotonic() < deadline:
             time.sleep(.02)
         assert ready.exists()
-        process.terminate()  # Signal Bash alone, as a supervising launcher does.
+        process.send_signal(signum)  # Signal Bash alone, as a supervising launcher does.
+        deadline = time.monotonic() + 5
+        while not cleaning.exists() and time.monotonic() < deadline:
+            time.sleep(.01)
+        assert cleaning.exists()
+        process.send_signal(signum)
         stdout, stderr = process.communicate(timeout=5)
-        assert process.returncode == 143, stderr
+        assert process.returncode == 128 + signum, stderr
         assert cleaned.read_text()
         assert "Logs:" in stdout
+        assert "Evaluation interrupted" in stdout
+        assert "Diagnostic log:" not in stderr
     finally:
         try:
             os.killpg(process.pid, signal.SIGKILL)
