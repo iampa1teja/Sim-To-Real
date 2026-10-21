@@ -187,7 +187,6 @@ def test_infer_returns_float32_chunk_and_passes_model_arguments(server, no_gpu_t
     assert call["norm_tag"] == "so100_so101_molmoact2" and call["task"] == "Pick up the blue cube"
     assert len(call["images"]) == 2 and call["inference_action_mode"] == "continuous"
     assert call["num_steps"] == 10 and call["enable_depth_reasoning"] is False
-    assert call["normalize_language"] is True and call["enable_cuda_graph"] is True
     np.testing.assert_array_equal(call["state"], np.arange(6, dtype=np.float32))
 
 

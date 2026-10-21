@@ -453,7 +453,7 @@ revision `152569fe57914d97be91055800035f54e250d009`:
 | Normalization | Original `norm_stats.json`, tag `so100_so101_molmoact2`; the model performs normalization and denormalization |
 | Images | RGB front and wrist images; the model card permits arbitrary camera order |
 | Prediction | Continuous actions, depth reasoning disabled, 10 flow solver steps |
-| Language and CUDA graphs | Explicitly enabled, matching the model-card defaults |
+| Language and CUDA graphs | Use the installed checkpoint's defaults (both enabled), matching the saved 4/11 run |
 | Chunk | Checkpoint maximum 30 targets; H30/R1 executes them at 30 Hz |
 
 All five installed weight-shard SHA-256 hashes were checked against that
