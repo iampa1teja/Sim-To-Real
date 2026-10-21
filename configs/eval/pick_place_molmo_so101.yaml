@@ -35,7 +35,7 @@ eval:
   action_horizon: 30                  # execute the released SO-101 checkpoint's full action chunk
   action_repeat: 1                    # 30 Hz simulation control; query every simulated second
   molmo_overhead_camera: false        # optional added camera; preserve the original front/wrist setup
-  episode_length_s: 300               # five simulated minutes per try = 9000 control steps
+  episode_length_s: 90                # 1 min 30 s simulated time per try = 2700 control steps
   render_warmup: 0                    # update Rerun cameras continuously between policy queries
   lang: Pick up the blue cube and place it in the white box
   rename_map:
