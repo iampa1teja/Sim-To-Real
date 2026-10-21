@@ -189,7 +189,7 @@ For a five-episode check with Rerun and no saved evaluation artifacts:
 `--smoke-test` forces five episodes and enables Rerun, overriding the benchmark
 count and any report, video or CSV saving options. It uses the first five
 scheduled benchmark starts; selections shorter than five are repeated to reach
-five attempts. The configured episode timeout stays in effect (90 simulated
+five attempts. The configured episode timeout stays in effect (180 simulated
 seconds per attempt in the SO-101 Molmo profile). Progress, success timing and
 the final summary appear in the terminal. No results JSON, heatmap, MP4,
 gripper/timing CSV or launcher log directory is written, even on failure or
@@ -261,8 +261,8 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 
 Molmo's `pick_place_molmo_so101.yaml` selects the SO-100/101 fine-tuned checkpoint;
 prepare it with `./scripts/setup_molmoact2.sh --variant so101`, then evaluate with
-`./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 90
-simulation seconds (1 minute 30 seconds); successful attempts end early. Each episode
+`./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 180
+simulation seconds (3 minutes); successful attempts end early. Each episode
 logs simulation elapsed time and actual wall time, with time to success reported
 for successful attempts. These clocks include settling steps; wall time includes
 inference, rendering and optional recording, and excludes model startup.
@@ -318,7 +318,7 @@ for a new run.
 
 For example, a successful attempt prints
 `time_to_success=12.50s sim (18.20s wall)`. An unsuccessful attempt prints
-`timeout_elapsed=90.00s sim (...)` at its configured limit. Both elapsed times
+`timeout_elapsed=180.00s sim (...)` at its configured limit. Both elapsed times
 are stored in JSON; success-time fields are null on failure. Completed videos
 are named `episode_000000_room.mp4` and `episode_000000_wrist.mp4`, with the
 paths stored in each episode's `videos` mapping. Ordinary Python exceptions
