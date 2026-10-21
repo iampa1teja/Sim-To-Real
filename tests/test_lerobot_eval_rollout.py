@@ -180,7 +180,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
                 from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
                 offset = params.get('start_offset', 0)
                 env.benchmark = EvalSetStarts(params['eval_set'], params['splits'], params['repeats'], cfg.seed,
-                                              start_offset=offset)
+                                              start_offset=offset, selection=params.get('selection', 'all'))
                 env.episode = offset
             return env
         env.progress_bars = []
@@ -296,6 +296,26 @@ class EvaluatorRolloutTests(unittest.TestCase):
                 self.assertEqual(FakePolicy.instances[-1].reset_seeds,
                                  [s['policy_seed'] for s in plan.schedule[:5]])
                 self.assertIn('[RESULT] complete: 5/5 episodes; success 5/5 (100.0%)', env.printed)
+
+    def test_one_per_zone_smoke_keeps_original_seeds_and_saves_nothing(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
+        benchmark_path = ROOT / 'eval_sets/pick_place_v1_seed1984.json'
+        rerun = SimpleNamespace(get_global_data_recording=lambda: None, disconnect=lambda: None)
+        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {'rerun': rerun}):
+            root = Path(directory)
+            env, cfg = self.evaluate(root / 'report.json', args_override={
+                'smoke_test': True, 'smoke_selection': 'one_per_zone', 'eval_set': benchmark_path,
+                'splits': None, 'repeats': 1, 'save_videos': True}, outcomes=[(1, True, False)] * 10)
+            self.assertEqual(list(root.iterdir()), [])
+        self.assertEqual(env.episode, 9)
+        self.assertEqual(cfg.events.spawn_cube.params['selection'], 'one_per_zone')
+        expected = EvalSetStarts(benchmark_path, seed=17, selection='one_per_zone')
+        self.assertEqual(FakePolicy.instances[-1].reset_seeds, [r['policy_seed'] for r in expected.schedule])
+        self.assertIn('[RESULT] complete: 9/9 episodes; success 9/9 (100.0%)', env.printed)
+        record = next(line for line in env.printed if line.startswith('[SMOKE_RESULT] '))
+        report = json.loads(record.split(' ', 1)[1])
+        self.assertTrue(report['complete'])
+        self.assertEqual([r['start_id'] for r in report['episodes']], [r['id'] for r in expected.schedule])
 
     def test_molmo_smoke_diagnostics_are_console_only_and_reset_each_episode(self):
         from sim_to_real_so101.utils.grasp_diagnostics import GraspTrace

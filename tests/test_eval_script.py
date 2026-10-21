@@ -122,6 +122,30 @@ def test_smoke_test_rejects_server_only(tmp_path):
     assert "smoke" in result.stderr.lower() and "server_only" in result.stderr
 
 
+def test_zone_smoke_config_forwards_deadlines_without_saved_outputs():
+    result = subprocess.run(['bash', str(SCRIPT), 'pick_place_molmo_so101_smoke.yaml',
+                             '--smoke-test', '--dry_run'], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    client = find(result, 'docker exec -e POLICIES_DIR')
+    for option in ('--smoke-selection one_per_zone', '--smoke-reach-timeout-s 60',
+                   '--smoke-progress-timeout-s 30', '--action_horizon 30'):
+        assert option in client
+    assert '--save_videos' not in client and '--results_json' not in client
+    assert 'one original example per zone' in result.stdout
+
+
+@pytest.mark.parametrize('settings', [
+    'selection: unknown', 'reach_timeout_s: 60',
+    'reach_timeout_s: 0\n  progress_timeout_s: 30',
+    'reach_timeout_s: .nan\n  progress_timeout_s: 30',
+    'reach_timeout_s: true\n  progress_timeout_s: 30',
+])
+def test_invalid_smoke_protocol_is_rejected(tmp_path, settings):
+    text = BASE + 'smoke_test:\n  ' + settings + '\n'
+    result = run(tmp_path, text, '--smoke-test')
+    assert result.returncode != 0 and 'smoke' in result.stderr.lower()
+
+
 @pytest.mark.parametrize("mode, existing_log_dir", [("success", False), ("failure", True), ("interrupt", False)])
 def test_smoke_lifecycle_creates_no_output_files_even_on_failure_or_interrupt(tmp_path, mode, existing_log_dir):
     # The fake CLI writes harness markers only; evaluator output directories must remain untouched.

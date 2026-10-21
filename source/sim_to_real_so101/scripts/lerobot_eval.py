@@ -134,6 +134,9 @@ parser.add_argument("--render_warmup", type=int, default=0,
 parser.add_argument("--eval_set", type=Path, help="Fixed benchmark JSON (overrides num_episodes)")
 parser.add_argument("--splits", help="Comma-separated splits, default all in the file")
 parser.add_argument("--repeats", type=int, default=1)
+parser.add_argument("--smoke-selection", choices=("first_five", "one_per_zone"), default="first_five")
+parser.add_argument("--smoke-reach-timeout-s", type=float, default=None)
+parser.add_argument("--smoke-progress-timeout-s", type=float, default=None)
 
 parser.add_argument("--cube_starts", help="Directory containing episode_*.json cube trajectories")
 parser.add_argument("--start_mode", choices=("cycle", "random"), default="cycle")
@@ -199,6 +202,19 @@ def _evaluate():
     from time import monotonic
     from sim_to_real_so101.utils.eval_resume import load_episodes, read_report, write_report, next_video_attempt
     smoke_test = getattr(args_cli, "smoke_test", False)
+    smoke_selection = getattr(args_cli, "smoke_selection", "first_five")
+    smoke_reach = getattr(args_cli, "smoke_reach_timeout_s", None)
+    smoke_progress = getattr(args_cli, "smoke_progress_timeout_s", None)
+    smoke_budget = None
+    if (smoke_reach is None) != (smoke_progress is None):
+        raise ValueError("Set both smoke deadline durations")
+    if not smoke_test and (smoke_selection != "first_five" or smoke_reach is not None):
+        raise ValueError("Smoke selection and deadlines require --smoke-test")
+    if smoke_reach is not None:
+        from sim_to_real_so101.utils.eval_smoke import MilestoneDeadline
+        smoke_budget = MilestoneDeadline(smoke_reach, smoke_progress)
+        if args_cli.policy != "molmoact2" or not getattr(args_cli, "eval_set", None):
+            raise ValueError("Smoke progress deadlines require Molmo with a fixed benchmark")
     resume = getattr(args_cli, "resume", False)
     if resume and (smoke_test or not getattr(args_cli, "eval_set", None) or not args_cli.results_json):
         raise ValueError("--resume requires --eval_set and --results_json, and cannot be used with --smoke-test")
@@ -212,7 +228,8 @@ def _evaluate():
         args_cli.timing_csv = ""
         args_cli.log_gripper = False
         args_cli.gripper_csv = ""
-        print("[SMOKE TEST] Five episodes with Rerun; evaluation output is console-only.")
+        coverage = "One example per zone" if smoke_selection == "one_per_zone" else "Five episodes"
+        print(f"[SMOKE TEST] {coverage} with Rerun; evaluation output is console-only.")
     max_horizon = 30 if args_cli.policy == "molmoact2" else 16
     if args_cli.action_horizon is None:
         args_cli.action_horizon = max_horizon
@@ -235,16 +252,20 @@ def _evaluate():
     if getattr(args_cli, 'eval_set', None):
         from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, StageTrace, benchmark_report, save_heatmap, polygons_match
         from sim_to_real_so101.utils.pick_place_benchmark_runtime import install_stage_tracking, capture_scene
-        benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
-        if smoke_test and len(benchmark.schedule) < 5:
+        selection = "one_per_zone" if smoke_test and smoke_selection == "one_per_zone" else "all"
+        benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed,
+                                  selection=selection)
+        if smoke_test and smoke_selection == "first_five" and len(benchmark.schedule) < 5:
             # Repeat small selections so smoke mode still executes exactly five attempts.
             args_cli.repeats *= math.ceil(5 / len(benchmark.schedule))
             benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
-        args_cli.num_episodes = 5 if smoke_test else len(benchmark.schedule)
+        args_cli.num_episodes = 5 if smoke_test and smoke_selection == "first_five" else len(benchmark.schedule)
         if args_cli.random_fraction != 0:
             raise ValueError('--eval_set cannot be combined with random_fraction')
     elif getattr(args_cli, 'splits', None) or getattr(args_cli, 'repeats', 1) != 1:
         raise ValueError('--splits and --repeats require --eval_set')
+    elif smoke_selection == "one_per_zone":
+        raise ValueError("One-per-zone smoke coverage requires --eval_set")
     saved_report = read_report(args_cli.results_json) if resume else None
     if saved_report and saved_report.get("save_videos"):
         args_cli.save_videos = True
@@ -272,6 +293,8 @@ def _evaluate():
     print(f"[INFO]: Robot USD: {env_cfg.scene.robot.spawn.usd_path}")
     if args_cli.episode_length_s is not None:
         env_cfg.episode_length_s = args_cli.episode_length_s
+    if smoke_budget is not None:
+        env_cfg.episode_length_s = smoke_budget.maximum_duration_s
     episode_length_s = float(env_cfg.episode_length_s)
     if not math.isfinite(episode_length_s) or episode_length_s <= 0:
         raise ValueError("episode_length_s must be finite and greater than 0")
@@ -294,6 +317,8 @@ def _evaluate():
         if benchmark:
             params.update(eval_set=str(args_cli.eval_set), splits=args_cli.splits, repeats=args_cli.repeats,
                           start_offset=len(saved_report["episodes"]) if resume else 0)
+            if smoke_test and smoke_selection == "one_per_zone":
+                params["selection"] = "one_per_zone"
     elif benchmark or args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
         raise ValueError("Cube starts and colour instructions require a pick-place Eval task")
 
@@ -319,6 +344,15 @@ def _evaluate():
               f"({args_cli.action_horizon} targets held for {action_repeat} control ticks each).", flush=True)
     if benchmark:
         install_stage_tracking(env.unwrapped)
+    smoke_deadline = None
+    if smoke_budget is not None:
+        from sim_to_real_so101.utils.eval_smoke import install_milestone_deadline
+        smoke_deadline = install_milestone_deadline(env.unwrapped, smoke_reach, smoke_progress)
+        print(f"[SMOKE TEST] {smoke_reach:g}s sim to reach; {smoke_progress:g}s per new milestone; "
+              "repeated milestones do not extend the deadline.", flush=True)
+    if smoke_test and smoke_selection == "one_per_zone":
+        print("[SMOKE TEST] Fixed starts: " + json.dumps([
+            dict(start_id=r['id'], zone=r['zone'], policy_seed=r['policy_seed']) for r in benchmark.schedule]), flush=True)
 
     # print info (this is vectorized environment)
     print(f"[INFO]: Gym observation space: {env.observation_space}")
@@ -366,6 +400,8 @@ def _evaluate():
     smoothing_kwargs = {key: getattr(args_cli, key) for key, default in smoothing_defaults.items()
                         if getattr(args_cli, key, default) != default}
     grasp_config = GraspConfig(**{name: getattr(args_cli, name) for name in GraspConfig.__dataclass_fields__})
+    if smoke_budget is not None and (grasp_config.gripper_latch or smoothing_kwargs):
+        raise ValueError("Unassisted Molmo smoke trials require no gripper override or action smoothing")
     grasp_kwargs = {}
     if grasp_config.enabled or args_cli.seed_per_episode:
         grasp_kwargs = dict(grasp_config=grasp_config, seed_per_episode=args_cli.seed_per_episode,
@@ -472,6 +508,9 @@ def _evaluate():
             report['smoothing'] = {key: getattr(args_cli, key, default)
                                    for key, default in smoothing_defaults.items()}
         report['requested_episodes'] = args_cli.num_episodes
+        if smoke_test:
+            report['smoke_test'] = dict(selection=smoke_selection, reach_timeout_s=smoke_reach,
+                                        progress_timeout_s=smoke_progress)
         report['complete'] = len(episodes) == args_cli.num_episodes
         report["policy"] = args_cli.policy
         fingerprint = getattr(args_cli, "config_fingerprint", None)
@@ -623,6 +662,8 @@ def _evaluate():
                     if grasp_diagnostics is not None:
                         row['grasp_diagnostics'] = grasp_diagnostics.summary()
                         grasp_diagnostics.reset()
+                    if smoke_deadline is not None:
+                        row['smoke_deadline'] = smoke_deadline.summary()
                     episodes.append(row)
                     successes += int(row['success'])
                     if args_cli.results_json:
@@ -635,6 +676,8 @@ def _evaluate():
                     final_status = f" {terminal_stage}" if terminal_stage else ""
                     if row.get('failure_mode'):
                         final_status += f" failure={row['failure_mode']}"
+                    if row.get('smoke_deadline', {}).get('stop_reason'):
+                        final_status += " stop=" + row['smoke_deadline']['stop_reason']
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
                           f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step} "
                           f"{timing_label}={row['elapsed_sim_s']:.2f}s sim "
@@ -644,6 +687,8 @@ def _evaluate():
                     if len(episodes) == args_cli.num_episodes:
                         break
                     metadata = episode_metadata()
+                    if smoke_deadline is not None:
+                        smoke_deadline.reset()
                     if benchmark:
                         policy.reset(seed=metadata['policy_seed'])
                     else:
@@ -705,6 +750,20 @@ def _evaluate():
             if benchmark:
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
+        elif smoke_test and (smoke_selection == "one_per_zone" or smoke_budget is not None):
+            # Machine-readable console output lets research runners compare
+            # candidates without creating smoke report/video/log files.
+            smoke_result = {key: report.get(key) for key in (
+                'complete', 'requested_episodes', 'checkpoint', 'seed', 'step_dt', 'episode_length_s', 'action_horizon',
+                'action_repeat', 'policy_cameras', 'policy_joint_transform', 'resume_settings', 'smoke_test', 'overall')}
+            smoke_result['episodes'] = [{key: row.get(key) for key in (
+                'start_id', 'zone', 'policy_seed', 'success', 'elapsed_sim_s', 'wall_time_s',
+                'failure_mode', 'stages', 'smoke_deadline')} for row in episodes]
+            for item, row in zip(smoke_result['episodes'], episodes):
+                diagnostics = row.get('grasp_diagnostics') or {}
+                item['closest_tool_error_mm'] = (diagnostics.get('closest') or {}).get('tool_error_mm')
+                item['closest_closing_tool_error_mm'] = (diagnostics.get('closest_closing') or {}).get('tool_error_mm')
+            print('[SMOKE_RESULT] ' + json.dumps(smoke_result, separators=(',', ':'), allow_nan=False), flush=True)
         elif not smoke_test:
             print(json.dumps(report, indent=2, allow_nan=False))
         # Kit may exit without flushing Python's redirected stdout during shutdown.

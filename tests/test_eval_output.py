@@ -19,6 +19,15 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
+def test_machine_smoke_result_is_available_only_in_verbose_console():
+    record = '[SMOKE_RESULT] {"complete":true,"failure_mode":"progress_timeout","error_mm":2}'
+    stream = io.StringIO()
+    module.LiveOutput(stream).emit(record)
+    assert stream.getvalue() == ''
+    module.LiveOutput(stream, verbose=True).emit(record)
+    assert record in stream.getvalue()
+
+
 def test_default_console_hides_warnings_and_routine_output_but_preserves_errors():
     stream = io.StringIO()
     output = module.LiveOutput(stream)

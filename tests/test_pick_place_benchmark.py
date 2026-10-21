@@ -225,9 +225,10 @@ class RuntimeTests(unittest.TestCase):
         import torch
         from types import SimpleNamespace as NS
         from sim_to_real_so101.utils.pick_place_benchmark_runtime import install_stage_tracking
-        cube=NS(data=NS(root_pos_w=torch.tensor([[0.,0.,.03]])))
+        cube=NS(data=NS(root_pos_w=torch.tensor([[0.,0.,.03]])), cfg=NS(spawn=NS(size=(.02,.02,.02))))
         box=NS(data=NS(root_pos_w=torch.tensor([[0.,0.,0.]]),root_quat_w=torch.tensor([[1.,0.,0.,0.]])))
-        ee=NS(data=NS(target_pos_w=torch.tensor([[[0.,0.,.04]]])))
+        ee=NS(data=NS(target_pos_w=torch.tensor([[[0.,0.,.04]]]),
+                      target_quat_w=torch.tensor([[[1.,0.,0.,0.]]])))
         result=torch.tensor([True]); calls=[]
         def success(env,**params):
             calls.append('original')
@@ -237,13 +238,22 @@ class RuntimeTests(unittest.TestCase):
                     min_lift=.01,warmup_steps=30,force_threshold=2,confirm_steps=25)
         cfg=NS(func=success,params=params)
         manager=NS(get_term_cfg=lambda name:cfg,set_term_cfg=lambda name,c:None)
-        raw=NS(termination_manager=manager,scene={'cube':cube,'box':box,'ee_frame':ee},
+        class Scene(dict):
+            env_prim_paths = ['/World/envs/env_0']
+        raw=NS(termination_manager=manager,scene=Scene(cube=cube,box=box,ee_frame=ee),
                _pick_place_rest_z=torch.tensor([.01]),_pick_place_holding=torch.tensor([True]))
         def grasp(env,**kw):
             self.assertNotIn('confirm_steps',kw);self.assertNotIn('container_name',kw)
             return torch.tensor([[1.]])
         terms=NS(object_grasped=grasp,object_placed_in_container=lambda env,**kw:torch.tensor([[1.]]))
-        with patch.dict(sys.modules,{'sim_to_real_so101.mdp.terms':terms}):
+        # This test checks terminal-frame bookkeeping, not USD geometry. Supply
+        # the fixture's zero tip offset without requiring an Isaac installation.
+        geometry=NS(gripper_tip_local_offset=lambda *args: [0.,0.,0.])
+        modules={'sim_to_real_so101.mdp.terms':terms,
+                 'sim_to_real_so101.utils.gripper_geometry':geometry,
+                 'isaaclab.utils':NS(math=NS(quat_apply=lambda q, offset:offset)),
+                 'isaacsim.core.utils.stage':NS(get_current_stage=lambda:None)}
+        with patch.dict(sys.modules,modules):
             install_stage_tracking(raw)
             self.assertIs(cfg.func(raw,**params),result)
         self.assertEqual(calls,['original'])

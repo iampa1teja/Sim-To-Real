@@ -429,7 +429,7 @@ def _robot_states_root(starts_dir, reset_robot):
 
 def reset_cube_from_recorded_starts(
     env, env_ids, asset_cfg, starts_dir, mode="cycle", random_fraction=0.0, seed=None, reset_robot=True,
-    eval_set=None, splits=None, repeats=1, start_offset=0,
+    eval_set=None, splits=None, repeats=1, start_offset=0, selection="all",
 ):
     """Evaluation-only placement from base-link frame trajectory starts.
 
@@ -452,11 +452,12 @@ def reset_cube_from_recorded_starts(
     seed = seed if seed is not None else env.cfg.seed
     key = (starts_dir, mode, random_fraction, seed, bool(reset_robot))
     if eval_set:
-        key += (eval_set, splits, repeats, start_offset)
+        key += (eval_set, splits, repeats, start_offset, selection)
     if getattr(env, "_pick_place_starts_key", None) != key:
         if eval_set:
             from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
-            env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset)
+            env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset,
+                                                 selection=selection)
         else:
             env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
                                                     robot_states_root=_robot_states_root(starts_dir, reset_robot))
