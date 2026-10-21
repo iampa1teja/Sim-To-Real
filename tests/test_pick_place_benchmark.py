@@ -172,6 +172,23 @@ class StatisticsTests(unittest.TestCase):
             self.assertIsNone(t.finish(True)['failure_mode'])
             self.assertTrue(t.finish(True)['stages']['success'])
 
+    def test_progress_distinguishes_milestones_from_current_holding(self):
+        trace=b.StageTrace()
+        self.assertEqual(trace.progress_label(),'stage=approaching')
+        data=dict(distance=.02,grasped=False,lift=0,min_lift=.01,held=False,inside_box=False,placed=False)
+        trace.observe(**data)
+        self.assertEqual(trace.progress_label(),'stage=reached')
+        trace.observe(**dict(data,grasped=True,lift=.02,held=True))
+        self.assertEqual(trace.progress_label(),'stage=lifted, held=yes')
+        trace.observe(**data)
+        self.assertEqual(trace.progress_label(),'stage=lifted, held=no')
+        trace.observe(**dict(data,held=True,inside_box=True))
+        self.assertEqual(trace.progress_label(),'stage=over box, held=yes')
+        trace.observe(**dict(data,placed=True))
+        self.assertEqual(trace.progress_label(),'stage=placed')
+        trace.observe(**dict(data,success=True))
+        self.assertEqual(trace.progress_label(),'stage=success')
+
     def test_report_heatmap_and_comparison(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); _,_,scene=fixture(root)

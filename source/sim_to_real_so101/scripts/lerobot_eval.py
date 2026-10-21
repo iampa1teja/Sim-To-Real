@@ -426,10 +426,12 @@ def _evaluate():
     video_attempt = 0
     video_dir = getattr(args_cli, "video_dir", None) if resume else None
 
-    def progress_summary():
+    def progress_summary(stage_label=None):
         completed = len(episodes)
         rate = f"{successes / completed:.1%}" if completed else "N/A"
-        return f"success={rate} ({successes}/{completed})"
+        if benchmark and stage_label is None:
+            stage_label = env.unwrapped._benchmark_trace.progress_label()
+        return (f"{stage_label}, " if stage_label else "") + f"success={rate} ({successes}/{completed})"
 
     def build_report():
         report_fn = results_report
@@ -571,7 +573,8 @@ def _evaluate():
                         video_attempt += 1
                     pbar = tqdm(total=env.unwrapped.max_episode_length,
                                 desc=f"Rollout (ep {len(episodes) + 1}/{args_cli.num_episodes})", unit="step")
-                    pbar.set_postfix_str(progress_summary())
+                    progress_text = progress_summary()
+                    pbar.set_postfix_str(progress_text)
                 if step < 10:
                     actions[:] = settling_action
                 else:
@@ -598,6 +601,7 @@ def _evaluate():
                 is_terminated = bool(terminated.any().item())
                 is_truncated = bool(truncated.any().item())
                 if is_terminated or is_truncated:
+                    terminal_stage = env.unwrapped._benchmark_trace.progress_label() if benchmark else None
                     row = {**metadata, "episode": len(episodes), "steps": step,
                            "success": is_terminated and not is_truncated,
                            "success_step": step if is_terminated and not is_truncated else None,
@@ -623,15 +627,18 @@ def _evaluate():
                     successes += int(row['success'])
                     if args_cli.results_json:
                         write_report(args_cli.results_json, build_report())
-                    pbar.set_postfix_str(progress_summary())
+                    pbar.set_postfix_str(progress_summary(terminal_stage))
                     pbar.close()
                     pbar = None
                     start = "random" if row['start_index'] == -1 else row['start_index']
                     timing_label = "time_to_success" if row["success"] else "timeout_elapsed"
+                    final_status = f" {terminal_stage}" if terminal_stage else ""
+                    if row.get('failure_mode'):
+                        final_status += f" failure={row['failure_mode']}"
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
                           f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step} "
                           f"{timing_label}={row['elapsed_sim_s']:.2f}s sim "
-                          f"({row['wall_time_s']:.2f}s wall)", flush=True)
+                          f"({row['wall_time_s']:.2f}s wall){final_status}", flush=True)
                     if grasp_diagnostics is not None:
                         print(f"[GRASP {len(episodes)}] " + json.dumps(row['grasp_diagnostics']), flush=True)
                     if len(episodes) == args_cli.num_episodes:
@@ -661,6 +668,11 @@ def _evaluate():
                     settling_action = settling_pose(obs)
                     step = 0
                     episode_wall_start = monotonic()
+                else:
+                    latest_progress = progress_summary()
+                    if latest_progress != progress_text:
+                        pbar.set_postfix_str(latest_progress, refresh=False)
+                        progress_text = latest_progress
         if len(episodes) != args_cli.num_episodes:
             raise RuntimeError(f"Evaluation stopped after {len(episodes)}/{args_cli.num_episodes} episodes")
     except Exception as error:
