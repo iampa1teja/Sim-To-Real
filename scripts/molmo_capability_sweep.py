@@ -51,7 +51,7 @@ def port_free(port):
         return False
 
 
-def validate_result(report, expected, horizon, options=None):
+def validate_result(report, expected, horizon, options=None, overhead=False):
     if not report.get('complete') or report.get('requested_episodes') != len(expected):
         raise ValueError('Incomplete smoke trial is not a scored candidate')
     if report.get('checkpoint') != 'molmoact2_so101':
@@ -60,9 +60,12 @@ def validate_result(report, expected, horizon, options=None):
         raise ValueError('Unexpected execution timing')
     if report.get('episode_length_s') != 210:
         raise ValueError('Unexpected absolute smoke ceiling')
-    if report.get('policy_cameras') != ['room', 'wrist']:
+    cameras = ['room', 'wrist', 'original_room'] if overhead else ['room', 'wrist']
+    if report.get('policy_cameras') != cameras:
         raise ValueError('Unexpected camera inputs')
     settings = report.get('resume_settings', {})
+    if settings.get('molmo_overhead_camera', False) != overhead:
+        raise ValueError('Camera configuration differs from the declared candidate')
     if options is not None and settings.get('policy_options') != {key: str(value) for key, value in options.items()}:
         raise ValueError('Runtime policy options differ from the candidate')
     if settings.get('grasp', {}).get('gripper_latch'):
@@ -85,6 +88,14 @@ def validate_result(report, expected, horizon, options=None):
         if budget.get('reach_timeout_s') != 60 or budget.get('progress_timeout_s') != 30:
             raise ValueError('Episode omitted the progress deadline')
     return report
+
+
+def rank_result(item):
+    rows = item['report']['episodes']
+    successes = [row for row in rows if row['success']]
+    mean_success_time = sum(row['elapsed_sim_s'] for row in successes) / len(successes) if successes else 0.
+    # Fast failures are not a speed improvement. Time only completed placements.
+    return (len(successes), sum(row['stages']['grasped'] for row in rows), -mean_success_time)
 
 
 class Investigation:
@@ -167,6 +178,15 @@ class Investigation:
                 raise RuntimeError('Owned Rerun viewer failed to start')
             time.sleep(.5)
 
+    def wait_for_gpu_memory(self):
+        while True:
+            used = int(subprocess.check_output(['nvidia-smi', '--id=0', '--query-gpu=memory.used',
+                       '--format=csv,noheader,nounits'], text=True).strip())
+            if used <= 5000:
+                return
+            self.save('waiting_for_gpu_memory')
+            time.sleep(30)
+
     def stop_server(self):
         if self.server:
             subprocess.run(['docker', 'rm', '-f', self.server], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -174,7 +194,8 @@ class Investigation:
 
     def start_server(self, options):
         # Pan conversion is client-side; its presence must not require reloading weights.
-        core = {key: value for key, value in options.items() if key not in ('pan_model_scale', 'pan_model_offset')}
+        core = {key: value for key, value in options.items()
+                if key not in ('pan_model_scale', 'pan_model_offset', 'include_original_room')}
         key = json.dumps(core, sort_keys=True)
         if self.server_key == key:
             return
@@ -216,8 +237,9 @@ class Investigation:
                  CREPO + '/docker/eval_cleanup.py', self.run_id], stdout=subprocess.DEVNULL)
             self.run_id = None
 
-    def trial(self, label, options, horizon=30, seed=1984, instruction=None):
-        self.current = dict(label=label, horizon=horizon, seed=seed, options=options)
+    def trial(self, label, options, horizon=30, seed=1984, instruction=None, overhead=False):
+        self.current = dict(label=label, horizon=horizon, seed=seed, options=options,
+                            instruction=instruction or self.cfg['eval']['lang'], overhead=overhead)
         self.save('loading_candidate')
         self.start_server(options)
         self.run_id = 'molmo-capability-' + str(os.getpid()) + '-' + str(time.time_ns())
@@ -237,6 +259,8 @@ class Investigation:
                    '--eval_set', self.cfg['eval']['eval_set'], '--repeats', '1', '--splits', 'id,ood,yaw,train',
                    '--lang_instruction', instruction or self.cfg['eval']['lang'], '--smoke-test',
                    '--smoke-selection', 'one_per_zone', '--smoke-reach-timeout-s', '60', '--smoke-progress-timeout-s', '30']
+        if overhead:
+            command.append('--molmo-overhead-camera')
         for name, value in options.items():
             command.extend(['--policy_option', f'{name}={value}'])
         self.save('running_candidate')
@@ -270,7 +294,7 @@ class Investigation:
             code = self.client.wait()
             if code or report is None:
                 raise RuntimeError(f'Candidate exited {code} without a complete result: ' + '\n'.join(tail))
-            validate_result(report, self.expected_by_seed[seed], horizon, options)
+            validate_result(report, self.expected_by_seed[seed], horizon, options, overhead)
             result = dict(self.current, report=report)
             self.results.append(result)
             self.current = None
@@ -311,6 +335,7 @@ def main():
     signal.signal(signal.SIGINT, stop)
     try:
         investigation.wait_for_existing()
+        investigation.wait_for_gpu_memory()
         investigation.start_viewer()
         baseline = dict(investigation.cfg['policy']['options'])
         fp32 = dict(baseline, action_compute_dtype='float32')
@@ -320,17 +345,19 @@ def main():
                       ('native_fp32_h30', native, 30), ('baseline_h10', baseline, 10)]
         for label, options, horizon in candidates:
             investigation.trial(label, options, horizon)
-        ranked = sorted(investigation.results, key=lambda item: (
-            item['report']['overall']['successes'],
-            sum(r['stages']['grasped'] for r in item['report']['episodes']),
-            -sum(r['elapsed_sim_s'] for r in item['report']['episodes'])), reverse=True)
+        investigation.trial('fp32_compute_three_cameras', dict(fp32, include_original_room=True), overhead=True)
+        if max(item['report']['overall']['successes'] for item in investigation.results) <= investigation.results[0]['report']['overall']['successes']:
+            investigation.trial('fp32_explicit_task_instruction', fp32, instruction=
+                'Move the arm towards the blue cube, grasp it, lift it up, and drop it into the white box.')
+        ranked = sorted(investigation.results, key=rank_result, reverse=True)
         leader = ranked[0]
         # Paired verification tests both the control and the leader under the
         # same extra seeds; it never silently increases any time budget.
         for seed in (9182, 4173):
             investigation.trial('verify_baseline_h30', baseline, 30, seed)
             if leader['label'] != 'baseline_h30':
-                investigation.trial('verify_' + leader['label'], leader['options'], leader['horizon'], seed)
+                investigation.trial('verify_' + leader['label'], leader['options'], leader['horizon'], seed,
+                                     instruction=leader['instruction'], overhead=leader['overhead'])
         investigation.save('planned_trials_complete')
         print('[RESEARCH] Planned comparisons complete; results require analysis and premortem before promotion.', flush=True)
     except BaseException as error:
