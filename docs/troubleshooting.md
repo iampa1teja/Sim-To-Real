@@ -52,7 +52,8 @@ settings. The evaluator checks viewer startup before loading policy weights.
 
 Read `evaluation.log`, `server.log` and `rerun.log` under the printed
 `/tmp/so101-eval/<run>/` directory. Set `EVAL_VERBOSE=1` to include routine startup
-details in the terminal. Warnings and errors remain visible in normal output.
+details and warnings in the terminal. Normal output hides warnings while keeping
+errors visible; full non-smoke logs retain the original output.
 
 The recorder browser is separate from Isaac's viewport. If it is blank, inspect
 browser network/console errors: React and Babel are fetched from a CDN. Keep

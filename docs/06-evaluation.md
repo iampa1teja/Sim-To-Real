@@ -100,13 +100,34 @@ to advance between queries. That three-camera smoke run completed one episode;
 five-episode validation used the original front and wrist cameras instead.
 The selected SO-101 profile now
 uses the original front and wrist cameras, with the same pan adaptation and
-H30/R1 timing. Its native five-episode smoke test completed normally with
+H30/R1 timing. An earlier five-episode smoke test of this adapted profile completed normally with
 **2/5 successes (40%)** and a median time to success of **19.85 simulated
 seconds**. Starts `id-000` (MC) and `id-002` (MR) succeeded; `id-001` (FR),
 `id-003` (NL) and `id-004` (FL) each timed out after 300 simulated seconds.
 This verifies successful pick-and-place on two starts; five attempts and three
-timeouts do not establish reliability across the full benchmark. The full
-150-start benchmark remains unmeasured for this profile.
+timeouts do not establish reliability across the full benchmark. A later
+180-second full run was interrupted with 11 completed attempts and 4 successes;
+the unfinished attempt and original report remain resumable. This is a partial
+result, not a completed 150-start benchmark.
+
+An isolated replay of failing start `id-005` retained policy seed `1832710734`,
+H30/R1 and the 180-second limit. It again failed before reaching the cube.
+The closest measured tool error was 64.32 mm, primarily along local gripper Z, with a
+49.97 mm jaw gap around a 20 mm cube. Requested and applied simulator joint
+targets matched throughout the replay. At closest approach, tracking error was
+at most 1.67 degrees; forward kinematics at the requested target still missed
+by 74.56 mm. Shoulder and elbow commands were near the released normalizer's
+learned bounds. This evidence points to the predicted approach targets for that
+attempt; it does not prove a physical reachability or calibration defect, nor
+that bypassing the model's clipping would fix the grasp.
+
+The 2026-10-21 Rerun smoke check then completed five 180-second rollouts on
+`id-000` through `id-004` with **0/5 successes**: two `missed_grasp` and three
+`never_reached`. It confirmed live milestone reporting and quiet default logs,
+not improved grasp performance. The rollout finished, but its host launcher
+exited with a parse error after the script was edited while Bash was executing
+it; fresh-launch lifecycle checks pass. Avoid editing `docker/eval.sh` during a
+run. The full benchmark remains stopped with its previous results preserved.
 
 Separate helper trials enabled `--seed_per_episode`, which resets the same
 noise seed before **every inference query**. In that mode, H30/R1 succeeded in
@@ -218,8 +239,19 @@ The launcher prints startup status, episode progress and a compact results summa
 Outside smoke mode, it retains complete output under `/tmp/so101-eval/<run>/`: `evaluation.log`,
 `server.log`, `rerun.log` when enabled, and a copy of `results.json`.
 Set `EVAL_LOG_DIR=/path/to/run` to choose a directory, or `EVAL_VERBOSE=1` to
-also print routine Isaac initialization details. Warnings and errors remain
-visible, and failed commands show their diagnostic log path and error context.
+also print routine Isaac initialization details and warnings. Default console
+output hides warnings and checkpoint-loading progress; full non-smoke logs retain
+them unchanged, and errors remain visible. Failed commands show their diagnostic
+log path and error context. The repeated Molmo model-state dump is removed.
+Ctrl+C cleans up this run without dumping an unrelated server-log tail; a second
+interrupt cannot abort cleanup. Completed attempts remain available to `--resume`.
+
+For fixed benchmarks, the progress bar shows the highest observed milestone:
+`approaching`, `reached`, `grasped`, `lifted`, `over box`, `placed`, then `success`.
+After a grasp, `held=yes/no` reports the current holding state, so a drop remains
+visible even while the highest milestone stays `lifted`. These labels use the
+existing benchmark measurements and do not affect control or success criteria.
+The episode summary includes the final milestone and a failure category.
 
 `--rerun` starts a native host viewer before loading the model. The launcher
 caches the exact viewer binary shipped with the simulator's Rerun SDK, so an
@@ -402,10 +434,53 @@ calibration is unchanged. Direct plugin clients default to
 `input_joint_units=model` accepts model-frame values directly.
 
 Returned actions undergo the exact inverse conversion before the simulator's
-normal joint-limit handling. The startup log and results field
-`policy_joint_transform` record the actual scales and offsets; the first model
-state is printed each episode. Restart an existing rollout to load the
-corrected client.
+normal joint-limit handling. The full startup log and results field
+`policy_joint_transform` record the actual scales and offsets. Restart an
+existing rollout to load client changes.
+
+#### Official MolmoAct2 inference contract
+
+The adapter uses the released checkpoint's `predict_action()` implementation.
+The [SO-100/101 model card](https://huggingface.co/allenai/MolmoAct2-SO100_101)
+and [LeRobot frame documentation](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot)
+specify the following contract, checked on 2026-10-21 against downloaded model
+revision `152569fe57914d97be91055800035f54e250d009`:
+
+| Item | Workshop behavior |
+| --- | --- |
+| Weights | `allenai/MolmoAct2-SO100_101`, stored as `molmoact2_so101`; not the base checkpoint |
+| State and actions | Six absolute joint positions/targets in the model's robot frame; arm degrees and gripper 0–100, with the inverse frame conversion on output |
+| Normalization | Original `norm_stats.json`, tag `so100_so101_molmoact2`; the model performs normalization and denormalization |
+| Images | RGB front and wrist images; the model card permits arbitrary camera order |
+| Prediction | Continuous actions, depth reasoning disabled, 10 flow solver steps |
+| Language and CUDA graphs | Explicitly enabled, matching the model-card defaults |
+| Chunk | Checkpoint maximum 30 targets; H30/R1 executes them at 30 Hz |
+
+All five installed weight-shard SHA-256 hashes were checked against that
+revision's Hugging Face LFS metadata. The configuration, normalization statistics,
+model source and shard index also matched their published Git blob hashes.
+
+The released quantile normalizer clips its normalized action inputs to `[-1, 1]`
+before mapping them into physical targets. Those learned output bounds are
+different from the simulator's physical joint limits. Removing this clipping or
+replacing the checkpoint statistics changes the released inference behavior.
+
+The RTX 4090 profile uses a BF16 backbone with FP32 action-expert and sensitive
+modules, restoring their original FP32 checkpoint tensors. The
+[LeRobot mixed-precision path](https://huggingface.co/docs/lerobot/main/en/molmoact2#installation-requirements)
+uses this module split; the model card's reference evaluation uses full FP32 and
+also offers BF16 for lower-memory GPUs. This adapter additionally keeps action
+denormalization in FP32 to avoid rounding absolute angles near 180 degrees.
+Consequently this profile is not a bit-for-bit reproduction of full-FP32 evaluation.
+
+The existing `pan_model_scale` and `pan_model_offset` in the workshop YAML are
+**experimental local policy adaptation**, not an official Molmo setting or a
+physical calibration correction. They transform observations and actions
+consistently, but alter the policy's effective pan range. To compare the native
+released policy, copy the YAML and remove both options; start a separate report
+because resume checks the transform. Camera geometry, simulator control frequency,
+timeout and benchmark starts are also local evaluation choices. No visual-servo
+or gripper override is enabled by this profile.
 
 To inspect the initial pose in Isaac without loading a policy, run:
 
