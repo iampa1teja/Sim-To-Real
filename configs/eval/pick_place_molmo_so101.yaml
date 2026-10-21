@@ -37,6 +37,7 @@ eval:
   molmo_overhead_camera: false        # optional added camera; preserve the original front/wrist setup
   episode_length_s: 180               # 3 min simulated time per try = 5400 control steps
   render_warmup: 0                    # update Rerun cameras continuously between policy queries
+  video_encoder: libx264              # background CPU encoding; h264_nvenc optionally uses NVIDIA video hardware
   lang: Pick up the blue cube and place it in the white box
   rename_map:
     realsense_rgb: room

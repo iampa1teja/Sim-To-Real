@@ -1,28 +1,28 @@
-"""Optional, streaming camera videos for evaluation attempts (no frame accumulation)."""
+"""Optional camera videos with bounded background encoding and no dropped frames."""
 from __future__ import annotations
 
 from fractions import Fraction
 import math
 from pathlib import Path
+from queue import Full, Queue
 import re
+from threading import Thread
 
 import numpy as np
 
 
-class EpisodeVideoRecorder:
-    """Write one MP4 per camera/attempt; instantiate only when recording is requested.
+class _VideoEncoder:
+    """Own the PyAV containers on a single encoding thread."""
 
-    ``write`` expects raw RGB camera observations in 0..255, optionally batched
-    with one environment. Call it before stepping the environment so an automatic
-    terminal reset never contributes frames from the following attempt.
-    """
-
-    def __init__(self, output_dir: Path, fps: float, rename_map: dict[str, str] | None = None):
+    def __init__(self, output_dir: Path, fps: float, rename_map: dict[str, str] | None, encoder: str):
         if not math.isfinite(fps) or fps <= 0:
             raise ValueError("Video fps must be finite and positive")
+        if encoder not in ("libx264", "h264_nvenc"):
+            raise ValueError("Video encoder must be libx264 or h264_nvenc")
         import av
 
         self._av = av
+        self.encoder = encoder
         self.output_dir = Path(output_dir).expanduser().resolve()
         self.rate = Fraction(str(float(fps))).limit_denominator(100000)
         self.cameras = dict(rename_map or {"realsense_rgb": "room", "wrist_cam": "wrist"})
@@ -65,11 +65,14 @@ class EpisodeVideoRecorder:
         container = None
         try:
             container = self._av.open(handle, mode="w", format="mp4")
-            stream = container.add_stream("libx264", rate=self.rate)
+            stream = container.add_stream(self.encoder, rate=self.rate)
             stream.height, stream.width = image.shape[:2]
             stream.pix_fmt = "yuv420p" if stream.width % 2 == stream.height % 2 == 0 else "yuv444p"
-            stream.options = {"preset": "veryfast", "crf": "23", "tune": "zerolatency"}
-            stream.codec_context.thread_count = 2
+            if self.encoder == "h264_nvenc":
+                stream.options = {"preset": "p1", "tune": "ll", "rc": "vbr", "cq": "23", "bf": "0"}
+            else:
+                stream.options = {"preset": "veryfast", "crf": "23", "tune": "zerolatency"}
+                stream.codec_context.thread_count = 2
         except BaseException:
             try:
                 if container is not None:
@@ -119,6 +122,114 @@ class EpisodeVideoRecorder:
         if errors:
             raise errors[0]
         return self._paths.copy()
+
+
+class EpisodeVideoRecorder:
+    """Snapshot camera observations before stepping, then encode them in order.
+
+    At most ``queue_size`` frame sets wait for the worker. A full queue slows the
+    producer instead of dropping frames. ``finish_episode`` drains and finalizes
+    both recordings before returning their paths, including after an exception.
+    """
+
+    def __init__(self, output_dir: Path, fps: float, rename_map: dict[str, str] | None = None,
+                 *, encoder: str = "libx264", queue_size: int = 8):
+        if type(queue_size) is not int or queue_size < 1:
+            raise ValueError("Video queue_size must be a positive integer")
+        self._encoder = _VideoEncoder(output_dir, fps, rename_map, encoder)
+        self.encoder = encoder
+        self._queue_size = queue_size
+        self._queue = None
+        self._worker = None
+        self._episode = None
+        self._error = None
+        self._error_delivered = False
+
+    def start_episode(self, index: int) -> None:
+        if self._episode is not None:
+            raise RuntimeError("Finish the current video episode before starting another")
+        self._encoder.start_episode(index)
+        self._episode = index
+        self._queue = Queue(maxsize=self._queue_size)
+        self._error = None
+        self._error_delivered = False
+
+    def _raise_error(self) -> None:
+        if self._error is not None:
+            self._error_delivered = True
+            raise self._error
+
+    def _encode(self) -> None:
+        try:
+            while True:
+                frames = self._queue.get()
+                if frames is None:
+                    break
+                if self._error is None:
+                    try:
+                        self._encoder.write(frames)
+                    except BaseException as error:
+                        self._error = error
+                # On failure, drain the bounded queue so shutdown cannot deadlock.
+        except BaseException as error:
+            self._error = self._error or error
+        finally:
+            try:
+                self._encoder.finish_episode()
+            except BaseException as error:
+                self._error = self._error or error
+
+    def _put(self, frames) -> None:
+        while True:
+            if frames is not None:
+                self._raise_error()
+            if not self._worker.is_alive():
+                if frames is None:
+                    return
+                self._raise_error()
+                raise RuntimeError("Video encoding worker exited unexpectedly")
+            try:
+                self._queue.put(frames, timeout=0.1)
+                return
+            except Full:
+                pass
+
+    def write(self, visualobs: dict) -> None:
+        if self._episode is None:
+            raise RuntimeError("Start a video episode before writing frames")
+        self._raise_error()
+        missing = [f"rgb_{camera}" for camera in self._encoder.cameras if f"rgb_{camera}" not in visualobs]
+        if missing:
+            raise KeyError(f"Missing video camera observations: {missing}")
+        if self._worker is None:
+            for filename in self._encoder._filenames.values():
+                path = self._encoder.output_dir / f"episode_{self._episode:06d}_{filename}.mp4"
+                if path.exists():
+                    raise FileExistsError(f"Recording already exists: {path}")
+        # Isaac reuses camera buffers. Copy on the producer before the next env.step;
+        # a contiguous NumPy view alone would let queued frames change underneath us.
+        frames = {f"rgb_{camera}": self._encoder._rgb(visualobs[f"rgb_{camera}"]).copy()
+                  for camera in self._encoder.cameras}
+        if self._worker is None:
+            self._worker = Thread(target=self._encode, name="so101-video-encoder", daemon=True)
+            self._worker.start()
+        self._put(frames)
+        self._raise_error()
+
+    def finish_episode(self) -> dict[str, str]:
+        if self._worker is None:
+            try:
+                return self._encoder.finish_episode()
+            finally:
+                self._episode = None
+        self._put(None)
+        self._worker.join()
+        self._worker = None
+        self._queue = None
+        self._episode = None
+        if not self._error_delivered:
+            self._raise_error()
+        return self._encoder._paths.copy()
 
     def close(self) -> None:
         self.finish_episode()

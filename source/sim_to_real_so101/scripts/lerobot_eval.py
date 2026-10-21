@@ -124,6 +124,8 @@ parser.add_argument("--molmo-overhead-camera", action="store_true",
                     help="Add a behind/above-arm room view for Molmo pick-place, preserving the existing cameras")
 parser.add_argument("--save_videos", action="store_true", help="Save room/wrist MP4 videos per attempt")
 parser.add_argument("--video_dir", type=Path, default=None, help="Video output directory (default: beside results JSON)")
+parser.add_argument("--video_encoder", choices=("libx264", "h264_nvenc"), default="libx264",
+                    help="Recording encoder: CPU libx264 or NVIDIA NVENC (requires video driver support)")
 parser.add_argument("--render_warmup", type=int, default=0,
                     help="0 (default): render the cameras every control step. N>0: render only the N steps before each "
                          "policy query (the policy reads images once per action chunk); the extra N-1 frames refresh "
@@ -449,6 +451,10 @@ def _evaluate():
         if video_recorder is not None or (resume and saved_report.get("save_videos")):
             report["save_videos"] = True
             report["video_dir"] = str(video_dir)
+            if video_recorder is not None:
+                report["video_encoder"] = video_recorder.encoder
+            elif "video_encoder" in saved_report:
+                report["video_encoder"] = saved_report["video_encoder"]
         if getattr(policy, "joint_transform", None) is not None:
             report["policy_joint_transform"] = policy.joint_transform
         if getattr(policy, "policy_cameras", None) is not None:
@@ -515,10 +521,12 @@ def _evaluate():
                     from datetime import datetime, timezone
                     video_dir = Path("outputs/eval_videos") / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
             video_dir = video_dir.expanduser().resolve()
-            video_recorder = EpisodeVideoRecorder(video_dir, fps=1 / step_dt, rename_map=rename_map)
+            video_recorder = EpisodeVideoRecorder(video_dir, fps=1 / step_dt, rename_map=rename_map,
+                                                 encoder=getattr(args_cli, "video_encoder", "libx264"))
             if resume:
                 video_attempt = next_video_attempt(video_dir)
-            print(f"[INFO]: Saving attempt videos to {video_dir}", flush=True)
+            print(f"[INFO]: Saving attempt videos to {video_dir} "
+                  f"(background {video_recorder.encoder} encoding)", flush=True)
         # Persist an empty initial checkpoint too, so an interruption in episode 1 is resumable.
         if args_cli.results_json:
             write_report(args_cli.results_json, build_report())
@@ -602,6 +610,7 @@ def _evaluate():
                     row["wall_time_to_success_s"] = row["wall_time_s"] if row["success"] else None
                     if video_recorder is not None:
                         row["videos"] = video_recorder.finish_episode()
+                        row["video_encoder"] = video_recorder.encoder
                     if benchmark:
                         row.update(env.unwrapped._benchmark_trace.finish(row['success']))
                         env.unwrapped._benchmark_trace = StageTrace()

@@ -210,6 +210,26 @@ def test_video_directory_requires_absolute_container_path(tmp_path, value):
     assert "eval.video_dir" in result.stderr
 
 
+@pytest.mark.parametrize("encoder", ["libx264", "h264_nvenc"])
+def test_video_encoder_reaches_evaluator_without_changing_resume_identity(tmp_path, encoder):
+    base = run(tmp_path, BASE, "--save_videos")
+    selected = run(tmp_path, BASE + f"  video_encoder: {encoder}\n", "--save_videos")
+    assert selected.returncode == 0, selected.stderr
+    client = shlex.split(find(selected, "docker exec -e POLICIES_DIR"))
+    original = shlex.split(find(base, "docker exec -e POLICIES_DIR"))
+    assert client[client.index("--video_encoder") + 1] == encoder
+    assert client[client.index("--config_fingerprint") + 1] == original[original.index("--config_fingerprint") + 1]
+    smoke = run(tmp_path, BASE + f"  video_encoder: {encoder}\n", "--smoke-test")
+    assert smoke.returncode == 0, smoke.stderr
+    assert "--video_encoder" not in find(smoke, "docker exec -e POLICIES_DIR")
+
+
+@pytest.mark.parametrize("value", ["unknown", "true", "null", "42"])
+def test_video_encoder_rejects_unsupported_values_before_launch(tmp_path, value):
+    result = run(tmp_path, BASE + f"  video_encoder: {value}\n")
+    assert result.returncode != 0 and "eval.video_encoder" in result.stderr
+
+
 def test_policy_options_reach_server_and_client(tmp_path):
     result = run(tmp_path, f"""
 policy:
@@ -494,6 +514,7 @@ def test_molmo_config_selects_original_wrist_asset(config_name, checkpoint):
         assert "--policy_option include_original_room=False" in client
         assert "--action_horizon 30" in client
         assert "--action_repeat 1" in client
+        assert "--video_encoder libx264" in client
         assert "--render_warmup" not in client
         assert "--molmo-overhead-camera" not in client
         client_args = shlex.split(client)

@@ -163,6 +163,8 @@ Each attempt allows up to 180 simulated seconds (3 min) and logs simulation and 
 time to success. `--save_videos` saves separate camera MP4 files beside the
 results; omit that flag to disable recording. Detailed logs are retained under
 `/tmp/so101-eval/`. The fixed benchmark determines the number of attempts.
+Recording uses a bounded background worker with CPU encoding (`libx264`).
+Set `eval.video_encoder: h264_nvenc` to use NVIDIA video hardware instead.
 
 Continue the latest matching interrupted benchmark, retaining completed results
 and videos:

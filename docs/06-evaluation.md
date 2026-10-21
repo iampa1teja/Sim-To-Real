@@ -256,6 +256,7 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
 | `eval.render_warmup`, `eval.results_json` | 0; absolute teleop path |
 | `eval.save_videos`, `eval.video_dir` | false (`--save_videos`); optional absolute video directory inside teleop |
+| `eval.video_encoder` | `libx264` (background CPU encoding); optional `h264_nvenc` (NVIDIA hardware encoder) |
 | `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
@@ -315,6 +316,21 @@ to an absolute container path to choose another location; recording requires
 `--save_videos` or `eval.save_videos: true`. The results record each attempt's
 video paths. Existing video files are preserved, so use a fresh output directory
 for a new run.
+
+Recording copies each camera frame before the next simulation step and encodes
+it in a background worker. The queue holds at most eight frame sets; if encoding
+falls behind, the producer waits instead of dropping frames. Episode completion
+waits for encoding and MP4 finalization before saving the result row. Encoding
+errors surface in the evaluator and stop the run.
+
+The SO-101 Molmo profile keeps `eval.video_encoder: libx264`: background CPU
+encoding was faster overall in the isolated recording comparison. Optional
+`h264_nvenc` encoding was also verified in the simulator container; it requires
+NVIDIA video driver support. Direct evaluator invocations accept the same choices
+through `--video_encoder`. Encoder selection affects saved videos and is recorded
+per attempt; it does not change policy images, rendering, physics or actions,
+and can change when resuming a benchmark. A running evaluator keeps its loaded
+recorder; recording optimizations take effect on its next launch.
 
 For example, a successful attempt prints
 `time_to_success=12.50s sim (18.20s wall)`. An unsuccessful attempt prints
