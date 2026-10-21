@@ -27,7 +27,8 @@ Needs the teleop container (README) running, python3 with PyYAML on the host, an
 image (./policy_servers/build.sh). READY_TIMEOUT (seconds, default 900) bounds the server start-up,
 which includes the first-time uv environment build.
 Complete logs are retained under /tmp/so101-eval (override with EVAL_LOG_DIR), except in smoke mode.
-Set EVAL_VERBOSE=1 to show routine simulator initialization output as well.
+Warnings and routine startup details are hidden from the default console; errors remain visible.
+Set EVAL_VERBOSE=1 to print the complete output, including warnings.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -142,7 +143,9 @@ rerun_connect_url=${RERUN_CONNECT_URL:-}
 log_dir=${EVAL_LOG_DIR:-${TMPDIR:-/tmp}/so101-eval/${timestamp}-$$}
 cleanup() {
     local status=$?
-    trap - EXIT INT TERM
+    trap - EXIT
+    # A second Ctrl+C must not interrupt cleanup and leave the policy port occupied.
+    trap '' INT TERM
     # Reap the host CLI before inspecting /proc, so an in-flight exec cannot race the first scan.
     if [[ -n $active_log_pid ]]; then
         kill "$active_log_pid" 2>/dev/null || true
@@ -180,8 +183,11 @@ cleanup() {
         kill "$rerun_log_pid" 2>/dev/null || true
         wait "$rerun_log_pid" 2>/dev/null || true
     fi
-    if ((status != 0)) && [[ -n $server_log && -f $server_log ]] && ! "$server_failure_shown"; then
+    if ((status != 0 && status != 130 && status != 143)) && [[ -n $server_log && -f $server_log ]] && ! "$server_failure_shown"; then
         python3 "$repo_dir/docker/eval_output.py" --tail "$server_log"
+    fi
+    if ((status == 130 || status == 143)) && ! "$smoke_test"; then
+        printf 'Evaluation interrupted; completed episodes and existing videos are retained. Use --resume to continue.\n'
     fi
     exit "$status"
 }

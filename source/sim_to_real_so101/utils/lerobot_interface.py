@@ -575,11 +575,6 @@ class SimRemotePolicy:
         """
         state = self._iface.get_raw_actions_from_radians(joint_positions)
         state_np = state.cpu().numpy().astype(np.float32)
-        if self.inference_calls == 0 and getattr(self, "joint_transform", None) is not None:
-            transform = self.joint_transform
-            model_state = state_np * np.asarray(transform["scale"]) + np.asarray(transform["offset"])
-            print(f"[INFO]: Molmo model state (arm degrees, gripper 0-100): {model_state.tolist()}", flush=True)
-
         rename = self._iface.rename_map
         images = {}
         for camera in self._iface.cameras.keys():
