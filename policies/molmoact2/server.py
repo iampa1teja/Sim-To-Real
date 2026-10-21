@@ -284,6 +284,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
                 inference_action_mode="continuous",
                 num_steps=self.num_steps,
                 enable_depth_reasoning=False,
+                normalize_language=True,
+                enable_cuda_graph=True,
             )
         return {"actions": decode_actions(out.actions)}
 
