@@ -515,6 +515,9 @@ on the deadline is accepted, but progress after expiration cannot revive the
 attempt. The configured 210-second ceiling is only the mathematical maximum
 when every new milestone arrives just in time; an unreached cube still stops
 the attempt at 60 seconds. Native task success and physics are unchanged.
+The native grasp detector already requires a lift, so grasp and lift often
+register on the same frame; simultaneous milestones earn one 30-second window,
+not stacked extensions.
 
 The deadline adds evaluation truncation, not a controller: model observations
 and actions are untouched. The profile has no visual servo, gripper latch,
@@ -533,6 +536,21 @@ described above. Test one inference change at a time, repeat promising results
 with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
+
+`scripts/molmo_capability_sweep.py` automates the documented comparison with
+RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
+`--wait-pid PID` waits for an existing evaluation launcher without signalling it.
+The runner also waits for the policy port and sufficient GPU memory, freezes
+client/server source in RAM, and runs the baseline, FP32-compute, shorter-chunk,
+more-flow-step and native-frame comparisons. A separate camera-input comparison
+adds the existing Molmo-only overhead sensor and feeds all three images to the
+model; it does not run a vision-based controller or alter the original cameras.
+If those candidates do not improve the screening score, it also tests a fixed,
+more explicit instruction describing the same task. It verifies the baseline and the
+leading candidate with two additional matched seeds. Existing reports and
+videos are never used as output paths. Its `planned_trials_complete` status
+means only that the planned tests ended: findings still require a premortem,
+validation and review before any default configuration is changed.
 
 To inspect the initial pose in Isaac without loading a policy, run:
 

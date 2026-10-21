@@ -1,5 +1,4 @@
 """Research result guards prevent unfair or assisted comparisons."""
-from copy import deepcopy
 import importlib.util
 from pathlib import Path
 import os
@@ -29,6 +28,15 @@ def fixture():
 def test_complete_matching_released_trial_is_accepted():
     report, expected, options = fixture()
     assert m.validate_result(report, expected, 30, options) is report
+
+
+def test_three_camera_variant_must_be_declared_explicitly():
+    report, expected, options = fixture()
+    report['policy_cameras'] = ['room','wrist','original_room']
+    with pytest.raises(ValueError, match='camera'):
+        m.validate_result(report, expected, 30, options)
+    report['resume_settings']['molmo_overhead_camera'] = True
+    assert m.validate_result(report, expected, 30, options, overhead=True) is report
 
 
 @pytest.mark.parametrize('change', ['seed','start','zone','duration','horizon','camera','checkpoint',
@@ -81,3 +89,14 @@ def test_wait_preserves_existing_job_and_advances_only_after_its_identity_disapp
     worker.wait_for_existing()
     assert phases == ['waiting_for_existing_evaluation','waiting_for_existing_evaluation','ready']
     assert sleeps == [30,30]
+
+
+def test_gpu_memory_wait_does_not_replace_other_work(monkeypatch):
+    worker = m.Investigation.__new__(m.Investigation)
+    values = iter(['18778\n', '32\n'])
+    phases, sleeps = [], []
+    worker.save = phases.append
+    monkeypatch.setattr(m.subprocess, 'check_output', lambda *args, **kwargs: next(values))
+    monkeypatch.setattr(m.time, 'sleep', sleeps.append)
+    worker.wait_for_gpu_memory()
+    assert phases == ['waiting_for_gpu_memory'] and sleeps == [30]
