@@ -71,6 +71,32 @@ def test_save_videos_cli_and_yaml_options_reach_evaluator(tmp_path):
     assert "--save_videos" in client and "--video_dir /workspace/outputs/custom_videos" in client
 
 
+def test_resume_selects_latest_matching_or_explicit_report_and_preserves_video_flag(tmp_path):
+    config = BASE + "  eval_set: /workspace/starts.json\n"
+    for path in (None, "/workspace/results/previous.json"):
+        flags = ["--resume"] + ([path] if path else [])
+        result = run(tmp_path, config, "--save_videos", *flags)
+        assert result.returncode == 0, result.stderr
+        client = find(result, "docker exec -e POLICIES_DIR")
+        assert "--resume" in client and "--save_videos" in client
+        assert "--config_fingerprint" in client
+        assert (path or "LATEST_MATCHING_RESULTS.json") in client
+        assert "sim_to_real_so101.utils.eval_resume" in result.stdout
+
+
+@pytest.mark.parametrize("extra", [["--smoke-test"], ["--server_only"]])
+def test_resume_rejects_incompatible_modes(tmp_path, extra):
+    result = run(tmp_path, BASE + "  eval_set: /workspace/starts.json\n", "--resume", *extra)
+    assert result.returncode != 0 and "--resume" in result.stderr
+
+
+def test_resume_requires_fixed_benchmark_and_absolute_explicit_path(tmp_path):
+    result = run(tmp_path, BASE, "--resume")
+    assert result.returncode != 0 and "eval.eval_set" in result.stderr
+    result = run(tmp_path, BASE + "  eval_set: /workspace/starts.json\n", "--resume", "relative.json")
+    assert result.returncode != 0 and "absolute path" in result.stderr
+
+
 def test_smoke_test_forces_five_rerun_episodes_and_overrides_saved_outputs(tmp_path):
     result = run(tmp_path, BASE + """  episodes: 99
   eval_set: /workspace/fixed_eval_set.json

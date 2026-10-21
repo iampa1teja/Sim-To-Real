@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import random
+import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -177,7 +178,10 @@ class EvaluatorRolloutTests(unittest.TestCase):
             params = kwargs['cfg'].events.spawn_cube.params
             if params.get('eval_set'):
                 from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
-                env.benchmark = EvalSetStarts(params['eval_set'], params['splits'], params['repeats'], cfg.seed)
+                offset = params.get('start_offset', 0)
+                env.benchmark = EvalSetStarts(params['eval_set'], params['splits'], params['repeats'], cfg.seed,
+                                              start_offset=offset)
+                env.episode = offset
             return env
         env.progress_bars = []
 
@@ -192,7 +196,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
 
         context = dict(GraspConfig=GraspConfig, args_cli=args, parse_env_cfg=lambda *a, **kw: cfg, gym=SimpleNamespace(make=make_environment),
                        KeyboardControl=lambda: SimpleNamespace(reset_world=False), torch=torch, np=np, random=random,
-                       json=json, math=math, sys=sys, traceback=traceback,
+                       json=json, math=math, sys=sys, traceback=traceback, Path=Path,
                        LeRobotSO101Interface=make_interface, SimRemotePolicy=FakePolicy,
                        simulation_app=simulation, tqdm=progress_bar)
         tree = ast.parse(EVALUATOR.read_text())
@@ -400,6 +404,88 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertIn('[RESULT] complete: 3/3 episodes; success 2/3 (66.7%)', env.printed)
         self.assertFalse(any(line.startswith('{') for line in env.printed))
         self.assertIn(f'Results JSON: {path}', env.printed)
+
+    def test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, eval_set_digest
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            selection = json.loads((ROOT / 'eval_sets/pick_place_v1_seed1984.json').read_text())
+            selection['starts'] = selection['starts'][:3]
+            selection['eval_set_id'] = eval_set_digest(selection)
+            selected = root / 'selection.json'
+            selected.write_text(json.dumps(selection))
+            path = root / 'report.json'
+            options = dict(eval_set=selected, splits=None, repeats=1, save_videos=True)
+            first, _ = self.evaluate(path, stop_after=1, args_override=options)
+            saved = json.loads(path.read_text())
+            self.assertFalse(saved['complete'])
+            original_row = saved['episodes'][0]
+            recordings = {name: Path(name).read_bytes() for name in original_row['videos'].values()}
+            # An abandoned attempt's recordings also survive the restart.
+            orphan = root / 'report_videos/episode_000001_room.mp4'
+            orphan.write_bytes(b'partial attempt')
+            resumed, _ = self.evaluate(path, args_override={**options, 'resume': True, 'save_videos': False})
+            report = json.loads(path.read_text())
+            self.assertEqual(report['episodes'][0], original_row)
+            self.assertTrue(report['complete'])
+            self.assertEqual([row['episode'] for row in report['episodes']], [0, 1, 2])
+            self.assertEqual([step[0] for step in resumed.action_history], [1, 2])
+            self.assertEqual(report['overall']['successes'], 2)
+            self.assertEqual(orphan.read_bytes(), b'partial attempt')
+            for name, content in recordings.items():
+                self.assertEqual(Path(name).read_bytes(), content)
+            self.assertTrue(Path(report['episodes'][1]['videos']['room']).name.startswith('episode_000002_'))
+            plan = EvalSetStarts(selected, seed=17)
+            self.assertEqual(FakePolicy.instances[-1].reset_seeds,
+                             [row['policy_seed'] for row in plan.schedule[1:]])
+            # A completed evaluation performs no environment actions on resume.
+            complete, _ = self.evaluate(path, args_override={**options, 'resume': True})
+            self.assertEqual(complete.action_history, [])
+            self.assertEqual(complete.explicit_resets, 0)
+            self.assertEqual(json.loads(path.read_text())['episodes'], report['episodes'])
+            self.assertEqual(json.loads(path.read_text())['video_dir'], report['video_dir'])
+
+    def test_resume_rejects_changed_settings_without_overwriting_report(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import eval_set_digest
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            selection = json.loads((ROOT / 'eval_sets/pick_place_v1_seed1984.json').read_text())
+            selection['starts'] = selection['starts'][:3]
+            selection['eval_set_id'] = eval_set_digest(selection)
+            selected = root / 'selection.json'
+            selected.write_text(json.dumps(selection))
+            path = root / 'report.json'
+            options = dict(eval_set=selected, splits=None, repeats=1)
+            self.evaluate(path, stop_after=1, args_override=options)
+            previous = path.read_bytes()
+            self.evaluate(path, args_override={**options, 'resume': True, 'action_horizon': 8},
+                          expected_error='action_horizon differs')
+            self.assertEqual(path.read_bytes(), previous)
+
+    def test_process_exit_without_finally_retains_completed_episode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'report.json'
+            code = '''
+import os, sys
+from pathlib import Path
+from unittest.mock import patch
+from test_lerobot_eval_rollout import EvaluatorRolloutTests
+from sim_to_real_so101.utils.eval_resume import write_report
+def exit_after_first_episode(path, report):
+    write_report(path, report)
+    if len(report['episodes']) == 1:
+        os._exit(73)  # Bypass evaluator finally/cleanup, as a killed process would.
+with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_after_first_episode):
+    EvaluatorRolloutTests().evaluate(Path(sys.argv[1]))
+'''
+            result = subprocess.run([sys.executable, '-c', code, str(path)], cwd=ROOT,
+                                    env={**os.environ, 'PYTHONPATH': str(ROOT / 'tests')},
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 73, result.stderr)
+            report = json.loads(path.read_text())
+            self.assertEqual(len(report['episodes']), 1)
+            self.assertEqual(report['episodes'][0]['start_index'], 0)
+            self.assertFalse(report['complete'])
 
     def test_robot_usd_override_is_applied_before_spawn_and_saved_in_report(self):
         with tempfile.TemporaryDirectory() as directory:

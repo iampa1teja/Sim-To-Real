@@ -7,6 +7,7 @@ Needs PyYAML on the host (pip install pyyaml).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -236,6 +237,9 @@ def build(data: dict, *, molmo_overhead_camera: bool = False) -> dict:
         if not isinstance(flags.get(key, False), bool):
             fail(f"run.{key} must be true or false.")
         out[key] = "true" if flags.get(key, False) else "false"
+    ignored = {"gui", "rerun", "results_json", "save_videos", "video_dir", "port", "server_image"}
+    identity = {key: value for key, value in out.items() if key not in ignored}
+    out["config_fingerprint"] = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     return out
 
 
