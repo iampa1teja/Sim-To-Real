@@ -189,7 +189,7 @@ For a five-episode check with Rerun and no saved evaluation artifacts:
 `--smoke-test` forces five episodes and enables Rerun, overriding the benchmark
 count and any report, video or CSV saving options. It uses the first five
 scheduled benchmark starts; selections shorter than five are repeated to reach
-five attempts. The configured episode timeout stays in effect (90 simulated
+five attempts. The configured episode timeout stays in effect (180 simulated
 seconds per attempt in the SO-101 Molmo profile). Progress, success timing and
 the final summary appear in the terminal. No results JSON, heatmap, MP4,
 gripper/timing CSV or launcher log directory is written, even on failure or
@@ -256,13 +256,14 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
 | `eval.render_warmup`, `eval.results_json` | 0; absolute teleop path |
 | `eval.save_videos`, `eval.video_dir` | false (`--save_videos`); optional absolute video directory inside teleop |
+| `eval.video_encoder` | `libx264` (background CPU encoding); optional `h264_nvenc` (NVIDIA hardware encoder) |
 | `grasp.*` | `gripper_latch`, `log_gripper`, `seed_per_episode`, `latch_*`, `gripper_csv`, `gripper_empty_closed` |
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
 Molmo's `pick_place_molmo_so101.yaml` selects the SO-100/101 fine-tuned checkpoint;
 prepare it with `./scripts/setup_molmoact2.sh --variant so101`, then evaluate with
-`./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 90
-simulation seconds (1 minute 30 seconds); successful attempts end early. Each episode
+`./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 180
+simulation seconds (3 minutes); successful attempts end early. Each episode
 logs simulation elapsed time and actual wall time, with time to success reported
 for successful attempts. These clocks include settling steps; wall time includes
 inference, rendering and optional recording, and excludes model startup.
@@ -316,9 +317,24 @@ to an absolute container path to choose another location; recording requires
 video paths. Existing video files are preserved, so use a fresh output directory
 for a new run.
 
+Recording copies each camera frame before the next simulation step and encodes
+it in a background worker. The queue holds at most eight frame sets; if encoding
+falls behind, the producer waits instead of dropping frames. Episode completion
+waits for encoding and MP4 finalization before saving the result row. Encoding
+errors surface in the evaluator and stop the run.
+
+The SO-101 Molmo profile keeps `eval.video_encoder: libx264`: background CPU
+encoding was faster overall in the isolated recording comparison. Optional
+`h264_nvenc` encoding was also verified in the simulator container; it requires
+NVIDIA video driver support. Direct evaluator invocations accept the same choices
+through `--video_encoder`. Encoder selection affects saved videos and is recorded
+per attempt; it does not change policy images, rendering, physics or actions,
+and can change when resuming a benchmark. A running evaluator keeps its loaded
+recorder; recording optimizations take effect on its next launch.
+
 For example, a successful attempt prints
 `time_to_success=12.50s sim (18.20s wall)`. An unsuccessful attempt prints
-`timeout_elapsed=90.00s sim (...)` at its configured limit. Both elapsed times
+`timeout_elapsed=180.00s sim (...)` at its configured limit. Both elapsed times
 are stored in JSON; success-time fields are null on failure. Completed videos
 are named `episode_000000_room.mp4` and `episode_000000_wrist.mp4`, with the
 paths stored in each episode's `videos` mapping. Ordinary Python exceptions

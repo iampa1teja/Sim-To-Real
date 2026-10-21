@@ -1,6 +1,7 @@
 """Real CPU encode/decode checks for optional evaluation camera recordings."""
 import importlib.util
 from pathlib import Path
+from threading import Event, Thread
 
 import numpy as np
 import pytest
@@ -94,3 +95,116 @@ def test_invalid_fps_is_rejected_without_creating_files(tmp_path, fps):
     with pytest.raises(ValueError, match="fps"):
         EpisodeVideoRecorder(directory, fps)
     assert not directory.exists()
+
+
+def test_background_encoding_snapshots_reused_camera_buffers(tmp_path, monkeypatch):
+    recorder = EpisodeVideoRecorder(tmp_path, 30)
+    started, release = Event(), Event()
+    original = recorder._encoder.write
+
+    def slow_encode(frames):
+        started.set()
+        assert release.wait(5)
+        original(frames)
+
+    monkeypatch.setattr(recorder._encoder, "write", slow_encode)
+    recorder.start_episode(0)
+    pixels = observations(20)
+    try:
+        recorder.write(pixels)
+        assert started.wait(2)
+        # Simulate Isaac overwriting its existing camera tensors on env.step().
+        for image in pixels.values():
+            image[..., 0] = 200
+        recorder.write(pixels)
+        for image in pixels.values():
+            image[..., 0] = 100
+    finally:
+        release.set()
+        paths = recorder.finish_episode()
+    assert recorder._worker is None
+    for path in paths.values():
+        rate, frames = decode(path)
+        assert rate == 30 and len(frames) == 2
+        assert frames[0][..., 0].mean() == pytest.approx(20, abs=3)
+        assert frames[1][..., 0].mean() == pytest.approx(200, abs=3)
+
+
+def test_full_queue_waits_without_dropping_frames(tmp_path, monkeypatch):
+    recorder = EpisodeVideoRecorder(tmp_path, 30, queue_size=1)
+    started, release, submitted = Event(), Event(), Event()
+    original = recorder._encoder.write
+
+    def slow_encode(frames):
+        started.set()
+        assert release.wait(5)
+        original(frames)
+
+    monkeypatch.setattr(recorder._encoder, "write", slow_encode)
+    recorder.start_episode(0)
+    errors = []
+
+    def submit_third_frame():
+        try:
+            recorder.write(observations(180))
+        except BaseException as error:
+            errors.append(error)
+        finally:
+            submitted.set()
+
+    producer = Thread(target=submit_third_frame, daemon=True)
+    try:
+        recorder.write(observations(20))
+        assert started.wait(2)
+        recorder.write(observations(100))
+        producer.start()
+        assert not submitted.wait(0.1)
+    finally:
+        release.set()
+        if producer.ident is not None:
+            producer.join(5)
+        paths = recorder.finish_episode()
+    assert submitted.is_set() and not errors
+    for path in paths.values():
+        _, frames = decode(path)
+        assert len(frames) == 3
+        assert [frame[..., 0].mean() for frame in frames] == pytest.approx([20, 100, 180], abs=3)
+
+
+def test_encoder_failure_surfaces_and_finalizes_earlier_frames(tmp_path, monkeypatch):
+    recorder = EpisodeVideoRecorder(tmp_path, 30, queue_size=1)
+    original = recorder._encoder.write
+    calls = 0
+
+    def fail_second_frame(frames):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("Injected encoder failure")
+        original(frames)
+
+    monkeypatch.setattr(recorder._encoder, "write", fail_second_frame)
+    recorder.start_episode(0)
+    try:
+        with pytest.raises(RuntimeError, match="Injected encoder failure"):
+            for _ in range(5):
+                recorder.write(observations(120))
+            recorder.finish_episode()
+    finally:
+        recorder.close()
+    assert recorder._worker is None
+    files = list(tmp_path.glob("*.mp4"))
+    assert len(files) == 2
+    assert all(len(decode(path)[1]) == 1 for path in files)
+
+
+@pytest.mark.parametrize("size", [0, -1, True, 1.5])
+def test_queue_size_is_bounded_by_a_positive_integer(tmp_path, size):
+    with pytest.raises(ValueError, match="queue_size"):
+        EpisodeVideoRecorder(tmp_path, 30, queue_size=size)
+
+
+def test_unsupported_encoder_is_rejected_without_files(tmp_path):
+    with pytest.raises(ValueError, match="Video encoder"):
+        EpisodeVideoRecorder(tmp_path, 30, encoder="unknown")
+    assert not list(tmp_path.iterdir())

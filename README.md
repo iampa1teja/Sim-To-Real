@@ -159,10 +159,12 @@ querying again every simulated second (`action_repeat: 1`). This keeps visual
 feedback and gripper timing at the predicted speed. Setting `action_repeat: 5`
 holds each target for five ticks and queries every five simulated seconds,
 slowing the motion fivefold; use it only for an explicit timing comparison.
-Each attempt allows up to 90 simulated seconds (1 min 30 s) and logs simulation and wall
+Each attempt allows up to 180 simulated seconds (3 min) and logs simulation and wall
 time to success. `--save_videos` saves separate camera MP4 files beside the
 results; omit that flag to disable recording. Detailed logs are retained under
 `/tmp/so101-eval/`. The fixed benchmark determines the number of attempts.
+Recording uses a bounded background worker with CPU encoding (`libx264`).
+Set `eval.video_encoder: h264_nvenc` to use NVIDIA video hardware instead.
 
 Continue the latest matching interrupted benchmark, retaining completed results
 and videos:
@@ -183,7 +185,7 @@ videos, CSVs or run logs:
 ```
 
 Smoke mode overrides saving options and limits even a fixed benchmark to five
-attempts. Each attempt keeps the configured timeout (90 simulated seconds for
+attempts. Each attempt keeps the configured timeout (180 simulated seconds for
 this Molmo profile); progress and success timing appear in the terminal.
 
 An existing stopped container created without `--rm` can be restarted with

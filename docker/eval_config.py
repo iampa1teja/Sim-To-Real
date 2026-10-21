@@ -33,7 +33,7 @@ SECTIONS = {
     "policy": {"name", "checkpoint", "models_dir", "port", "server_image", "options"},
     "eval": {"dataset", "episodes", "start_mode", "random_fraction", "robot_start", "render_warmup",
              "episode_length_s", "action_horizon", "action_repeat", "molmo_overhead_camera", "eval_set", "splits", "repeats", "lang",
-             "lang_by_color", "rename_map", "results_json", "robot_usd", "save_videos", "video_dir"},
+             "lang_by_color", "rename_map", "results_json", "robot_usd", "save_videos", "video_dir", "video_encoder"},
     "grasp": {"gripper_latch", "log_gripper", "seed_per_episode", "latch_close_below",
               "latch_open_above", "latch_confirm_steps", "latch_release_confirm", "latch_min_hold",
               "latch_dataset", "gripper_csv", "latch_steady_steps", "latch_steady_max_delta",
@@ -219,6 +219,10 @@ def build(data: dict, *, molmo_overhead_camera: bool = False) -> dict:
     if video_dir is not None and (not isinstance(video_dir, str) or not video_dir.startswith("/")):
         fail("eval.video_dir must be an absolute path inside teleop.")
     out["video_dir"] = video_dir or ""
+    video_encoder = run.get("video_encoder", "libx264")
+    if video_encoder not in ("libx264", "h264_nvenc"):
+        fail("eval.video_encoder must be libx264 or h264_nvenc.")
+    out["video_encoder"] = video_encoder
 
     grasp_args: list[str] = []
     for key, value in (data.get("grasp") or {}).items():
@@ -237,7 +241,7 @@ def build(data: dict, *, molmo_overhead_camera: bool = False) -> dict:
         if not isinstance(flags.get(key, False), bool):
             fail(f"run.{key} must be true or false.")
         out[key] = "true" if flags.get(key, False) else "false"
-    ignored = {"gui", "rerun", "results_json", "save_videos", "video_dir", "port", "server_image"}
+    ignored = {"gui", "rerun", "results_json", "save_videos", "video_dir", "video_encoder", "port", "server_image"}
     identity = {key: value for key, value in out.items() if key not in ignored}
     out["config_fingerprint"] = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     return out

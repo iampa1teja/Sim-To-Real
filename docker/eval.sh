@@ -62,7 +62,7 @@ if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=
 
 # Variables defined by the helper: dr task policy_name model models_dir port server_image dataset
 # episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon action_repeat molmo_overhead_camera
-# eval_set splits lang lang_by_color rename_map results_json save_videos video_dir seed_per_episode gui rerun
+# eval_set splits lang lang_by_color rename_map results_json save_videos video_dir video_encoder seed_per_episode gui rerun
 # and the arrays policy_options (KEY=VALUE) and grasp_args.
 config_args=("$config")
 "$molmo_overhead_camera_flag" && config_args+=(--molmo-overhead-camera)
@@ -438,6 +438,7 @@ eval_cmd+=("${grasp_args[@]}")
 "$gui" || eval_cmd+=(--headless)
 "$rerun" && eval_cmd+=(--rerun)
 "$save_videos" && eval_cmd+=(--save_videos)
+if ! "$smoke_test"; then eval_cmd+=(--video_encoder "$video_encoder"); fi
 [[ -z $video_dir ]] || eval_cmd+=(--video_dir "$video_dir")
 evaluator_started=true
 run_logged "$log_dir/evaluation.log" "${eval_cmd[@]}"
