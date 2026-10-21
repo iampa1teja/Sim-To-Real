@@ -296,6 +296,14 @@ class StageTrace:
             self.stages[name] |= bool(value)
         self.holding = bool(held)
 
+    def progress_label(self):
+        """Highest observed milestone, plus live holding state after a grasp."""
+        stage = next((name for name in reversed(STAGES) if self.stages[name]), 'approaching')
+        label = 'stage=' + stage.replace('_', ' ')
+        if self.stages['grasped'] and not self.stages['placed']:
+            label += ', held=' + ('yes' if self.holding else 'no')
+        return label
+
     def finish(self, success):
         stages = dict(self.stages, success=bool(success))
         if success:

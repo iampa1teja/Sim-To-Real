@@ -48,7 +48,7 @@ class FakeProgress:
     def update(self, amount):
         pass
 
-    def set_postfix_str(self, value):
+    def set_postfix_str(self, value, *, refresh=True):
         self.postfixes.append(value)
 
     def close(self):
@@ -576,6 +576,28 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
         with tempfile.TemporaryDirectory() as directory:
             env, _ = self.evaluate(Path(directory) / 'report.json', outcomes=[(1, True, True)] * 3)
         self.assertEqual(env.progress_bars[-1].postfixes[-1], 'success=0.0% (0/3)')
+
+    def test_benchmark_progress_updates_stages_and_retains_terminal_milestone(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import StageTrace
+        original_step=FakeEnvironment.step
+        def step_with_milestones(env,actions):
+            trace=env._benchmark_trace
+            trace.stages['reached']=True
+            if env.episode_step>=1:
+                trace.stages['grasped']=True
+                trace.stages['lifted']=True
+                trace.holding=env.episode_step==1
+            return original_step(env,actions)
+        with tempfile.TemporaryDirectory() as directory, patch.object(FakeEnvironment,'step',step_with_milestones):
+            path=Path(directory)/'report.json'
+            env,_=self.evaluate(path,args_override={'eval_set':ROOT/'eval_sets/pick_place_v1_seed1984.json',
+                                                   'splits':None,'repeats':1,'smoke_test':True},
+                                outcomes=[(4,False,True)]*6)
+        for bar in env.progress_bars:
+            self.assertIn('stage=approaching',bar.postfixes[0])
+            self.assertTrue(any('stage=reached' in text for text in bar.postfixes))
+            self.assertTrue(any('stage=lifted, held=yes' in text for text in bar.postfixes))
+            self.assertIn('stage=lifted, held=no',bar.postfixes[-1])
 
     def test_override_is_applied_before_environment_creation(self):
         with tempfile.TemporaryDirectory() as directory:
