@@ -173,7 +173,7 @@ Run the evaluation (a bare file name is looked up in `configs/eval/`):
 To compare checkpoints, copy the YAML, change `policy.checkpoint`, and run the copied
 file. Keep the dataset, benchmark, seed and other settings identical. The launcher
 reads settings from YAML; its optional flags are `--dry_run`, `--external_server`,
-`--server_only`, `--gui`, `--rerun`, `--save_videos`, `--smoke-test`,
+`--server_only`, `--gui`, `--rerun`, `--save_videos`, `--resume [RESULTS.json]`, `--smoke-test`,
 `--molmo-overhead-camera`, and `--help`.
 
 When `eval.eval_set` is configured, the selected benchmark starts and repeats
@@ -272,6 +272,34 @@ To run the full benchmark and save each attempt's front and wrist views:
 ```bash
 ./docker/eval.sh pick_place_molmo_so101.yaml --save_videos
 ```
+
+After an interruption, continue the latest matching benchmark report:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --save_videos --resume
+```
+
+`--resume` uses `eval.results_json` when configured; otherwise it finds the most
+recent matching report in the default results directory. To select a run
+explicitly, use `--resume /workspace/Sim-to-Real-SO-101-Workshop/datasets/eval_results/NAME.json`
+(the absolute path inside teleop). It requires `eval.eval_set` and cannot be
+combined with `--smoke-test` or `--server_only`.
+
+Results are written atomically before the first attempt and after every completed
+episode. Resume retains successful and failed completed attempts, restores their
+aggregate statistics, and restarts the unfinished attempt from its scheduled
+start with the original policy seed and configured timeout. It validates the
+checkpoint, benchmark, selected schedule, policy options, camera mapping, joint
+transform and action settings before modifying saved results. Older reports use
+their recorded settings and schedule for validation. Already complete reports
+execute no further attempts. Start a fresh run by omitting `--resume`; an explicit
+existing `eval.results_json` is protected against accidental replacement.
+
+Recording resumes in the saved video directory, even if `--save_videos` is omitted
+on restart. Existing completed and partial MP4 files are preserved; new recordings
+use the next unused attempt number, which may differ from the logical episode
+number after an interruption. Each result row retains its actual video paths.
+An abruptly killed episode's partial MP4 may be unplayable; that episode is retried.
 
 Run this on the host with `teleop` running. Add `--rerun` from a desktop terminal
 to watch live. If a retained container is stopped, use `docker start teleop`
@@ -982,8 +1010,8 @@ datasets/hyperparameters/<model>_<checkpoint>_<eval_set_name>_<UTC timestamp>/
     failure_modes_vs_horizon.png
 ```
 
-The evaluator currently saves no video files. Any future video recording should
-write under the corresponding horizon directory. JSON rows add measured
+The direct evaluator can save videos with `--save_videos` under the corresponding
+results directory. JSON rows add measured
 `inference_calls` and `wall_time_s`; older reports without this telemetry show
 missing values, not zeros.
 

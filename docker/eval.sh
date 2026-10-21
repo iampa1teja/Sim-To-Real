@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Host-side evaluation runner. Every setting comes from one YAML file:
-#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--smoke-test] [--molmo-overhead-camera]
+#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test] [--molmo-overhead-camera]
 # A bare file name is looked up under configs/eval/. See configs/eval/pick_place.yaml for the schema.
 set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 usage() {
     cat <<'EOF'
-Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--smoke-test] [--molmo-overhead-camera]
+Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test] [--molmo-overhead-camera]
 
   <config>.yaml      Evaluation settings (policy, checkpoint, dataset, episodes, ...). A bare file
                      name is looked up in configs/eval/.
@@ -16,6 +16,8 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
   --server_only      Start the policy server and wait until interrupted; no evaluation.
   --gui, --rerun     Show the simulator window / enable Rerun (also settable under run: in the YAML).
   --save_videos      Save room/wrist MP4 videos for each attempt (also eval.save_videos in YAML).
+  --resume [JSON]    Continue the latest matching fixed-benchmark report, or an explicit absolute
+                     results JSON path inside teleop. Completed attempts and videos are retained.
   --smoke-test       Run exactly five episodes with Rerun; save no reports, videos, CSVs or run logs.
                      Keeps the configured episode timeout. Overrides output settings in the YAML.
   --molmo-overhead-camera  Add a camera behind/above the arm for Molmo pick-place inputs.
@@ -30,6 +32,7 @@ EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false smoke_test=false molmo_overhead_camera_flag=false
+resume=false resume_path=''
 while (($#)); do
     case "$1" in
         --external_server) external_server=true; shift ;;
@@ -38,6 +41,9 @@ while (($#)); do
         --gui) gui_flag=true; shift ;;
         --rerun) rerun_flag=true; shift ;;
         --save_videos) save_videos_flag=true; shift ;;
+        --resume)
+            resume=true; shift
+            if (($#)) && [[ $1 == *.json ]]; then resume_path=$1; shift; fi ;;
         --smoke-test) smoke_test=true; shift ;;
         --molmo-overhead-camera) molmo_overhead_camera_flag=true; shift ;;
         --help|-h) usage; exit 0 ;;
@@ -48,6 +54,8 @@ done
 [[ -n $config ]] || { usage >&2; fail 'Provide a config YAML, e.g. ./docker/eval.sh pick_place.yaml.'; }
 ! "$external_server" || ! "$server_only" || fail 'Choose only one server mode.'
 ! "$smoke_test" || ! "$server_only" || fail '--smoke-test cannot be combined with --server_only.'
+! "$resume" || { ! "$smoke_test" && ! "$server_only"; } || fail '--resume cannot be combined with --smoke-test or --server_only.'
+[[ -z $resume_path || $resume_path == /* ]] || fail '--resume JSON must be an absolute path inside teleop.'
 command -v python3 >/dev/null || fail 'Install python3 on the host for config, path and TCP checks.'
 if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=configs/eval/$config; fi
 [[ -f $config ]] || fail "Config file not found: $config"
@@ -60,6 +68,7 @@ config_args=("$config")
 "$molmo_overhead_camera_flag" && config_args+=(--molmo-overhead-camera)
 config_vars=$(python3 "$repo_dir/docker/eval_config.py" "${config_args[@]}") || exit 1
 eval "$config_vars"
+! "$resume" || [[ -n $eval_set ]] || fail '--resume requires eval.eval_set (a fixed benchmark schedule).'
 "$gui_flag" && gui=true
 "$rerun_flag" && rerun=true
 "$save_videos_flag" && save_videos=true
@@ -215,6 +224,18 @@ if not checkpoint.is_relative_to(root) or not checkpoint.is_dir():
 if not (checkpoint / 'config.json').is_file() or not any(checkpoint.glob('*.safetensors')) and not any(checkpoint.glob('pytorch_model*.bin')):
     sys.exit('Checkpoint needs config.json and model weights (*.safetensors or pytorch_model*.bin); point at the checkpoint directory.')
 PY
+    fi
+fi
+if "$resume"; then
+    resume_target=${resume_path:-${results_json:-${results%/*}}}
+    if "$dry_run"; then
+        print_command docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m sim_to_real_so101.utils.eval_resume \
+            "$resume_target" "${model//\//_}_${dr}_*.json" "$config_fingerprint" "$model" "$task"
+        results=${resume_path:-${results_json:-${results%/*}/LATEST_MATCHING_RESULTS.json}}
+    else
+        results=$(docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -m sim_to_real_so101.utils.eval_resume \
+            "$resume_target" "${model//\//_}_${dr}_*.json" "$config_fingerprint" "$model" "$task") || exit 1
+        printf 'Resuming results: %s\n' "$results"
     fi
 fi
 run docker exec teleop test -d "$dataset/pick_place_meta" || fail 'Dataset metadata missing inside teleop; use its mounted /workspace/Sim-to-Real-SO-101-Workshop/datasets path.'
@@ -400,7 +421,8 @@ eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$
     --rename_map "$rename_map" --action_horizon "$action_horizon" --action_repeat "$action_repeat"
     --policy "$policy_name" "${client_options[@]}"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
-    --num_episodes "$episodes" --checkpoint "$model")
+    --num_episodes "$episodes" --checkpoint "$model" --config_fingerprint "$config_fingerprint")
+"$resume" && eval_cmd+=(--resume)
 if "$smoke_test"; then eval_cmd+=(--smoke-test)
 else eval_cmd+=(--results_json "$results"); fi
 "$molmo_overhead_camera" && eval_cmd+=(--molmo-overhead-camera)

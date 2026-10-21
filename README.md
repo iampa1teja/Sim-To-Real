@@ -164,6 +164,17 @@ time to success. `--save_videos` saves separate camera MP4 files beside the
 results; omit that flag to disable recording. Detailed logs are retained under
 `/tmp/so101-eval/`. The fixed benchmark determines the number of attempts.
 
+Continue the latest matching interrupted benchmark, retaining completed results
+and videos:
+
+```bash
+./docker/eval.sh pick_place_molmo_so101.yaml --save_videos --resume
+```
+
+Progress saves atomically after each completed episode. The interrupted attempt
+restarts from its original benchmark start, with the same configured timeout.
+Use `--resume /absolute/container/path/results.json` to select a particular run.
+
 To watch five attempts in Rerun without saving evaluation reports, heatmaps,
 videos, CSVs or run logs:
 

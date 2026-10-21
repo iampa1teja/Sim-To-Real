@@ -143,6 +143,8 @@ parser.add_argument("--robot_usd", type=Path, default=None,
                     help="Override the robot USD before creating the environment (default: task asset)")
 parser.add_argument("--lang_instruction_by_color", type=json.loads, help="JSON colour to instruction map")
 parser.add_argument("--results_json", type=Path)
+parser.add_argument("--resume", action="store_true", help="Continue completed attempts from --results_json (fixed benchmark only)")
+parser.add_argument("--config_fingerprint", default=None, help=argparse.SUPPRESS)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
 
 from source.sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
@@ -193,7 +195,11 @@ from sim_to_real_so101.utils.lerobot_interface import (
 
 def _evaluate():
     from time import monotonic
+    from sim_to_real_so101.utils.eval_resume import load_episodes, read_report, write_report, next_video_attempt
     smoke_test = getattr(args_cli, "smoke_test", False)
+    resume = getattr(args_cli, "resume", False)
+    if resume and (smoke_test or not getattr(args_cli, "eval_set", None) or not args_cli.results_json):
+        raise ValueError("--resume requires --eval_set and --results_json, and cannot be used with --smoke-test")
     if smoke_test:
         args_cli.num_episodes = 5
         args_cli.rerun = True
@@ -237,6 +243,15 @@ def _evaluate():
             raise ValueError('--eval_set cannot be combined with random_fraction')
     elif getattr(args_cli, 'splits', None) or getattr(args_cli, 'repeats', 1) != 1:
         raise ValueError('--splits and --repeats require --eval_set')
+    saved_report = read_report(args_cli.results_json) if resume else None
+    if saved_report and saved_report.get("save_videos"):
+        args_cli.save_videos = True
+        selected_directory = getattr(args_cli, "video_dir", None)
+        if selected_directory is not None and str(selected_directory.resolve()) != saved_report.get("video_dir"):
+            raise ValueError("Cannot resume with a different video_dir")
+        args_cli.video_dir = Path(saved_report["video_dir"])
+    if not resume and args_cli.results_json and args_cli.results_json.exists():
+        raise ValueError("Results JSON already exists; use --resume or select a new results path")
     keyboard_control = KeyboardControl()
 
     # parse configuration
@@ -275,7 +290,8 @@ def _evaluate():
         if args_cli.cube_starts:
             params["starts_dir"] = args_cli.cube_starts
         if benchmark:
-            params.update(eval_set=str(args_cli.eval_set), splits=args_cli.splits, repeats=args_cli.repeats)
+            params.update(eval_set=str(args_cli.eval_set), splits=args_cli.splits, repeats=args_cli.repeats,
+                          start_offset=len(saved_report["episodes"]) if resume else 0)
     elif benchmark or args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
         raise ValueError("Cube starts and colour instructions require a pick-place Eval task")
 
@@ -406,14 +422,89 @@ def _evaluate():
     pbar = None
     video_recorder = None
     video_attempt = 0
-    video_dir = None
+    video_dir = getattr(args_cli, "video_dir", None) if resume else None
 
     def progress_summary():
         completed = len(episodes)
         rate = f"{successes / completed:.1%}" if completed else "N/A"
         return f"success={rate} ({successes}/{completed})"
 
+    def build_report():
+        report_fn = results_report
+        report_extra = {}
+        if benchmark:
+            report_fn = benchmark_report
+            report_extra = dict(eval_set=benchmark.data, repeats=args_cli.repeats)
+        report = report_fn(
+            episodes, task=args_cli.task, checkpoint=args_cli.checkpoint, seed=args_cli.seed, **report_extra,
+            random_fraction=args_cli.random_fraction, episode_length_s=episode_length_s,
+            action_horizon=args_cli.action_horizon, step_dt=step_dt,
+        )
+        report['robot_start'] = args_cli.robot_start
+        report['action_repeat'] = action_repeat
+        report['replan_interval_s'] = replan_interval_s
+        report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
+        if molmo_overhead_metadata is not None:
+            report['molmo_overhead_camera'] = molmo_overhead_metadata
+        if video_recorder is not None or (resume and saved_report.get("save_videos")):
+            report["save_videos"] = True
+            report["video_dir"] = str(video_dir)
+        if getattr(policy, "joint_transform", None) is not None:
+            report["policy_joint_transform"] = policy.joint_transform
+        if getattr(policy, "policy_cameras", None) is not None:
+            report["policy_cameras"] = policy.policy_cameras
+        if grasp_kwargs:
+            from dataclasses import asdict
+            report["gripper_control"] = asdict(grasp_config)
+            if grasp_config.enabled:
+                report["gripper_calibration"] = policy.grasp.calibration
+            report["gripper_latch"] = grasp_config.gripper_latch
+            report["seed_per_episode"] = args_cli.seed_per_episode
+        if smoothing_kwargs:
+            report['smoothing'] = {key: getattr(args_cli, key, default)
+                                   for key, default in smoothing_defaults.items()}
+        report['requested_episodes'] = args_cli.num_episodes
+        report['complete'] = len(episodes) == args_cli.num_episodes
+        report["policy"] = args_cli.policy
+        fingerprint = getattr(args_cli, "config_fingerprint", None)
+        if fingerprint is not None:
+            report["config_fingerprint"] = fingerprint
+        from dataclasses import asdict
+        report["resume_settings"] = dict(
+            policy=args_cli.policy, policy_options=policy_options,
+            cube_starts=args_cli.cube_starts, rename_map=rename_map,
+            lang=args_cli.lang_instruction, lang_by_color=args_cli.lang_instruction_by_color,
+            render_warmup=render_warmup, molmo_overhead_camera=use_molmo_overhead,
+            smoothing={key: getattr(args_cli, key, default) for key, default in smoothing_defaults.items()
+                       if key not in ("log_timing", "timing_csv")},
+            grasp={key: value for key, value in asdict(grasp_config).items()
+                   if key not in ("log_gripper", "gripper_csv")},
+            seed_per_episode=args_cli.seed_per_episode)
+        return report
+
+    if resume:
+        # Validate before opening a recorder or replacing any existing report.
+        expected = build_report()
+        identity_keys = ("task", "checkpoint", "seed", "random_fraction", "episode_length_s",
+                         "action_horizon", "action_repeat", "step_dt", "robot_start", "robot_usd",
+                         "eval_set_id", "repeats", "requested_episodes", "policy_joint_transform",
+                         "policy_cameras", "resume_settings", "config_fingerprint")
+        try:
+            saved_report = load_episodes(args_cli.results_json,
+                                         {key: expected[key] for key in identity_keys if key in expected},
+                                         benchmark.schedule)
+        except BaseException:
+            env.close()
+            raise
+        episodes = saved_report["episodes"].copy()
+        successes = sum(row["success"] for row in episodes)
+        print(f"[RESUME] Retained {len(episodes)}/{args_cli.num_episodes} completed episodes; "
+              "continuing at the next unfinished attempt.", flush=True)
+
     try:
+        if len(episodes) == args_cli.num_episodes:
+            print("[RESUME] Evaluation is already complete; no attempts to run.", flush=True)
+            return
         if getattr(args_cli, "save_videos", False):
             from sim_to_real_so101.utils.eval_video import EpisodeVideoRecorder
             video_dir = getattr(args_cli, "video_dir", None)
@@ -425,7 +516,12 @@ def _evaluate():
                     video_dir = Path("outputs/eval_videos") / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
             video_dir = video_dir.expanduser().resolve()
             video_recorder = EpisodeVideoRecorder(video_dir, fps=1 / step_dt, rename_map=rename_map)
+            if resume:
+                video_attempt = next_video_attempt(video_dir)
             print(f"[INFO]: Saving attempt videos to {video_dir}", flush=True)
+        # Persist an empty initial checkpoint too, so an interruption in episode 1 is resumable.
+        if args_cli.results_json:
+            write_report(args_cli.results_json, build_report())
         obs, _ = env.reset()
         metadata = episode_metadata()
         if benchmark:
@@ -516,6 +612,8 @@ def _evaluate():
                         grasp_diagnostics.reset()
                     episodes.append(row)
                     successes += int(row['success'])
+                    if args_cli.results_json:
+                        write_report(args_cli.results_json, build_report())
                     pbar.set_postfix_str(progress_summary())
                     pbar.close()
                     pbar = None
@@ -566,41 +664,7 @@ def _evaluate():
     finally:
         if pbar is not None:
             pbar.close()
-        report_fn = results_report
-        report_extra = {}
-        if benchmark:
-            report_fn = benchmark_report
-            report_extra = dict(eval_set=benchmark.data, repeats=args_cli.repeats)
-        report = report_fn(
-            episodes, task=args_cli.task, checkpoint=args_cli.checkpoint, seed=args_cli.seed, **report_extra,
-            random_fraction=args_cli.random_fraction, episode_length_s=episode_length_s,
-            action_horizon=args_cli.action_horizon, step_dt=step_dt,
-        )
-        report['robot_start'] = args_cli.robot_start
-        report['action_repeat'] = action_repeat
-        report['replan_interval_s'] = replan_interval_s
-        report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
-        if molmo_overhead_metadata is not None:
-            report['molmo_overhead_camera'] = molmo_overhead_metadata
-        if video_recorder is not None:
-            report["save_videos"] = True
-            report["video_dir"] = str(video_dir)
-        if getattr(policy, "joint_transform", None) is not None:
-            report["policy_joint_transform"] = policy.joint_transform
-        if getattr(policy, "policy_cameras", None) is not None:
-            report["policy_cameras"] = policy.policy_cameras
-        if grasp_kwargs:
-            from dataclasses import asdict
-            report["gripper_control"] = asdict(grasp_config)
-            if grasp_config.enabled:
-                report["gripper_calibration"] = policy.grasp.calibration
-            report["gripper_latch"] = grasp_config.gripper_latch
-            report["seed_per_episode"] = args_cli.seed_per_episode
-        if smoothing_kwargs:
-            report['smoothing'] = {key: getattr(args_cli, key, default)
-                                   for key, default in smoothing_defaults.items()}
-        report['requested_episodes'] = args_cli.num_episodes
-        report['complete'] = len(episodes) == args_cli.num_episodes
+        report = build_report()
         overall = report['overall']
         rate = overall['success_rate']
         rate_text = f"{rate:.1%}" if rate is not None else 'n/a'
@@ -616,8 +680,7 @@ def _evaluate():
                                    for name, stats in groups.items())
                 print(f"[RESULT] {label}: {values}")
         if args_cli.results_json:
-            args_cli.results_json.parent.mkdir(parents=True, exist_ok=True)
-            args_cli.results_json.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
+            write_report(args_cli.results_json, report)
             if benchmark:
                 save_heatmap(report, args_cli.results_json.with_suffix('.png'))
             print(f"Results JSON: {args_cli.results_json}")
