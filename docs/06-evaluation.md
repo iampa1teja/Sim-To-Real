@@ -121,6 +121,41 @@ learned bounds. This evidence points to the predicted approach targets for that
 attempt; it does not prove a physical reachability or calibration defect, nor
 that bypassing the model's clipping would fix the grasp.
 
+An additional 2026-10-22 offline check loaded all 5.44 billion released parameters
+in FP32 on the CPU. Two reconstructed observations produced finite 30-by-6
+action chunks, using about 21.3 GiB peak resident memory and 9.7 seconds per query
+with 16 CPU threads. This establishes a full-precision reference option without
+using GPU memory; it does not establish episode success.
+
+The saved stalled observation at query 29 (reconstructed video frame 880) was
+also tested with matched CPU sampling noise, seed `1832710763`, while changing
+the instruction and image preprocessing:
+
+| Input variant | Closest commanded tool point to cube | Query wall time |
+| --- | --- | --- |
+| Released resize, original instruction | 79.89 mm | 9.81 s |
+| Released resize, explicit step-by-step instruction | 79.86 mm | 10.09 s |
+| Supported high-resolution tiling, original instruction | 88.59 mm | 34.39 s |
+| High-resolution tiling, explicit instruction | 89.03 mm | 34.58 s |
+
+Five noise seeds at that same observation gave closest commanded distances of
+75.29–79.89 mm with the released resize. These are static forward-kinematics
+measurements of predicted targets, not executed robot approaches. The source
+images are lossy video reconstructions; CPU noise and kernels do not reproduce
+the saved GPU stream. They cannot select a production setting or replace a
+closed-loop comparison.
+
+For that CPU baseline chunk, the observed pre-clipping overflow could move the
+fixed diagnostic tool point by at most 3.35 mm if clipping alone were removed.
+The bound sums each joint's maximum rigid displacement,
+`2 * downstream_radius * sin(abs(angle_change) / 2)`, over the five arm joints.
+Angles are in radians and each radius is bounded by downstream segment lengths.
+Thus unclipping those same 30 targets still leaves at least 76.54 mm of static
+error. This local bound does not rule out different closed-loop predictions if
+clipping changes earlier in an episode, and is not a limit on all possible
+Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
+remain unchanged.
+
 The 2026-10-21 Rerun smoke check then completed five 180-second rollouts on
 `id-000` through `id-004` with **0/5 successes**: two `missed_grasp` and three
 `never_reached`. It confirmed live milestone reporting and quiet default logs,
