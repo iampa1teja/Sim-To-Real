@@ -146,11 +146,11 @@ the saved GPU stream. They cannot select a production setting or replace a
 closed-loop comparison.
 
 For that CPU baseline chunk, the observed pre-clipping overflow could move the
-fixed diagnostic tool point by at most 3.35 mm if clipping alone were removed.
+fixed diagnostic tool point by at most 3.4 mm if clipping alone were removed.
 The bound sums each joint's maximum rigid displacement,
 `2 * downstream_radius * sin(abs(angle_change) / 2)`, over the five arm joints.
 Angles are in radians and each radius is bounded by downstream segment lengths.
-Thus unclipping those same 30 targets still leaves at least 76.54 mm of static
+Thus unclipping those same 30 targets still leaves at least 76.4 mm of static
 error. This local bound does not rule out different closed-loop predictions if
 clipping changes earlier in an episode, and is not a limit on all possible
 Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
