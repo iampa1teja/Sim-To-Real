@@ -194,6 +194,15 @@ clipping changes earlier in an episode, and is not a limit on all possible
 Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
 remain unchanged.
 
+Reconditioning those same saved images on the native physical pan angle
+(35.65° rather than the experimental warp's 21.01°), while keeping the other
+state values fixed, also left a predominantly vertical commanded miss. The
+closest static errors were 79.89/80.31 mm with the existing warp and
+78.71/78.85 mm with native pan, respectively with/without output clipping.
+The clipped control exactly reproduced the previous CPU reference array.
+This tests input conditioning as well as output interpretation; it provides no
+evidence for a new pan correction and does not exclude a closed-loop effect.
+
 The checkpoint's native discrete decoder was also checked offline with the
 released FAST tokenizer and the same two reconstructed observations. Both
 queries produced valid 30-by-6 chunks, with 180 decoded DCT coefficients rather
@@ -674,6 +683,16 @@ the other seven starts, so its total did not exceed the baseline's 1/9.
 These are initial screening results, without a claim of repeatability or a limit
 on model capacity; further candidates and paired validation are separate
 evidence. No production inference defaults were promoted from these results.
+
+Matched H30/H10 verification subsequently completed roots 9182 and 4173, keeping
+the same nine original positions and each root's original per-start seeds.
+Across roots 1984/9182/4173, H30 placed 1/9, 0/9 and 2/9; H10 placed 1/9, 1/9
+and 1/9. Both therefore placed **3/27**. H10 placed MR in all three seed sets
+but never MC; H30 placed MR once and MC twice. H10 also reached NC once without
+grasping it. This is a tradeoff, not a net placement improvement, so H30 remains
+the default. These are repeated trials on nine positions, not 27 newly sampled
+positions or a full-benchmark estimate. A new camera/precision batch uses its
+own matched control and records returned chunks in RAM for failure analysis.
 
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
