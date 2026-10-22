@@ -761,6 +761,7 @@ def _evaluate():
                 'failure_mode', 'stages', 'smoke_deadline')} for row in episodes]
             for item, row in zip(smoke_result['episodes'], episodes):
                 diagnostics = row.get('grasp_diagnostics') or {}
+                item['grasp_diagnostics'] = diagnostics
                 item['closest_tool_error_mm'] = (diagnostics.get('closest') or {}).get('tool_error_mm')
                 item['closest_closing_tool_error_mm'] = (diagnostics.get('closest_closing') or {}).get('tool_error_mm')
             print('[SMOKE_RESULT] ' + json.dumps(smoke_result, separators=(',', ':'), allow_nan=False), flush=True)

@@ -4,6 +4,9 @@ from pathlib import Path
 import os
 import socket
 from types import SimpleNamespace
+import json
+import tempfile
+import tomllib
 
 import pytest
 
@@ -37,6 +40,44 @@ def test_three_camera_variant_must_be_declared_explicitly():
         m.validate_result(report, expected, 30, options)
     report['resume_settings']['molmo_overhead_camera'] = True
     assert m.validate_result(report, expected, 30, options, overhead=True) is report
+
+
+def test_two_external_views_are_validated_against_their_actual_declared_inputs():
+    report, expected, options = fixture()
+    report['policy_cameras'] = ['room', 'original_room']
+    report['resume_settings']['molmo_overhead_camera'] = True
+    with pytest.raises(ValueError, match='camera'):
+        m.validate_result(report, expected, 30, options, overhead=True)
+    assert m.validate_result(report, expected, 30, options, overhead=True,
+                             camera_inputs=('room', 'original_room')) is report
+    report['policy_cameras'] = ['room', 'wrist', 'original_room']
+    with pytest.raises(ValueError, match='camera'):
+        m.validate_result(report, expected, 30, options, overhead=True,
+                          camera_inputs=('room', 'original_room'))
+
+
+def test_camera_selection_changes_only_the_private_snapshot_and_its_digest():
+    manifest = ROOT/'policies/molmoact2/policy.toml'
+    original = manifest.read_bytes()
+    with tempfile.TemporaryDirectory(dir='/dev/shm') as directory:
+        args = SimpleNamespace(state_dir=Path(directory)/'control', wait_pid=None, control_repo=ROOT)
+        control = m.Investigation(args)
+        args = SimpleNamespace(state_dir=Path(directory)/'external', wait_pid=None, control_repo=ROOT)
+        external = m.Investigation(args, camera_inputs=('room', 'original_room'))
+        assert (control.snapshot/'policies/molmoact2/policy.toml').read_bytes() == original
+        selected = tomllib.loads((external.snapshot/'policies/molmoact2/policy.toml').read_text())
+        assert selected['observation']['cameras'] == ['room', 'original_room']
+        assert external.source_digest != control.source_digest
+        state = json.loads((external.root/'state.json').read_text())
+        assert state['manifest_camera_inputs'] == ['room', 'original_room']
+        assert state['source_digest'] == external.source_digest
+    assert manifest.read_bytes() == original
+
+
+@pytest.mark.parametrize('cameras', [[], ['room', 'room'], ['unknown'], 'room', ['room', None]])
+def test_invalid_research_camera_selection_fails_before_creating_resources(cameras):
+    with pytest.raises(ValueError, match='camera'):
+        m.Investigation(SimpleNamespace(), camera_inputs=cameras)
 
 
 @pytest.mark.parametrize('change', ['seed','start','zone','duration','horizon','camera','checkpoint',
