@@ -51,7 +51,7 @@ def port_free(port):
         return False
 
 
-def validate_result(report, expected, horizon, options=None, overhead=False):
+def validate_result(report, expected, horizon, options=None, overhead=False, camera_inputs=None):
     if not report.get('complete') or report.get('requested_episodes') != len(expected):
         raise ValueError('Incomplete smoke trial is not a scored candidate')
     if report.get('checkpoint') != 'molmoact2_so101':
@@ -60,7 +60,8 @@ def validate_result(report, expected, horizon, options=None, overhead=False):
         raise ValueError('Unexpected execution timing')
     if report.get('episode_length_s') != 210:
         raise ValueError('Unexpected absolute smoke ceiling')
-    cameras = ['room', 'wrist', 'original_room'] if overhead else ['room', 'wrist']
+    cameras = (list(camera_inputs) if camera_inputs is not None else
+               ['room', 'wrist', 'original_room'] if overhead else ['room', 'wrist'])
     if report.get('policy_cameras') != cameras:
         raise ValueError('Unexpected camera inputs')
     settings = report.get('resume_settings', {})
@@ -99,8 +100,14 @@ def rank_result(item):
 
 
 class Investigation:
-    def __init__(self, args):
+    def __init__(self, args, camera_inputs=None):
         import yaml
+        if camera_inputs is not None and (
+                not isinstance(camera_inputs, (tuple, list)) or not camera_inputs
+                or any(c not in ('room', 'wrist', 'original_room') for c in camera_inputs)
+                or len(set(camera_inputs)) != len(camera_inputs)):
+            raise ValueError('Research camera inputs must be unique supported camera names')
+        self.camera_inputs = tuple(camera_inputs) if camera_inputs is not None else ('room', 'wrist')
         self.args = args
         self.root = args.state_dir.resolve()
         if not str(self.root).startswith('/dev/shm/'):
@@ -130,6 +137,15 @@ class Investigation:
         assets.symlink_to(CREPO + '/source/sim_to_real_so101/assets')
         shutil.copytree(ROOT / 'policies', self.snapshot / 'policies',
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        if camera_inputs is not None:
+            # Only the new private snapshot changes, before its source digest
+            # or any process is created. The original manifest stays intact.
+            manifest = self.snapshot / 'policies/molmoact2/policy.toml'
+            contents, count = re.subn(r'(?m)^cameras\s*=.*$',
+                'cameras = ' + json.dumps(list(self.camera_inputs)), manifest.read_text())
+            if count != 1:
+                raise ValueError('Expected exactly one camera declaration in the private manifest')
+            manifest.write_text(contents)
         for name in ('datasets', 'eval_sets', 'configs'):
             (self.snapshot / name).symlink_to(CREPO + '/' + name)
         digest = hashlib.sha256()
@@ -151,6 +167,7 @@ class Investigation:
         payload = dict(status=self.phase, pid=os.getpid(), heartbeat_unix_s=time.time(),
                        waiting_for_pid=self.args.wait_pid, source_digest=self.source_digest,
                        runtime_snapshot=str(self.snapshot), current=self.current, results=self.results,
+                       manifest_camera_inputs=list(self.camera_inputs),
                        scope='Released SO101 weights; model-generated actions; no assistance; one example per zone')
         temporary = self.root / 'state.tmp'
         temporary.write_text(json.dumps(payload, indent=2, allow_nan=False) + '\n')
@@ -238,8 +255,15 @@ class Investigation:
             self.run_id = None
 
     def trial(self, label, options, horizon=30, seed=1984, instruction=None, overhead=False):
+        cameras = list(self.camera_inputs)
+        include_original = str(options.get('include_original_room', False)).lower()
+        if include_original not in ('true', 'false'):
+            raise ValueError('include_original_room must be true or false')
+        if include_original == 'true' and 'original_room' not in cameras:
+            cameras.append('original_room')
         self.current = dict(label=label, horizon=horizon, seed=seed, options=options,
-                            instruction=instruction or self.cfg['eval']['lang'], overhead=overhead)
+                            instruction=instruction or self.cfg['eval']['lang'], overhead=overhead,
+                            camera_inputs=cameras)
         self.save('loading_candidate')
         self.start_server(options)
         self.run_id = 'molmo-capability-' + str(os.getpid()) + '-' + str(time.time_ns())
@@ -294,7 +318,7 @@ class Investigation:
             code = self.client.wait()
             if code or report is None:
                 raise RuntimeError(f'Candidate exited {code} without a complete result: ' + '\n'.join(tail))
-            validate_result(report, self.expected_by_seed[seed], horizon, options, overhead)
+            validate_result(report, self.expected_by_seed[seed], horizon, options, overhead, cameras)
             result = dict(self.current, report=report)
             self.results.append(result)
             self.current = None

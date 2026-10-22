@@ -621,6 +621,15 @@ videos are never used as output paths. Its `planned_trials_complete` status
 means only that the planned tests ended: findings still require a premortem,
 validation and review before any default configuration is changed.
 
+Programmatic follow-ups can construct `Investigation(args,
+camera_inputs=('room', 'original_room'))` to compare the added overhead view
+and the original front view, excluding the wrist from model input. Pass
+`overhead=True` to that instance's trial so both external sensors are available.
+This edits only the new RAM snapshot's manifest before hashing it; the normal
+manifest, original camera poses and task stay unchanged. Trial records and
+validation use the actual selected camera names rather than relabelling a
+three-image result as a two-image comparison.
+
 To inspect the initial pose in Isaac without loading a policy, run:
 
 ```bash
