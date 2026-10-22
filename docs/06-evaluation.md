@@ -601,22 +601,26 @@ with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
 
-The first five completed nine-zone comparisons on 2026-10-22 used root seed
+The first six completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
 progress deadlines, continuous rendering and released weights:
 
 | Inference setting | Reached | Grasped | Successful placements | Successful placement time |
 | --- | --- | --- | --- | --- |
 | Existing mixed-precision control, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 25.50 s sim |
+| Existing mixed-precision computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 11.97 s sim |
 | FP32 expert computation, H30/R1 | 2/9 | 0/9 | 0/9 | — |
 | FP32 expert computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.97 s sim |
 | FP32 expert computation, 20 solver steps, H30/R1 | 2/9 | 1/9 | 0/9 | — |
 | FP32 expert computation, native pan, H30/R1 | 2/9 | 1/9 | 0/9 | — |
 
-All five retain a BF16 vision/language backbone; none is a full-FP32 model
+All six retain a BF16 vision/language backbone; none is a full-FP32 model
 evaluation. All reached MC and MR; the other seven attempts expired before a
-first reach. H10 gained MR but lost MC, so this screen shows no net placement
-gain and does not justify changing the default horizon. FP32 expert computation
+first reach. Both H10 variants gained MR but lost MC, so this screen shows no
+net placement gain and does not justify changing the default horizon. The
+11.97-second and 26.97-second MR placements used the same start and seed with
+different expert computation; timing successful attempts on different starts
+does not establish a general speed advantage. FP32 expert computation
 alone also showed no improvement. With 20 flow-solver steps, MR was lifted and
 then dropped before the box. Removing both pan-adaptation options instead left
 MR held until its progress deadline at 55.73 simulated seconds, without reaching
