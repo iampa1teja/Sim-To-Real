@@ -169,6 +169,20 @@ clipping changes earlier in an episode, and is not a limit on all possible
 Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
 remain unchanged.
 
+The checkpoint's native discrete decoder was also checked offline with the
+released FAST tokenizer and the same two reconstructed observations. Both
+queries produced valid 30-by-6 chunks, with 180 decoded DCT coefficients rather
+than the tokenizer's malformed-sequence zero fallback. On the stalled query,
+the closest commanded point missed by **75.18 mm**, versus **79.89 mm** for
+continuous decoding. The closest targets were respectively **65.85 mm** and
+**76.50 mm above the cube** in the robot-base frame. Optimizing pan alone for
+those same continuous targets offline reduced the miss only to **79.65 mm**.
+This diagnoses a predominantly vertical miss in that observation; it does not
+select a new pan correction or establish closed-loop performance. The
+[model card](https://huggingface.co/allenai/MolmoAct2-SO100_101#discrete-actions)
+exposes discrete decoding for parity/debugging and recommends continuous
+inference. The adapter's inference mode remains continuous.
+
 The 2026-10-21 Rerun smoke check then completed five 180-second rollouts on
 `id-000` through `id-004` with **0/5 successes**: two `missed_grasp` and three
 `never_reached`. It confirmed live milestone reporting and quiet default logs,
@@ -605,6 +619,11 @@ FP32 expert computation alone also showed no improvement. These are initial
 screening results, without a claim of repeatability or a limit on model capacity;
 further candidates and paired validation are separate evidence. No production
 inference defaults were promoted from these results.
+
+A subsequent matched H30/R1 screen kept FP32 expert computation and increased
+the flow solver from 10 to 20 steps. It reached 2/9, grasped and lifted 1/9,
+and placed 0/9: MR was lifted and then dropped before the box. It showed no
+placement improvement under the same deadlines.
 
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
