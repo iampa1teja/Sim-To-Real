@@ -694,6 +694,37 @@ the default. These are repeated trials on nine positions, not 27 newly sampled
 positions or a full-benchmark estimate. A new camera/precision batch uses its
 own matched control and records returned chunks in RAM for failure analysis.
 
+That batch completed these additional comparisons at root 1984, with the same
+nine starts and deadlines. All four below use the existing mixed-precision
+computation, rather than the FP32-expert variant above:
+
+| Setting | Reached | Grasped | Successful placements | Successful placement time |
+| --- | --- | --- | --- | --- |
+| Front/wrist, H30/R1 control | 2/9 | 1/9 | 1/9 (MC) | 29.30 s sim |
+| Front/wrist, H10/R1 | 3/9 | 1/9 | 1/9 (MR) | 18.23 s sim |
+| Overhead/wrist/front, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 14.40 s sim |
+| Overhead/front, H30/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.53 s sim |
+
+The three-image setting completed MC faster but missed MR; the two external
+views gained MR and lost MC. Neither added a reached zone or a placement to
+the H30 control. These single-root screens do not establish repeatability or
+exclude a benefit on other starts. The H10 setting reached NC without grasping.
+Episode results and grasp diagnostics are complete for all four settings;
+the separate query trace for the three-image setting is partial (218 of 474
+queries), so it cannot support claims about every returned chunk.
+
+The subsequent full-FP32 attempt failed on its first inference, before any
+episode could be scored. With Isaac sharing the RTX 4090, the released text
+embedding lookup temporarily concatenated its weight tables and requested
+another 1.48 GiB while only 1.13 GiB was free. This is a runtime failure,
+not a 0/9 policy score. A private retry uses separate lookups into the unchanged
+tables to remove that temporary allocation. On an exact captured input and
+CUDA RNG state, its 30-by-6 action targets matched the original lookup bit for
+bit, and peak PyTorch allocation fell from 18.69 to 17.64 GiB. This comparison
+used FP32 CPU vision and GPU language/action modules in both cases. It validates
+the lookup's numerical behavior in that setup, not better task performance;
+the retry remains separate from production defaults.
+
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
 20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
@@ -725,6 +756,10 @@ leading candidate with two additional matched seeds. Existing reports and
 videos are never used as output paths. Its `planned_trials_complete` status
 means only that the planned tests ended: findings still require a premortem,
 validation and review before any default configuration is changed.
+Incomplete results are rejected even if Isaac exits with status zero. Failure
+reports preserve typed exceptions such as `torch.OutOfMemoryError` and the
+owned policy server's recent output before cleanup, so shutdown warnings cannot
+hide the original cause. Failed attempts are never added as completed scores.
 
 Programmatic follow-ups can construct `Investigation(args,
 camera_inputs=('room', 'original_room'))` to compare the added overhead view

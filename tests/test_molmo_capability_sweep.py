@@ -151,3 +151,50 @@ def test_fast_failure_does_not_improve_the_speed_ranking():
     slower_placement = candidate(20, 60)
     faster_placement = candidate(10, 90)
     assert m.rank_result(faster_placement) > m.rank_result(slower_placement)
+
+
+def test_runtime_exception_is_visible_without_printing_numeric_error_metrics():
+    assert m.FAILURE_LINE.search('RuntimeError: Expected all tensors on the same device')
+    assert m.FAILURE_LINE.search('torch.OutOfMemoryError: CUDA out of memory')
+    assert not m.FAILURE_LINE.search('[GRASP 1] {"tool_error_mm": 8.4, "max_joint_tracking_error_deg": 1.2}')
+
+
+def test_zero_exit_incomplete_trial_retains_cause_before_shutdown_noise(monkeypatch, capsys):
+    report, expected, options = fixture()
+    report['complete'] = False
+    output = ('RuntimeError: CUDA out of memory\n'
+              + '\n'.join('[Warning] shutdown diagnostic' for _ in range(100))
+              + '\n' + m.MARKER + json.dumps(report) + '\n').encode()
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, output)
+    os.close(write_fd)
+    reader = os.fdopen(read_fd, 'rb')
+    worker = m.Investigation.__new__(m.Investigation)
+    worker.camera_inputs = ('room', 'wrist')
+    worker.cfg = {'eval': dict(lang='task', dataset='/dataset', robot_usd='/robot.usd',
+                               rename_map={'realsense_rgb': 'room', 'wrist_cam': 'wrist'}, eval_set='/set.json')}
+    worker.snapshot = Path('/dev/shm/private-test')
+    worker.viewer = SimpleNamespace(poll=lambda: None)
+    worker.server = 'owned-test-policy'
+    worker.results = []
+    worker.expected_by_seed = {1984: expected}
+    worker.save = lambda *args: None
+    worker.start_server = lambda *args: None
+    cleaned = []
+    worker.cleanup_client = lambda: cleaned.append(True)
+    monkeypatch.setattr(m.subprocess, 'Popen', lambda *a, **k: SimpleNamespace(stdout=reader, wait=lambda: 0))
+    def logs(args, **kwargs):
+        assert args == ['docker', 'logs', '--tail', '80', 'owned-test-policy']
+        return SimpleNamespace(stdout='policy request failed: allocation exceeded shared GPU memory', stderr='')
+    monkeypatch.setattr(m.subprocess, 'run', logs)
+    try:
+        with pytest.raises(RuntimeError) as caught:
+            worker.trial('failure', options)
+        assert 'CUDA out of memory' in str(caught.value)
+        assert 'allocation exceeded shared GPU memory' in str(caught.value)
+        assert 'shutdown diagnostic' not in str(caught.value)
+        assert m.MARKER not in str(caught.value)
+        assert not worker.results and cleaned == [True]
+        assert 'RuntimeError: CUDA out of memory' in capsys.readouterr().out
+    finally:
+        reader.close()
