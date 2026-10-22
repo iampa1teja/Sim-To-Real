@@ -601,7 +601,7 @@ with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
 
-The first three completed nine-zone comparisons on 2026-10-22 used root seed
+The first five completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
 progress deadlines, continuous rendering and released weights:
 
@@ -610,20 +610,22 @@ progress deadlines, continuous rendering and released weights:
 | Existing mixed-precision control, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 25.50 s sim |
 | FP32 expert computation, H30/R1 | 2/9 | 0/9 | 0/9 | — |
 | FP32 expert computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.97 s sim |
+| FP32 expert computation, 20 solver steps, H30/R1 | 2/9 | 1/9 | 0/9 | — |
+| FP32 expert computation, native pan, H30/R1 | 2/9 | 1/9 | 0/9 | — |
 
-Both FP32-compute comparisons retain a BF16 vision/language backbone; neither
-is a full-FP32 model evaluation. All three reached MC and MR; the other seven
-attempts expired before a first reach. H10 gained MR but lost MC, so this screen
-shows no net placement gain and does not justify changing the default horizon.
-FP32 expert computation alone also showed no improvement. These are initial
-screening results, without a claim of repeatability or a limit on model capacity;
-further candidates and paired validation are separate evidence. No production
-inference defaults were promoted from these results.
+All five retain a BF16 vision/language backbone; none is a full-FP32 model
+evaluation. All reached MC and MR; the other seven attempts expired before a
+first reach. H10 gained MR but lost MC, so this screen shows no net placement
+gain and does not justify changing the default horizon. FP32 expert computation
+alone also showed no improvement. With 20 flow-solver steps, MR was lifted and
+then dropped before the box. Removing both pan-adaptation options instead left
+MR held until its progress deadline at 55.73 simulated seconds, without reaching
+the box; it added no reached zone. This agrees with the native pan-range
+constraint discussed above, without proving a universal model limit.
 
-A subsequent matched H30/R1 screen kept FP32 expert computation and increased
-the flow solver from 10 to 20 steps. It reached 2/9, grasped and lifted 1/9,
-and placed 0/9: MR was lifted and then dropped before the box. It showed no
-placement improvement under the same deadlines.
+These are initial screening results, without a claim of repeatability or a limit
+on model capacity; further candidates and paired validation are separate
+evidence. No production inference defaults were promoted from these results.
 
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
