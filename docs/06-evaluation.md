@@ -601,7 +601,7 @@ with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
 
-The first six completed nine-zone comparisons on 2026-10-22 used root seed
+The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
 progress deadlines, continuous rendering and released weights:
 
@@ -613,8 +613,10 @@ progress deadlines, continuous rendering and released weights:
 | FP32 expert computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.97 s sim |
 | FP32 expert computation, 20 solver steps, H30/R1 | 2/9 | 1/9 | 0/9 | — |
 | FP32 expert computation, native pan, H30/R1 | 2/9 | 1/9 | 0/9 | — |
+| FP32 expert computation, three cameras, H30/R1 | 2/9 | 0/9 | 0/9 | — |
+| FP32 expert computation, longer instruction, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 23.43 s sim |
 
-All six retain a BF16 vision/language backbone; none is a full-FP32 model
+All eight retain a BF16 vision/language backbone; none is a full-FP32 model
 evaluation. All reached MC and MR; the other seven attempts expired before a
 first reach. Both H10 variants gained MR but lost MC, so this screen shows no
 net placement gain and does not justify changing the default horizon. The
@@ -626,6 +628,15 @@ then dropped before the box. Removing both pan-adaptation options instead left
 MR held until its progress deadline at 55.73 simulated seconds, without reaching
 the box; it added no reached zone. This agrees with the native pan-range
 constraint discussed above, without proving a universal model limit.
+
+Adding the overhead image alongside front and wrist scored 0/9, matching the
+FP32-compute two-camera control; it added no reached zone or grasp. This does
+not substitute for the separate three-camera comparison with baseline
+computation or for a two-external-view comparison. The longer instruction,
+“Move the arm towards the blue cube, grasp it, lift it up, and drop it into the
+white box,” completed MC in 23.43 seconds with FP32 expert computation, while
+the shorter-instruction FP32 screen had no placement. It still missed MR and
+the other seven starts, so its total did not exceed the baseline's 1/9.
 
 These are initial screening results, without a claim of repeatability or a limit
 on model capacity; further candidates and paired validation are separate
