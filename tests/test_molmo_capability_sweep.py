@@ -198,3 +198,38 @@ def test_zero_exit_incomplete_trial_retains_cause_before_shutdown_noise(monkeypa
         assert 'RuntimeError: CUDA out of memory' in capsys.readouterr().out
     finally:
         reader.close()
+
+
+def test_episode_summary_joined_to_progress_is_printed_and_saved(monkeypatch, capsys):
+    report, expected, options = fixture()
+    report['overall'] = dict(successes=0, episodes=1)
+    summary = '[EPISODE 1] start=0 zone=MC fail stage=reached stop=progress_timeout'
+    output = ('Rollout (ep 1/1): 14% 901/6300 [00:30] ' + summary
+              + '\r\n' + m.MARKER + json.dumps(report) + '\n').encode()
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, output)
+    os.close(write_fd)
+    reader = os.fdopen(read_fd, 'rb')
+    worker = m.Investigation.__new__(m.Investigation)
+    worker.camera_inputs = ('room', 'wrist')
+    worker.cfg = {'eval': dict(lang='task', dataset='/dataset', robot_usd='/robot.usd',
+                               rename_map={'realsense_rgb': 'room', 'wrist_cam': 'wrist'}, eval_set='/set.json')}
+    worker.snapshot = Path('/dev/shm/private-test')
+    worker.viewer = SimpleNamespace(poll=lambda: None)
+    worker.results = []
+    worker.expected_by_seed = {1984: expected}
+    saved = []
+    worker.save = lambda *args: saved.append(dict(worker.current or {}))
+    worker.start_server = lambda *args: None
+    worker.cleanup_client = lambda: None
+    monkeypatch.setattr(m.subprocess, 'Popen', lambda *a, **k: SimpleNamespace(stdout=reader, wait=lambda: 0))
+    try:
+        result = worker.trial('complete', options)
+        assert result['last_episode'] == summary
+        assert any(s.get('last_episode') == summary for s in saved)
+        output = capsys.readouterr().out
+        assert '\n' + summary + '\n' in output
+        assert 'Rollout (ep 1/1)' not in output
+        assert m.MARKER not in output
+    finally:
+        reader.close()

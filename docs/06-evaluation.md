@@ -760,6 +760,7 @@ Incomplete results are rejected even if Isaac exits with status zero. Failure
 reports preserve typed exceptions such as `torch.OutOfMemoryError` and the
 owned policy server's recent output before cleanup, so shutdown warnings cannot
 hide the original cause. Failed attempts are never added as completed scores.
+Episode summaries are retained even when tqdm appends them to a progress line.
 
 Programmatic follow-ups can construct `Investigation(args,
 camera_inputs=('room', 'original_room'))` to compare the added overhead view

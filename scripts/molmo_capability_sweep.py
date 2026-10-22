@@ -308,10 +308,14 @@ class Investigation:
                         report = json.loads(line.split(MARKER, 1)[1])
                         continue
                     tail.append(line)
-                    if line.startswith('[EPISODE'):
-                        self.current['last_episode'] = line
+                    episode = re.search(r'\[EPISODE \d+\]', line)
+                    if episode:
+                        # tqdm can leave its current progress line directly
+                        # before the evaluator's episode summary.
+                        summary = line[episode.start():]
+                        self.current['last_episode'] = summary
                         self.save()
-                        print(line, flush=True)
+                        print(summary, flush=True)
                     elif line.startswith('Rollout') and time.monotonic() - last_progress >= 30:
                         last_progress = time.monotonic()
                         print(line, flush=True)
