@@ -694,6 +694,23 @@ the default. These are repeated trials on nine positions, not 27 newly sampled
 positions or a full-benchmark estimate. A new camera/precision batch uses its
 own matched control and records returned chunks in RAM for failure analysis.
 
+That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
+errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
+20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
+targets equalled the released lower quantiles. Median arm tracking errors at
+query boundaries were below 1.63 model degrees. These are learned output bounds,
+not physical actuator stops; the boundary measurements exclude gripper error
+and transient tracking during motion.
+
+A separate conservative geometric bound used the original USD anchors,
+a covering pan/lift grid with an analytic rotation-displacement allowance,
+and the sum of downstream segment lengths. For the first OUT start, the
+requested fixed diagnostic point remains at least 67.6 mm from the stored cube
+position under the baseline's learned pan/lift bounds, even allowing unrestricted
+downstream joint rotations. This constrains requested static poses; it does not
+bound every possible finger contact, actuator overshoot, pushing or moving cube,
+and cannot prove that all tuning or eventual dynamic success is impossible.
+
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
 `--wait-pid PID` waits for an existing evaluation launcher without signalling it.
