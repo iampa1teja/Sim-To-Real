@@ -123,6 +123,31 @@ establish a ceiling on the released model. The stricter per-zone smoke protocol
 below uses different time limits and a different sample, so compare candidate
 changes against its own matched control rather than this 150-start percentage.
 
+The native stage flags recorded 62 reaches, 31 confirmed grasps and 25 successes.
+Half of the reached attempts confirmed a grasp; 25/31 grasps (80.6%) succeeded.
+Thus 119/125 failures (95.2%) ended before a confirmed grasp. This prioritizes
+approach and grasp accuracy for further comparisons. A lifted-cube flag alone
+is insufficient: 33 attempts registered a lift, including two without a
+confirmed grasp.
+
+A read-only audit decoded and hashed **all 1,397,268 frames across the 300
+listed videos**. Every frame count matched its episode's step count; all streams
+were 640×480 at 30 Hz. No decode error, non-increasing timestamp, near-black
+span of at least 50 ms after the ten settling frames, entirely static
+post-settling stream, or identical
+room/wrist stream was found. Synthetic black, static, mismatched-length and
+corrupt clips verified the detectors. This checks recording health, not semantic
+understanding of every frame or the exact live model-input tensors.
+
+Repeat this benchmark-specific audit inside the container; it reads the
+completed report and videos without altering them and writes evidence only to
+a fresh RAM directory printed on completion:
+
+```bash
+docker exec teleop python3 \
+  /workspace/Sim-to-Real-SO-101-Workshop/scripts/audit_molmo_baseline_videos.py
+```
+
 An isolated replay of failing start `id-005` retained policy seed `1832710734`,
 H30/R1 and the 180-second limit. It again failed before reaching the cube.
 The closest measured tool error was 64.32 mm, primarily along local gripper Z, with a
@@ -168,6 +193,15 @@ error. This local bound does not rule out different closed-loop predictions if
 clipping changes earlier in an episode, and is not a limit on all possible
 Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
 remain unchanged.
+
+Reconditioning those same saved images on the native physical pan angle
+(35.65° rather than the experimental warp's 21.01°), while keeping the other
+state values fixed, also left a predominantly vertical commanded miss. The
+closest static errors were 79.89/80.31 mm with the existing warp and
+78.71/78.85 mm with native pan, respectively with/without output clipping.
+The clipped control exactly reproduced the previous CPU reference array.
+This tests input conditioning as well as output interpretation; it provides no
+evidence for a new pan correction and does not exclude a closed-loop effect.
 
 The checkpoint's native discrete decoder was also checked offline with the
 released FAST tokenizer and the same two reconstructed observations. Both
@@ -519,6 +553,14 @@ revision `152569fe57914d97be91055800035f54e250d009`:
 | Language and CUDA graphs | Use the installed checkpoint's defaults (both enabled), matching the saved 4/11 run |
 | Chunk | Checkpoint maximum 30 targets; H30/R1 executes them at 30 Hz |
 
+The paper's [SO-100/101 deployment recipe](https://arxiv.org/html/2605.02881v1#S4.SS3.SSS1.Px4)
+also specifies 30 targets at 30 Hz, so the baseline preserves the trained timing.
+Its [SO-100 evaluation table](https://arxiv.org/html/2605.02881v1#S6.T7)
+reports a 33.3% mean score for block-in-box over 15 trials, awarding partial
+credit for reaching and pickup. That is not a 33.3% completed-placement rate,
+and it cannot be directly compared with this workshop's placement-only success
+rate or taken as a guarantee of five successful smoke episodes.
+
 All five installed weight-shard SHA-256 hashes were checked against that
 revision's Hugging Face LFS metadata. The configuration, normalization statistics,
 model source and shard index also matched their published Git blob hashes.
@@ -641,6 +683,33 @@ the other seven starts, so its total did not exceed the baseline's 1/9.
 These are initial screening results, without a claim of repeatability or a limit
 on model capacity; further candidates and paired validation are separate
 evidence. No production inference defaults were promoted from these results.
+
+Matched H30/H10 verification subsequently completed roots 9182 and 4173, keeping
+the same nine original positions and each root's original per-start seeds.
+Across roots 1984/9182/4173, H30 placed 1/9, 0/9 and 2/9; H10 placed 1/9, 1/9
+and 1/9. Both therefore placed **3/27**. H10 placed MR in all three seed sets
+but never MC; H30 placed MR once and MC twice. H10 also reached NC once without
+grasping it. This is a tradeoff, not a net placement improvement, so H30 remains
+the default. These are repeated trials on nine positions, not 27 newly sampled
+positions or a full-benchmark estimate. A new camera/precision batch uses its
+own matched control and records returned chunks in RAM for failure analysis.
+
+That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
+errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
+20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
+targets equalled the released lower quantiles. Median arm tracking errors at
+query boundaries were below 1.63 model degrees. These are learned output bounds,
+not physical actuator stops; the boundary measurements exclude gripper error
+and transient tracking during motion.
+
+A separate conservative geometric bound used the original USD anchors,
+a covering pan/lift grid with an analytic rotation-displacement allowance,
+and the sum of downstream segment lengths. For the first OUT start, the
+requested fixed diagnostic point remains at least 67.6 mm from the stored cube
+position under the baseline's learned pan/lift bounds, even allowing unrestricted
+downstream joint rotations. This constrains requested static poses; it does not
+bound every possible finger contact, actuator overshoot, pushing or moving cube,
+and cannot prove that all tuning or eventual dynamic success is impossible.
 
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
