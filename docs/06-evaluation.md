@@ -544,6 +544,14 @@ revision `152569fe57914d97be91055800035f54e250d009`:
 | Language and CUDA graphs | Use the installed checkpoint's defaults (both enabled), matching the saved 4/11 run |
 | Chunk | Checkpoint maximum 30 targets; H30/R1 executes them at 30 Hz |
 
+The paper's [SO-100/101 deployment recipe](https://arxiv.org/html/2605.02881v1#S4.SS3.SSS1.Px4)
+also specifies 30 targets at 30 Hz, so the baseline preserves the trained timing.
+Its [SO-100 evaluation table](https://arxiv.org/html/2605.02881v1#S6.T7)
+reports a 33.3% mean score for block-in-box over 15 trials, awarding partial
+credit for reaching and pickup. That is not a 33.3% completed-placement rate,
+and it cannot be directly compared with this workshop's placement-only success
+rate or taken as a guarantee of five successful smoke episodes.
+
 All five installed weight-shard SHA-256 hashes were checked against that
 revision's Hugging Face LFS metadata. The configuration, normalization statistics,
 model source and shard index also matched their published Git blob hashes.
