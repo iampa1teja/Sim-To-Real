@@ -726,11 +726,15 @@ overhead/wrist model input. MR's closest measured approach before grasping was
 2.03 mm, versus 22.44 mm in the failed control. FL newly reached at 33.03 seconds,
 then missed its grasp and stopped at 63.03 seconds under the agreed progress
 deadline. The camera setting retained MC's placement but took longer on that
-start. This is an initial placement gain on nine positions, not a verified
+start. FL's closest measured tool error was 27.53 mm. In its last 20 queries,
+62.0% of shoulder targets and 46.5% of elbow targets equalled the learned lower
+quantiles; median query-boundary arm tracking errors remained below 1.51 model
+degrees. This motivates a separate range experiment, not a claim of incorrect
+physical calibration. This is an initial placement gain on nine positions, not a verified
 benchmark improvement; two additional matched seed sets are being checked.
 No production defaults were promoted from this result.
 
-The subsequent full-FP32 attempt failed on its first inference, before any
+The full-FP32 attempt in the preceding batch failed on its first inference, before any
 episode could be scored. With Isaac sharing the RTX 4090, the released text
 embedding lookup temporarily concatenated its weight tables and requested
 another 1.48 GiB while only 1.13 GiB was free. This is a runtime failure,
