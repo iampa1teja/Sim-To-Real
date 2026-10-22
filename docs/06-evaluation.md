@@ -731,8 +731,17 @@ start. FL's closest measured tool error was 27.53 mm. In its last 20 queries,
 quantiles; median query-boundary arm tracking errors remained below 1.51 model
 degrees. This motivates a separate range experiment, not a claim of incorrect
 physical calibration. This is an initial placement gain on nine positions, not a verified
-benchmark improvement; two additional matched seed sets are being checked.
-No production defaults were promoted from this result.
+benchmark improvement. No production defaults were promoted from this result.
+
+Root 9182 subsequently completed the same matched comparison: front/wrist placed
+0/9; overhead/wrist placed 1/9 (MC, 17.40 s sim). MR was grasped, lifted and brought
+over the box but did not confirm placement; the native classifier recorded
+`dropped_outside`. FL's new reach from root 1984 did not repeat. Across these two
+completed seed sets, the control has 1/18 placements and 1/18 confirmed grasps;
+overhead/wrist has 3/18 placements and 4/18 grasps. These are repeated attempts on
+the same nine positions, not 18 distinct positions. Two additional placements
+are still too little evidence to establish a reliable population improvement.
+Root 4173 and broader validation remain pending.
 
 The full-FP32 attempt in the preceding batch failed on its first inference, before any
 episode could be scored. With Isaac sharing the RTX 4090, the released text
