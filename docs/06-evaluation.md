@@ -585,6 +585,25 @@ with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
 
+The first three completed nine-zone comparisons on 2026-10-22 used root seed
+1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
+progress deadlines, continuous rendering and released weights:
+
+| Inference setting | Reached | Grasped | Successful placements | Successful placement time |
+| --- | --- | --- | --- | --- |
+| Existing mixed-precision control, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 25.50 s sim |
+| FP32 expert computation, H30/R1 | 2/9 | 0/9 | 0/9 | — |
+| FP32 expert computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.97 s sim |
+
+Both FP32-compute comparisons retain a BF16 vision/language backbone; neither
+is a full-FP32 model evaluation. All three reached MC and MR; the other seven
+attempts expired before a first reach. H10 gained MR but lost MC, so this screen
+shows no net placement gain and does not justify changing the default horizon.
+FP32 expert computation alone also showed no improvement. These are initial
+screening results, without a claim of repeatability or a limit on model capacity;
+further candidates and paired validation are separate evidence. No production
+inference defaults were promoted from these results.
+
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
 `--wait-pid PID` waits for an existing evaluation launcher without signalling it.
