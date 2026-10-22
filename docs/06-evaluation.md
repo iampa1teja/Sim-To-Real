@@ -752,6 +752,17 @@ downstream joint rotations. This constrains requested static poses; it does not
 bound every possible finger contact, actuator overshoot, pushing or moving cube,
 and cannot prove that all tuning or eventual dynamic success is impossible.
 
+An offline projection of the 150 stored cube poses through the configured
+camera intrinsics/extrinsics found eight OUT starts partly below the front
+image's bottom edge; none was wholly outside. The original `ood-000` room video
+confirms that clipping at frame 10. All 150 cube boxes fit the added overhead
+camera's image bounds before accounting for robot occlusion. Projection was
+checked against captured MC/FR inputs from both external cameras. This identifies
+a specific framing limitation, not a general sim-to-real mismatch or a sole
+explanation for failure: the other starts fit the front view, and adding the
+overhead image in the completed three-camera screen did not improve placements.
+Original camera poses and benchmark starts remain unchanged.
+
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
 `--wait-pid PID` waits for an existing evaluation launcher without signalling it.
