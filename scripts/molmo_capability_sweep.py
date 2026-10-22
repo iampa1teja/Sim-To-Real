@@ -25,6 +25,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 CREPO = '/workspace/Sim-to-Real-SO-101-Workshop'
 MARKER = '[SMOKE_RESULT] '
+FAILURE_LINE = re.compile(r'\b(?:error|exception|traceback|fatal)\b|(?:^|\s)[\w.]+(?:Error|Exception):', re.I)
 
 
 def run(args, **kwargs):
@@ -291,6 +292,7 @@ class Investigation:
         print('[CANDIDATE_START] ' + json.dumps(self.current), flush=True)
         report, pending, last_progress = None, b'', 0.
         tail = deque(maxlen=25)
+        diagnostics = deque(maxlen=40)
         self.client = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         try:
             while data := os.read(self.client.stdout.fileno(), 65536):
@@ -302,22 +304,37 @@ class Investigation:
                     line = record.decode('utf-8', 'replace').strip()
                     if not line:
                         continue
-                    tail.append(line)
                     if MARKER in line:
                         report = json.loads(line.split(MARKER, 1)[1])
                         continue
-                    if line.startswith('[EPISODE'):
-                        self.current['last_episode'] = line
+                    tail.append(line)
+                    episode = re.search(r'\[EPISODE \d+\]', line)
+                    if episode:
+                        # tqdm can leave its current progress line directly
+                        # before the evaluator's episode summary.
+                        summary = line[episode.start():]
+                        self.current['last_episode'] = summary
                         self.save()
-                        print(line, flush=True)
+                        print(summary, flush=True)
                     elif line.startswith('Rollout') and time.monotonic() - last_progress >= 30:
                         last_progress = time.monotonic()
                         print(line, flush=True)
-                    elif line.startswith('[SMOKE TEST]') or re.search(r'\b(?:error|exception|traceback|fatal)\b', line, re.I):
+                    elif FAILURE_LINE.search(line):
+                        diagnostics.append(line)
+                        print(line, flush=True)
+                    elif line.startswith('[SMOKE TEST]'):
                         print(line, flush=True)
             code = self.client.wait()
-            if code or report is None:
-                raise RuntimeError(f'Candidate exited {code} without a complete result: ' + '\n'.join(tail))
+            if code or report is None or not report.get('complete'):
+                context = list(dict.fromkeys(diagnostics or tail))
+                if self.server:
+                    try:
+                        server_log = subprocess.run(['docker', 'logs', '--tail', '80', self.server],
+                                                    capture_output=True, text=True, timeout=10)
+                        context.extend(('Owned policy server:', server_log.stdout, server_log.stderr))
+                    except (OSError, subprocess.TimeoutExpired) as error:
+                        context.append('Could not read owned policy diagnostics: ' + str(error))
+                raise RuntimeError(f'Candidate exited {code} without a complete result: ' + '\n'.join(context))
             validate_result(report, self.expected_by_seed[seed], horizon, options, overhead, cameras)
             result = dict(self.current, report=report)
             self.results.append(result)
