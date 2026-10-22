@@ -713,7 +713,37 @@ Episode results and grasp diagnostics are complete for all four settings;
 the separate query trace for the three-image setting is partial (218 of 474
 queries), so it cannot support claims about every returned chunk.
 
-The subsequent full-FP32 attempt failed on its first inference, before any
+The remaining overhead/wrist pair was then compared against a fresh front/wrist
+control with the same frozen source, root 1984, original starts and deadlines:
+
+| Model inputs, H30/R1 | Reached | Grasped | Successful placements | Placement times |
+| --- | --- | --- | --- | --- |
+| Front/wrist control | 2/9 | 1/9 | 1/9 | MC 11.47 s sim |
+| Overhead/wrist | 3/9 | 2/9 | 2/9 | MC 29.13 s, MR 39.20 s sim |
+
+The original front sensor remained in the scene but was excluded from the
+overhead/wrist model input. MR's closest measured approach before grasping was
+2.03 mm, versus 22.44 mm in the failed control. FL newly reached at 33.03 seconds,
+then missed its grasp and stopped at 63.03 seconds under the agreed progress
+deadline. The camera setting retained MC's placement but took longer on that
+start. FL's closest measured tool error was 27.53 mm. In its last 20 queries,
+62.0% of shoulder targets and 46.5% of elbow targets equalled the learned lower
+quantiles; median query-boundary arm tracking errors remained below 1.51 model
+degrees. This motivates a separate range experiment, not a claim of incorrect
+physical calibration. This is an initial placement gain on nine positions, not a verified
+benchmark improvement. No production defaults were promoted from this result.
+
+Root 9182 subsequently completed the same matched comparison: front/wrist placed
+0/9; overhead/wrist placed 1/9 (MC, 17.40 s sim). MR was grasped, lifted and brought
+over the box but did not confirm placement; the native classifier recorded
+`dropped_outside`. FL's new reach from root 1984 did not repeat. Across these two
+completed seed sets, the control has 1/18 placements and 1/18 confirmed grasps;
+overhead/wrist has 3/18 placements and 4/18 grasps. These are repeated attempts on
+the same nine positions, not 18 distinct positions. Two additional placements
+are still too little evidence to establish a reliable population improvement.
+Root 4173 and broader validation remain pending.
+
+The full-FP32 attempt in the preceding batch failed on its first inference, before any
 episode could be scored. With Isaac sharing the RTX 4090, the released text
 embedding lookup temporarily concatenated its weight tables and requested
 another 1.48 GiB while only 1.13 GiB was free. This is a runtime failure,
