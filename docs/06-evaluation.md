@@ -169,6 +169,20 @@ clipping changes earlier in an episode, and is not a limit on all possible
 Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
 remain unchanged.
 
+The checkpoint's native discrete decoder was also checked offline with the
+released FAST tokenizer and the same two reconstructed observations. Both
+queries produced valid 30-by-6 chunks, with 180 decoded DCT coefficients rather
+than the tokenizer's malformed-sequence zero fallback. On the stalled query,
+the closest commanded point missed by **75.18 mm**, versus **79.89 mm** for
+continuous decoding. The closest targets were respectively **65.85 mm** and
+**76.50 mm above the cube** in the robot-base frame. Optimizing pan alone for
+those same continuous targets offline reduced the miss only to **79.65 mm**.
+This diagnoses a predominantly vertical miss in that observation; it does not
+select a new pan correction or establish closed-loop performance. The
+[model card](https://huggingface.co/allenai/MolmoAct2-SO100_101#discrete-actions)
+exposes discrete decoding for parity/debugging and recommends continuous
+inference. The adapter's inference mode remains continuous.
+
 The 2026-10-21 Rerun smoke check then completed five 180-second rollouts on
 `id-000` through `id-004` with **0/5 successes**: two `missed_grasp` and three
 `never_reached`. It confirmed live milestone reporting and quiet default logs,
@@ -587,24 +601,46 @@ with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
 
-The first three completed nine-zone comparisons on 2026-10-22 used root seed
+The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
 progress deadlines, continuous rendering and released weights:
 
 | Inference setting | Reached | Grasped | Successful placements | Successful placement time |
 | --- | --- | --- | --- | --- |
 | Existing mixed-precision control, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 25.50 s sim |
+| Existing mixed-precision computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 11.97 s sim |
 | FP32 expert computation, H30/R1 | 2/9 | 0/9 | 0/9 | — |
 | FP32 expert computation, H10/R1 | 2/9 | 1/9 | 1/9 (MR) | 26.97 s sim |
+| FP32 expert computation, 20 solver steps, H30/R1 | 2/9 | 1/9 | 0/9 | — |
+| FP32 expert computation, native pan, H30/R1 | 2/9 | 1/9 | 0/9 | — |
+| FP32 expert computation, three cameras, H30/R1 | 2/9 | 0/9 | 0/9 | — |
+| FP32 expert computation, longer instruction, H30/R1 | 2/9 | 1/9 | 1/9 (MC) | 23.43 s sim |
 
-Both FP32-compute comparisons retain a BF16 vision/language backbone; neither
-is a full-FP32 model evaluation. All three reached MC and MR; the other seven
-attempts expired before a first reach. H10 gained MR but lost MC, so this screen
-shows no net placement gain and does not justify changing the default horizon.
-FP32 expert computation alone also showed no improvement. These are initial
-screening results, without a claim of repeatability or a limit on model capacity;
-further candidates and paired validation are separate evidence. No production
-inference defaults were promoted from these results.
+All eight retain a BF16 vision/language backbone; none is a full-FP32 model
+evaluation. All reached MC and MR; the other seven attempts expired before a
+first reach. Both H10 variants gained MR but lost MC, so this screen shows no
+net placement gain and does not justify changing the default horizon. The
+11.97-second and 26.97-second MR placements used the same start and seed with
+different expert computation; timing successful attempts on different starts
+does not establish a general speed advantage. FP32 expert computation
+alone also showed no improvement. With 20 flow-solver steps, MR was lifted and
+then dropped before the box. Removing both pan-adaptation options instead left
+MR held until its progress deadline at 55.73 simulated seconds, without reaching
+the box; it added no reached zone. This agrees with the native pan-range
+constraint discussed above, without proving a universal model limit.
+
+Adding the overhead image alongside front and wrist scored 0/9, matching the
+FP32-compute two-camera control; it added no reached zone or grasp. This does
+not substitute for the separate three-camera comparison with baseline
+computation or for a two-external-view comparison. The longer instruction,
+“Move the arm towards the blue cube, grasp it, lift it up, and drop it into the
+white box,” completed MC in 23.43 seconds with FP32 expert computation, while
+the shorter-instruction FP32 screen had no placement. It still missed MR and
+the other seven starts, so its total did not exceed the baseline's 1/9.
+
+These are initial screening results, without a claim of repeatability or a limit
+on model capacity; further candidates and paired validation are separate
+evidence. No production inference defaults were promoted from these results.
 
 `scripts/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
