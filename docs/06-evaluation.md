@@ -573,6 +573,8 @@ action smoothing, modified weights, or task-specific action generator. Rerun
 shows each attempt. No evaluator report, recording, CSV or run log is saved.
 The final `[SMOKE_RESULT]` console record supports automated comparisons; normal
 console filtering hides that machine record, while `EVAL_VERBOSE=1` displays it.
+The record retains the in-memory grasp measurements, including error direction,
+jaw gap, closing events and tracking error, for failure analysis.
 Legacy `--smoke-test` configs without this section still run five episodes with
 their existing fixed timeout. The ordinary 180-second full-evaluation config
 and its resume fingerprint remain unchanged.
