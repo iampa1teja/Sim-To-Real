@@ -123,6 +123,31 @@ establish a ceiling on the released model. The stricter per-zone smoke protocol
 below uses different time limits and a different sample, so compare candidate
 changes against its own matched control rather than this 150-start percentage.
 
+The native stage flags recorded 62 reaches, 31 confirmed grasps and 25 successes.
+Half of the reached attempts confirmed a grasp; 25/31 grasps (80.6%) succeeded.
+Thus 119/125 failures (95.2%) ended before a confirmed grasp. This prioritizes
+approach and grasp accuracy for further comparisons. A lifted-cube flag alone
+is insufficient: 33 attempts registered a lift, including two without a
+confirmed grasp.
+
+A read-only audit decoded and hashed **all 1,397,268 frames across the 300
+listed videos**. Every frame count matched its episode's step count; all streams
+were 640×480 at 30 Hz. No decode error, non-increasing timestamp, near-black
+span of at least 50 ms after the ten settling frames, entirely static
+post-settling stream, or identical
+room/wrist stream was found. Synthetic black, static, mismatched-length and
+corrupt clips verified the detectors. This checks recording health, not semantic
+understanding of every frame or the exact live model-input tensors.
+
+Repeat this benchmark-specific audit inside the container; it reads the
+completed report and videos without altering them and writes evidence only to
+a fresh RAM directory printed on completion:
+
+```bash
+docker exec teleop python3 \
+  /workspace/Sim-to-Real-SO-101-Workshop/scripts/audit_molmo_baseline_videos.py
+```
+
 An isolated replay of failing start `id-005` retained policy seed `1832710734`,
 H30/R1 and the 180-second limit. It again failed before reaching the cube.
 The closest measured tool error was 64.32 mm, primarily along local gripper Z, with a
