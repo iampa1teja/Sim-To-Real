@@ -106,9 +106,22 @@ seconds**. Starts `id-000` (MC) and `id-002` (MR) succeeded; `id-001` (FR),
 `id-003` (NL) and `id-004` (FL) each timed out after 300 simulated seconds.
 This verifies successful pick-and-place on two starts; five attempts and three
 timeouts do not establish reliability across the full benchmark. A later
-180-second full run was interrupted with 11 completed attempts and 4 successes;
-the unfinished attempt and original report remain resumable. This is a partial
-result, not a completed 150-start benchmark.
+180-second full run was initially interrupted with 11 completed attempts and
+4 successes. That report was subsequently resumed to completion on 2026-10-22:
+**25/150 successes (16.7%)**, with a mean time to success of **31.51 simulated
+seconds** and median **24.50 seconds**, considering successful attempts only.
+The completed report retains the original front/wrist, H30/R1 profile and
+config fingerprint `a2d507ad51ca74cbc5d33fb64e29aaac2b4c37d02d78d12476fd6d5285db23df`.
+Its 300 listed camera-video files were present and nonempty at verification.
+
+The 125 failures comprised 88 `never_reached`, 31 `missed_grasp`, five
+`dropped_before_box` and one `dropped_outside`: 119 failed before a confirmed
+grasp. Successes by zone were FC 1/18, FL 0/10, FR 0/20, MC 14/27, ML 2/18,
+MR 5/15, NC 2/10, NL 0/12 and OUT 1/20. These results describe this resumed
+benchmark; they neither prove that a whole zone is physically unreachable nor
+establish a ceiling on the released model. The stricter per-zone smoke protocol
+below uses different time limits and a different sample, so compare candidate
+changes against its own matched control rather than this 150-start percentage.
 
 An isolated replay of failing start `id-005` retained policy seed `1832710734`,
 H30/R1 and the 180-second limit. It again failed before reaching the cube.
@@ -163,7 +176,7 @@ not improved grasp performance. The rollout finished, but its host launcher
 exited with a parse error after the script was edited while Bash was executing
 it; fresh-launch lifecycle checks pass. Avoid editing `docker/eval.sh` during a
 run. The full benchmark was stopped at that point with its previous results preserved;
-it can subsequently continue through `--resume`.
+it was later resumed to the completed result reported above.
 
 Separate helper trials enabled `--seed_per_episode`, which resets the same
 noise seed before **every inference query**. In that mode, H30/R1 succeeded in
