@@ -723,7 +723,17 @@ CUDA RNG state, its 30-by-6 action targets matched the original lookup bit for
 bit, and peak PyTorch allocation fell from 18.69 to 17.64 GiB. This comparison
 used FP32 CPU vision and GPU language/action modules in both cases. It validates
 the lookup's numerical behavior in that setup, not better task performance;
-the retry remains separate from production defaults.
+the retry remained separate from production defaults.
+
+The repaired full-FP32 retry then completed all nine starts without another
+memory failure: **2/9 reached, 0/9 grasped, 0/9 placed**. MC and MR missed their
+grasps; the other seven expired before reaching. All 491 returned query chunks
+and four captured input packets were retained and checked after server shutdown.
+Aggregate rollout throughput was 8.03 control steps per wall second, versus
+23.68 for the fresh mixed-precision control, including inference and rendering
+but excluding model startup. This single-root result provides no reason to
+promote that precision/device setup. It neither reproduces the model card's
+all-GPU execution nor proves that precision never matters on other inputs.
 
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
