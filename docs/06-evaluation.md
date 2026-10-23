@@ -878,8 +878,8 @@ avoid the original lookup's temporary 1.476 GiB table concatenation.
 Using the serving environment's PyTorch 2.11.0+cu128, an exhaustive CPU check
 matched all 154,752 released embedding rows bit for bit, including additional
 scalar, empty, non-contiguous and integer-dtype cases. This validates row lookup
-only: GPU transfers, complete action-output parity, peak memory alongside Isaac
-and episode success remain untested. A preprocessing check with the deployed
+only: at that point, GPU transfers, complete action-output parity, peak memory
+alongside Isaac and episode success were still untested. A preprocessing check with the deployed
 tokenizer loader and three 640-by-480 sample images produced 697 total tokens,
 including 196 image tokens per view. The corresponding FP32 text KV cache is
 0.191 GiB; this excludes other activations, expert context, CUDA overhead and
@@ -910,9 +910,9 @@ allocator reservation was 4.957 GiB. The first prediction took 16.32 seconds;
 the four warm predictions took 1.82–2.42 seconds each. Other GPU work was active,
 so these timings are not an isolated performance comparison.
 
-This demonstrates bounded-memory FP32 prediction with GPU vision, but does not
-establish full-model parity against the all-resident reference or higher grasp
-success. The three-image sample again duplicated the top image, and no simulator
+That probe demonstrated bounded-memory FP32 prediction with GPU vision, but did
+not compare against the all-resident reference or measure grasp success.
+The three-image sample again duplicated the top image, and no simulator
 episode was run. Host memory and repeated weight transfers are additional costs.
 The probe exited normally and released its container; it did not enable a new
 policy option or change the prepared 150-start configuration. A matched per-zone
@@ -930,6 +930,21 @@ The complementary layouts still stream half the blocks, so this does not claim
 a direct comparison against the fully resident model. It supports testing the
 streamed deployment in simulation without attributing numerical differences to
 weight placement on these inputs.
+
+When the GPU became idle, the released fully resident FP32 implementation was
+also tested with two and three sample images at seeds 1984 and 20261023, with
+graphs disabled. The first attempt completed one reference prediction, then
+three calls ran out of memory allocating the original 1.476 GiB embedding-table
+concatenation. Retrying the isolated probe with
+`PYTORCH_ALLOC_CONF=expandable_segments:True` completed all four references.
+Their 30-by-6 joint targets matched both the host-lookup implementation and the
+previously captured streamed implementation bit for bit. This validates the
+returned targets for those four inputs against the actual released inference
+path; it does not prove equivalence for all observations or higher task success.
+Peak tensor allocation/reservation was 21.800/21.836 GiB for the fully resident
+reference and 17.910/17.930 GiB with host lookup and an unused host language head.
+The streamed variant remains useful for testing while Isaac and other workloads
+share the GPU. No full-evaluation setting was changed by these probes.
 
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
