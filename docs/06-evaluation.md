@@ -841,6 +841,66 @@ downstream joint rotations. This constrains requested static poses; it does not
 bound every possible finger contact, actuator overshoot, pushing or moving cube,
 and cannot prove that all tuning or eventual dynamic success is impossible.
 
+A CPU-only expansion of that audit on 2026-10-23 used the current USD anchors,
+the checkpoint's action quantiles, the existing pan adaptation and the stored
+benchmark scene. It distinguishes a conservative **lower bound** on error from
+the error of a **numerically found pose**. The latter is an example within the
+joint ranges, not a global minimum or a collision-free grasp. For the seven
+starts that failed in the fresh three-camera smoke comparison:
+
+| Zone / start | Static error lower bound | Found static tool error | Observed smoke closest tool error |
+| --- | --- | --- | --- |
+| FR / id-001 | 13.11 mm | 17.58 mm | 69.47 mm |
+| NL / id-003 | 0 mm | <0.001 mm | 98.95 mm |
+| FL / id-004 | 0 mm | <0.001 mm | 53.35 mm |
+| NC / id-006 | 0 mm | <0.001 mm | 45.03 mm |
+| FC / id-011 | 5.92 mm | 10.38 mm | 64.50 mm |
+| ML / id-013 | 0 mm | <0.001 mm | 144.02 mm |
+| OUT / ood-000 | 67.96 mm | 72.49 mm | 107.95 mm |
+
+These are different measurements: static calculations target the **stored**
+cube centre, while smoke diagnostics measure the live cube. The fixed tool
+point is the same CAD-derived point used by grasp diagnostics. The numerical
+poses do not constrain gripper orientation, table/self collisions, or the path
+from the reset pose. A zero lower bound alone proves nothing; the near-zero
+found errors show point-position solutions for NL, FL, NC and ML. Thus output
+range alone does not exclude those point positions. Conversely, camera or
+sampling changes cannot make an unchanged bounded static target put that same
+point exactly at FR, FC or OUT's stored centre. This does not exclude other
+finger contact, pushing, moving the cube or dynamic overshoot.
+
+Across all 150 stored starts, 30 have this conservative lower bound above
+1 mm and 11 above 30 mm. All 30 were classified `never_reached` in the completed
+front/wrist baseline. This association does not establish causality, a success
+ceiling, or a reason to remove benchmark starts. Even full physical joint ranges
+leave a 23.28 mm lower bound for the selected OUT diagnostic point; that is
+still not a bound on every possible contact or successful manipulation.
+
+A hypothetical 0.75 scale on positive physical shoulder angles expands the
+permitted shoulder maximum from 44.82° to 59.76°. The same static solver then
+finds point-position solutions for FR and FC, while OUT retains a 44.94 mm lower
+bound. **This range change is not enabled.** It changes state/action semantics,
+not physical calibration. Its premortem is that wider output range may still
+produce the same inaccurate predictions, distort state conditioning, cause
+collisions or lose MC/MR grasps. It would need a matched nine-zone smoke and
+additional seeds before any promotion; geometry is insufficient evidence of a
+performance improvement. The prepared three-camera 150-start profile is unchanged.
+
+Reproduce the CPU diagnostic with NumPy, SciPy, PyYAML and the USD Python bindings:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 scripts/audit_molmo_target_reach.py
+```
+
+It uses a covering 0.125° pan/lift grid and subtracts an analytic rotation
+displacement allowance (about 0.324 mm), rather than treating sampled poses as
+an impossibility proof. Downstream rotations are relaxed to a containing ball.
+The zero-pose chain matches authored link transforms within 0.02 micrometres;
+10,000 sampled physical poses also passed the ball-inclusion check. Tests cover
+an exact pose between grid points, conservative bounds and the recorded-training
+orientation rule. Source hashes, bounds and found joint vectors are written only
+to a fresh `/dev/shm/molmo-target-reach-*/report.json`; no model or simulator runs.
+
 An offline projection of the 150 stored cube poses through the configured
 camera intrinsics/extrinsics found eight OUT starts partly below the front
 image's bottom edge; none was wholly outside. The original `ood-000` room video
