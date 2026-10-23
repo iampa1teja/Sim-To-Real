@@ -221,7 +221,9 @@ class Investigation:
         if not port_free(5556):
             raise RuntimeError('Policy port occupied by another process')
         self.server = 'molmo-capability-' + str(os.getpid()) + '-' + str(time.time_ns())
-        command = ['docker', 'run', '-d', '--rm', '--name', self.server, '--network', 'host', '--gpus', 'all',
+        # Keep a short-lived failed server until its exit state and logs have
+        # been read. close()/stop_server() removes only this owned container.
+        command = ['docker', 'run', '-d', '--name', self.server, '--network', 'host', '--gpus', 'all',
                    '-v', str(self.snapshot / 'policies') + ':/policies:ro', '-v', 'policy-cache:/opt/cache',
                    '-v', str(Path.home() / '.cache/huggingface') + ':/root/.cache/huggingface',
                    '-v', '/external_storage/molmoact2:/workspace/models:ro', 'policy-server:latest',
@@ -230,11 +232,19 @@ class Investigation:
             command.extend(['--option', f'{name}={value}'])
         run(command, stdout=subprocess.DEVNULL)
         end = time.monotonic() + 900
-        while port_free(5556):
-            status = subprocess.check_output(['docker', 'inspect', '-f', '{{.State.Running}}', self.server], text=True).strip()
-            if status != 'true' or time.monotonic() > end:
-                tail = subprocess.run(['docker', 'logs', '--tail', '20', self.server], capture_output=True, text=True)
-                raise RuntimeError('Owned policy failed to load: ' + tail.stdout + tail.stderr)
+        while True:
+            inspection = subprocess.run(['docker', 'inspect', '-f', '{{json .State}}', self.server],
+                                        capture_output=True, text=True)
+            state = json.loads(inspection.stdout) if inspection.returncode == 0 else {}
+            expired = time.monotonic() > end
+            if not state.get('Running') or expired:
+                tail = subprocess.run(['docker', 'logs', '--tail', '80', self.server], capture_output=True, text=True)
+                reason = 'startup timed out' if expired else 'server exited before becoming ready'
+                details = inspection.stdout.strip() or inspection.stderr.strip()
+                raise RuntimeError(f'Owned policy failed to load ({reason}): {details}\n'
+                                   + tail.stdout + tail.stderr)
+            if not port_free(5556):
+                break
             if self.viewer.poll() is not None:
                 raise RuntimeError('Owned Rerun viewer exited')
             time.sleep(1)
