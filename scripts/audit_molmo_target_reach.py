@@ -82,6 +82,7 @@ class Chain:
         self.physical = np.asarray(limits)
         self.first = anchors[0]
         self.links = [inverses[i] @ anchors[i + 1] for i in range(4)]
+        self.final_inverse = inverses[-1]
         self.tip = _tip_offsets(stage, root, cube_size / 2)[0] + [cube_size / 2, 0, 0]
         self.tail = inverses[-1] @ np.r_[self.tip, 1]
         self.radius = sum(np.linalg.norm(self.links[i][:3, 3]) for i in (2, 3))
@@ -100,6 +101,7 @@ class Chain:
             raise ValueError("Joint-chain zero pose disagrees with authored link transforms")
         np.testing.assert_allclose(self.fk(np.zeros(5)),
                                    (reference @ np.r_[self.tip, 1])[:3], atol=2e-6)
+        np.testing.assert_allclose(self.gripper_rotation(np.zeros(5)), reference[:3, :3], atol=2e-6)
 
     def elbow(self, pan, lift):
         return (self.first @ rotation_z(pan) @ self.links[0] @ rotation_z(lift)
@@ -111,6 +113,44 @@ class Chain:
         for index, link in enumerate(self.links):
             matrix = matrix @ link @ rotation_z(angles[..., index + 1])
         return (matrix @ self.tail)[..., :3]
+
+    def gripper_rotation(self, degrees):
+        angles = np.deg2rad(np.asarray(degrees))
+        matrix = self.first @ rotation_z(angles[..., 0])
+        for index, link in enumerate(self.links):
+            matrix = matrix @ link @ rotation_z(angles[..., index + 1])
+        return (matrix @ self.final_inverse)[..., :3, :3]
+
+    def search_cube_aligned(self, bounds, target, cube_rotation, point_angles):
+        """Probe an extra orientation constraint; this is not required by the task.
+
+        A failed numerical search does not prove infeasibility. A found pose
+        still lacks collision and path checks and is never sent to the robot.
+        """
+        rng = np.random.default_rng(20261023)
+        faces = []
+        for quarter_turn in range(4):
+            target_rotation = cube_rotation @ Rotation.from_euler(
+                "z", quarter_turn * 90, degrees=True).as_matrix()
+
+            def residual(angles):
+                rotation_error = Rotation.from_matrix(
+                    target_rotation.T @ self.gripper_rotation(angles)).as_rotvec()
+                return np.r_[self.fk(angles) - target, .05 * rotation_error]
+
+            initial_points = [point_angles, bounds.mean(axis=1),
+                              *rng.uniform(bounds[:, 0], bounds[:, 1], size=(6, 5))]
+            fits = [least_squares(residual, initial, bounds=(bounds[:, 0], bounds[:, 1]),
+                                  ftol=1e-10, xtol=1e-10, gtol=1e-10, max_nfev=350)
+                    for initial in initial_points]
+            best = min(fits, key=lambda fit: np.linalg.norm(fit.fun))
+            faces.append(dict(cube_face_quarter_turn=quarter_turn,
+                              position_error_mm=float(np.linalg.norm(best.fun[:3]) * 1000),
+                              orientation_error_degrees=float(np.linalg.norm(best.fun[3:]) / .05 * 180 / np.pi),
+                              joints_degrees=best.x.tolist(), weighted_cost=float(np.linalg.norm(best.fun))))
+        return dict(found_within_1mm_5degrees=any(
+            face["position_error_mm"] < 1 and face["orientation_error_degrees"] < 5 for face in faces),
+            best=min(faces, key=lambda face: face["weighted_cost"]), all_faces=faces)
 
     def lower_bounds(self, bounds, targets, grid_step_degrees):
         # All downstream rotations remain inside a ball about the elbow axis.
@@ -143,6 +183,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/eval/pick_place_molmo_so101.yaml")
     parser.add_argument("--grid-step-deg", type=float, default=.125)
+    parser.add_argument("--check-orientation", action="store_true",
+                        help="also search cube-aligned poses; this adds an orientation constraint the task does not require")
     args = parser.parse_args()
     if not math.isfinite(args.grid_step_deg) or not 0 < args.grid_step_deg <= 1:
         parser.error("--grid-step-deg must be finite and in (0, 1]")
@@ -216,6 +258,14 @@ def main():
             rows.append(dict(start_id=start["id"], zone=start["zone"],
                              target_base_m=targets[index].tolist(), lower_mm=float(lower[index] * 1000),
                              found_error_mm=best_error * 1000, found_joint_degrees=best_angles.tolist()))
+            if args.check_orientation:
+                quaternion = start.get("orientation_wxyz", [math.cos(start["yaw"] / 2), 0, 0,
+                                                            math.sin(start["yaw"] / 2)])
+                if start["split"] != "train":
+                    quaternion = upright_orientation(data["scene"]["base_quaternion_wxyz"],
+                                                     data["scene"]["table_plane_world"], quaternion)
+                rows[-1]["cube_aligned_pose_search"] = chain.search_cube_aligned(
+                    limits, targets[index], rotation_matrix(quaternion), best_angles)
         report["profiles"][label] = dict(bounds_degrees=limits.tolist(),
             grid_cell_allowance_mm=allowance * 1000, smoke_starts=rows,
             full_set_bounds=[dict(start_id=start["id"], zone=start["zone"], lower_mm=float(value * 1000))
@@ -225,6 +275,12 @@ def main():
               "; >30 mm:", int((lower > .03).sum()), flush=True)
         for row in rows:
             print(f"  {row['zone']}: lower={row['lower_mm']:.2f} mm; found={row['found_error_mm']:.2f} mm", flush=True)
+            if args.check_orientation:
+                search = row["cube_aligned_pose_search"]
+                best = search["best"]
+                print(f"    cube-aligned pose found: {search['found_within_1mm_5degrees']}; "
+                      f"best search residual: {best['position_error_mm']:.2f} mm / "
+                      f"{best['orientation_error_degrees']:.2f} degrees", flush=True)
     print(f"RAM audit report: {output}")
 
 

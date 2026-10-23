@@ -886,11 +886,29 @@ collisions or lose MC/MR grasps. It would need a matched nine-zone smoke and
 additional seeds before any promotion; geometry is insufficient evidence of a
 performance improvement. The prepared three-camera 150-start profile is unchanged.
 
+An orientation follow-up also searched four cube-face alignments, requiring the
+gripper's Z axis to follow the cube's upright Z axis. Under the baseline ranges,
+it found poses within 1 mm and 5° for MC, MR, NL, NC and ML. NL and NC were within
+0.001 mm and 0.001°; ML's best residual was 0.43 mm and 1.52°. These still lack
+collision and path checks, but rule out a simple absence of any cube-aligned
+static pose for those selected starts. FL's point-only solution did not satisfy
+this extra orientation test. The shoulder-range candidate did not add a start
+meeting the orientation tolerances. Even the full physical-range search found
+no such pose for FR, FL, FC or OUT. Failed numerical searches are not proofs of
+infeasibility, and a strictly upright grasp is **not required** for task success:
+angled grasps remain possible. This check therefore challenges the assumption
+that extending shoulder range alone guarantees a useful grasp; it does not
+justify adding an orientation controller or changing evaluation criteria.
+
 Reproduce the CPU diagnostic with NumPy, SciPy, PyYAML and the USD Python bindings:
 
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 scripts/audit_molmo_target_reach.py
 ```
+
+Add `--check-orientation` to reproduce the optional cube-aligned pose search.
+It uses a 50 mm/radian orientation residual and reports position and angle errors
+separately; the search's weighting and tolerances are not simulator success rules.
 
 It uses a covering 0.125° pan/lift grid and subtracts an analytic rotation
 displacement allowance (about 0.324 mm), rather than treating sampled poses as
