@@ -918,6 +918,19 @@ The probe exited normally and released its container; it did not enable a new
 policy option or change the prepared 150-start configuration. A matched per-zone
 smoke comparison is still required before considering this deployment for eval.
 
+A further complete-model check compared three FP32 layouts: all text blocks
+streamed, even-numbered blocks resident on CUDA, and odd-numbered blocks resident
+on CUDA. It made 24 predictions over two instruction/state pairs, two or three
+sample images, and seeds 1984 and 20261023. The second instruction/state pair
+used the simulator's task and initial state with the sample images; it was not
+a scene observation. All 16 comparisons against the streamed layout matched
+both raw normalized predictions before clipping and final joint targets bit for
+bit. Thus every text block was resident in one of the two comparison layouts.
+The complementary layouts still stream half the blocks, so this does not claim
+a direct comparison against the fully resident model. It supports testing the
+streamed deployment in simulation without attributing numerical differences to
+weight placement on these inputs.
+
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
 20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
