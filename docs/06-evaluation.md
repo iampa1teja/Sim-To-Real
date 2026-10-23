@@ -946,6 +946,31 @@ reference and 17.910/17.930 GiB with host lookup and an unused host language hea
 The streamed variant remains useful for testing while Isaac and other workloads
 share the GPU. No full-evaluation setting was changed by these probes.
 
+A read-only Rerun analysis of the subsequent three-camera FP32 screen's completed
+MC, FR and MR attempts separated approach and transfer failures. MC grasped and
+lifted, then lost the cube during its turn toward the box. At 11.33 simulated
+seconds, a new chunk increased the pan target by 15.51 physical degrees in one
+control step; the measured next-step change was 14.92 degrees. Gripper commands
+remained closed throughout 10.8–12.0 seconds. The images show the cube tilted
+between the fingertip pads before it leaves the grip, then on the table outside
+the box. MR instead held the cube square between the pads and placed it at
+31.20 seconds. Its largest pan-target increment during the observed
+28.6–30.0-second transfer was 5.12 degrees. Different starts, grasp orientations
+and predicted paths prevent attributing the difference solely to pan speed.
+This evidence does not support treating MC's loss as an early open command.
+
+FR completed 60 simulated seconds without reaching. Static forward kinematics
+over its 1,790 sent targets put the closest fixed diagnostic point 78.04 mm from
+the stored cube centre. In its last 600 targets, 55.3% of shoulder and 61.8% of
+elbow targets equalled the learned lower quantiles; 99.0% of wrist-roll targets
+equalled the upper quantile. Median per-joint tracking errors at the last 20
+query boundaries were at most 1.87 physical degrees. This reconstruction uses
+the configured calibrated mapping spans, including the pan override, rather
+than substituting the USD's hard-limit span. It diagnoses these returned targets,
+not universal reachability or every transient contact. The nine-zone screen is
+still running; these three attempts are not its aggregate result. No inference,
+controller or full-evaluation setting was changed from this analysis.
+
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
 20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
