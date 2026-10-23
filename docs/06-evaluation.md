@@ -702,6 +702,40 @@ not a claim that it solved the remaining approach failures. Only the Molmo full
 YAML changes camera selection; original camera poses and default scene configs
 are preserved.
 
+The subsequent isolated three-camera shoulder-range screen retained that
+control's frozen source, nine starts, root 1984, H30/R1 and 60/30-second deadlines.
+It compressed positive physical shoulder angles by 0.75 on model input and
+applied the inverse to returned actions; the other five joint conversions were unchanged.
+The recorded transform confirms the candidate was active. This is an
+experimental state/action adaptation, not an official calibration correction.
+
+| Three-camera setting | Reached | Confirmed grasps | Successful placements |
+| --- | --- | --- | --- |
+| Existing H30 control | 2/9 | 2/9 | 2/9 (MC, MR) |
+| Shoulder gain 0.75, H30 | 5/9 | 2/9 | 1/9 (MR) |
+
+FR, FL and FC newly reached at 4.67, 4.83 and 8.90 simulated seconds, respectively,
+but all missed their grasps within the next 30 seconds. Their closest tool errors
+fell from 69.47/53.35/64.50 mm to 11.29/15.29/12.32 mm. At those closest frames,
+maximum joint tracking errors were 1.73/1.42/1.73 degrees and jaw gaps were
+42.61/58.61/30.64 mm around the 20 mm cube. The remaining miss therefore cannot
+be described as a solved grasp simply because the reach milestone fired.
+NL's smaller closest error of 33.16 mm coincided with a 132.10-degree maximum
+tracking error; this transient does not demonstrate accurate target tracking.
+
+MR succeeded at 19.73 simulated seconds. MC registered a transient placement at
+12.67 seconds but did not satisfy the unchanged 25-step confirmation rule, and
+stopped at 42.67 seconds. The aggregate flags do not establish whether recontact
+or leaving the container caused that confirmation failure. NL, NC, ML and OUT
+never reached. Other GPU workloads were active late in the run, so wall times
+are not an isolated throughput comparison. No shoulder adaptation was promoted
+to the prepared full profile. More reaches without more grasps, plus the lost MC
+placement, falsify the claim that this range change alone solved the task.
+A follow-up can hold the candidate fixed while shortening execution to H10,
+testing whether more frequent observations improve final alignment and closure;
+its premortem is increased hesitation, recontact or loss of useful later targets
+from the released 30-target chunk. Success must still be measured as placements.
+
 The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
 progress deadlines, continuous rendering and released weights:
