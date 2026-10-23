@@ -889,6 +889,35 @@ also retains the released leading action-batch dimension until the existing
 server decoder converts it to 30-by-6. No placement changes are enabled in the
 prepared full evaluation, and no GPU experiment was started for this audit.
 
+A subsequent bounded GPU test checked streaming text blocks through
+[Accelerate 1.15 CPU offload](https://huggingface.co/docs/accelerate/v1.15.0/en/package_reference/big_modeling#accelerate.cpu_offload).
+Blocks 0, 17 and 35 from the released checkpoint were compared with resident
+FP32 CUDA execution at 496 and 697 tokens, using causal and explicit prefix
+attention masks. All 12 comparisons matched both hidden outputs and key/value
+caches bit for bit; peak tensor allocation was 0.516 GiB. This is component
+parity, not a complete all-resident model comparison.
+
+The private full-model probe then streamed all 36 text blocks, kept the unchanged
+embedding lookup and unused language head on the CPU, and retained vision and
+the action expert on CUDA. It held 3.787 GiB of resident GPU weights and streamed
+13.536 GiB of text weights from host memory. Five continuous FP32 predictions
+completed with CUDA graphs disabled and ten solver steps: two and three sample
+images at seeds 1984 and 20261023, followed by a repeat of the three-image 1984
+input. All returned finite 30-by-6 chunks; the repeated input matched exactly.
+Hooks checked FP32 CUDA outputs at the vision and text boundaries and all ten
+action-expert input/output passes. Peak tensor allocation was 4.555 GiB and peak
+allocator reservation was 4.957 GiB. The first prediction took 16.32 seconds;
+the four warm predictions took 1.82–2.42 seconds each. Other GPU work was active,
+so these timings are not an isolated performance comparison.
+
+This demonstrates bounded-memory FP32 prediction with GPU vision, but does not
+establish full-model parity against the all-resident reference or higher grasp
+success. The three-image sample again duplicated the top image, and no simulator
+episode was run. Host memory and repeated weight transfers are additional costs.
+The probe exited normally and released its container; it did not enable a new
+policy option or change the prepared 150-start configuration. A matched per-zone
+smoke comparison is still required before considering this deployment for eval.
+
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
 20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
