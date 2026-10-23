@@ -361,6 +361,26 @@ viewer and policy server when the evaluation ends or is interrupted.
 Camera frames are timestamped and JPEG-compressed in memory, so scrubbing the
 recording replays the room and wrist views alongside the joint values.
 
+Without an X11 desktop, run the matching SDK's web viewer in a separate terminal
+instead of changing display permissions. With `teleop` running:
+
+```bash
+docker exec teleop /isaac-sim/python.sh -m rerun --serve-web \
+  --bind 127.0.0.1 --port 9876 --web-viewer-port 9090 --server-memory-limit 4GB
+```
+
+Then connect the evaluator to that server:
+
+```bash
+RERUN_CONNECT_URL=rerun+http://127.0.0.1:9876/proxy \
+  ./docker/eval.sh pick_place_molmo_so101_smoke.yaml --smoke-test
+```
+
+Open `http://localhost:9090` on the workstation. For remote viewing, forward both
+9090 and 9876 over SSH. The server buffers recordings in RAM; these commands do
+not save an RRD. An explicitly supplied viewer remains externally owned, so stop
+it separately when finished.
+
 YAML keys (old `eval_pick_place.sh` flag in parentheses):
 
 | Key | Default / interpretation |
@@ -642,6 +662,15 @@ described above. Test one inference change at a time, repeat promising results
 with additional seeds, and report reach, grasp, placement, time and regressions.
 A nine-zone smoke score is a diagnostic sample, not a 150-start benchmark score.
 Failed candidates cannot prove that every possible tuning is exhausted.
+
+After a host restart on 2026-10-23, the public smoke command above completed all
+nine zones with the unchanged front/wrist H30 profile: 2/9 reached, 1/9 grasped
+and 1/9 placed (MR, 14.53 s sim / 20.71 s wall). MC reached but missed its grasp
+and stopped at 30.03 s; the other seven failures stopped unreached at 60 s.
+The browser Rerun view showed both camera streams and joint/action traces.
+This verifies the public launcher path, rather than only the private research
+runner. It is a fresh diagnostic run, not a replacement for the completed
+150-start report or evidence that the model's possible improvements are exhausted.
 
 The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
