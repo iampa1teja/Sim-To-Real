@@ -866,6 +866,29 @@ but excluding model startup. This single-root result provides no reason to
 promote that precision/device setup. It neither reproduces the model card's
 all-GPU execution nor proves that precision never matters on other inputs.
 
+A CPU-only audit on 2026-10-23 identified another way to test that remaining
+precision question without moving vision computation to the CPU. The released
+FP32 checkpoint contains 20.274 GiB of tensor data; its text embedding tables
+and language output head account for 2.950 GiB. Continuous action prediction
+without depth bypasses the language output head. Gathering unchanged embedding
+rows on the CPU could leave 17.323 GiB of weights on the GPU while keeping
+vision, text-transformer and action-expert arithmetic there. This would also
+avoid the original lookup's temporary 1.476 GiB table concatenation.
+
+Using the serving environment's PyTorch 2.11.0+cu128, an exhaustive CPU check
+matched all 154,752 released embedding rows bit for bit, including additional
+scalar, empty, non-contiguous and integer-dtype cases. This validates row lookup
+only: GPU transfers, complete action-output parity, peak memory alongside Isaac
+and episode success remain untested. A preprocessing check with the deployed
+tokenizer loader and three 640-by-480 sample images produced 697 total tokens,
+including 196 image tokens per view. The corresponding FP32 text KV cache is
+0.191 GiB; this excludes other activations, expert context, CUDA overhead and
+Isaac. Its third image repeated the sample top view to check input shape, so it
+does not test task performance or scene visibility. The private GPU comparison
+also retains the released leading action-batch dimension until the existing
+server decoder converts it to 30-by-6. No placement changes are enabled in the
+prepared full evaluation, and no GPU experiment was started for this audit.
+
 That fresh H30 control again placed 1/9 (MC, 29.30 s sim). Its FR and FL closest
 errors were 68.93 and 41.84 mm, predominantly along local gripper Z. In the last
 20 queries, 42.8%/51.0% of FR shoulder/elbow targets and 83.8%/88.0% of FL
