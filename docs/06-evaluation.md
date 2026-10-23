@@ -982,6 +982,10 @@ Incomplete results are rejected even if Isaac exits with status zero. Failure
 reports preserve typed exceptions such as `torch.OutOfMemoryError` and the
 owned policy server's recent output before cleanup, so shutdown warnings cannot
 hide the original cause. Failed attempts are never added as completed scores.
+Policy containers are retained until the runner reads their exit state and logs,
+then removed by its owned-container cleanup. This covers failures that occur
+before the readiness port opens, including a startup exit 139 observed before
+any H10 follow-up episode ran. That infrastructure failure has no policy score.
 Episode summaries are retained even when tqdm appends them to a progress line.
 
 Programmatic follow-ups can construct `Investigation(args,

@@ -278,6 +278,7 @@ docker/env
 !/tests/test_grasp_diagnostics.py
 !/tests/test_molmo_camera.py
 !/tests/test_molmo_target_reach_audit.py
+!/tests/test_molmo_capability_startup.py
 !/tests/test_smoothing.py
 # Domain-randomized replay tests.
 !/tests/_fakes.py
