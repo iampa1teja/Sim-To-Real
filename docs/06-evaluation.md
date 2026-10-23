@@ -713,8 +713,9 @@ experimental state/action adaptation, not an official calibration correction.
 | --- | --- | --- | --- |
 | Existing H30 control | 2/9 | 2/9 | 2/9 (MC, MR) |
 | Shoulder gain 0.75, H30 | 5/9 | 2/9 | 1/9 (MR) |
+| Shoulder gain 0.75, H10 | 3/9 | 0/9 | 0/9 |
 
-FR, FL and FC newly reached at 4.67, 4.83 and 8.90 simulated seconds, respectively,
+In the H30 range trial, FR, FL and FC newly reached at 4.67, 4.83 and 8.90 simulated seconds, respectively,
 but all missed their grasps within the next 30 seconds. Their closest tool errors
 fell from 69.47/53.35/64.50 mm to 11.29/15.29/12.32 mm. At those closest frames,
 maximum joint tracking errors were 1.73/1.42/1.73 degrees and jaw gaps were
@@ -731,10 +732,17 @@ never reached. Other GPU workloads were active late in the run, so wall times
 are not an isolated throughput comparison. No shoulder adaptation was promoted
 to the prepared full profile. More reaches without more grasps, plus the lost MC
 placement, falsify the claim that this range change alone solved the task.
-A follow-up can hold the candidate fixed while shortening execution to H10,
-testing whether more frequent observations improve final alignment and closure;
-its premortem is increased hesitation, recontact or loss of useful later targets
-from the released 30-target chunk. Success must still be measured as placements.
+
+The completed H10 follow-up kept the same shoulder gain, frozen source, three
+camera inputs, starts, seeds and deadlines. It reached MC, FR and MR but grasped
+none, stopping at 30.03, 34.23 and 33.33 simulated seconds respectively. The other
+six starts stopped unreached at 60 seconds, including FL and FC, which H30 had
+reached. More frequent replanning therefore did not recover final alignment or
+closure in this screen; it lost both H30 grasps and the MR placement. These
+aggregate results do not distinguish hesitation from discarding useful later
+targets in the released chunk. Shared GPU workloads also prevent an isolated
+wall-time comparison. Neither candidate is promoted: the prepared 150-start
+profile retains H30/R1, the existing pan adaptation and no shoulder-range warp.
 
 The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second
