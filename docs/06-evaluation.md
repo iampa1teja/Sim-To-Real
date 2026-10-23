@@ -98,9 +98,9 @@ baseline timed out at 300 simulated seconds on the same start and seed. Both
 runs seeded the server once at episode reset, allowing inference noise
 to advance between queries. That three-camera smoke run completed one episode;
 five-episode validation used the original front and wrist cameras instead.
-The selected SO-101 profile now
-uses the original front and wrist cameras, with the same pan adaptation and
-H30/R1 timing. An earlier five-episode smoke test of this adapted profile completed normally with
+The front/wrist SO-101 profile used for the following historical results kept
+the same pan adaptation and H30/R1 timing. An earlier five-episode smoke test of
+that adapted profile completed normally with
 **2/5 successes (40%)** and a median time to success of **19.85 simulated
 seconds**. Starts `id-000` (MC) and `id-002` (MR) succeeded; `id-001` (FR),
 `id-003` (NL) and `id-004` (FL) each timed out after 300 simulated seconds.
@@ -191,8 +191,8 @@ Angles are in radians and each radius is bounded by downstream segment lengths.
 Thus unclipping those same 30 targets still leaves at least 76.4 mm of static
 error. This local bound does not rule out different closed-loop predictions if
 clipping changes earlier in an episode, and is not a limit on all possible
-Molmo tuning. The ordinary camera inputs, preprocessing and inference defaults
-remain unchanged.
+Molmo tuning. Those offline probes did not change camera poses, preprocessing
+or inference defaults.
 
 Reconditioning those same saved images on the native physical pan angle
 (35.65° rather than the experimental warp's 21.01°), while keeping the other
@@ -359,7 +359,7 @@ start teleop from your desktop terminal using the README's X11 mounts.
 to connect to an existing viewer instead. The launcher cleans up its own
 viewer and policy server when the evaluation ends or is interrupted.
 Camera frames are timestamped and JPEG-compressed in memory, so scrubbing the
-recording replays the room and wrist views alongside the joint values.
+recording replays the selected camera views alongside the joint values.
 
 Without an X11 desktop, run the matching SDK's web viewer in a separate terminal
 instead of changing display permissions. With `teleop` running:
@@ -399,7 +399,7 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.episode_length_s` | Task default (15 s); finite positive seconds |
 | `eval.action_horizon` | MolmoAct2: 30, integer in 1-30; other policies: 16, integer in 1-16 |
 | `eval.action_repeat` | 1; positive integer control steps per target. SO-101 Molmo profile: 1 (one-second query interval with horizon 30 at 30 Hz) |
-| `eval.molmo_overhead_camera` | false; Molmo pick-place only. Optionally add a camera behind/above the arm and use it as `room`; the SO-101 profile keeps the original front/wrist views |
+| `eval.molmo_overhead_camera` | Generic default false; true in the SO-101 full profile. Adds a camera behind/above the arm as `room`, retaining the original front and wrist sensors |
 | `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
 | `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
@@ -417,13 +417,21 @@ logs simulation elapsed time and actual wall time, with time to success reported
 for successful attempts. These clocks include settling steps; wall time includes
 inference, rendering and optional recording, and excludes model startup.
 
-To run the full benchmark and save each attempt's front and wrist views:
+The SO-101 full profile selects all 150 original starts, H30/R1, a 180-second
+limit per attempt, three model inputs, and video recording. Rerun is off.
+Start a fresh three-camera run:
 
 ```bash
 ./docker/eval.sh pick_place_molmo_so101.yaml --save_videos
 ```
 
-After an interruption, continue the latest matching benchmark report:
+It saves top (`room`), wrist (`wrist`) and front (`original_room`) videos.
+The camera configuration differs from the earlier two-camera report: start
+without `--resume` for this first three-camera run. The completed two-camera
+results and videos are retained. The existing pan adaptation and all other
+inference settings stay in effect; no controller assistance is enabled.
+
+After an interruption, continue the latest matching three-camera report:
 
 ```bash
 ./docker/eval.sh pick_place_molmo_so101.yaml --save_videos --resume
@@ -485,8 +493,9 @@ For example, a successful attempt prints
 `time_to_success=12.50s sim (18.20s wall)`. An unsuccessful attempt prints
 `timeout_elapsed=180.00s sim (...)` at its configured limit. Both elapsed times
 are stored in JSON; success-time fields are null on failure. Completed videos
-are named `episode_000000_room.mp4` and `episode_000000_wrist.mp4`, with the
-paths stored in each episode's `videos` mapping. Ordinary Python exceptions
+include `episode_000000_room.mp4`, `episode_000000_wrist.mp4` and, when the
+original front view is retained separately, `episode_000000_original_room.mp4`.
+Paths are stored in each episode's `videos` mapping. Ordinary Python exceptions
 finalize the current attempt's files; forced process termination can interrupt
 MP4 finalization. Frames are captured before environment stepping so automatic
 resets do not add the next attempt's initial pose to the preceding video.
@@ -501,22 +510,24 @@ The camera and replacement mount use gripper-local coordinates. Original camera
 extrinsics and jaw geometry are preserved; the user has checked the simulated
 camera views against the real setup.
 
-The SO-101 profile uses the two original cameras: `realsense_rgb` maps to
-Molmo's `room` input and `wrist_cam` maps to `wrist`. Both
-`eval.molmo_overhead_camera` and `policy.options.include_original_room` are
-`false`. The original front/wrist images also appear under these names in
-Rerun and saved videos. Results record `policy_cameras: [room, wrist]`.
+The SO-101 full profile uses three cameras. `molmo_room` (top) maps to `room`,
+`wrist_cam` maps to `wrist`, and `realsense_rgb` (front) maps to `original_room`.
+Both `eval.molmo_overhead_camera` and `policy.options.include_original_room`
+are `true`. Each model query receives all three RGB images; results record
+`policy_cameras: [room, wrist, original_room]`. The separate nine-zone baseline
+smoke config retains the original front/wrist pair, with both options `false`.
 
-For an optional camera comparison, `--molmo-overhead-camera` adds a separate
+For other Molmo configs, `--molmo-overhead-camera` adds a separate
 view behind and above the arm, with image roll aligned to the table's front
 edge. It leaves both original cameras in place. The new `molmo_room` sensor
 then supplies `room`, the wrist remains `wrist`, and the original front view
 remains available as `original_room` in Rerun and videos. To send that original
-front image as a third model input, after `room` and `wrist`, first set
-`policy.options.include_original_room: true` in the YAML, then run:
+front image as a third model input, after `room` and `wrist`, set
+`policy.options.include_original_room: true` in the YAML. Both options are
+already enabled in the SO-101 full profile; to view that run in Rerun:
 
 ```bash
-./docker/eval.sh pick_place_molmo_so101.yaml --rerun --molmo-overhead-camera
+./docker/eval.sh pick_place_molmo_so101.yaml --rerun
 ```
 
 The added camera is restricted to Molmo pick-place tasks and changes only the
@@ -652,8 +663,9 @@ console filtering hides that machine record, while `EVAL_VERBOSE=1` displays it.
 The record retains the in-memory grasp measurements, including error direction,
 jaw gap, closing events and tracking error, for failure analysis.
 Legacy `--smoke-test` configs without this section still run five episodes with
-their existing fixed timeout. The ordinary 180-second full-evaluation config
-and its resume fingerprint remain unchanged.
+their existing fixed timeout. These progress deadlines do not apply to the
+ordinary 180-second full evaluation. Camera settings are included in resume
+compatibility checks, so changing them requires a new run.
 
 For research comparisons, hold these starts, seeds, deadlines and rendering
 settings fixed. Compare the existing pan-adapted baseline separately from the
@@ -671,6 +683,24 @@ The browser Rerun view showed both camera streams and joint/action traces.
 This verifies the public launcher path, rather than only the private research
 runner. It is a fresh diagnostic run, not a replacement for the completed
 150-start report or evidence that the model's possible improvements are exhausted.
+
+A fresh matched camera comparison then completed all nine starts at root 1984,
+using the same frozen source, seeds, H30/R1, released weights and deadlines:
+
+| Model inputs | Reached / grasped / placed | MC success time (sim / wall) | MR success time (sim / wall) |
+| --- | --- | --- | --- |
+| Top + wrist | 2/9 / 2/9 / 2/9 | 35.20 / 61.64 s | 16.90 / 28.97 s |
+| Top + wrist + front | 2/9 / 2/9 / 2/9 | 14.43 / 26.65 s | 40.33 / 66.36 s |
+
+Both placed the same two starts; all seven other starts stopped unreached at
+60 simulated seconds. Three images sped up MC but slowed MR. Mean successful
+episode time was 26.05 s sim with two images and 27.38 s with three; the screen
+does not establish a success-rate or overall speed improvement. FR's closest
+tool error remained about 69 mm in both settings. The requested 150-start run
+uses three inputs to measure that configuration on the full benchmark; this is
+not a claim that it solved the remaining approach failures. Only the Molmo full
+YAML changes camera selection; original camera poses and default scene configs
+are preserved.
 
 The first eight completed nine-zone comparisons on 2026-10-22 used root seed
 1984 and exactly the same original per-start seeds, recorded starts, 60/30-second

@@ -547,16 +547,20 @@ def test_molmo_config_selects_original_wrist_asset(config_name, checkpoint):
     assert f"docker exec teleop test -f {asset}" in [line.rstrip() for line in commands(result)]
     if checkpoint == "molmoact2_so101":
         assert "--option action_dtype=float32" in find(result, "docker run")
-        assert "--option include_original_room=False" in find(result, "docker run")
-        assert "--policy_option include_original_room=False" in client
+        assert "--option include_original_room=True" in find(result, "docker run")
+        assert "--policy_option include_original_room=True" in client
         assert "--action_horizon 30" in client
         assert "--action_repeat 1" in client
         assert "--video_encoder libx264" in client
         assert "--render_warmup" not in client
-        assert "--molmo-overhead-camera" not in client
+        assert "--molmo-overhead-camera" in client
+        assert "--num_episodes 150" in client
+        assert "--episode_length_s 180" in client
+        assert "--save_videos" in client
         client_args = shlex.split(client)
+        assert "--rerun" not in client_args
         assert json.loads(client_args[client_args.index("--rename_map") + 1]) == {
-            "realsense_rgb": "room", "wrist_cam": "wrist",
+            "realsense_rgb": "original_room", "wrist_cam": "wrist", "molmo_room": "room",
         }
     else:
         assert "--molmo-overhead-camera" not in client

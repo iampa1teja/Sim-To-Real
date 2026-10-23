@@ -14,7 +14,7 @@ policy:
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     action_dtype: float32             # retain original expert precision with a BF16 backbone
-    include_original_room: false      # original front and wrist images only
+    include_original_room: true       # top (room), wrist, and original front images
     # Experimental pan adaptation fitted from the 75 local training demos.
     # Rescales both state and action; weights and checkpoint statistics stay original.
     # Omit both options to evaluate the released policy with its native pan range.
@@ -26,6 +26,7 @@ policy:
 eval:
   dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  episodes: 150                      # fixed benchmark below also determines all 150 attempts
   splits: [id, ood, yaw, train]
   repeats: 1
   start_mode: cycle
@@ -34,14 +35,16 @@ eval:
   robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
   action_horizon: 30                  # execute the released SO-101 checkpoint's full action chunk
   action_repeat: 1                    # 30 Hz simulation control; query every simulated second
-  molmo_overhead_camera: false        # optional added camera; preserve the original front/wrist setup
+  molmo_overhead_camera: true         # add top camera; keep both original cameras in place
   episode_length_s: 180               # 3 min simulated time per try = 5400 control steps
   render_warmup: 0                    # update Rerun cameras continuously between policy queries
+  save_videos: true                   # save all three streams for every attempt
   video_encoder: libx264              # background CPU encoding; h264_nvenc optionally uses NVIDIA video hardware
   lang: Pick up the blue cube and place it in the white box
   rename_map:
-    realsense_rgb: room
+    realsense_rgb: original_room      # front
     wrist_cam: wrist
+    molmo_room: room                  # top
 
 run:
   gui: false
