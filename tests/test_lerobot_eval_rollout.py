@@ -598,7 +598,6 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
         self.assertEqual(env.progress_bars[-1].postfixes[-1], 'success=0.0% (0/3)')
 
     def test_benchmark_progress_updates_stages_and_retains_terminal_milestone(self):
-        from sim_to_real_so101.utils.pick_place_benchmark import StageTrace
         original_step=FakeEnvironment.step
         def step_with_milestones(env,actions):
             trace=env._benchmark_trace

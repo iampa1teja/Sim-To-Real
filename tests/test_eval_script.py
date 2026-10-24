@@ -3,7 +3,6 @@ import os
 import json
 import signal
 import shlex
-import shutil
 import subprocess
 import sys
 import textwrap

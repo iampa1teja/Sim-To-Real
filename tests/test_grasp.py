@@ -1,6 +1,5 @@
 """CPU-only grasp-control tests, including the actual simulation client methods."""
 import csv
-from dataclasses import replace
 import json
 from pathlib import Path
 import subprocess

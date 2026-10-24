@@ -36,7 +36,6 @@ import sys
 import threading
 import time
 import numpy as np
-from pathlib import Path
 
 try:
     from pynput import keyboard

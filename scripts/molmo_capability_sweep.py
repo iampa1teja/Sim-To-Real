@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 from collections import deque
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path

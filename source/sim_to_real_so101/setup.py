@@ -14,8 +14,6 @@
 # limitations under the License.
 """Installation script for the 'lerobot_so101_teleop' python package."""
 
-import os
-
 from setuptools import setup, find_namespace_packages
 
 # Minimum dependencies required prior to installation
