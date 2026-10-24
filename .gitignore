@@ -301,3 +301,4 @@ docker/env
 !/tests/test_so101_cli.py
 !/tests/test_real_rollout.py
 !/tests/test_real_rollout_script.py
+!/tests/test_entrypoint_env.py

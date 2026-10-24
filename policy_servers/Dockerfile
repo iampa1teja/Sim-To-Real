@@ -1,7 +1,10 @@
-# Generic policy server: one image, one uv venv per policy, built on first use.
-# Build from the repo root:  ./policy_servers/build.sh
+# Generic policy runtime: one uv venv per policy, built on first use. Two images come from this file and share
+# every layer except the last label, so pushing both to a registry costs almost nothing extra:
+#   --target serve   so101-serve  serves a policy (--policy <name>); the last stage, so it is the default target
+#   --target train   so101-train  runs a policy's [train.commands] (--env <name> -- <command>)
+# Build from the repo root:  so101 build serve|train   (or ./policy_servers/build.sh for serve)
 # Policies are NOT baked in. They are bind-mounted at /policies, so adding one needs no rebuild.
-FROM nvidia/cuda:12.8.0-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.0-devel-ubuntu24.04 AS base
 
 LABEL org.opencontainers.image.description="Multi-policy inference server (GR00T, MolmoAct2, ...)"
 
@@ -44,3 +47,12 @@ RUN chmod +x /opt/so101/entrypoint.sh
 
 ENTRYPOINT ["/opt/so101/entrypoint.sh"]
 CMD ["--list"]
+
+FROM base AS train
+LABEL org.opencontainers.image.description="Policy training runtime: runs a policy's declared train commands"
+ENV SO101_ROLE=train
+
+# Last stage = default build target. Keep it last.
+FROM base AS serve
+LABEL org.opencontainers.image.description="Policy server for the SO-101 workshop (GR00T, MolmoAct2, ...)"
+ENV SO101_ROLE=serve
