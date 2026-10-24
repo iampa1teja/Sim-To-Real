@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Usage: entrypoint.sh --policy <name> [launcher args...]   |   --list   |   <any other command>
+# Usage: entrypoint.sh --policy <name> [launcher args...]   |   --env <name> -- <command...>
+#        entrypoint.sh --list   |   <any other command>
+#   --policy  serve the policy in its own venv (policy-cache/venvs/<name>)
+#   --env     run a command, usually a training script, in a separate venv (policy-cache/venvs/<name>-train)
+#             with the policy's train/requirements.txt added on top; exports SO101_PYTHON and SO101_PROJECT_DIR.
+#             The serving venv is never touched, so a training job cannot change a running server.
 set -euo pipefail
 
 policies_dir=${POLICIES_DIR:-/policies}
@@ -17,12 +22,17 @@ case "${1:-}" in
             [[ $(basename "$dir") == _* ]] || basename "$dir"
         done
         exit 0 ;;
-    --policy) ;;
+    --policy) mode=serve ;;
+    --env) mode=env ;;
     *) exec "$@" ;;
 esac
-[[ $# -ge 2 ]] || fail '--policy needs a name.'
+[[ $# -ge 2 ]] || fail "$1 needs a name."
 name=$2
 shift 2
+if [[ $mode == env ]]; then
+    [[ ${1:-} != -- ]] || shift
+    [[ $# -ge 1 ]] || fail '--env needs a command after the policy name (entrypoint.sh --env <name> -- <command...>).'
+fi
 [[ $name =~ ^[a-z0-9_]+$ ]] || fail "Invalid policy name '$name' (lowercase letters, digits, underscore)."
 policy_dir=$policies_dir/$name
 [[ -f $policy_dir/policy.toml ]] || fail "No $policy_dir/policy.toml. Mount your policies folder at $policies_dir (docker run -v ./policies:/policies)."
@@ -69,12 +79,26 @@ else
 fi
 
 # One venv per policy, kept on the cache volume. uv sync is incremental, so later starts are fast.
-export UV_PROJECT_ENVIRONMENT=$cache/venvs/$name
+# Training gets its own venv so extra packages never leak into (or get synced out of) the serving one.
+if [[ $mode == env ]]; then
+    export UV_PROJECT_ENVIRONMENT=$cache/venvs/$name-train
+else
+    export UV_PROJECT_ENVIRONMENT=$cache/venvs/$name
+fi
 if [[ -f $project/uv.lock ]]; then
     uv sync --frozen --project "$project" --python "$env_python"
 else
     printf 'WARNING: %s/uv.lock missing; resolving fresh. Commit the generated uv.lock.\n' "$project" >&2
     uv sync --project "$project" --python "$env_python"
+fi
+
+if [[ $mode == env ]]; then
+    # uv sync removes packages that are not in the lockfile, so the extras are (re)installed after every sync.
+    if [[ -f $policy_dir/train/requirements.txt ]]; then
+        uv pip install --python "$UV_PROJECT_ENVIRONMENT/bin/python" --no-deps -r "$policy_dir/train/requirements.txt"
+    fi
+    export SO101_PYTHON=$UV_PROJECT_ENVIRONMENT/bin/python SO101_PROJECT_DIR=$project
+    exec "$@"
 fi
 
 # --no-sync: the venv is already correct, and a lock-driven re-sync here could change it.

@@ -6,4 +6,4 @@ usage() { printf 'Usage: ./policy_servers/build.sh [image tag]\nBuilds policy-se
 [[ $# -le 1 ]] || { usage >&2; exit 1; }
 image=${1:-policy-server:latest}
 cd "$repo_dir"
-docker build -t "$image" -f policy_servers/Dockerfile .
+docker build --target serve -t "$image" -f policy_servers/Dockerfile .

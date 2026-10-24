@@ -7,7 +7,12 @@ import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[2]
+# Commands that hand every argument, flags included, to another program. argparse cannot do this reliably:
+# a REMAINDER positional rejects a first argument that starts with a dash.
+PASSTHROUGH = {"eval": "", "record": "pick_place_agent", "rollout": "real_rollout"}
 USAGE_NOTE = (
+    "For eval, record and rollout, flags after the command belong to the wrapped program; to only print its command "
+    "put --dry-run first: 'so101 --dry-run rollout --policy ...'. "
     "Remote GPU: run 'so101 sync', then serve/train with --host user@box --remote-root /abs/path. To evaluate a "
     "remote server from a local simulator: 'so101 tunnel --host user@box --port N', then "
     "'so101 eval <config>.yaml --external_server'."
@@ -53,6 +58,13 @@ def build_parser():
     evaluate = commands.add_parser("eval", help="run docker/eval.sh; everything after 'eval' is passed to it")
     evaluate.add_argument("args", nargs=argparse.REMAINDER)
 
+    for name, program, summary in (
+            ("record", "pick_place_agent", "record demonstrations: runs pick_place_agent in the teleop container"),
+            ("rollout", "real_rollout", "run a served policy on the real arm: runs real_rollout in the teleop container")):
+        sub = commands.add_parser(name, help=summary + "; everything after the command is passed to it")
+        sub.set_defaults(program=program)
+        sub.add_argument("args", nargs=argparse.REMAINDER)
+
     tunnel = commands.add_parser("tunnel", help="forward a remote policy server port to this machine")
     tunnel.add_argument("--host", required=True)
     tunnel.add_argument("--port", type=int, required=True)
@@ -86,6 +98,8 @@ def make_plan(args, repo, policies):
 
     if args.command == "eval":
         return plan.plan_eval(repo, args.args)
+    if args.command in ("record", "rollout"):
+        return plan.plan_teleop(args.program, args.args)
     if args.command == "tunnel":
         return plan.plan_tunnel(args.host, args.port)
     if args.command == "sync":
@@ -121,7 +135,14 @@ def main(argv=None, repo=REPO):
         return 2
     from .plan import CliError
 
-    args = build_parser().parse_args(argv)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    leading_dry_run = argv[:1] == ["--dry-run"]
+    if leading_dry_run:
+        argv = argv[1:]
+    if argv and argv[0] in PASSTHROUGH:
+        args = argparse.Namespace(command=argv[0], args=argv[1:], program=PASSTHROUGH[argv[0]], dry_run=leading_dry_run)
+    else:
+        args = build_parser().parse_args(argv)
     policies = load_policies(repo)
     if args.command == "policies":
         print(describe(policies))
@@ -131,4 +152,4 @@ def main(argv=None, repo=REPO):
     except CliError as error:
         print(f"so101: error: {error}", file=sys.stderr)
         return 2
-    return execute(plan, getattr(args, "dry_run", False))
+    return execute(plan, getattr(args, "dry_run", False) or leading_dry_run)

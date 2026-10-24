@@ -25,3 +25,10 @@ recordings/
 _isaac_sim?
 # Docker history
 docker/.isaac-lab-docker-history
+
+# ignore local environments, datasets, models and agent worktrees (build context is the repo root)
+.venv*/
+.claude/
+datasets/
+models/
+.pytest_cache/
