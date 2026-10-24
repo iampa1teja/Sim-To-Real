@@ -1,0 +1,44 @@
+# Fine-tuned LoRA candidate: same as-real scene, nine-zone smoke and 150 starts.
+task: pick_place
+policy:
+  name: molmoact2
+  checkpoint: molmoact2_so101_workshop_lora
+  models_dir: /external_storage/molmoact2
+  server_image: policy-server:latest
+  options:
+    norm_tag: workshop_pick_place_v1_as_real
+    dtype: bfloat16
+    action_dtype: float32
+    include_original_room: false
+    input_joint_units: lerobot_normalized   # scale only; no USD midpoint offsets
+    num_steps: 10
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  splits:
+  - id
+  - ood
+  - yaw
+  - train
+  repeats: 1
+  start_mode: cycle
+  random_fraction: 0.0
+  robot_start: recorded
+  # robot_usd omitted: base SO-ARM101-USD.usd, as used to record the dataset
+  action_horizon: 30
+  action_repeat: 1
+  molmo_overhead_camera: false
+  episode_length_s: 210
+  render_warmup: 0
+  video_encoder: libx264
+  lang: Pick up the blue cube and place it in the white box
+  rename_map:
+    realsense_rgb: room
+    wrist_cam: wrist
+run:
+  gui: false
+  rerun: true
+smoke_test:
+  selection: one_per_zone
+  reach_timeout_s: 60
+  progress_timeout_s: 30

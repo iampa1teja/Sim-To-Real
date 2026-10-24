@@ -2,6 +2,9 @@
 
 [Guide hub](../README.md) · Previous: [Recording](04-recording.md) · Next: [Evaluation](06-evaluation.md)
 
+For the separate SO-101 MolmoAct2 LoRA workflow and its GPU memory probe, see
+[MolmoAct2 training](05-molmoact2-training.md).
+
 ## Pin the training environment
 
 The v2 workflow uses NVIDIA's official
