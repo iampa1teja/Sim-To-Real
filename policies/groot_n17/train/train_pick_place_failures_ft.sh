@@ -2,8 +2,8 @@
 # Fine-tune a trained pick-place checkpoint for FT_STEPS more steps on clean demos, oversampling the demos whose
 # train-split eval start failed.
 #
-#   bash scripts/train_pick_place_failures_ft.sh            # build datasets (first run), then train
-#   RESUME=1 bash scripts/train_pick_place_failures_ft.sh   # continue after a crash
+#   bash policies/groot_n17/train/train_pick_place_failures_ft.sh            # build datasets (first run), then train
+#   RESUME=1 bash policies/groot_n17/train/train_pick_place_failures_ft.sh   # continue after a crash
 #
 # Two prepared copies of datasets/pick_place_v1 are trained together (EXTRA_DATASETS):
 #   CLEAN  = every source demo except BAD_EPISODES
@@ -11,9 +11,9 @@
 # GR00T samples each copy in proportion to its frames, so failed demos are seen ~2x as often as the others.
 # Both copies are built once and reused; delete them to rebuild from other RESULTS or BAD_EPISODES.
 # Env: BASE_MODEL, RESULTS, BAD_EPISODES (3,51,72), FT_STEPS (50000), LEARNING_RATE (5e-5), OUT, MILESTONE_DIR,
-#      CLEAN, FAILED, GROOT, plus anything scripts/train_pick_place.sh accepts.
+#      CLEAN, FAILED, GROOT, plus anything policies/groot_n17/train/train_pick_place.sh accepts.
 set -euo pipefail
-REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" failures "$@"
 fi
@@ -61,7 +61,7 @@ prepare() {  # prepare <output> <exclude list>
     fi
     printf 'Preparing %s ...\n' "$output"
     (cd "$REPO" && env -u PYTHONPATH -u LD_LIBRARY_PATH PYTHONDONTWRITEBYTECODE=1 "$GROOT/.venv/bin/python" \
-        scripts/prepare_pick_place_gr00t.py --model_profile so_arm_n17 --groot "$GROOT" \
+        policies/groot_n17/train/prepare_pick_place_gr00t.py --model_profile so_arm_n17 --groot "$GROOT" \
         --source "$SOURCE" --output "$output" --exclude_episodes "$exclude")
 }
 prepare "$CLEAN" "$exclude_clean"
@@ -74,4 +74,4 @@ export MAX_STEPS="${FT_STEPS:-50000}" LEARNING_RATE="${LEARNING_RATE:-5e-5}"
 export BATCH="${BATCH:-16}" SAVE_STEPS="${SAVE_STEPS:-1000}" SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-2}"
 export MILESTONE_STEPS="${MILESTONE_STEPS:-10000}" MILESTONE_KEEP="${MILESTONE_KEEP:-5}"
 export DATALOADER_NUM_WORKERS="${DATALOADER_NUM_WORKERS:-2}" RESUME="${RESUME:-0}"
-exec env -u LD_LIBRARY_PATH -u PYTHONPATH bash "$REPO/scripts/train_pick_place.sh" "$@"
+exec env -u LD_LIBRARY_PATH -u PYTHONPATH bash "$REPO/policies/groot_n17/train/train_pick_place.sh" "$@"

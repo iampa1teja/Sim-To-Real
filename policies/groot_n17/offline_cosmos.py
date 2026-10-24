@@ -2,8 +2,8 @@
 
 Transformers 4.57.3's tokenizer checks remote Mistral metadata for large tokenizers even with
 local_files_only=True. A local Cosmos snapshot avoids that unrelated request while preserving the
-official processor and weights. Moved here from scripts/gr00t_offline_cosmos.py so the generic
-policy server image does not need the repo's scripts folder.
+official processor and weights. Copied from the training-side gr00t_offline_cosmos.py in train/ so the generic
+policy server image does not need the training scripts.
 """
 from contextlib import contextmanager
 import importlib

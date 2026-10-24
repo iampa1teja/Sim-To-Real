@@ -8,7 +8,7 @@ LEROBOT_PIN=c75455a6de5c818fa1bb69fb2d92423e86c70475
 dry_run=false
 case ${1:-} in
     --dry_run) dry_run=true; shift ;;
-    --help|-h) printf 'Usage: bash scripts/setup_gr00t_n17.sh [--dry_run]\nInstalls the pinned N1.7 dependencies into a separate checkout. No model downloads.\n'; exit 0 ;;
+    --help|-h) printf 'Usage: bash policies/groot_n17/train/setup_gr00t_n17.sh [--dry_run]\nInstalls the pinned N1.7 dependencies into a separate checkout. No model downloads.\n'; exit 0 ;;
 esac
 [[ $# == 0 ]] || { printf 'Unknown argument; use --help.\n' >&2; exit 1; }
 run() { printf '+ '; printf '%q ' "$@"; printf '\n'; if ! "$dry_run"; then "$@"; fi; }

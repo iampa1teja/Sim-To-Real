@@ -1,17 +1,8 @@
-# Dataset preparation entry point
+# Scripts
 
-[Guide hub](../README.md)
+Policy-agnostic tools. Anything that belongs to one policy lives in that policy's folder instead:
 
-See [05 — Training](../docs/05-training.md) for the complete workflow:
+- `policies/groot_n17/train/`: GR00T N1.7 dataset preparation, training, checkpoint handling and setup.
+- MolmoAct2 LoRA scripts will move into the MolmoAct2 policy folder in the next phase; until then they sit here.
 
-- [Pinned GR00T environment and dependencies](../docs/05-training.md#pin-the-training-environment)
-- [Independent preparation, episode exclusion and verifier commands](../docs/05-training.md#prepare-an-independent-copy)
-- [Fine-tuning and checkpoint selection](../docs/05-training.md#fine-tune)
-- [CPU regression tests](../docs/05-training.md#cpu-preparation-regression-tests)
-
-`prepare_pick_place_gr00t.py` preserves the source dataset and all existing
-validation checks. `--exclude_episodes` filters source IDs and renumbers the
-training copy. Filtered stats are recomputed; reports preserve the mapping.
-`--resume` requires unchanged source hashes and the same selection.
-`verify_pick_place_training.py` checks checksums and actual GR00T/PyAV frame reads.
-Neither script trains a model or requires a GPU.
+See [05 — Training](../docs/05-training.md) and [06 — Evaluation](../docs/06-evaluation.md) for the workflows.

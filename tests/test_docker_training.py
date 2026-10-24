@@ -96,10 +96,10 @@ def test_rejects_host_groot_override_instead_of_hiding_pinned_runtime(tmp_path):
 
 
 @pytest.mark.parametrize('script,workflow', [
-    ('scripts/train_pick_place.sh', 'train'),
-    ('scripts/train_pick_place_sim_100k.sh', 'sim'),
-    ('scripts/train_pick_place_failures_ft.sh', 'failures'),
-    ('train_dit.sh', 'dit'),
+    ('policies/groot_n17/train/train_pick_place.sh', 'train'),
+    ('policies/groot_n17/train/train_pick_place_sim_100k.sh', 'sim'),
+    ('policies/groot_n17/train/train_pick_place_failures_ft.sh', 'failures'),
+    ('policies/groot_n17/train/train_dit.sh', 'dit'),
 ])
 def test_existing_entrypoints_route_to_docker_without_starting_training(tmp_path, script, workflow):
     env = {**os.environ, **fixture_env(tmp_path)}

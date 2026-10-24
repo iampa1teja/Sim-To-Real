@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" train "$@"
 fi
@@ -41,7 +41,7 @@ die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 case "${1:-}" in
     --dry_run) DRY_RUN=1; shift ;;
     --preflight_only) PREFLIGHT_ONLY=1; shift ;;
-    --help|-h) printf 'Usage: bash scripts/train_pick_place.sh [--dry_run|--preflight_only]\nConfigure BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, MILESTONE_STEPS, MILESTONE_KEEP, MILESTONE_DIR, EXTRA_DATASETS, LEARNING_RATE, RESUME and DATALOADER_NUM_WORKERS as environment variables.\n'; exit 0 ;;
+    --help|-h) printf 'Usage: bash policies/groot_n17/train/train_pick_place.sh [--dry_run|--preflight_only]\nConfigure BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, MILESTONE_STEPS, MILESTONE_KEEP, MILESTONE_DIR, EXTRA_DATASETS, LEARNING_RATE, RESUME and DATALOADER_NUM_WORKERS as environment variables.\n'; exit 0 ;;
 esac
 [[ $# == 0 ]] || die 'Unknown argument; use --help.'
 for setting in BATCH MAX_STEPS SAVE_STEPS SAVE_TOTAL_LIMIT; do
@@ -66,7 +66,7 @@ for path in "${extra[@]}"; do
     [[ -n "$path" ]] && datasets+=("$(realpath -m -- "$path")")
 done
 dataset_paths="$(IFS=:; printf '%s' "${datasets[*]}")"
-command=("$GROOT/.venv/bin/python" -u "$REPO/scripts/launch_pick_place_n17.py" --groot "$GROOT"
+command=("$GROOT/.venv/bin/python" -u "$REPO/policies/groot_n17/train/launch_pick_place_n17.py" --groot "$GROOT"
     --milestone-steps "$MILESTONE_STEPS" --milestone-keep "$MILESTONE_KEEP"
     ${MILESTONE_DIR:+--milestone-dir "$MILESTONE_DIR"}
     --base-model-path "$BASE_MODEL" --no-tune-llm --no-tune-visual --no-tune-diffusion-model
@@ -108,13 +108,13 @@ fi
 if compgen -G "$OUT/checkpoint-*" >/dev/null && [[ "$RESUME" != 1 ]]; then
     die "Checkpoints already exist in $OUT. Set RESUME=1 to resume the latest checkpoint."
 fi
-[[ -x "$GROOT/.venv/bin/python" ]] || die 'N1.7 runtime missing; run bash scripts/setup_gr00t_n17.sh.'
+[[ -x "$GROOT/.venv/bin/python" ]] || die 'N1.7 runtime missing; run bash policies/groot_n17/train/setup_gr00t_n17.sh.'
 [[ "$(git -C "$GROOT" rev-parse HEAD)" == 51d4c89f72fda44cbf77285c6a8114b52676b8a1 ]] || die 'GR00T N1.7 revision differs from the verified pin.'
-python3 "$REPO/scripts/gr00t_model_profiles.py" --checkpoint "$BASE_MODEL"
+python3 "$REPO/policies/groot_n17/train/gr00t_model_profiles.py" --checkpoint "$BASE_MODEL"
 # Keep relative/empty legacy cache settings anchored to this startup directory.
-TRANSFORMERS_CACHE="$(python3 "$REPO/scripts/gr00t_model_profiles.py" --cache-path)"
+TRANSFORMERS_CACHE="$(python3 "$REPO/policies/groot_n17/train/gr00t_model_profiles.py" --cache-path)"
 export TRANSFORMERS_CACHE
-python3 "$REPO/scripts/gr00t_model_profiles.py" --cosmos-cache
+python3 "$REPO/policies/groot_n17/train/gr00t_model_profiles.py" --cosmos-cache
 python3 - "$OUT" "$REPO/scripts" "${datasets[@]}" <<'PY_CHECK'
 import hashlib, json, pathlib, shutil, sys
 out, scripts, *roots = map(pathlib.Path, sys.argv[1:])

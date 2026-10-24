@@ -1,6 +1,6 @@
 """Prepare a verified, independent GR00T v2.1 copy of this recorded v3 dataset.
 
-Usage: python scripts/prepare_pick_place_gr00t.py --groot /path/to/pinned/Isaac-GR00T
+Usage: python policies/groot_n17/train/prepare_pick_place_gr00t.py --groot /path/to/pinned/Isaac-GR00T
 Original episodes/videos/metadata are never modified. Requires the existing
 LeRobot dependencies, PyAV and the pinned GR00T source tree.
 """

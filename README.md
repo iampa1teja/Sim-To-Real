@@ -234,8 +234,8 @@ The table also covers repository host scripts and direct Python utilities.
 | `pick_place_agent` | Cube workflow and browser recorder; [Recording](docs/04-recording.md) |
 | `lerobot_eval` | Remote-policy sim evaluation; [Evaluation](docs/06-evaluation.md) |
 | `lerobot_push_dataset` | Declared but broken console entry point; module workaround in [Training](docs/05-training.md) |
-| `scripts/prepare_pick_place_gr00t.py` | Independent v2.1 training copy; [Training](docs/05-training.md) |
-| `scripts/verify_pick_place_training.py` | Checksums and actual reader check; [Training](docs/05-training.md) |
+| `policies/groot_n17/train/prepare_pick_place_gr00t.py` | Independent v2.1 training copy; [Training](docs/05-training.md) |
+| `policies/groot_n17/train/verify_pick_place_training.py` | Checksums and actual reader check; [Training](docs/05-training.md) |
 | `docker/real/build.sh` | Host image build for Ada/Blackwell; [Setup](docs/01-setup.md) |
 | `docker/eval.sh <config>.yaml` | Host-managed server/client lifecycle from one YAML (`configs/eval/`); [Evaluation](docs/06-evaluation.md) |
 | `docker/sim/entrypoint.sh` | Automatic container initialization; [Setup](docs/01-setup.md) |

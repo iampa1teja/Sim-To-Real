@@ -144,7 +144,7 @@ class PreparationTests(unittest.TestCase):
 
     @classmethod
     def prepare(cls, output, *args, success=True, script=None):
-        return cls.run_script(script or REPO / 'scripts/prepare_pick_place_gr00t.py',
+        return cls.run_script(script or REPO / 'policies/groot_n17/train/prepare_pick_place_gr00t.py',
                               '--groot', GROOT, '--source', cls.source, '--output', output,
                               *args, success=success)
 
@@ -208,7 +208,7 @@ class PreparationTests(unittest.TestCase):
 
     def test_verifier_every_episode(self):
         for output in (self.filtered, self.default):
-            result = self.run_script(REPO / 'scripts/verify_pick_place_training.py', '--dataset', output)
+            result = self.run_script(REPO / 'policies/groot_n17/train/verify_pick_place_training.py', '--dataset', output)
             print(result.strip(), flush=True)
 
     def test_default_preserves_all_source_values(self):
@@ -244,7 +244,7 @@ class PreparationTests(unittest.TestCase):
         self.prepare(output, '--resume', '--exclude_episodes', '3,0,0')
         for name in ('stats.json', 'relative_stats.json'):
             self.assertEqual((output / 'meta' / name).read_bytes(), (self.filtered / 'meta' / name).read_bytes())
-        print(self.run_script(REPO / 'scripts/verify_pick_place_training.py', '--dataset', output).strip())
+        print(self.run_script(REPO / 'policies/groot_n17/train/verify_pick_place_training.py', '--dataset', output).strip())
         self.assertEqual(snapshot(self.source), self.before)
 
     def test_invalid_exclusions_and_source_hash_resume(self):
@@ -325,7 +325,7 @@ from gr00t.data.dataset.lerobot_episode_loader import LeRobotEpisodeLoader
 
     @classmethod
     def prepare(cls, output, *extra, success=True):
-        result = subprocess.run([str(cls.python), str(REPO / 'scripts/prepare_pick_place_gr00t.py'),
+        result = subprocess.run([str(cls.python), str(REPO / 'policies/groot_n17/train/prepare_pick_place_gr00t.py'),
                                  '--groot', str(cls.checkout), '--source', str(cls.source), '--output', str(output),
                                  '--model_profile', 'so_arm_n17', *map(str, extra)], env=cls.environment(),
                                 capture_output=True, text=True, timeout=120)
@@ -396,7 +396,7 @@ print('PASS: actual N1.7 reader returns absolute actions; no relative action sta
         shutil.copytree(self.filtered, probe)
         self.assertIn('PASS: actual N1.7 reader', self.run_code(code, probe))
         self.assertEqual(snapshot(self.filtered), before)
-        result = subprocess.run([str(self.python), str(REPO / 'scripts/verify_pick_place_training.py'),
+        result = subprocess.run([str(self.python), str(REPO / 'policies/groot_n17/train/verify_pick_place_training.py'),
                                  '--dataset', str(self.filtered)], env=self.environment(),
                                 capture_output=True, text=True, timeout=120)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

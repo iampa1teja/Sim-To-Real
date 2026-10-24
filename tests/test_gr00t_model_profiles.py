@@ -18,7 +18,7 @@ import unittest
 
 
 REPO = Path(__file__).resolve().parents[1]
-MODULE_PATH = REPO / 'scripts/gr00t_model_profiles.py'
+MODULE_PATH = REPO / 'policies/groot_n17/train/gr00t_model_profiles.py'
 spec = importlib.util.spec_from_file_location('workshop_gr00t_profiles', MODULE_PATH)
 profiles = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profiles)
@@ -264,7 +264,7 @@ print(json.dumps({'video_keys': config['video'].modality_keys,
 '''
         env = {**os.environ, 'PYTHONDONTWRITEBYTECODE': '1', 'CUDA_VISIBLE_DEVICES': '',
                'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1', 'PYTHONPATH': str(checkout)}
-        result = subprocess.run([sys.executable, '-c', code, str(checkout), str(REPO / 'scripts/so_arm_n17_config.py')],
+        result = subprocess.run([sys.executable, '-c', code, str(checkout), str(REPO / 'policies/groot_n17/train/so_arm_n17_config.py')],
                                 env=env, capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)
@@ -319,7 +319,7 @@ sys.exit(97)
         path.chmod(0o755)
 
     def run_script(self, *extra):
-        return subprocess.run(['bash', str(REPO / 'scripts/setup_gr00t_n17.sh'), *extra],
+        return subprocess.run(['bash', str(REPO / 'policies/groot_n17/train/setup_gr00t_n17.sh'), *extra],
                               env=self.env, capture_output=True, text=True, timeout=10)
 
     def test_uses_frozen_pinned_lock_for_current_platform(self):

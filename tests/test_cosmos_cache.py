@@ -12,7 +12,7 @@ import unittest
 
 
 REPO = Path(__file__).resolve().parents[1]
-MODULE = REPO / "scripts/gr00t_model_profiles.py"
+MODULE = REPO / "policies/groot_n17/train/gr00t_model_profiles.py"
 spec = importlib.util.spec_from_file_location("cosmos_cache_profiles", MODULE)
 profiles = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(profiles)

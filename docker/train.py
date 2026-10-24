@@ -48,7 +48,7 @@ def build_command(workflow, forwarded, environ):
         if env.get(name):
             paths[name] = absolute(env[name])
     extras = [absolute(p) for p in env.get('EXTRA_DATASETS', '').split(':') if p]
-    spec = importlib.util.spec_from_file_location('train_model_profiles', REPO / 'scripts/gr00t_model_profiles.py')
+    spec = importlib.util.spec_from_file_location('train_model_profiles', REPO / 'policies/groot_n17/train/gr00t_model_profiles.py')
     profiles = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(profiles)
     hub = profiles.transformers_hub_cache(env)
@@ -126,19 +126,19 @@ def build_command(workflow, forwarded, environ):
     for name, value in sorted(container_env.items()):
         command.extend(['--env', f'{name}={value}'])
     command.append(env.get('TRAIN_IMAGE', 'so101-groot-train:n1.7'))
-    shell_tools = {'train': 'scripts/train_pick_place.sh', 'sim': 'scripts/train_pick_place_sim_100k.sh',
-                   'failures': 'scripts/train_pick_place_failures_ft.sh', 'dit': 'train_dit.sh'}
+    shell_tools = {'train': 'policies/groot_n17/train/train_pick_place.sh', 'sim': 'policies/groot_n17/train/train_pick_place_sim_100k.sh',
+                   'failures': 'policies/groot_n17/train/train_pick_place_failures_ft.sh', 'dit': 'policies/groot_n17/train/train_dit.sh'}
     if workflow in shell_tools:
         command.extend(['bash', str(REPO / shell_tools[workflow]), *forwarded])
     elif workflow == 'prepare':
-        command.extend([PYTHON, str(REPO / 'scripts/prepare_pick_place_gr00t.py'),
+        command.extend([PYTHON, str(REPO / 'policies/groot_n17/train/prepare_pick_place_gr00t.py'),
                         '--groot', GROOT, '--model_profile', 'so_arm_n17', *forwarded])
     elif workflow == 'verify':
-        command.extend([PYTHON, str(REPO / 'scripts/verify_pick_place_training.py'), *forwarded])
+        command.extend([PYTHON, str(REPO / 'policies/groot_n17/train/verify_pick_place_training.py'), *forwarded])
     elif workflow == 'python':
         command.extend([PYTHON, *forwarded])
     else:
-        command.extend([PYTHON, str(REPO / 'scripts/check_training_runtime.py'), *forwarded])
+        command.extend([PYTHON, str(REPO / 'policies/groot_n17/train/check_training_runtime.py'), *forwarded])
     return command, cache
 
 

@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 
 REPO = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("pick_place_n17_launcher", REPO / "scripts/launch_pick_place_n17.py")
+spec = importlib.util.spec_from_file_location("pick_place_n17_launcher", REPO / "policies/groot_n17/train/launch_pick_place_n17.py")
 launcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(launcher)
 
@@ -153,7 +153,7 @@ fixture_experiment.result = run(fixture_experiment.config)
         self.offline_helper.offline_cosmos_processor.assert_called_once_with()
 
     def test_runpy_entry_adds_project_helper_path_and_restores_it(self):
-        project = REPO / "scripts/launch_pick_place_n17.py"
+        project = REPO / "policies/groot_n17/train/launch_pick_place_n17.py"
         flags = ["--model-profile", "unchanged fixture flag"]
         without_scripts = [path for path in sys.path if path != str(project.parent)]
         with patch.dict(sys.modules, self.modules), \

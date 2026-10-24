@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 
 REPO = Path(__file__).resolve().parents[1]
-SCRIPTS = REPO / "scripts"
+SCRIPTS = REPO / "policies/groot_n17/train"
 
 
 def load_module(name, filename):
