@@ -293,3 +293,6 @@ docker/env
 # Action-horizon sweep regression tests.
 !/tests/test_summarize_sweep.py
 !/tests/test_rerecording.py
+
+# Per-policy contract and conformance tests.
+!/tests/policies/

@@ -12,6 +12,23 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+TRAIN_COMMANDS = ("prepare", "train", "verify")
+DATASET_FORMATS = ("lerobot_v2.1", "lerobot_v3")
+
+
+@dataclass(frozen=True)
+class TrainSpec:
+    """The optional [train] table: what the train container runs for this policy.
+
+    commands maps a command name (prepare, train, verify) to a script path relative to the policy
+    folder. extras names optional dependency groups the train container installs on top of the
+    policy environment.
+    """
+
+    dataset_format: str
+    commands: dict[str, str]
+    extras: tuple[str, ...]
+
 
 @dataclass(frozen=True)
 class PolicyManifest:
@@ -23,6 +40,7 @@ class PolicyManifest:
       [observation]  cameras (tuple of str), language
       [action]       default_horizon, representation
       [runtime.env]  env (dict[str, str])
+      [train]        train (TrainSpec, or None when the policy cannot be trained here)
     path is the policy folder the manifest was read from.
     """
 
@@ -39,6 +57,7 @@ class PolicyManifest:
     representation: str
     env: dict[str, str]
     path: Path
+    train: TrainSpec | None = None
 
 
 def default_policies_dir() -> Path:
@@ -56,6 +75,33 @@ def default_policies_dir() -> Path:
         f"Could not find a policies directory above {module_dir}; "
         "set POLICIES_DIR to its location"
     )
+
+
+def _parse_train(table) -> TrainSpec | None:
+    if table is None:
+        return None
+    if not isinstance(table, dict):
+        raise ValueError("train must be a table")
+
+    dataset_format = table.get("dataset_format", "lerobot_v2.1")
+    if dataset_format not in DATASET_FORMATS:
+        raise ValueError(f"train.dataset_format must be one of {', '.join(DATASET_FORMATS)}")
+
+    extras = table.get("extras", [])
+    if not isinstance(extras, list) or any(not isinstance(extra, str) or not extra for extra in extras):
+        raise ValueError("train.extras must be a list of non-empty strings")
+
+    commands = table.get("commands")
+    if not isinstance(commands, dict) or "train" not in commands:
+        raise ValueError("train.commands must be a table with at least a 'train' command")
+    for command, script in commands.items():
+        if command not in TRAIN_COMMANDS:
+            raise ValueError(f"Unknown train command {command!r}; use {', '.join(TRAIN_COMMANDS)}")
+        parts = script.replace("\\", "/").split("/") if isinstance(script, str) else None
+        if not parts or script.startswith("/") or ".." in parts or "" in parts:
+            raise ValueError(f"train.commands.{command} must be a relative path inside the policy folder")
+
+    return TrainSpec(dataset_format=dataset_format, commands=dict(commands), extras=tuple(extras))
 
 
 def load_manifest(policy_dir: str | Path) -> PolicyManifest:
@@ -134,6 +180,8 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
             raise ValueError(f"Invalid runtime.env key: {key}")
     runtime_env = {key: str(value) for key, value in runtime_env.items()}
 
+    train = _parse_train(data.get("train"))
+
     manifest = PolicyManifest(
         name=name,
         description=description,
@@ -148,6 +196,7 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
         rev=rev,
         env=runtime_env,
         path=policy_dir,
+        train=train,
     )
     return manifest
 
