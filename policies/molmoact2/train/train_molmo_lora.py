@@ -1,6 +1,7 @@
 """Use LeRobot's trainer with the workshop state/action frame correction."""
 import faulthandler
 import json
+import os
 import sys
 
 import torch
@@ -9,9 +10,17 @@ from molmo_lora_support import install_training_correction
 
 if __name__ == "__main__":
     faulthandler.enable(all_threads=True)
+    optimizer_offload = os.environ.get("MOLMO_OPTIMIZER_OFFLOAD", "none")
+    if optimizer_offload not in ("none", "cpu"):
+        raise ValueError("MOLMO_OPTIMIZER_OFFLOAD must be none or cpu")
+    if optimizer_offload == "cpu":
+        from molmo_optimizer_offload import install_cpu_optimizer_state
+
+        install_cpu_optimizer_state()
     print("WORKSHOP_RUNTIME " + json.dumps({
         "python": sys.version, "executable": sys.executable,
         "autograd_multithreading": False,
+        "optimizer_state_offload": optimizer_offload,
     }), flush=True)
     install_training_correction()
     from lerobot.scripts import lerobot_train
