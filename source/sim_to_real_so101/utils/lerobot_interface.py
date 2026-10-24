@@ -78,6 +78,7 @@ class LeRobotSO101Interface:
         kind: str = "leader",
         rename_map: dict = None,
         joint_mapping: dict | None = None,
+        follower_options: dict | None = None,
     ):
 
         self.port = port
@@ -87,6 +88,7 @@ class LeRobotSO101Interface:
         self.fps = fps
         self.kind = kind
         self.rename_map = rename_map
+        self.follower_options = dict(follower_options or {})
 
         self.joint_names = [joint.split(".")[0] for joint in self.SO101_JOINT_ORDER]
         self.joint_mins = torch.tensor(
@@ -151,7 +153,7 @@ class LeRobotSO101Interface:
             return SO101LeaderConfig(port=self.port, id=self.id)
         if self.kind == "follower":
             cameras = self.make_cameras_cfg()
-            return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras)
+            return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras, **self.follower_options)
         raise ValueError(f"Unsupported SO-101 interface kind: {self.kind!r}")
 
     def init_device(self, visualize: bool = False):
