@@ -20,6 +20,7 @@ DOCKERFILES = {"teleop": ("docker/sim/Dockerfile", ""), "serve": ("policy_server
                "train": ("policy_servers/Dockerfile", "train")}
 SYNC_PATHS = ("policies", "configs", "eval_sets")
 CONTAINER_REPO = "/workspace/repo"
+CONTAINER_POLICIES = "/policies"  # POLICIES_DIR in policy_servers/Dockerfile; the entrypoint reads policies from here
 TELEOP_CONTAINER = "teleop"
 TELEOP_REPO = "/workspace/Sim-to-Real-SO-101-Workshop"
 
@@ -153,11 +154,13 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
     if recipe:
         raise CliError("--recipe is only used by the GR00T wrapper")
     root = remote_root.rstrip("/") if remote else str(Path(repo).resolve())
-    env = {"SO101_POLICY": manifest.name, "SO101_POLICY_DIR": f"{CONTAINER_REPO}/policies/{manifest.name}"}
+    env = {"SO101_POLICY": manifest.name, "SO101_POLICY_DIR": f"{CONTAINER_POLICIES}/{manifest.name}"}
     argv = ["docker", "run", "--rm", "--init", "--ipc", "host", "--shm-size", "8g", "--workdir", CONTAINER_REPO]
     if command == "train":
         argv += ["--gpus", "all"]
     argv += bind(root, CONTAINER_REPO, readonly=True)
+    # Writable like serve's mount: uv writes a missing uv.lock into the policy folder.
+    argv += bind(f"{root}/policies", CONTAINER_POLICIES)
     for flag, value, target, writable, variable in (
             ("--dataset", dataset, "/data/dataset", False, "SO101_DATASET"),
             ("--output", output, "/data/output", True, "SO101_OUTPUT"),
@@ -168,7 +171,7 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
     argv += ["-v", "policy-cache:/opt/cache"]
     for name, value in sorted(env.items()):
         argv += ["--env", f"{name}={value}"]
-    path = f"{CONTAINER_REPO}/policies/{manifest.name}/{script}"
+    path = f"{CONTAINER_POLICIES}/{manifest.name}/{script}"
     runner = ["bash", path] if path.endswith(".sh") else ["sh", "-c", 'exec "${SO101_PYTHON:-python3}" "$@"', "so101", path]
     return Plan(tuple([*argv, image, "--env", manifest.name, "--", *runner, *extra]), docker_host=docker_host)
 

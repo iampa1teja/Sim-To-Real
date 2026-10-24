@@ -99,7 +99,7 @@ class EntrypointTest(unittest.TestCase):
     def test_env_mode_uses_a_separate_venv_installs_extras_and_runs_the_command(self):
         result, log = self.run_entrypoint("--env", "demo", "--", "printenv", "SO101_PYTHON", "SO101_PROJECT_DIR", "DEMO_FLAG")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(log[0].startswith("uv sync --frozen --project"))
+        self.assertTrue(log[0].startswith("uv sync --frozen --inexact --project"), log[0])
         self.assertTrue(log[1].replace("\\", "/").endswith("venvs/demo-train"))
         install = log[2]
         self.assertTrue(install.startswith("uv pip install --python "))

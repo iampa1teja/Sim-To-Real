@@ -80,20 +80,23 @@ fi
 
 # One venv per policy, kept on the cache volume. uv sync is incremental, so later starts are fast.
 # Training gets its own venv so extra packages never leak into (or get synced out of) the serving one.
+sync_flags=()
 if [[ $mode == env ]]; then
     export UV_PROJECT_ENVIRONMENT=$cache/venvs/$name-train
+    # --inexact keeps the installed extras, so a second job on the same policy cannot uninstall them under a running one.
+    sync_flags=(--inexact)
 else
     export UV_PROJECT_ENVIRONMENT=$cache/venvs/$name
 fi
 if [[ -f $project/uv.lock ]]; then
-    uv sync --frozen --project "$project" --python "$env_python"
+    uv sync --frozen "${sync_flags[@]}" --project "$project" --python "$env_python"
 else
     printf 'WARNING: %s/uv.lock missing; resolving fresh. Commit the generated uv.lock.\n' "$project" >&2
-    uv sync --project "$project" --python "$env_python"
+    uv sync "${sync_flags[@]}" --project "$project" --python "$env_python"
 fi
 
 if [[ $mode == env ]]; then
-    # uv sync removes packages that are not in the lockfile, so the extras are (re)installed after every sync.
+    # Idempotent: pip skips what is already installed. (--inexact above keeps extras across syncs.)
     if [[ -f $policy_dir/train/requirements.txt ]]; then
         uv pip install --python "$UV_PROJECT_ENVIRONMENT/bin/python" --no-deps -r "$policy_dir/train/requirements.txt"
     fi
