@@ -88,7 +88,8 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   `make_pick_place_eval_set`. Keep the same set (and its hash) across checkpoints you compare. Benchmark
   stages and success logic are in `utils/pick_place_benchmark*.py` and `utils/pick_place_eval.py`.
   `scripts/compare_eval_results.py` runs paired McNemar comparisons.
-- **Training pipeline** (`scripts/`, run through `./docker/train.sh`): `prepare_pick_place_gr00t.py` makes an
+- **Training pipeline** (`policies/groot_n17/train/`, run through `./docker/train.sh`; declared in the policy's
+  `[train]` table): `prepare_pick_place_gr00t.py` makes an
   independent v2.1 copy of a recorded dataset and never modifies the source. `verify_pick_place_training.py`
   checks it. `launch_pick_place_n17.py` and `train_pick_place*.sh` wrap the official, unmodified GR00T
   fine-tune launcher. `train_dit_only.py` and `train_dit.sh` continue a checkpoint with only

@@ -5,7 +5,7 @@ enabled = true
 default_port = 5555
 
 # Built from the official repo at the pin used by training and the old container
-# (N17_PIN in scripts/gr00t_model_profiles.py). Its own uv.lock supplies Python 3.12, Torch 2.9/cu128,
+# (N17_PIN in policies/groot_n17/train/gr00t_model_profiles.py). Its own uv.lock supplies Python 3.12, Torch 2.9/cu128,
 # Transformers 4.57.3 and the matching FlashAttention wheel, so no pyproject.toml lives in this folder.
 [environment]
 python = "3.12"
@@ -24,3 +24,13 @@ representation = "absolute_joint"
 HF_HUB_OFFLINE = "1"
 TRANSFORMERS_OFFLINE = "1"
 PYTHONDONTWRITEBYTECODE = "1"
+
+# Other recipes in train/ (train_pick_place_sim_100k.sh, train_pick_place_failures_ft.sh, train_dit.sh)
+# are variants of the commands below and are selected by the training CLI.
+[train]
+dataset_format = "lerobot_v2.1"
+
+[train.commands]
+prepare = "train/prepare_pick_place_gr00t.py"
+train = "train/train_pick_place.sh"
+verify = "train/verify_pick_place_training.py"

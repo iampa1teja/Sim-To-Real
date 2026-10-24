@@ -17,7 +17,7 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 | `argparse` (repeatable options via `action="append"`) | Launcher and CLI | Python docs |
 | Docker: layers, `ENTRYPOINT` vs `CMD`, bind mounts vs named volumes, `--gpus all` | The container | docs.docker.com (Build, Storage) |
 | NVIDIA Container Toolkit | GPU inside the container | NVIDIA docs |
-| Your own code | You are moving it, not rewriting it | `gr00t_client/{server_client,smoothing,grasp}.py`, `GR00TRemotePolicy` in `utils/lerobot_interface.py`, `scripts/launch_gr00t_server_n17.py`, `scripts/gr00t_model_profiles.py` |
+| Your own code | You are moving it, not rewriting it | `gr00t_client/{server_client,smoothing,grasp}.py`, `GR00TRemotePolicy` in `utils/lerobot_interface.py`, `policies/groot_n17/train/launch_gr00t_server_n17.py`, `policies/groot_n17/train/gr00t_model_profiles.py` |
 | GR00T N1.7 server and `Gr00tPolicy` API | `groot_n17/server.py` | Isaac-GR00T repo at the pinned rev: `gr00t/eval/run_gr00t_server.py` |
 | MolmoAct2 | `molmoact2/{client,server}.py` | Its model card and repo: input format, image preprocessing, action space, normalization, chunk length, language handling |
 
@@ -100,8 +100,8 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 
 **`groot_n17/server.py`**
 - Imports: `runpy`/`sys` or direct `gr00t` imports, plus `ServerPolicy`.
-- `class Groot17Server(ServerPolicy)`: `load` reproduces what `scripts/launch_gr00t_server_n17.py` does (revision check, offline Cosmos processor, then build `Gr00tPolicy` from `--checkpoint` and `options["embodiment_tag"]`). `infer` calls the policy's `get_action`. `reset` supports seeds.
-- Copy `offline_cosmos_processor` from `scripts/gr00t_offline_cosmos.py` and the pin from `scripts/gr00t_model_profiles.py` into helper files in this folder. Do not import from `scripts/`: it is not mounted.
+- `class Groot17Server(ServerPolicy)`: `load` reproduces what `policies/groot_n17/train/launch_gr00t_server_n17.py` does (revision check, offline Cosmos processor, then build `Gr00tPolicy` from `--checkpoint` and `options["embodiment_tag"]`). `infer` calls the policy's `get_action`. `reset` supports seeds.
+- Copy `offline_cosmos_processor` from `policies/groot_n17/train/gr00t_offline_cosmos.py` and the pin from `policies/groot_n17/train/gr00t_model_profiles.py` into helper files in this folder. Do not import from `scripts/`: it is not mounted.
 - `create()` factory.
 
 **`molmoact2/client.py`, `server.py`**: same shape as GR00T. Everything specific (preprocessing, prompt format, de-normalization, chunk length, joint order, units) comes from the model card. If the model's action space is not absolute joints, convert in `parse_response`.

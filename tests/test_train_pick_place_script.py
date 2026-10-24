@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 
 REPO = Path(__file__).resolve().parents[1]
-SCRIPT = REPO / "scripts/train_pick_place.sh"
+SCRIPT = REPO / "policies/groot_n17/train/train_pick_place.sh"
 PIN = "51d4c89f72fda44cbf77285c6a8114b52676b8a1"
 HUB_PIN = "93a5a88f78a395939f784a5fe3685184913dcc60"
 
@@ -148,7 +148,7 @@ sys.exit(91)
         (self.base / "model-00001-of-00001.safetensors").write_bytes(
             struct.pack("<Q", len(header)) + header + struct.pack("<f", 0))
         self.dataset.mkdir()
-        (self.dataset / "so100_config.py").write_bytes((REPO / "scripts/so_arm_n17_config.py").read_bytes())
+        (self.dataset / "so100_config.py").write_bytes((REPO / "policies/groot_n17/train/so_arm_n17_config.py").read_bytes())
         (self.dataset / "meta").mkdir()
         (self.dataset / "meta/info.json").write_text('{"total_episodes": 1}')
         manifest = {name: hashlib.sha256((self.dataset / name).read_bytes()).hexdigest()
@@ -188,7 +188,7 @@ sys.exit(91)
                     "--save-steps": "1000", "--save-total-limit": "2", "--global-batch-size": "16"}
         groot = (home / "Isaac-GR00T-N1.7").resolve()
         self.assertEqual(args[0], str(groot / ".venv/bin/python"))
-        self.assertEqual(args[2], str(REPO / "scripts/launch_pick_place_n17.py"))
+        self.assertEqual(args[2], str(REPO / "policies/groot_n17/train/launch_pick_place_n17.py"))
         self.assertEqual(args[args.index("--groot") + 1], str(groot))
         for flag, value in expected.items():
             self.assertEqual(args[args.index(flag) + 1], str(value))

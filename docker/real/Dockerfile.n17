@@ -29,7 +29,7 @@ RUN echo 'source /Isaac-GR00T/.venv/bin/activate' >> /root/.bashrc
 
 COPY docker/utils.sh /root/tmp/utils.sh
 RUN cat /root/tmp/utils.sh >> /root/.bashrc && rm /root/tmp/utils.sh
-COPY scripts/gr00t_model_profiles.py scripts/gr00t_offline_cosmos.py scripts/launch_gr00t_server_n17.py /opt/so101/
+COPY policies/groot_n17/train/gr00t_model_profiles.py policies/groot_n17/train/gr00t_offline_cosmos.py policies/groot_n17/train/launch_gr00t_server_n17.py /opt/so101/
 COPY docker/real/entrypoint.n17.sh /opt/so101/entrypoint.sh
 ENTRYPOINT ["/bin/bash", "/opt/so101/entrypoint.sh"]
 CMD ["/bin/bash"]

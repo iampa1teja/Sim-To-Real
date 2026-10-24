@@ -596,7 +596,7 @@ def main(argv=None):
         "saved_data_sha256": hashlib.sha256(
             json.dumps(saved["data"], sort_keys=True).encode()
         ).hexdigest(),
-        "repo_commit": git_revision(Path(__file__).resolve().parents[1]),
+        "repo_commit": git_revision(Path(__file__).resolve().parents[3]),
         "GROOT_REF": PIN,
         "gpu_name": gpu,
         "pid": os.getpid(),

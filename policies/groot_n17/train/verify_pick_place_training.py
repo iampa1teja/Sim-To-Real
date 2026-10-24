@@ -1,5 +1,5 @@
 """Verify prepared files and exercise the pinned GR00T reader against PyAV pixels.
-Run: PYTHONPATH=/path/to/Isaac-GR00T python scripts/verify_pick_place_training.py
+Run: PYTHONPATH=/path/to/Isaac-GR00T python policies/groot_n17/train/verify_pick_place_training.py
      --dataset datasets/pick_place_v1_gr00t
 """
 import argparse

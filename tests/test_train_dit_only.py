@@ -12,7 +12,7 @@ import torch
 from torch import nn
 
 REPO = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("train_dit_only", REPO / "scripts/train_dit_only.py")
+spec = importlib.util.spec_from_file_location("train_dit_only", REPO / "policies/groot_n17/train/train_dit_only.py")
 launcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(launcher)
 

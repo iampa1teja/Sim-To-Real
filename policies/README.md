@@ -27,7 +27,8 @@ train = "train/train.sh"            # required once [train] exists
 verify = "train/verify.sh"          # optional
 ```
 
-Each command is a script path inside the policy folder. The train container runs it with the repo
+Each command is a script path inside the policy folder (`.sh` runs with bash, `.py` with the
+policy's Python). The train container runs it with the repo
 mounted and these variables set: `SO101_POLICY_DIR`, `SO101_DATASET`, `SO101_OUTPUT`,
 `SO101_BASE_MODEL`. Arguments after the command name are passed to the script unchanged. A policy
 with no `[train]` table can only be served. The template ships stub scripts that exit with an error

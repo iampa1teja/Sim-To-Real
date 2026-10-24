@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 BASE_MODEL="${BASE_MODEL:-$HOME/sim2real/models/nv_so_arm_n17}"
 command -v uv >/dev/null || { printf 'uv is required.\n' >&2; exit 1; }
 unset HF_HUB_OFFLINE TRANSFORMERS_OFFLINE
@@ -12,5 +12,5 @@ uv tool run --from 'huggingface_hub[hf_xet]' hf download \
     --include embodiment_id.json --include statistics.json \
     --include 'model-*.safetensors' --include model.safetensors.index.json \
     --local-dir "$BASE_MODEL"
-python3 "$REPO/scripts/gr00t_model_profiles.py" --checkpoint "$BASE_MODEL"
-python3 "$REPO/scripts/gr00t_model_profiles.py" --cosmos-cache
+python3 "$REPO/policies/groot_n17/train/gr00t_model_profiles.py" --checkpoint "$BASE_MODEL"
+python3 "$REPO/policies/groot_n17/train/gr00t_model_profiles.py" --cosmos-cache

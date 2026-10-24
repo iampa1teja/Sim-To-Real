@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Continue the saved 200k run with only its diffusion transformer trainable.
 set -euo pipefail
-REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" dit "$@"
 fi
@@ -19,4 +19,4 @@ unset GROOT_SKIP_HF_MODEL_WEIGHTS GROOT_HF_LOCAL_FIRST PYTEST_CURRENT_TEST
 # First passing 50-update rung on the 4090: 21.06 GiB sampled process peak,
 # 0.9284 s/update. All 32 DiT blocks remain trainable; effective batch is 32.
 defaults=(--batch 16 --grad_accum 2 --grad_ckpt --optim adamw8bit)
-exec "$GROOT/.venv/bin/python" -u "$REPO/scripts/train_dit_only.py" --groot "$GROOT" "${defaults[@]}" "$@"
+exec "$GROOT/.venv/bin/python" -u "$REPO/policies/groot_n17/train/train_dit_only.py" --groot "$GROOT" "${defaults[@]}" "$@"

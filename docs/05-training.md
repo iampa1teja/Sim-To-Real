@@ -37,7 +37,7 @@ N1.7 uses TorchCodec and requires an FFmpeg 4–7 runtime; the verification comm
 checks actual video decoding. Use a complete workshop checkout on the training
 machine. The training image is independent of the teleop container.
 
-The original `scripts/train_pick_place*.sh` and `train_dit.sh` entry points route
+The original `policies/groot_n17/train/train_pick_place*.sh` and `train_dit.sh` entry points route
 through Docker automatically. `--dry_run` prints the Docker command without
 creating output or starting a container. `--preflight_only` runs the existing
 dataset/model/disk/GPU checks inside the container and stops before training.
@@ -285,7 +285,7 @@ been verified; the full training run has not been started.
 DATASET="$PWD/datasets/pick_place_v1_gr00t_n17" \
 OUT="/external_storage/models/so101_pick_place_v1_n17_10k" \
 BATCH=16 MAX_STEPS=10000 SAVE_STEPS=1000 SAVE_TOTAL_LIMIT=2 \
-bash scripts/train_pick_place.sh
+bash policies/groot_n17/train/train_pick_place.sh
 ```
 
 The launcher defaults continue to point at the recommended v2 dataset and output;
@@ -332,7 +332,7 @@ tool. External LeRobot replay and GR00T ReplayPolicy are not that pipeline.
 
 ## DiT-only continuation (4090)
 
-[train_dit.sh](../train_dit.sh) continues the saved 200k pick-place model with
+[train_dit.sh](../policies/groot_n17/train/train_dit.sh) continues the saved 200k pick-place model with
 only `action_head.model`, the action-head diffusion transformer, trainable.
 The backbone, visual encoder, projectors, vision-language adapters, positional
 embedding, and SO101 state/action encoders and action decoder stay frozen.
@@ -340,7 +340,7 @@ It calls the pinned official fine-tune entry point through
 [train_dit_only.py](../scripts/train_dit_only.py); it changes no GR00T source files
 and leaves the existing training scripts and data preparation unchanged.
 This checkout has no root `train.sh` or `CLAUDE.md`: the existing shell-wrapper
-style comes from `scripts/train_pick_place.sh`, and the GR00T notes come from
+style comes from `policies/groot_n17/train/train_pick_place.sh`, and the GR00T notes come from
 the pinned checkout's `CLAUDE.md`.
 
 The selected init is
@@ -370,11 +370,11 @@ The init's projector-training optimizer state is deliberately not resumed.
 From the workshop root:
 
 ```bash
-bash train_dit.sh --dry_run
-bash train_dit.sh --smoke 50 --output_dir /external_storage/models/dit_probe
-bash train_dit.sh
+bash policies/groot_n17/train/train_dit.sh --dry_run
+bash policies/groot_n17/train/train_dit.sh --smoke 50 --output_dir /external_storage/models/dit_probe
+bash policies/groot_n17/train/train_dit.sh
 # Recover an interrupted continuation using its latest checkpoint:
-bash train_dit.sh --resume
+bash policies/groot_n17/train/train_dit.sh --resume
 ```
 
 All controls have defaults: `--init_ckpt`, `--output_dir`, `--steps` (20000),
