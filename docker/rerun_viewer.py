@@ -34,8 +34,11 @@ print(json.dumps({'version': rerun.__version__, 'binary': str(binary),
 def sdk_info(container: str) -> dict:
     result = subprocess.run(
         ["docker", "exec", container, "/isaac-sim/python.sh", "-c", SDK_QUERY],
-        check=True, capture_output=True, text=True,
+        capture_output=True, text=True,
     )
+    if result.returncode:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise RuntimeError(f"Cannot query Rerun SDK in container {container}:\n{detail}")
     info = json.loads(result.stdout)
     if not re.fullmatch(r"[A-Za-z0-9_.+-]+", info["version"]):
         raise RuntimeError("Container reported an invalid Rerun version")

@@ -111,7 +111,7 @@ handling stay as configured. No state is quantized. This frees approximately
 5.40 GiB of persistent CUDA storage for this model, at the cost of PCIe transfers
 per optimizer update and the corresponding host RAM.
 
-`scripts/check_molmo_optimizer_offload.py` checks eight CUDA updates against the
+`policies/molmoact2/train/check_molmo_optimizer_offload.py` checks eight CUDA updates against the
 native Molmo AdamW optimizer, including two groups with different learning rates,
 weight decay, a missing gradient, a nonfinite skipped update, loading native
 Adam state and resuming serialized CPU moments. Every parameter and moment was
