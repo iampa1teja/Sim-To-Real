@@ -70,8 +70,7 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   `so101_env_cfg.SO101TeleopEnvCfg` → `my_room_env_cfg.MyRoomEnvCfg` (digital-twin room, calibrated
   room/wrist cameras) → `pick_place_env_cfg.PickPlaceEnvCfg` → `PickPlaceEvalEnvCfg` →
   `PickPlaceEvalDREnvCfg`. Each layer subclasses the parent's Scene/Events/Observations configs. The
-  vials-to-rack task is a separate branch from the base. Reset, observation and success functions
-  live in `mdp/`.
+  Reset, observation and success functions live in `mdp/`.
 - **Measured setup**: `assets/real_setup.json` holds one physical room's measured geometry and camera
   calibration. `assets/real_setup.py` (`SETUP`, `robot_rotation`, `camera_rotation`) turns it into
   poses that every MyRoom launcher uses. If you change the JSON, sim placement changes everywhere.

@@ -58,45 +58,6 @@ gym.register(
 )
 
 gym.register(
-    id="Lerobot-So101-Teleop-Vials-To-Rack",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.vials_to_rack_env_cfg:VialsToRackEnvCfg",
-    },
-)
-
-gym.register(
-    id="Lerobot-So101-Teleop-Vials-To-Rack-DR",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.vials_to_rack_env_cfg:VialsToRackDREnvCfg",
-    },
-)
-
-
-gym.register(
-    id="Lerobot-So101-Teleop-Vials-To-Rack-Eval",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.vials_to_rack_env_cfg:VialsToRackEvalEnvCfg",
-    },
-)
-
-
-gym.register(
-    id="Lerobot-So101-Teleop-Vials-To-Rack-DR-Eval",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.vials_to_rack_env_cfg:VialsToRackEvalDREnvCfg",
-    },
-)
-
-
-gym.register(
     id="Lerobot-So101-Teleop-MyRoom",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,

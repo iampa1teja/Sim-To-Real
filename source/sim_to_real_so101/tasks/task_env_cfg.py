@@ -29,7 +29,6 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from sim_to_real_so101 import assets
 from sim_to_real_so101.mdp import (
     randomize_light_exposure,
-    randomize_sky_light,
     randomize_mat_rotation,
     randomize_camera_focal_length,
     randomize_camera_pose,

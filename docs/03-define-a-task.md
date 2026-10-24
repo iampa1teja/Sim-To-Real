@@ -7,7 +7,6 @@
 ```mermaid
 flowchart TD
   B[SO101TeleopEnvCfg] --> T[SO101TaskEnvCfg: LightStudio]
-  T --> V[VialsToRackEnvCfg]
   B --> M[MyRoomEnvCfg: measured room]
   M --> P[PickPlaceEnvCfg: manual recording]
   P --> E[PickPlaceEvalEnvCfg: success and timeout]
@@ -79,10 +78,6 @@ There are no version suffixes on these registrations.
 | `Lerobot-So101-Teleop-Base` | `SO101TeleopEnvCfg` |
 | `Lerobot-So101-Teleop-Task` | `SO101TaskEnvCfg` |
 | `Lerobot-So101-Teleop-MyRoom` | `MyRoomEnvCfg` |
-| `Lerobot-So101-Teleop-Vials-To-Rack` | `VialsToRackEnvCfg` |
-| `Lerobot-So101-Teleop-Vials-To-Rack-DR` | `VialsToRackDREnvCfg` |
-| `Lerobot-So101-Teleop-Vials-To-Rack-Eval` | `VialsToRackEvalEnvCfg` |
-| `Lerobot-So101-Teleop-Vials-To-Rack-DR-Eval` | `VialsToRackEvalDREnvCfg` |
 | `Lerobot-So101-Teleop-Pick-Place` | `PickPlaceEnvCfg` |
 | `Lerobot-So101-Teleop-Pick-Place-Eval` | `PickPlaceEvalEnvCfg` |
 | `Lerobot-So101-Teleop-Pick-Place-DR-Eval` | `PickPlaceEvalDREnvCfg` |
