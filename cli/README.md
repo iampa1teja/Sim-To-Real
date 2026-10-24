@@ -12,10 +12,15 @@ command to see exactly what it would run.
 | `./so101 verify --policy P --dataset D` | Check a prepared dataset before spending GPU hours. |
 | `./so101 serve --policy P --checkpoint C [--models-dir DIR] [--port N] [--option k=v]` | Start the policy server container. |
 | `./so101 eval <config>.yaml [flags]` | Run `docker/eval.sh` with everything after `eval` passed through. |
+| `./so101 record [pick_place_agent flags]` | Record demonstrations: runs `pick_place_agent` in the local `teleop` container with `/root/env` loaded. |
+| `./so101 rollout --policy P --lang_instruction "..." [--enable-motion]` | Run a served policy on the real arm with `real_rollout` in the `teleop` container. Shadow mode (no motion) unless `--enable-motion`. See [08 — Running a policy on the real arm](../docs/08-real-arm-rollout.md). |
 | `./so101 tunnel --host user@box --port N` | Forward a remote server's port to this machine. |
 | `./so101 sync --host user@box --remote-root /abs/path [--path datasets/x]` | Copy `policies/`, `configs/` and `eval_sets/` (plus any `--path`) to the remote repo copy. Never deletes. |
 
-Arguments after `--` on prepare, train and verify go to the policy's script unchanged.
+Arguments after `--` on prepare, train and verify go to the policy's script unchanged. For `eval`, `record` and
+`rollout` every argument after the command goes to the wrapped program, so put `--dry-run` first to only print the
+command: `./so101 --dry-run rollout --policy molmoact2 ...`. These three always run on the machine with the display
+and the arm, never on a remote Docker host.
 
 ## How a policy plugs in
 

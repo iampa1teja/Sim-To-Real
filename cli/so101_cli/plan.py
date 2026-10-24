@@ -12,6 +12,8 @@ DEFAULT_TRAIN_IMAGE = "so101/train:latest"
 DEFAULT_SERVE_IMAGE = "policy-server:latest"
 SYNC_PATHS = ("policies", "configs", "eval_sets")
 CONTAINER_REPO = "/workspace/repo"
+TELEOP_CONTAINER = "teleop"
+TELEOP_REPO = "/workspace/Sim-to-Real-SO-101-Workshop"
 
 
 class CliError(ValueError):
@@ -166,6 +168,15 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
 def plan_eval(repo, args):
     """docker/eval.sh already orchestrates server and rollout; the CLI only gives it one front door."""
     return Plan(("bash", str(Path(repo) / "docker" / "eval.sh"), *args), runs_on_dry_run=True)
+
+
+def plan_teleop(program, args, container=TELEOP_CONTAINER):
+    """Run a console script inside the running teleop container, with the settings from /root/env loaded.
+
+    Always local: the simulator display and a real arm's USB device live on the machine running the container.
+    """
+    return Plan(("docker", "exec", "-it", "-w", TELEOP_REPO, container, "bash", "-c",
+                 'source /root/env 2>/dev/null; exec "$@"', "so101", program, *args))
 
 
 def plan_tunnel(host, port):

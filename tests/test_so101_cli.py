@@ -167,6 +167,15 @@ class RemoteToolsTest(unittest.TestCase):
         result = plan.plan_eval(ROOT, ["pick_place.yaml", "--external_server", "--dry_run"])
         self.assertEqual(result.argv, ("bash", str(ROOT / "docker" / "eval.sh"), "pick_place.yaml", "--external_server", "--dry_run"))
 
+    def test_teleop_commands_exec_into_the_container_with_env_loaded(self):
+        shell = 'source /root/env 2>/dev/null; exec "$@"'
+        record = plan.plan_teleop("pick_place_agent", ["--task", "T", "--repo_id", "u/d"])
+        self.assertEqual(record.argv, (
+            "docker", "exec", "-it", "-w", "/workspace/Sim-to-Real-SO-101-Workshop", "teleop", "bash", "-c", shell,
+            "so101", "pick_place_agent", "--task", "T", "--repo_id", "u/d"))
+        self.assertEqual(plan.plan_teleop("real_rollout", ["--policy", "p"], container="t2").argv[5], "t2")
+        self.assertFalse(record.docker_host)
+
     def test_tunnel(self):
         self.assertEqual(plan.plan_tunnel("gpu@box", 5560).argv, (
             "ssh", "-N", "-o", "ExitOnForwardFailure=yes", "-L", "5560:localhost:5560", "gpu@box"))
@@ -217,6 +226,22 @@ class MainTest(unittest.TestCase):
     def test_eval_passthrough_keeps_flags(self):
         _, _, _, run = self.run_main(["eval", "pick_place.yaml", "--smoke-test", "--save_videos"])
         self.assertEqual(run.call_args.args[0][2:], ("pick_place.yaml", "--smoke-test", "--save_videos"))
+
+    def test_record_and_rollout_pass_flags_through(self):
+        _, out, _, run = self.run_main(["rollout", "--policy", "molmoact2", "--enable-motion", "--lang_instruction", "go"])
+        self.assertEqual(run.call_args.args[0][-5:], ("real_rollout", "--policy", "molmoact2", "--enable-motion",
+                                                       "--lang_instruction", "go")[-5:])
+        self.assertIn("so101 real_rollout --policy molmoact2 --enable-motion --lang_instruction go", out)
+        _, _, _, run = self.run_main(["eval", "--help"])
+        self.assertEqual(run.call_args.args[0][2:], ("--help",))
+        _, _, _, run = self.run_main(["record", "--task", "Lerobot-So101-Teleop-Pick-Place"])
+        self.assertEqual(run.call_args.args[0][10:], ("pick_place_agent", "--task", "Lerobot-So101-Teleop-Pick-Place"))
+
+    def test_leading_dry_run_prints_pass_through_commands_without_running_them(self):
+        code, out, _, run = self.run_main(["--dry-run", "rollout", "--policy", "molmoact2", "--dry-run"])
+        self.assertEqual(code, 0)
+        run.assert_not_called()
+        self.assertIn("real_rollout --policy molmoact2 --dry-run", out)
 
     def test_errors_exit_2_with_a_message(self):
         code, _, err, run = self.run_main(["train", "--policy", "nope", "--dataset", "/d", "--output", "/o"])
