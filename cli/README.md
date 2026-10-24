@@ -14,6 +14,8 @@ command to see exactly what it would run.
 | `./so101 eval <config>.yaml [flags]` | Run `docker/eval.sh` with everything after `eval` passed through. |
 | `./so101 record [pick_place_agent flags]` | Record demonstrations: runs `pick_place_agent` in the local `teleop` container with `/root/env` loaded. |
 | `./so101 rollout --policy P --lang_instruction "..." [--enable-motion]` | Run a served policy on the real arm with `real_rollout` in the `teleop` container. Shadow mode (no motion) unless `--enable-motion`. See [08 — Running a policy on the real arm](../docs/08-real-arm-rollout.md). |
+| `./so101 build [teleop\|serve\|train\|all] [--registry NAME] [--tag T] [--push]` | Build the images from this checkout. Pushing needs `--registry`; the teleop push also needs `--allow-isaac-push`. |
+| `./so101 pull [teleop\|serve\|train\|all] --registry NAME` | Pull the images and re-tag the old local names (`teleop-docker`, `policy-server`) so `eval.sh` and the configs need no edits. |
 | `./so101 tunnel --host user@box --port N` | Forward a remote server's port to this machine. |
 | `./so101 sync --host user@box --remote-root /abs/path [--path datasets/x]` | Copy `policies/`, `configs/` and `eval_sets/` (plus any `--path`) to the remote repo copy. Never deletes. |
 
@@ -28,8 +30,22 @@ A policy declares its commands in `policy.toml` (see [policies/README.md](../pol
 GR00T and MolmoAct2 policies run through the wrappers that already own their containers
 (`docker/train.py`, `docker/molmo_train.sh`); `cli/so101_cli/plan.py` maps the flags onto what those read.
 Every other policy takes the generic path: a train container runs the declared script with `SO101_POLICY`,
-`SO101_POLICY_DIR`, `SO101_DATASET`, `SO101_OUTPUT` and `SO101_BASE_MODEL` set. That path needs the
-shared train image, which arrives with the image phase; until then pass `--image` to point it at one.
+`SO101_POLICY_DIR`, `SO101_DATASET`, `SO101_OUTPUT` and `SO101_BASE_MODEL` set, plus `SO101_PYTHON` (the policy's
+training venv) and `SO101_PROJECT_DIR`, via the train image's `--env` mode. Extra packages go in the policy's
+`train/requirements.txt` and are installed without dependencies. This path is not yet validated on a GPU machine.
+
+## The three images
+
+| Image | Built from | What it is for |
+| --- | --- | --- |
+| `so101-teleop` | `docker/sim/Dockerfile` (Isaac Lab 2.3.2 + LeRobot) | Simulation, recording and the rollout client, for sim and real arms. Local to the machine with the display and the arm. |
+| `so101-serve` | `policy_servers/Dockerfile` `--target serve` | The policy server; one uv venv per policy, built on first start. |
+| `so101-train` | the same Dockerfile, `--target train` | Runs a policy's declared train commands in a separate `<policy>-train` venv. |
+
+Serve and train share every layer, so publishing both costs almost nothing extra. Policies, configs, datasets and
+models stay mounted, so adding a policy never needs a rebuild. Set `SO101_REGISTRY` (and optionally `SO101_TAG`) once
+and `serve` and `train` use the registry copies. Nothing is pushed unless you pass `--push`. The teleop image is built
+on NVIDIA's Isaac Lab image: check that its licence allows publishing derived images before using `--allow-isaac-push`.
 
 ## Training or serving on another machine
 

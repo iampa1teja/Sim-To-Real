@@ -30,7 +30,8 @@ verify = "train/verify.sh"          # optional
 Each command is a script path inside the policy folder (`.sh` runs with bash, `.py` with the
 policy's Python). The train container runs it with the repo
 mounted and these variables set: `SO101_POLICY_DIR`, `SO101_DATASET`, `SO101_OUTPUT`,
-`SO101_BASE_MODEL`. Arguments after the command name are passed to the script unchanged. A policy
+`SO101_BASE_MODEL`, `SO101_PYTHON` (the interpreter of the policy's separate training venv) and
+`SO101_PROJECT_DIR`. Packages the policy needs only for training go in `train/requirements.txt`. Arguments after the command name are passed to the script unchanged. A policy
 with no `[train]` table can only be served. The template ships stub scripts that exit with an error
 until you fill them in.
 

@@ -218,6 +218,19 @@ class ImageTest(unittest.TestCase):
             ("docker", "build", "--target", "train", "-t", "me/so101-train:v1", "-f", "policy_servers/Dockerfile", ".")])
         self.assertTrue(all(s.cwd == root for s in steps))
 
+    def test_dockerfile_stages_match_the_build_planner_and_serve_is_the_default(self):
+        import re
+
+        stages = {}
+        for dockerfile in {item[0] for item in plan.DOCKERFILES.values()}:
+            text = (ROOT / dockerfile).read_text(encoding="utf-8")
+            stages[dockerfile] = re.findall(r"^FROM\s+\S+(?:\s+AS\s+(\S+))?\s*$", text, flags=re.M | re.I)
+        for role, (dockerfile, target) in plan.DOCKERFILES.items():
+            if target:
+                self.assertIn(target, stages[dockerfile], f"{role}: no stage {target!r} in {dockerfile}")
+        self.assertEqual(stages["policy_servers/Dockerfile"][-1], "serve", "a plain docker build must give the server")
+        self.assertIn("--target serve", (ROOT / "policy_servers/build.sh").read_text(encoding="utf-8"))
+
     def test_push_needs_a_registry_and_an_explicit_isaac_confirmation(self):
         with self.assertRaisesRegex(plan.CliError, "needs --registry"):
             plan.plan_build(["serve"], ROOT, push=True)
