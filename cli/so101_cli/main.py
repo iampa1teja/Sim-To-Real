@@ -20,7 +20,7 @@ USAGE_NOTE = (
 
 
 def build_parser():
-    from .plan import DEFAULT_SERVE_IMAGE, DEFAULT_TRAIN_IMAGE, GROOT_RECIPES, TRAIN_COMMANDS
+    from .plan import GROOT_RECIPES, IMAGE_ROLES, TRAIN_COMMANDS, default_image
 
     parser = argparse.ArgumentParser(prog="so101", description=__doc__, epilog=USAGE_NOTE)
     commands = parser.add_subparsers(dest="command", required=True, metavar="command")
@@ -39,7 +39,9 @@ def build_parser():
         sub.add_argument("--output", default="", help="output folder (prepared dataset or checkpoints)")
         sub.add_argument("--base-model", default="", help="checkpoint to start from")
         sub.add_argument("--recipe", default="", choices=("",) + GROOT_RECIPES, help="GR00T training recipe (train only)")
-        sub.add_argument("--image", default=DEFAULT_TRAIN_IMAGE, help="train image for policies without a wrapper")
+        sub.add_argument("--image", default=default_image("train", os.environ),
+                         help="train image for policies without a wrapper (default so101-train:latest, or the "
+                              "SO101_REGISTRY copy)")
         sub.add_argument("--generic", action="store_true", help="skip the policy's wrapper and use the generic path")
         remote(sub)
         sub.add_argument("extra", nargs=argparse.REMAINDER, help="after --: passed to the policy's script unchanged")
@@ -51,12 +53,25 @@ def build_parser():
     serve.add_argument("--hf-home", default="")
     serve.add_argument("--port", type=int)
     serve.add_argument("--option", action="append", default=[], metavar="KEY=VALUE")
-    serve.add_argument("--image", default=DEFAULT_SERVE_IMAGE)
+    serve.add_argument("--image", default=default_image("serve", os.environ))
     serve.add_argument("--foreground", action="store_true")
     remote(serve)
 
     evaluate = commands.add_parser("eval", help="run docker/eval.sh; everything after 'eval' is passed to it")
     evaluate.add_argument("args", nargs=argparse.REMAINDER)
+
+    for name in ("build", "pull"):
+        sub = commands.add_parser(name, help=("build the images from this checkout" if name == "build" else
+                                              "pull the images from a registry and keep the old local names working"))
+        sub.add_argument("images", nargs="?", default="all", choices=(*IMAGE_ROLES, "all"))
+        sub.add_argument("--registry", default=os.environ.get("SO101_REGISTRY", ""),
+                         help="registry namespace, e.g. your Docker Hub user (default: $SO101_REGISTRY)")
+        sub.add_argument("--tag", default=os.environ.get("SO101_TAG", "latest"))
+        if name == "build":
+            sub.add_argument("--push", action="store_true", help="docker push each built image to --registry")
+            sub.add_argument("--allow-isaac-push", action="store_true",
+                             help="confirm that NVIDIA's licence allows publishing the teleop image")
+        sub.add_argument("--dry-run", action="store_true", help="print the commands without running them")
 
     for name, program, summary in (
             ("record", "pick_place_agent", "record demonstrations: runs pick_place_agent in the teleop container"),
@@ -98,6 +113,12 @@ def make_plan(args, repo, policies):
 
     if args.command == "eval":
         return plan.plan_eval(repo, args.args)
+    if args.command in ("build", "pull"):
+        roles = plan.IMAGE_ROLES if args.images == "all" else (args.images,)
+        if args.command == "pull":
+            return plan.plan_pull(roles, registry=args.registry, tag=args.tag)
+        return plan.plan_build(roles, repo, registry=args.registry, tag=args.tag, push=args.push,
+                               allow_isaac_push=args.allow_isaac_push)
     if args.command in ("record", "rollout"):
         return plan.plan_teleop(args.program, args.args)
     if args.command == "tunnel":
@@ -118,6 +139,12 @@ def make_plan(args, repo, policies):
 
 
 def execute(plan, dry_run, environ=None):
+    if isinstance(plan, list):  # build and pull are several commands; stop at the first failure
+        for step in plan:
+            code = execute(step, dry_run, environ)
+            if code:
+                return code
+        return 0
     environ = dict(os.environ if environ is None else environ)
     environ.update(plan.env)
     if plan.docker_host:
