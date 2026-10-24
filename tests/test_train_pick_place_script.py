@@ -70,7 +70,7 @@ if args and args[0] == '-':
             free=int(os.environ.get('TRAIN_TEST_DISK_FREE', str(64 * 1024**3))))
     sys.argv = args
     exec(compile(source, '<actual-launcher-preflight>', 'exec'), {{'__name__': '__main__'}})
-elif any(arg.endswith('/scripts/launch_pick_place_n17.py') for arg in args):
+elif any(arg.endswith('/policies/groot_n17/train/launch_pick_place_n17.py') for arg in args):
     print('FAKE training output; no model or GPU loaded', flush=True)
     sys.exit(int(os.environ.get('TRAIN_TEST_LAUNCH_EXIT', '0')))
 else:
@@ -318,7 +318,7 @@ sys.exit(91)
         self.assertEqual(result.returncode, 47, result.stderr)
         self.assertIn("FAKE training output", (self.out / "train.log").read_text())
         launch = next(call for call in self.calls() if any(
-            arg.endswith("/scripts/launch_pick_place_n17.py") for arg in call.get("args", [])))
+            arg.endswith("/policies/groot_n17/train/launch_pick_place_n17.py") for arg in call.get("args", [])))
         self.assertEqual(launch["offline"], "1")
         self.assertEqual(launch["transformers_offline"], "1")
         self.assertEqual(launch["albumentations_update_disabled"], "1")
@@ -338,7 +338,7 @@ sys.exit(91)
         self.assertIn("PASS: training preflight complete", result.stdout)
         self.assertFalse(self.out.exists())
         self.assertEqual(len([call for call in self.calls() if call["tool"] == "nvidia-smi"]), 2)
-        self.assertFalse(any(any(arg.endswith("/scripts/launch_pick_place_n17.py")
+        self.assertFalse(any(any(arg.endswith("/policies/groot_n17/train/launch_pick_place_n17.py")
                                  for arg in call.get("args", [])) for call in self.calls()))
 
     def test_compute_busy_gpu_never_creates_training_output(self):
@@ -351,7 +351,7 @@ sys.exit(91)
         self.assertIn("GPU 0 is busy", result.stderr)
         self.assertIn("PID 123: python", result.stderr)
         self.assertFalse(self.out.exists())
-        self.assertFalse(any(any(arg.endswith("/scripts/launch_pick_place_n17.py")
+        self.assertFalse(any(any(arg.endswith("/policies/groot_n17/train/launch_pick_place_n17.py")
                                  for arg in call.get("args", [])) for call in self.calls()))
 
     def test_missing_cosmos_cache_stops_before_gpu_output_or_download(self):
@@ -383,7 +383,7 @@ sys.exit(91)
         result = self.run_script(settings={"TRANSFORMERS_CACHE": "hf_hub"})
         self.assertEqual(result.returncode, 0, result.stderr)
         launch = next(call for call in self.calls() if any(
-            arg.endswith("/scripts/launch_pick_place_n17.py") for arg in call.get("args", [])))
+            arg.endswith("/policies/groot_n17/train/launch_pick_place_n17.py") for arg in call.get("args", [])))
         self.assertEqual(launch["transformers_cache"], str(self.hub_cache))
         self.assertEqual(launch["cwd"], str(self.groot))
 
@@ -392,7 +392,7 @@ sys.exit(91)
         result = self.run_script(settings={"TRANSFORMERS_CACHE": ""})
         self.assertEqual(result.returncode, 0, result.stderr)
         launch = next(call for call in self.calls() if any(
-            arg.endswith("/scripts/launch_pick_place_n17.py") for arg in call.get("args", [])))
+            arg.endswith("/policies/groot_n17/train/launch_pick_place_n17.py") for arg in call.get("args", [])))
         self.assertEqual(launch["transformers_cache"], str(self.root))
         self.assertEqual(launch["cwd"], str(self.groot))
 
