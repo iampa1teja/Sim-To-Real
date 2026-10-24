@@ -103,12 +103,13 @@ class GenericTrainTest(unittest.TestCase):
         self.assertEqual(result.argv, (
             "docker", "run", "--rm", "--init", "--ipc", "host", "--shm-size", "8g", "--workdir", "/workspace/repo",
             "--mount", "type=bind,source=/srv/so101,target=/workspace/repo,readonly",
+            "--mount", "type=bind,source=/srv/so101/policies,target=/policies",
             "--mount", "type=bind,source=/data/src,target=/data/dataset,readonly",
             "--mount", "type=bind,source=/data/out,target=/data/output",
             "-v", "policy-cache:/opt/cache",
             "--env", "SO101_DATASET=/data/dataset", "--env", "SO101_OUTPUT=/data/output",
-            "--env", "SO101_POLICY=demo", "--env", "SO101_POLICY_DIR=/workspace/repo/policies/demo",
-            "so101-train:latest", "--env", "demo", "--", "bash", "/workspace/repo/policies/demo/train/prepare.sh", "--x"))
+            "--env", "SO101_POLICY=demo", "--env", "SO101_POLICY_DIR=/policies/demo",
+            "so101-train:latest", "--env", "demo", "--", "bash", "/policies/demo/train/prepare.sh", "--x"))
 
     def test_python_command_uses_the_policy_interpreter_and_gpu(self):
         result = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o", base_model="/b",
@@ -116,8 +117,23 @@ class GenericTrainTest(unittest.TestCase):
         self.assertIn("--gpus", result.argv)
         self.assertEqual(result.argv[-9:], ("img:1", "--env", "demo", "--", "sh", "-c",
                                             'exec "${SO101_PYTHON:-python3}" "$@"', "so101",
-                                            "/workspace/repo/policies/demo/train/train.py"))
+                                            "/policies/demo/train/train.py"))
         self.assertIn("SO101_BASE_MODEL=/data/base_model", result.argv)
+
+    def test_generic_plan_agrees_with_the_image_about_where_policies_live(self):
+        import re
+
+        dockerfile = (ROOT / "policy_servers/Dockerfile").read_text(encoding="utf-8")
+        policies_dir = re.search(r"POLICIES_DIR=(\S+)", dockerfile).group(1)
+        result = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o", host="u@b", remote_root="/srv/so101")
+        mounts = [part.split(",") for part in result.argv if part.startswith("type=bind")]
+        policy_mount = [m for m in mounts if f"target={policies_dir}" in m]
+        self.assertEqual(len(policy_mount), 1, f"nothing mounted at {policies_dir}")
+        self.assertIn("source=/srv/so101/policies", policy_mount[0])
+        self.assertNotIn("readonly", policy_mount[0], "uv must be able to write a missing uv.lock")
+        self.assertIn(f"SO101_POLICY_DIR={policies_dir}/demo", result.argv)
+        script = result.argv[result.argv.index("--") + 2 if result.argv[result.argv.index("--") + 1] == "bash" else -1]
+        self.assertTrue(script.startswith(f"{policies_dir}/demo/train/"), script)
 
     def test_missing_command_and_relative_remote_path(self):
         with self.assertRaisesRegex(plan.CliError, "declares no 'verify'"):

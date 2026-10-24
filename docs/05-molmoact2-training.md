@@ -65,9 +65,9 @@ CUDA allocation/reservation peaks and the stage of any OOM:
 
 `/external_storage/molmoact2/lora_probe_20261024/report.json`
 
-An OOM means training must move to a larger GPU before continuing. Do not freeze
-the expert, narrow the action range, or change the cameras to make training fit.
-Return the trained model for evaluation on the local machine.
+An OOM requires a memory fix and sustained revalidation or a larger training GPU.
+Do not freeze the expert, narrow the action range, or change the cameras to make
+training fit. Return externally trained weights for evaluation locally.
 
 On 2026-10-24 the RTX 4090 probe **passed** both optimizer updates and all
 preprocessing/gradient/weight-change checks. Peak Torch allocation was
@@ -88,7 +88,8 @@ and establishes compatibility, not task performance. Its report is
 
 ## Train after sustained GPU validation
 
-The 4090 passed the short memory probe but **failed sustained validation**.
+The 4090 passed the short memory probe but **failed sustained validation with
+GPU-resident Adam states**.
 After the native-crash mitigations below, the resumed run reached microbatch
 1518 and raised a CUDA OOM: 22.83 GiB allocated by Torch and 23.38 GiB used by
 the process. It was stopped in accordance with the request to use another GPU
@@ -96,11 +97,43 @@ for training if the 24 GB card did not fit. The step-512 checkpoint is complete
 and retains model weights, all Adam states, RNG, processors and schedule.
 
 Do not treat the two-update probe as proof that the 10,000-update job fits.
-Use the alternate training GPU for this configuration, validate it over a longer
-interval, then return the resulting weights for local simulation evaluation.
+The original GPU-state configuration needs an alternate training GPU; the CPU
+optimizer-state mode below reduces memory without changing the policy recipe.
 `/external_storage/molmoact2/training_handoff_20261024.json` records the exact
-checkpoint, data paths, runtime and policy settings. No training job is active
-after the failed validation.
+checkpoint, data paths, runtime and policy settings from the failed run.
+
+### CPU optimizer-state offloading
+
+`MOLMO_OPTIMIZER_OFFLOAD=cpu` keeps Adam's FP32 first and second moments in pinned
+host RAM and stages one parameter's moments on CUDA for its update. Parameters,
+gradients, update arithmetic, learning rates, group clipping and nonfinite-step
+handling stay as configured. No state is quantized. This frees approximately
+5.40 GiB of persistent CUDA storage for this model, at the cost of PCIe transfers
+per optimizer update and the corresponding host RAM.
+
+`scripts/check_molmo_optimizer_offload.py` checks eight CUDA updates against the
+native Molmo AdamW optimizer, including two groups with different learning rates,
+weight decay, a missing gradient, a nonfinite skipped update, loading native
+Adam state and resuming serialized CPU moments. Every parameter and moment was
+exactly equal in the test. Saved optimizer states retain the standard PyTorch
+AdamW schema.
+
+The real-model CPU-offload recovery logs and status live under
+`/external_storage/molmoact2/lora_pipeline_20261024_cpu_optimizer/`. It retains
+single-threaded autograd and resumed the step-512 checkpoint. It passed the old
+OOM location at microbatch 1518 with 16.12 GiB peak Torch allocation and about
+17.7 GiB total GPU usage. It then **segfaulted at microbatch 1720**, exit 139;
+the kernel placed this fault in `libcuda.so.580.173.02` on CPU 5. There was no
+CUDA OOM in this run. The fault's underlying cause is unproven.
+
+CPU offloading therefore addresses the observed memory pressure, but sustained
+training is **not validated**. The job is stopped and the last completed
+checkpoint remains step 512. `validation_report.json`, `kernel_crashes.log` and
+the full training log preserve the evidence. No runtime manifest promotes this
+configuration to the default. If a future run passes sustained validation,
+`validated_training_runtime.json` can record the runtime and default offload mode.
+Enable offloading explicitly with `MOLMO_OPTIMIZER_OFFLOAD=cpu`; it is a memory
+option, not a demonstrated fix for the native crashes.
 
 ```bash
 ./docker/molmo_train.sh train \

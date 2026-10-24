@@ -5,6 +5,7 @@ repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 storage=${MOLMO_STORAGE:-/external_storage/molmoact2}
 runtime=${MOLMO_RUNTIME:-$storage/lerobot_lora_env}
 python_root=${MOLMO_PYTHON_ROOT:-}
+optimizer_offload=${MOLMO_OPTIMIZER_OFFLOAD:-none}
 if [[ ${1:-probe} != setup && -f $storage/validated_training_runtime.json ]]; then
     mapfile -t validated_runtime < <(python3 - "$storage/validated_training_runtime.json" <<'PY'
 import json,sys
@@ -12,10 +13,12 @@ value=json.load(open(sys.argv[1]))
 assert value['status']=='passed'
 print(value['runtime'])
 print(value['python_root'])
+print(value.get('optimizer_state_offload','none'))
 PY
     )
     runtime=${MOLMO_RUNTIME:-${validated_runtime[0]}}
     python_root=${MOLMO_PYTHON_ROOT:-${validated_runtime[1]}}
+    optimizer_offload=${MOLMO_OPTIMIZER_OFFLOAD:-${validated_runtime[2]}}
 fi
 source_dir=$storage/lerobot_lora_20261024
 revision=d3793b7e36522321c1c455f0dc4826db3793dceb
@@ -98,6 +101,7 @@ fi
 mkdir -p "$storage/runtime-cache/hf" "$storage/runtime-cache/torch" "$storage/runtime-cache/triton" "$storage/runtime-cache/inductor" "$storage/runtime-cache/kernels"
 exec docker run --rm --gpus all --ipc=host --network host --user "$(id -u):$(id -g)" --entrypoint "$runtime/bin/python" \
     "${mounts[@]}" -e PYTHONUNBUFFERED=1 -e WANDB_MODE=disabled \
+    -e MOLMO_OPTIMIZER_OFFLOAD="$optimizer_offload" \
     -e PYTHONFAULTHANDLER=1 -e TORCH_SHOW_CPP_STACKTRACES=1 \
     -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 \
     -e HF_HOME="$storage/runtime-cache/hf" -e TORCH_HOME="$storage/runtime-cache/torch" \
