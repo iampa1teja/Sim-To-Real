@@ -20,7 +20,6 @@ from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
 from isaaclab.assets import AssetBaseCfg
-from isaaclab.utils import configclass
 from isaaclab.sensors import TiledCameraCfg
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaaclab.managers import ObservationGroupCfg as ObsGroup

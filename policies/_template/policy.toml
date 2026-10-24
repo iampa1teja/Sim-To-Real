@@ -25,3 +25,16 @@ representation = "absolute_joint"   # what parse_response returns; the shared cl
 [runtime.env]
 # Environment variables exported before the server starts, e.g.:
 # HF_HUB_OFFLINE = "1"
+
+# Optional. Leave this whole table out when the policy cannot be trained here (it then serves only).
+# Each command is a script path inside this folder. The train container runs it with the repo mounted
+# and these variables set by `./so101`: SO101_POLICY_DIR, SO101_DATASET, SO101_OUTPUT, SO101_BASE_MODEL.
+# Arguments after the command name on the `./so101` line are passed to the script unchanged.
+[train]
+dataset_format = "lerobot_v2.1"   # lerobot_v2.1 or lerobot_v3: what `prepare` must hand to `train`
+extras = []                       # optional dependency groups from pyproject.toml the train container adds
+
+[train.commands]
+prepare = "train/prepare.sh"      # optional: convert the recorded dataset into what `train` reads
+train = "train/train.sh"          # required once [train] exists
+# verify = "train/verify.sh"      # optional: check the prepared dataset before spending GPU hours

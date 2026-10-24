@@ -41,7 +41,7 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 
 **`discovery.py`**
 - Imports: `dataclasses`, `pathlib`, `tomllib`, `logging`, `re`, `os`.
-- `@dataclass PolicyManifest`: `name, description, enabled, default_port, python, git, rev, cameras, language, default_horizon, representation, env, path`.
+- `@dataclass PolicyManifest`: `name, description, enabled, default_port, python, git, rev, cameras, language, default_horizon, representation, env, path, train`. `train` is `None` or a `TrainSpec` (`dataset_format`, `commands`, `extras`) read from the optional `[train]` table; see `policies/README.md`.
 - `load_manifest(policy_dir) -> PolicyManifest`: parse and validate (name equals folder name, regex, required keys, SHA length). Raise `ValueError` naming the missing key.
 - `discover(policies_dir=None) -> dict[str, PolicyManifest]`: scan `*/policy.toml`, skip `_*` and disabled, log and skip invalid ones. Default dir from `POLICIES_DIR`.
 

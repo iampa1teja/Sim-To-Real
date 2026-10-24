@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "source"))
 os.environ.setdefault("POLICIES_DIR", str(ROOT / "policies"))
 
 from sim_to_real_so101.policy_client.contract import load_client_policy  # noqa: E402
-from sim_to_real_so101.policy_client.discovery import discover  # noqa: E402
+from sim_to_real_so101.policy_client.discovery import _parse_train, discover  # noqa: E402
 
 POLICIES = discover(ROOT / "policies")
 
@@ -54,6 +54,23 @@ class ConformanceTest(unittest.TestCase):
                     )
                 self.assertIsInstance(request, dict)
                 client.reset()
+
+    def test_train_commands_exist(self):
+        for name, manifest in POLICIES.items():
+            if manifest.train is None:
+                continue
+            for command, script in manifest.train.commands.items():
+                with self.subTest(policy=name, command=command):
+                    self.assertTrue((Path(manifest.path) / script).is_file(), f"{name}: {script} is missing")
+
+    def test_template_train_block_is_valid(self):
+        import tomllib
+
+        template = ROOT / "policies" / "_template"
+        data = tomllib.loads((template / "policy.toml").read_text(encoding="utf-8"))
+        train = _parse_train(data["train"])
+        for script in train.commands.values():
+            self.assertTrue((template / script).is_file(), f"template is missing {script}")
 
 
 if __name__ == "__main__":

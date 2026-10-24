@@ -20,12 +20,11 @@ from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils import configclass
-from isaaclab.sensors import FrameTransformerCfg, OffsetCfg
+from isaaclab.sensors import FrameTransformerCfg
 
 # import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.utils import configclass
 from sim_to_real_so101.assets.so101 import SO101_CFG
 
 from sim_to_real_so101 import assets

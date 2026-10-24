@@ -97,7 +97,7 @@ def plot(motion_ranges: dict[str, list[int]], stats: dict, files, output: Path) 
     colors = plt.cm.tab10.colors
 
     # Box plots — grey, no fliers (individual points shown separately)
-    bp = ax.boxplot(
+    ax.boxplot(
         data,
         tick_labels=range(1, len(JOINTS) + 1),
         patch_artist=True,

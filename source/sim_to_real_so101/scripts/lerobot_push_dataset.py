@@ -50,7 +50,7 @@ def push_dataset_to_hub(
         print(f"[ERROR]: Failed to initialize dataset: {e}")
         return
 
-    print(f"[INFO]: Pushing dataset to HuggingFace Hub...")
+    print("[INFO]: Pushing dataset to HuggingFace Hub...")
     dataset.push_to_hub(private=private, tags=tags)
 
 
