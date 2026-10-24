@@ -1,0 +1,230 @@
+"""so101 CLI: exact commands for each subcommand, local and remote, and every refusal."""
+import io
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT / "cli"), str(ROOT / "source")]
+
+from so101_cli import main as cli  # noqa: E402
+from so101_cli import plan  # noqa: E402
+from sim_to_real_so101.policy_client.discovery import discover  # noqa: E402
+
+POLICIES = discover(ROOT / "policies")
+GENERIC_TOML = """[policy]
+name = "demo"
+default_port = 5599
+[environment]
+python = "3.12"
+[observation]
+cameras = ["room"]
+[action]
+default_horizon = 4
+[train]
+dataset_format = "lerobot_v3"
+[train.commands]
+prepare = "train/prepare.sh"
+train = "train/train.py"
+"""
+
+
+def demo_manifest():
+    from sim_to_real_so101.policy_client.discovery import load_manifest
+
+    folder = Path(tempfile.mkdtemp()) / "demo"
+    folder.mkdir()
+    (folder / "policy.toml").write_text(GENERIC_TOML, encoding="utf-8")
+    return load_manifest(folder)
+
+
+class PolicyListingTest(unittest.TestCase):
+    def test_lists_policies_with_train_commands(self):
+        text = cli.describe(POLICIES)
+        self.assertIn("groot_n17", text)
+        self.assertRegex(text, r"molmoact2\s+5556\s+prepare,train,verify\s+lerobot_v3")
+        self.assertRegex(text, r"hold_position\s+\d+\s+-\s+-")
+
+
+class WrapperTrainTest(unittest.TestCase):
+    def setUp(self):
+        self.groot, self.molmo = POLICIES["groot_n17"], POLICIES["molmoact2"]
+        self.train_py = str(ROOT / "docker" / "train.py")
+
+    def test_groot_train_maps_flags_to_environment(self):
+        result = plan.plan_train("train", self.groot, ROOT, dataset="/d", output="/o", base_model="/m", recipe="sim")
+        self.assertEqual(result.argv, ("python3", self.train_py, "sim"))
+        self.assertEqual(result.env, {"DATASET": "/d", "OUT": "/o", "BASE_MODEL": "/m"})
+        self.assertFalse(result.docker_host)
+
+    def test_groot_prepare_and_verify_use_the_scripts_flags(self):
+        prepared = plan.plan_train("prepare", self.groot, ROOT, dataset="/src", output="/out", extra=["--resume"])
+        self.assertEqual(prepared.argv, ("python3", self.train_py, "prepare", "--resume", "--source", "/src", "--output", "/out"))
+        verified = plan.plan_train("verify", self.groot, ROOT, dataset="/out", dry_run=True)
+        self.assertEqual(verified.argv, ("python3", self.train_py, "verify", "--dry_run", "--dataset", "/out"))
+        self.assertTrue(verified.runs_on_dry_run)
+
+    def test_molmo_commands(self):
+        script = str(ROOT / "docker" / "molmo_train.sh")
+        prepared = plan.plan_train("prepare", self.molmo, ROOT, dataset="/s", output="/o")
+        self.assertEqual(prepared.argv, (script, "python", "policies/molmoact2/train/prepare_molmo_lora.py",
+                                         "--source", "/s", "--output", "/o"))
+        trained = plan.plan_train("train", self.molmo, ROOT, dataset="/d", output="/o", base_model="/b")
+        self.assertEqual(trained.argv, (script, "train"))
+        self.assertEqual(trained.env, {"MOLMO_DATASET": "/d", "MOLMO_OUT": "/o", "MOLMO_BASE": "/b"})
+        probed = plan.plan_train("verify", self.molmo, ROOT, dataset="/d")
+        self.assertEqual(probed.argv, (script, "probe"))
+        self.assertFalse(probed.runs_on_dry_run)
+
+    def test_refusals(self):
+        with self.assertRaisesRegex(plan.CliError, "needs --dataset"):
+            plan.plan_train("train", self.groot, ROOT, output="/o")
+        with self.assertRaisesRegex(plan.CliError, "needs --output"):
+            plan.plan_train("prepare", self.groot, ROOT, dataset="/s")
+        with self.assertRaisesRegex(plan.CliError, "only applies to the train command"):
+            plan.plan_train("verify", self.groot, ROOT, dataset="/s", recipe="sim")
+        with self.assertRaisesRegex(plan.CliError, "not used by molmoact2"):
+            plan.plan_train("train", self.molmo, ROOT, dataset="/s", output="/o", recipe="sim")
+        with self.assertRaisesRegex(plan.CliError, "same absolute paths"):
+            plan.plan_train("train", self.groot, ROOT, dataset="/s", output="/o", host="u@b", remote_root="/r")
+        with self.assertRaisesRegex(plan.CliError, "no \\[train\\] table"):
+            plan.plan_train("train", POLICIES["hold_position"], ROOT, dataset="/s", output="/o")
+
+
+class GenericTrainTest(unittest.TestCase):
+    def test_shell_command_with_all_mounts(self):
+        manifest = demo_manifest()
+        result = plan.plan_train("prepare", manifest, ROOT, dataset="/data/src", output="/data/out", extra=["--x"],
+                                 host="gpu@box", remote_root="/srv/so101/")
+        self.assertEqual(result.docker_host, "ssh://gpu@box")
+        self.assertEqual(result.argv, (
+            "docker", "run", "--rm", "--init", "--ipc", "host", "--shm-size", "8g", "--workdir", "/workspace/repo",
+            "--mount", "type=bind,source=/srv/so101,target=/workspace/repo,readonly",
+            "--mount", "type=bind,source=/data/src,target=/data/dataset,readonly",
+            "--mount", "type=bind,source=/data/out,target=/data/output",
+            "-v", "policy-cache:/opt/cache",
+            "--env", "SO101_DATASET=/data/dataset", "--env", "SO101_OUTPUT=/data/output",
+            "--env", "SO101_POLICY=demo", "--env", "SO101_POLICY_DIR=/workspace/repo/policies/demo",
+            "so101/train:latest", "bash", "/workspace/repo/policies/demo/train/prepare.sh", "--x"))
+
+    def test_python_command_uses_the_policy_interpreter_and_gpu(self):
+        result = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o", base_model="/b",
+                                 image="img:1", generic=True)
+        self.assertIn("--gpus", result.argv)
+        self.assertEqual(result.argv[-5:], ("sh", "-c", 'exec "${SO101_PYTHON:-python3}" "$@"', "so101",
+                                            "/workspace/repo/policies/demo/train/train.py"))
+        self.assertIn("img:1", result.argv)
+        self.assertIn("SO101_BASE_MODEL=/data/base_model", result.argv)
+
+    def test_missing_command_and_relative_remote_path(self):
+        with self.assertRaisesRegex(plan.CliError, "declares no 'verify'"):
+            plan.plan_train("verify", demo_manifest(), ROOT, dataset="/d")
+        with self.assertRaisesRegex(plan.CliError, "absolute path on the remote host"):
+            plan.plan_train("prepare", demo_manifest(), ROOT, dataset="rel", output="/o", host="u@b", remote_root="/r")
+        with self.assertRaisesRegex(plan.CliError, "--host needs --remote-root"):
+            plan.plan_train("prepare", demo_manifest(), ROOT, dataset="/d", output="/o", host="u@b")
+
+
+class ServeTest(unittest.TestCase):
+    def test_local_serve_mirrors_eval_sh(self):
+        result = plan.plan_serve(POLICIES["molmoact2"], ROOT, checkpoint="molmoact2_so101", models_dir="/m",
+                                 hf_home="/hf", options=["a=1"])
+        root = str(ROOT.resolve())
+        self.assertEqual(result.argv, (
+            "docker", "run", "-d", "--rm", "--name", "so101-serve-molmoact2-5556", "--network", "host", "--gpus", "all",
+            "-v", f"{root}/policies:/policies", "-v", "policy-cache:/opt/cache",
+            "-v", f"{Path('/hf').resolve()}:/root/.cache/huggingface", "-v", f"{Path('/m').resolve()}:/workspace/models",
+            "policy-server:latest", "--policy", "molmoact2", "--checkpoint", "/workspace/models/molmoact2_so101",
+            "--port", "5556", "--option", "a=1"))
+        self.assertEqual(result.docker_host, "")
+
+    def test_remote_serve_uses_remote_paths_and_foreground(self):
+        result = plan.plan_serve(POLICIES["groot_n17"], ROOT, checkpoint="run/checkpoint-200000", models_dir="/mnt/models",
+                                 port=6000, host="gpu@box", remote_root="/srv/so101", foreground=True)
+        self.assertEqual(result.docker_host, "ssh://gpu@box")
+        self.assertNotIn("-d", result.argv)
+        self.assertIn("/srv/so101/policies:/policies", result.argv)
+        self.assertIn("/mnt/models:/workspace/models", result.argv)
+        self.assertFalse(any("huggingface" in part for part in result.argv))
+        self.assertEqual(result.argv[-6:], ("--policy", "groot_n17", "--checkpoint",
+                                            "/workspace/models/run/checkpoint-200000", "--port", "6000"))
+
+    def test_refusals(self):
+        for bad in ("../x", "/abs", ""):
+            with self.assertRaises(plan.CliError):
+                plan.plan_serve(POLICIES["groot_n17"], ROOT, checkpoint=bad)
+        with self.assertRaisesRegex(plan.CliError, "key=value"):
+            plan.plan_serve(POLICIES["groot_n17"], ROOT, checkpoint="c", options=["nokey"])
+        with self.assertRaisesRegex(plan.CliError, "absolute path on the remote host"):
+            plan.plan_serve(POLICIES["groot_n17"], ROOT, checkpoint="c", host="u@b", remote_root="/r")
+
+
+class RemoteToolsTest(unittest.TestCase):
+    def test_eval_is_delegated_unchanged(self):
+        result = plan.plan_eval(ROOT, ["pick_place.yaml", "--external_server", "--dry_run"])
+        self.assertEqual(result.argv, ("bash", str(ROOT / "docker" / "eval.sh"), "pick_place.yaml", "--external_server", "--dry_run"))
+
+    def test_tunnel(self):
+        self.assertEqual(plan.plan_tunnel("gpu@box", 5560).argv, (
+            "ssh", "-N", "-o", "ExitOnForwardFailure=yes", "-L", "5560:localhost:5560", "gpu@box"))
+
+    def test_sync_defaults_and_extra_paths(self):
+        result = plan.plan_sync(ROOT, "gpu@box", "/srv/so101/", ["datasets/pick_place_v1"])
+        self.assertEqual(result.argv, ("rsync", "-azR", "--info=progress2", "--exclude=__pycache__", "--exclude=.git",
+                                       "./datasets/pick_place_v1", "gpu@box:/srv/so101/"))
+        defaults = plan.plan_sync(ROOT, "gpu@box", "/srv/so101")
+        self.assertEqual(defaults.argv[5:8], ("./policies", "./configs", "./eval_sets"))
+        self.assertNotIn("--delete", defaults.argv)
+
+    def test_sync_refusals(self):
+        for host, root, paths in (("", "/r", []), ("h", "rel", []), ("h", "/r", ["../x"]), ("h", "/r", ["/etc"])):
+            with self.assertRaises(plan.CliError):
+                plan.plan_sync(ROOT, host, root, paths)
+
+
+class MainTest(unittest.TestCase):
+    def run_main(self, argv):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err), mock.patch.object(cli.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            code = cli.main(argv, repo=ROOT)
+        return code, out.getvalue(), err.getvalue(), run
+
+    def test_dry_run_prints_and_does_not_execute(self):
+        code, out, _, run = self.run_main(["serve", "--policy", "groot_n17", "--checkpoint", "c", "--models-dir", "/m",
+                                           "--hf-home", "/h", "--dry-run"])
+        self.assertEqual(code, 0)
+        self.assertTrue(out.startswith("+ docker run -d --rm --name so101-serve-groot_n17-5555"))
+        run.assert_not_called()
+
+    def test_wrapper_with_its_own_dry_run_is_executed(self):
+        code, out, _, run = self.run_main(["train", "--policy", "groot_n17", "--dataset", "/d", "--output", "/o",
+                                           "--dry-run", "--", "--lr", "1"])
+        self.assertEqual(code, 0)
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[-3:], ("--dry_run", "--lr", "1"))
+        self.assertEqual(run.call_args.kwargs["env"]["DATASET"], "/d")
+
+    def test_remote_sets_docker_host_in_the_child_environment(self):
+        _, out, _, run = self.run_main(["serve", "--policy", "groot_n17", "--checkpoint", "c", "--models-dir", "/m",
+                                        "--host", "u@b", "--remote-root", "/r"])
+        self.assertEqual(run.call_args.kwargs["env"]["DOCKER_HOST"], "ssh://u@b")
+        self.assertIn("DOCKER_HOST=ssh://u@b docker run", out)
+
+    def test_eval_passthrough_keeps_flags(self):
+        _, _, _, run = self.run_main(["eval", "pick_place.yaml", "--smoke-test", "--save_videos"])
+        self.assertEqual(run.call_args.args[0][2:], ("pick_place.yaml", "--smoke-test", "--save_videos"))
+
+    def test_errors_exit_2_with_a_message(self):
+        code, _, err, run = self.run_main(["train", "--policy", "nope", "--dataset", "/d", "--output", "/o"])
+        self.assertEqual(code, 2)
+        self.assertIn("unknown policy 'nope'", err)
+        self.assertIn("groot_n17", err)
+        run.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

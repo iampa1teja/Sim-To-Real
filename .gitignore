@@ -296,3 +296,6 @@ docker/env
 
 # Per-policy contract and conformance tests.
 !/tests/policies/
+
+# Platform CLI.
+!/tests/test_so101_cli.py

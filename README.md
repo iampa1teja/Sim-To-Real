@@ -108,6 +108,11 @@ later visit. Drafts are separate from `docker/env` and do not configure a runnin
 recorder. See [draft behavior and recovery](docs/01-setup.md#local-drafts) for
 reset, deletion and browser-storage details.
 
+## The so101 command
+
+`./so101` lists policies and serves, trains and evaluates any of them, locally or on a remote GPU
+machine over ssh. See [cli/README.md](cli/README.md).
+
 ## GR00T training in Docker
 
 Build the pinned N1.7 training image and verify its runtime:
