@@ -1,13 +1,13 @@
 # Official base MolmoAct2 (no fine-tuning), using the original wrist neutral frame.
 # Run with:  ./docker/eval.sh pick_place_molmo_base.yaml [--dry_run]
 #
-# Official base weights (allenai/MolmoAct2). One-time setup: ./scripts/setup_molmoact2.sh
+# Official base weights (allenai/MolmoAct2). One-time setup: ./policies/molmoact2/setup_molmoact2.sh
 
 task: pick_place
 
 policy:
   name: molmoact2
-  checkpoint: molmoact2_base          # folder written by scripts/setup_molmoact2.sh
+  checkpoint: molmoact2_base          # folder written by policies/molmoact2/setup_molmoact2.sh
   models_dir: /external_storage/molmoact2
   # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
   server_image: policy-server:latest

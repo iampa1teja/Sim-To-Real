@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run only after the memory gate and production trainer/save checks pass.
 set -euo pipefail
-repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
 cd "$repo"
 storage=${MOLMO_STORAGE:-/external_storage/molmoact2}
 run_dir=${MOLMO_PIPELINE_DIR:-$storage/lora_pipeline_20261024}
@@ -77,7 +77,7 @@ status running
 ./docker/molmo_train.sh train "${resume_args[@]}" > "$run_dir/train.log" 2>&1
 stage=export
 status running
-./docker/molmo_train.sh python scripts/export_molmo_lora.py \
+./docker/molmo_train.sh python policies/molmoact2/train/export_molmo_lora.py \
     --checkpoint "$MOLMO_OUT/checkpoints/last/pretrained_model" \
     --base "$base" --output "$export_dir" > "$run_dir/export.log" 2>&1
 stage=nine_zone_evaluation

@@ -6,7 +6,7 @@ RAM-only. This checks every decoded frame's recording health, not its semantics.
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import hashlib,json,re,subprocess,tempfile,threading,time,os,shutil
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[3]
 BASE=Path('/dev/shm')/f'molmo-video-audit-{time.time_ns()}-{os.getpid()}'
 BASE.mkdir()
 SOURCE=ROOT/'datasets/eval_results/molmoact2_so101_nodr_20261021T133545904060377.json'

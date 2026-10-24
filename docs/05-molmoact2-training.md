@@ -13,7 +13,7 @@ Run from the workshop root:
 
 ```bash
 ./docker/molmo_train.sh setup
-./docker/molmo_train.sh python scripts/prepare_molmo_lora.py \
+./docker/molmo_train.sh python policies/molmoact2/train/prepare_molmo_lora.py \
   --output /external_storage/molmoact2/pick_place_v1_lora_as_real_20261024
 ```
 
@@ -32,7 +32,7 @@ observed state and supervised actions before normalization. The standard output
 processor inverts this frame after action denormalization.
 
 The pinned LeRobot preprocessor applies its joint correction only to state.
-`scripts/molmo_lora_support.py` supplies a registered processor that also
+`policies/molmoact2/train/molmo_lora_support.py` supplies a registered processor that also
 transforms training actions. Only the workshop training entrypoint replaces the
 factory; upstream source files are unchanged. Import that module when reloading
 the saved LeRobot processor.
@@ -174,7 +174,7 @@ the same nine zone starts and root seed 1984. Then run all 150 fixed starts from
 `eval_sets/pick_place_v1_seed1984.json`, including `id,ood,yaw,train`, with one
 repeat. A nine-start smoke score must be reported separately from the benchmark.
 The current generic Molmo server loads original-HF artifacts, so a saved LeRobot
-checkpoint is exported with `scripts/export_molmo_lora.py`. That merges the VLM
+checkpoint is exported with `policies/molmoact2/train/export_molmo_lora.py`. That merges the VLM
 LoRA, checks exact equality of the action-expert tensors and that tensor keys match
 the original HF model, and carries the fresh normalization file into the export.
 The existing client then performs the same as-real joint conversion as before.
@@ -183,7 +183,7 @@ After the memory gate and production trainer/checkpoint-save smoke have passed,
 the complete sequence can run unattended:
 
 ```bash
-./scripts/run_molmo_lora_pipeline.sh \
+./policies/molmoact2/train/run_molmo_lora_pipeline.sh \
   > /external_storage/molmoact2/lora_pipeline_20261024.log 2>&1
 ```
 

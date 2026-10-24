@@ -1,12 +1,12 @@
 # Official SO-100/101 fine-tune of MolmoAct2 (allenai/MolmoAct2-SO100_101),
-# using the original wrist neutral frame. Setup: ./scripts/setup_molmoact2.sh --variant so101
+# using the original wrist neutral frame. Setup: ./policies/molmoact2/setup_molmoact2.sh --variant so101
 # Run with:  ./docker/eval.sh pick_place_molmo_so101.yaml [--dry_run]
 
 task: pick_place
 
 policy:
   name: molmoact2
-  checkpoint: molmoact2_so101         # folder written by scripts/setup_molmoact2.sh --variant so101
+  checkpoint: molmoact2_so101         # folder written by policies/molmoact2/setup_molmoact2.sh --variant so101
   models_dir: /external_storage/molmoact2
   # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
   server_image: policy-server:latest

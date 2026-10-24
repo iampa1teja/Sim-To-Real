@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time setup for configs/eval/pick_place_molmo_base.yaml. Run from anywhere on the GPU host:
-#   ./scripts/setup_molmoact2.sh [--variant base|so101] [models_dir]
+#   ./policies/molmoact2/setup_molmoact2.sh [--variant base|so101] [models_dir]
 # 1. builds the policy-server image if it is missing (./policy_servers/build.sh)
 # 2. downloads the official weights into <models_dir>/molmoact2_<variant>:
 #      base  = allenai/MolmoAct2 (foundation model, default)
@@ -9,7 +9,7 @@
 # models_dir defaults to /external_storage/molmoact2 (the YAML's policy.models_dir). Set HF_TOKEN if the
 # Hub asks for it; SKIP_ENV=1 skips step 3. Re-running resumes or skips finished steps.
 set -euo pipefail
-repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 variant=base
 if [[ ${1:-} == --variant ]]; then
     [[ $# -ge 2 ]] || { printf 'ERROR: --variant needs base or so101.\n' >&2; exit 1; }

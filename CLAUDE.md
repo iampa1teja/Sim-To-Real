@@ -96,6 +96,10 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   `action_head.model` trainable. `so_arm_n17_config.py` defines the embodiment modality config with
   `room`/`wrist` cameras and absolute joint actions.
 
+- **Platform CLI**: `./so101` (`cli/so101_cli/`) is the front door for prepare/train/verify/serve/eval and the
+  remote helpers. `plan.py` holds pure planners returning exact commands; GR00T and MolmoAct2 train through
+  the wrappers `docker/train.py` and `docker/molmo_train.sh` until the shared train image exists.
+
 ## Conventions and gotchas
 
 - N1.7 models expect camera keys `room`/`wrist`. Older N1.6 checkpoints use `front`/`wrist` and the

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Platform entry point: ./so101 <policies|prepare|train|verify|serve|eval|tunnel|sync> ...
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+exec env PYTHONPATH="$repo_dir/cli${PYTHONPATH:+:$PYTHONPATH}" python3 -m so101_cli "$@"

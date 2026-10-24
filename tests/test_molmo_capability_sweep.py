@@ -11,7 +11,7 @@ import tomllib
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('capability_sweep', ROOT/'scripts/molmo_capability_sweep.py')
+spec = importlib.util.spec_from_file_location('capability_sweep', ROOT/'policies/molmoact2/eval/molmo_capability_sweep.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
