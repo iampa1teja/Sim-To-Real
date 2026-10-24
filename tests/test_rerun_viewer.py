@@ -17,6 +17,14 @@ viewer = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(viewer)
 
 
+def test_sdk_query_surfaces_container_import_error(monkeypatch):
+    error = "ImportError: pyarrow requires NumPy 2.0 or newer, found 1.26.0"
+    monkeypatch.setattr(viewer.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(
+        returncode=1, stdout="", stderr=error))
+    with pytest.raises(RuntimeError, match="pyarrow requires NumPy 2.0"):
+        viewer.sdk_info("teleop")
+
+
 def test_viewer_cache_matches_exact_sdk_binary_and_repairs_wrong_copy(tmp_path, monkeypatch):
     payload = b"SDK 0.26.2 viewer binary fixture"
     info = {"version": "0.26.2", "binary": "/sdk/rerun_cli/rerun",

@@ -15,9 +15,11 @@ RUN $PYTHON -m pip install --no-deps -e .
 
 # Pin packages already in the base image to prevent upgrades that break
 # Isaac Lab's internal symlinks (packaging, numpy, lxml, torch, etc.)
+# PyArrow 26 requires NumPy 2; keep a version compatible with Isaac's NumPy 1.26.
 RUN printf '%s\n' \
     "packaging==23.0" \
     "numpy==1.26.0" \
+    "pyarrow==21.0.0" \
     "lxml==4.9.4" \
     "torch==2.7.0" \
     "torchvision==0.22.0" \
@@ -55,6 +57,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # rerun-sdk requires numpy>=2 in its metadata but works fine with 1.26.0
 RUN $PYTHON -m pip install --no-deps "rerun-sdk>=0.24.0,<0.27.0"
 RUN $PYTHON -m pip install "pyzmq"
+
+# Catch dependency ABI mismatches before the image reaches evaluation startup.
+RUN $PYTHON -c "import numpy as np, pyarrow as pa, datasets, rerun, rerun_cli; pa.array(np.array([0.0], dtype=np.float32))"
 
 WORKDIR /workspace/Sim-to-Real-SO-101-Workshop
 
