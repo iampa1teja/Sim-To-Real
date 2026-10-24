@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 CREPO = '/workspace/Sim-to-Real-SO-101-Workshop'
 MARKER = '[SMOKE_RESULT] '
 FAILURE_LINE = re.compile(r'\b(?:error|exception|traceback|fatal)\b|(?:^|\s)[\w.]+(?:Error|Exception):', re.I)

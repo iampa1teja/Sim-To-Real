@@ -145,7 +145,7 @@ a fresh RAM directory printed on completion:
 
 ```bash
 docker exec teleop python3 \
-  /workspace/Sim-to-Real-SO-101-Workshop/scripts/audit_molmo_baseline_videos.py
+  /workspace/Sim-to-Real-SO-101-Workshop/policies/molmoact2/eval/audit_molmo_baseline_videos.py
 ```
 
 An isolated replay of failing start `id-005` retained policy seed `1832710734`,
@@ -410,7 +410,7 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `run.gui`, `run.rerun` | false (`--gui`, `--rerun`) |
 
 Molmo's `pick_place_molmo_so101.yaml` selects the SO-100/101 fine-tuned checkpoint;
-prepare it with `./scripts/setup_molmoact2.sh --variant so101`, then evaluate with
+prepare it with `./policies/molmoact2/setup_molmoact2.sh --variant so101`, then evaluate with
 `./docker/eval.sh pick_place_molmo_so101.yaml`. SO-101 attempts allow up to 180
 simulation seconds (3 minutes); successful attempts end early. Each episode
 logs simulation elapsed time and actual wall time, with time to success reported
@@ -1050,7 +1050,7 @@ justify adding an orientation controller or changing evaluation criteria.
 Reproduce the CPU diagnostic with NumPy, SciPy, PyYAML and the USD Python bindings:
 
 ```bash
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 scripts/audit_molmo_target_reach.py
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 policies/molmoact2/eval/audit_molmo_target_reach.py
 ```
 
 Add `--check-orientation` to reproduce the optional cube-aligned pose search.
@@ -1077,7 +1077,7 @@ explanation for failure: the other starts fit the front view, and adding the
 overhead image in the completed three-camera screen did not improve placements.
 Original camera poses and benchmark starts remain unchanged.
 
-`scripts/molmo_capability_sweep.py` automates the documented comparison with
+`policies/molmoact2/eval/molmo_capability_sweep.py` automates the documented comparison with
 RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
 `--wait-pid PID` waits for an existing evaluation launcher without signalling it.
 The runner also waits for the policy port and sufficient GPU memory, freezes

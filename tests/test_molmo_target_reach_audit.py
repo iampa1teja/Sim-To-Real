@@ -8,7 +8,7 @@ import pytest
 pytest.importorskip("pxr")
 pytest.importorskip("scipy")
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("target_reach", ROOT / "scripts/audit_molmo_target_reach.py")
+spec = importlib.util.spec_from_file_location("target_reach", ROOT / "policies/molmoact2/eval/audit_molmo_target_reach.py")
 audit = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audit)
 

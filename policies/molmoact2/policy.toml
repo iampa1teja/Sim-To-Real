@@ -21,3 +21,13 @@ representation = "absolute_joint"
 HF_HUB_OFFLINE = "1"
 TRANSFORMERS_OFFLINE = "1"
 PYTHONDONTWRITEBYTECODE = "1"
+
+# LoRA fine-tuning. The training runtime adds the packages in train/requirements.txt on top of this
+# policy's environment. train/run_molmo_lora_pipeline.sh chains the three steps with export.
+[train]
+dataset_format = "lerobot_v3"
+
+[train.commands]
+prepare = "train/prepare_molmo_lora.py"
+train = "train/train_molmo_lora.py"
+verify = "train/probe_molmo_lora.py"

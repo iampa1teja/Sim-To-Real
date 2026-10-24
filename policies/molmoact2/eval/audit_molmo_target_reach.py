@@ -20,7 +20,7 @@ from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "source"))
 from sim_to_real_so101.utils.grasp_diagnostics import _tip_offsets
 from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts

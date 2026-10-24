@@ -131,7 +131,7 @@ Use the SO-100/101 fine-tuned checkpoint with the corrected wrist frame. Start
 the `teleop` container with the display mounts above, then run on the host:
 
 ```bash
-./scripts/setup_molmoact2.sh --variant so101
+./policies/molmoact2/setup_molmoact2.sh --variant so101
 ./docker/eval.sh pick_place_molmo_so101.yaml --save_videos
 ```
 

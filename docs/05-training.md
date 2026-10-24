@@ -51,7 +51,7 @@ configuration. Keep its existing checkout separate when preparing old runs.
 
 ## Prepare an independent copy
 
-[prepare_pick_place_gr00t.py](../scripts/prepare_pick_place_gr00t.py) reads a v3
+[prepare_pick_place_gr00t.py](../policies/groot_n17/train/prepare_pick_place_gr00t.py) reads a v3
 recording and creates a v2.1 training copy without the upstream converter's
 source-directory swap. It requires the two RGB features
 `observation.images.realsense_rgb` and `observation.images.wrist_cam`, six state
@@ -192,7 +192,7 @@ preparation, compatibility and the memory probe have passed:
 ```
 
 [docker/train.sh](../docker/train.sh) prints the Docker command and runs
-[train_pick_place.sh](../scripts/train_pick_place.sh) inside the image. That script
+[train_pick_place.sh](../policies/groot_n17/train/train_pick_place.sh) inside the image. That script
 prints the fine-tuning command,
 checks for a busy GPU and at least **50 GiB free** on the output filesystem,
 refuses an output with existing checkpoints unless `RESUME=1`, and logs through
@@ -337,7 +337,7 @@ only `action_head.model`, the action-head diffusion transformer, trainable.
 The backbone, visual encoder, projectors, vision-language adapters, positional
 embedding, and SO101 state/action encoders and action decoder stay frozen.
 It calls the pinned official fine-tune entry point through
-[train_dit_only.py](../scripts/train_dit_only.py); it changes no GR00T source files
+[train_dit_only.py](../policies/groot_n17/train/train_dit_only.py); it changes no GR00T source files
 and leaves the existing training scripts and data preparation unchanged.
 This checkout has no root `train.sh` or `CLAUDE.md`: the existing shell-wrapper
 style comes from `policies/groot_n17/train/train_pick_place.sh`, and the GR00T notes come from

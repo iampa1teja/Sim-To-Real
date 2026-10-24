@@ -45,7 +45,7 @@ if [[ $command == setup ]]; then
             echo /opt/cache/venvs/molmoact2/lib/python3.12/site-packages > "$runtime/lib/python3.12/site-packages/molmo_base.pth"
         fi
         uv pip install --python "$runtime/bin/python" --no-deps --index-url https://pypi.org/simple \
-            -r "$3/docker/molmo/requirements.txt"
+            -r "$3/policies/molmoact2/train/requirements.txt"
         uv pip install --python "$runtime/bin/python" --no-deps --no-build-isolation -e "$source_dir"
         uv pip freeze --python "$runtime/bin/python" > "${runtime%/*}/lora_runtime_freeze.txt"
         ' bash "$runtime" "$source_dir" "$repo"
@@ -54,7 +54,7 @@ fi
 [[ -x $runtime/bin/python ]] || { echo "Run $0 setup first" >&2; exit 1; }
 [[ $(git -C "$source_dir" rev-parse HEAD) == "$revision" ]] || { echo 'Wrong LeRobot revision' >&2; exit 1; }
 case $command in
-    probe) args=(scripts/probe_molmo_lora.py --dataset "$dataset" --checkpoint "$checkpoint"
+    probe) args=(policies/molmoact2/train/probe_molmo_lora.py --dataset "$dataset" --checkpoint "$checkpoint"
                  --report "$storage/lora_probe_20261024/report.json" "$@") ;;
     train)
         batch=${MOLMO_BATCH:-1}
@@ -65,7 +65,7 @@ case $command in
         done
         # LeRobot counts microbatches and steps its scheduler on each microbatch.
         # Express the requested optimizer-update budget and LR schedule in that clock.
-        args=(scripts/train_molmo_lora.py
+        args=(policies/molmoact2/train/train_molmo_lora.py
             --dataset.repo_id=local/pick_place_v1_lora_as_real --dataset.root="$dataset"
             --dataset.video_backend=pyav --dataset.image_transforms.enable=true
             --dataset.image_transforms.max_num_transforms=3 --dataset.image_transforms.random_order=false
