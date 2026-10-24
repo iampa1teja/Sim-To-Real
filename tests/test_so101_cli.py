@@ -108,15 +108,15 @@ class GenericTrainTest(unittest.TestCase):
             "-v", "policy-cache:/opt/cache",
             "--env", "SO101_DATASET=/data/dataset", "--env", "SO101_OUTPUT=/data/output",
             "--env", "SO101_POLICY=demo", "--env", "SO101_POLICY_DIR=/workspace/repo/policies/demo",
-            "so101/train:latest", "bash", "/workspace/repo/policies/demo/train/prepare.sh", "--x"))
+            "so101-train:latest", "--env", "demo", "--", "bash", "/workspace/repo/policies/demo/train/prepare.sh", "--x"))
 
     def test_python_command_uses_the_policy_interpreter_and_gpu(self):
         result = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o", base_model="/b",
                                  image="img:1", generic=True)
         self.assertIn("--gpus", result.argv)
-        self.assertEqual(result.argv[-5:], ("sh", "-c", 'exec "${SO101_PYTHON:-python3}" "$@"', "so101",
+        self.assertEqual(result.argv[-9:], ("img:1", "--env", "demo", "--", "sh", "-c",
+                                            'exec "${SO101_PYTHON:-python3}" "$@"', "so101",
                                             "/workspace/repo/policies/demo/train/train.py"))
-        self.assertIn("img:1", result.argv)
         self.assertIn("SO101_BASE_MODEL=/data/base_model", result.argv)
 
     def test_missing_command_and_relative_remote_path(self):
@@ -194,6 +194,63 @@ class RemoteToolsTest(unittest.TestCase):
                 plan.plan_sync(ROOT, host, root, paths)
 
 
+class ImageTest(unittest.TestCase):
+    def test_names_follow_registry_and_tag(self):
+        self.assertEqual(plan.image_name("serve"), "so101-serve:latest")
+        self.assertEqual(plan.image_name("train", "myuser", "v2"), "myuser/so101-train:v2")
+        self.assertEqual(plan.image_name("teleop", "reg.example.com/team/", "v2"), "reg.example.com/team/so101-teleop:v2")
+        for bad in (("gpu",), ("serve", "bad space"), ("serve", "", "-x"), ("serve", "", "a b")):
+            with self.assertRaises(plan.CliError):
+                plan.image_name(*bad)
+
+    def test_default_image_uses_the_registry_when_set(self):
+        self.assertEqual(plan.default_image("serve", {}), "policy-server:latest")
+        self.assertEqual(plan.default_image("train", {}), "so101-train:latest")
+        self.assertEqual(plan.default_image("serve", {"SO101_REGISTRY": "me", "SO101_TAG": "v3"}), "me/so101-serve:v3")
+
+    def test_build_all_uses_one_dockerfile_for_serve_and_train_and_keeps_legacy_names(self):
+        steps = plan.plan_build(plan.IMAGE_ROLES, ROOT, registry="me", tag="v1")
+        root = str(ROOT.resolve())
+        self.assertEqual([s.argv for s in steps], [
+            ("docker", "build", "-t", "me/so101-teleop:v1", "-t", "teleop-docker:latest", "-f", "docker/sim/Dockerfile", "."),
+            ("docker", "build", "--target", "serve", "-t", "me/so101-serve:v1", "-t", "policy-server:latest",
+             "-f", "policy_servers/Dockerfile", "."),
+            ("docker", "build", "--target", "train", "-t", "me/so101-train:v1", "-f", "policy_servers/Dockerfile", ".")])
+        self.assertTrue(all(s.cwd == root for s in steps))
+
+    def test_dockerfile_stages_match_the_build_planner_and_serve_is_the_default(self):
+        import re
+
+        stages = {}
+        for dockerfile in {item[0] for item in plan.DOCKERFILES.values()}:
+            text = (ROOT / dockerfile).read_text(encoding="utf-8")
+            stages[dockerfile] = re.findall(r"^FROM\s+\S+(?:\s+AS\s+(\S+))?\s*$", text, flags=re.M | re.I)
+        for role, (dockerfile, target) in plan.DOCKERFILES.items():
+            if target:
+                self.assertIn(target, stages[dockerfile], f"{role}: no stage {target!r} in {dockerfile}")
+        self.assertEqual(stages["policy_servers/Dockerfile"][-1], "serve", "a plain docker build must give the server")
+        self.assertIn("--target serve", (ROOT / "policy_servers/build.sh").read_text(encoding="utf-8"))
+
+    def test_push_needs_a_registry_and_an_explicit_isaac_confirmation(self):
+        with self.assertRaisesRegex(plan.CliError, "needs --registry"):
+            plan.plan_build(["serve"], ROOT, push=True)
+        with self.assertRaisesRegex(plan.CliError, "licence"):
+            plan.plan_build(["teleop"], ROOT, registry="me", push=True)
+        steps = plan.plan_build(["serve", "teleop"], ROOT, registry="me", push=True, allow_isaac_push=True)
+        self.assertEqual([s.argv[:2] + s.argv[-1:] for s in steps if s.argv[1] == "push"],
+                         [("docker", "push", "me/so101-serve:latest"), ("docker", "push", "me/so101-teleop:latest")])
+        self.assertNotIn("push", [s.argv[1] for s in plan.plan_build(["teleop"], ROOT, registry="me")])
+
+    def test_pull_retags_the_legacy_names(self):
+        steps = plan.plan_pull(plan.IMAGE_ROLES, registry="me", tag="v1")
+        self.assertEqual([s.argv for s in steps], [
+            ("docker", "pull", "me/so101-teleop:v1"), ("docker", "tag", "me/so101-teleop:v1", "teleop-docker:latest"),
+            ("docker", "pull", "me/so101-serve:v1"), ("docker", "tag", "me/so101-serve:v1", "policy-server:latest"),
+            ("docker", "pull", "me/so101-train:v1")])
+        with self.assertRaisesRegex(plan.CliError, "needs --registry"):
+            plan.plan_pull(["serve"], registry="")
+
+
 class MainTest(unittest.TestCase):
     def run_main(self, argv):
         out, err = io.StringIO(), io.StringIO()
@@ -242,6 +299,26 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         run.assert_not_called()
         self.assertIn("real_rollout --policy molmoact2 --dry-run", out)
+
+    def test_build_dry_run_prints_every_step_and_runs_nothing(self):
+        code, out, _, run = self.run_main(["build", "serve", "--registry", "me", "--push", "--dry-run"])
+        self.assertEqual(code, 0)
+        run.assert_not_called()
+        self.assertIn("+ docker build --target serve -t me/so101-serve:latest -t policy-server:latest", out)
+        self.assertIn("+ docker push me/so101-serve:latest", out)
+
+    def test_pull_runs_each_step_and_stops_on_failure(self):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err), mock.patch.object(cli.subprocess, "run") as run:
+            run.return_value.returncode = 1
+            code = cli.main(["pull", "all", "--registry", "me"], repo=ROOT)
+        self.assertEqual((code, run.call_count), (1, 1))
+
+    def test_push_without_the_isaac_flag_is_refused_before_anything_runs(self):
+        code, _, err, run = self.run_main(["build", "teleop", "--registry", "me", "--push"])
+        self.assertEqual(code, 2)
+        self.assertIn("licence", err)
+        run.assert_not_called()
 
     def test_errors_exit_2_with_a_message(self):
         code, _, err, run = self.run_main(["train", "--policy", "nope", "--dataset", "/d", "--output", "/o"])

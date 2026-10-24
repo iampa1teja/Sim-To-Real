@@ -1,0 +1,6 @@
+# Training-only packages on top of the pinned Isaac-GR00T environment, installed with --no-deps by the
+# train image's --env mode. Pins copied from docker/train/Dockerfile and docker/train/download_wheels.py.
+# UNVALIDATED here: GR00T still trains through docker/train.py until one `so101 train --generic` run succeeds.
+av==16.0.1
+bitsandbytes==0.50.2
+lerobot @ git+https://github.com/huggingface/lerobot.git@c75455a6de5c818fa1bb69fb2d92423e86c70475

@@ -17,19 +17,28 @@ training/evaluation guides. Model weights and recorded datasets remain in storag
 
 ## Execution environments (important)
 
-Code runs in three container environments, plus an optional host test environment. Check which one a command belongs to before you run it:
+Code runs in three container images (teleop, serve, train), plus two legacy GR00T ones, and an optional host test environment. Check which one a command belongs to before you run it:
 
 1. **Teleop/sim container** (`teleop-docker`, built from `docker/sim/Dockerfile`, Isaac Sim Python 3.11).
    `source/`, `outputs/`, `datasets/` and `docker/real/scripts` are bind-mounted at
    `/workspace/Sim-to-Real-SO-101-Workshop`. The entrypoint runs `pip install -e source/sim_to_real_so101`
    on every launch. Console commands such as `pick_place_agent`, `lerobot_eval` and `list_envs` only
    exist here. `setenv` is a helper sourced from `docker/utils.sh`.
-2. **Policy-server container** (`real-robot:n1.7`, built with `./docker/real/build.sh ada n17`).
-   `docker/eval.sh <config>.yaml` starts and stops it from the host.
-3. **Training container** (`so101-groot-train:n1.7`, built with `./docker/train/build.sh`).
-   `./docker/train.sh` runs preparation, verification and training against the pinned
-   GR00T checkout at `/Isaac-GR00T` inside the image. Checkpoints default to
-   `/external_storage/models`; no host GR00T checkout or virtual environment is needed.
+2. **Serve/eval container** (`so101-serve`, alias `policy-server:latest`; `--target serve` of
+   `policy_servers/Dockerfile`, built with `./so101 build serve`). One image serves any policy under `policies/`
+   in its own uv venv. `docker/eval.sh <config>.yaml` starts and stops it from the host.
+3. **Train container** (`so101-train`, `--target train` of the same Dockerfile, `./so101 build train`). Runs a
+   policy's `[train.commands]` through `entrypoint.sh --env <policy> -- <cmd>` in a separate `<policy>-train`
+   venv. Not yet validated on a GPU machine.
+
+`./so101 build [teleop|serve|train|all]` builds all three; `--registry NAME --push` publishes them (the teleop push
+also needs `--allow-isaac-push`); `./so101 pull` fetches them and keeps the old local names working.
+
+**Legacy images, still needed until `./so101 train --generic` is validated for GR00T:** `real-robot:n1.7`
+(`./docker/real/build.sh ada n17`) and `so101-groot-train:n1.7` (`./docker/train/build.sh`, used by
+`./docker/train.sh`, which runs preparation, verification and training against the pinned GR00T checkout at
+`/Isaac-GR00T`). Checkpoints default to `/external_storage/models`. MolmoAct2 trains through
+`docker/molmo_train.sh`, which uses the serve image.
 
 CPU-only tests can use an existing host Python environment with their dependencies;
 do not recreate the deleted real-arm environment just to run them.

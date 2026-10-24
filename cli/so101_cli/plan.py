@@ -5,11 +5,19 @@ Paths given with a remote host are paths on that host: Docker resolves bind moun
 """
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+import re
 
 TRAIN_COMMANDS = ("prepare", "train", "verify")
 GROOT_RECIPES = ("train", "sim", "failures", "dit")
-DEFAULT_TRAIN_IMAGE = "so101/train:latest"
+IMAGE_ROLES = ("teleop", "serve", "train")
+DEFAULT_TRAIN_IMAGE = "so101-train:latest"
 DEFAULT_SERVE_IMAGE = "policy-server:latest"
+# Names that the README, docker/eval.sh and configs/eval/*.yaml still use. build and pull keep them pointing at
+# the new images so nothing has to be edited after pulling from a registry.
+LEGACY_ALIASES = {"teleop": "teleop-docker:latest", "serve": DEFAULT_SERVE_IMAGE}
+# role -> (Dockerfile, build target). serve and train are two targets of one file and share every layer.
+DOCKERFILES = {"teleop": ("docker/sim/Dockerfile", ""), "serve": ("policy_servers/Dockerfile", "serve"),
+               "train": ("policy_servers/Dockerfile", "train")}
 SYNC_PATHS = ("policies", "configs", "eval_sets")
 CONTAINER_REPO = "/workspace/repo"
 TELEOP_CONTAINER = "teleop"
@@ -162,7 +170,57 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
         argv += ["--env", f"{name}={value}"]
     path = f"{CONTAINER_REPO}/policies/{manifest.name}/{script}"
     runner = ["bash", path] if path.endswith(".sh") else ["sh", "-c", 'exec "${SO101_PYTHON:-python3}" "$@"', "so101", path]
-    return Plan(tuple([*argv, image, *runner, *extra]), docker_host=docker_host)
+    return Plan(tuple([*argv, image, "--env", manifest.name, "--", *runner, *extra]), docker_host=docker_host)
+
+
+def image_name(role, registry="", tag="latest"):
+    if role not in IMAGE_ROLES:
+        raise CliError(f"unknown image {role!r}; use {', '.join(IMAGE_ROLES)} or all")
+    if registry and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", registry.rstrip("/")):
+        raise CliError(f"invalid registry or namespace {registry!r}")
+    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,127}", tag):
+        raise CliError(f"invalid image tag {tag!r}")
+    return f"{registry.rstrip('/') + '/' if registry else ''}so101-{role}:{tag}"
+
+
+def default_image(role, environ):
+    """The image serve/train use when --image is not given: the registry copy if SO101_REGISTRY is set."""
+    if environ.get("SO101_REGISTRY"):
+        return image_name(role, environ["SO101_REGISTRY"], environ.get("SO101_TAG", "latest"))
+    return DEFAULT_SERVE_IMAGE if role == "serve" else DEFAULT_TRAIN_IMAGE
+
+
+def plan_build(roles, repo, *, registry="", tag="latest", push=False, allow_isaac_push=False):
+    """One `docker build` per role (plus a `docker push` when asked); never builds anything itself."""
+    plans = []
+    for role in roles:
+        name = image_name(role, registry, tag)
+        if push and not registry:
+            raise CliError("--push needs --registry (or SO101_REGISTRY), for example your Docker Hub namespace")
+        if push and role == "teleop" and not allow_isaac_push:
+            raise CliError("the teleop image is built on NVIDIA's Isaac Lab image; check its licence allows "
+                           "redistributing derived images, then pass --allow-isaac-push")
+        dockerfile, target = DOCKERFILES[role]
+        tags = [name, *([LEGACY_ALIASES[role]] if role in LEGACY_ALIASES else [])]
+        argv = ["docker", "build", *(["--target", target] if target else []),
+                *[part for item in tags for part in ("-t", item)], "-f", dockerfile, "."]
+        plans.append(Plan(tuple(argv), cwd=str(Path(repo).resolve())))
+        if push:
+            plans.append(Plan(("docker", "push", name)))
+    return plans
+
+
+def plan_pull(roles, *, registry, tag="latest"):
+    """Pull the registry images and point the legacy local names at them."""
+    if not registry:
+        raise CliError("pull needs --registry (or SO101_REGISTRY)")
+    plans = []
+    for role in roles:
+        name = image_name(role, registry, tag)
+        plans.append(Plan(("docker", "pull", name)))
+        if role in LEGACY_ALIASES:
+            plans.append(Plan(("docker", "tag", name, LEGACY_ALIASES[role])))
+    return plans
 
 
 def plan_eval(repo, args):
