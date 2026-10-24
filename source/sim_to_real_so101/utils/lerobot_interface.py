@@ -78,6 +78,7 @@ class LeRobotSO101Interface:
         kind: str = "leader",
         rename_map: dict = None,
         joint_mapping: dict | None = None,
+        follower_options: dict | None = None,
     ):
 
         self.port = port
@@ -87,6 +88,7 @@ class LeRobotSO101Interface:
         self.fps = fps
         self.kind = kind
         self.rename_map = rename_map
+        self.follower_options = dict(follower_options or {})
 
         self.joint_names = [joint.split(".")[0] for joint in self.SO101_JOINT_ORDER]
         self.joint_mins = torch.tensor(
@@ -151,7 +153,7 @@ class LeRobotSO101Interface:
             return SO101LeaderConfig(port=self.port, id=self.id)
         if self.kind == "follower":
             cameras = self.make_cameras_cfg()
-            return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras)
+            return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras, **self.follower_options)
         raise ValueError(f"Unsupported SO-101 interface kind: {self.kind!r}")
 
     def init_device(self, visualize: bool = False):
@@ -626,6 +628,62 @@ class SimRemotePolicy:
         if self._timing is not None:
             self._timing.close()
 
+    def _next_raw_action(self, make_input, measured_gripper=None) -> dict:
+        """Next action as {joint name: raw LeRobot value}: queue, smoothing, grasp control and seeding.
+
+        make_input() builds the model input and is called only when the policy is actually queried, so
+        callers can defer image conversion. measured_gripper is the current raw gripper value and is
+        required when grasp control is enabled.
+        """
+        if self.grasp is not None:
+            self.grasp.measured = float(measured_gripper)
+        if self._smoothing is not None:
+            def query():
+                model_input = make_input()
+                if self._seed_per_episode:
+                    from source.sim_to_real_so101.policy_client.grasp import seed_query
+                    seed_query(self._client, self._episode_seed)
+                action_chunk = self._client.get_action(model_input)
+                self.inference_calls += 1
+                return self._decode_action_chunk(action_chunk, full_chunk=True)
+
+            action_dict = self._smoothing.get_action(query)
+        else:
+            if len(self._action_queue) == 0:
+                model_input = make_input()
+                if self._seed_per_episode:
+                    from source.sim_to_real_so101.policy_client.grasp import seed_query
+                    seed_query(self._client, self._episode_seed)
+                action_chunk = self._client.get_action(model_input)
+                self.inference_calls += 1
+                decoded = self._decode_action_chunk(action_chunk, full_chunk=self.grasp is not None)
+                if self.grasp is not None:
+                    self.grasp.observe_chunk(decoded, self.inference_calls - 1)
+                self._action_queue.extend(decoded[:self._effective_action_horizon])
+
+            action_dict = self._action_queue.popleft()
+            if self.grasp is not None:
+                keys = self._iface.SO101_JOINT_ORDER
+                raw = np.asarray([action_dict[k] for k in keys])
+                sent = self.grasp.process(raw, raw, self.inference_calls - 1)
+                action_dict = dict(zip(keys, sent))
+        return action_dict
+
+    def get_raw_action(self, state, images) -> dict:
+        """Next action for any robot that reports raw LeRobot units (the real follower).
+
+        Args:
+            state: Current joints in SO101_JOINT_ORDER, raw units (-100..100 body, 0..100 gripper).
+            images: Policy camera name -> HWC uint8 array (already renamed).
+
+        Returns:
+            {joint name: raw value}, ready for the follower's send_action.
+        """
+        state = np.asarray(state, dtype=np.float32)
+        measured = float(state[self.grasp.gripper_index]) if self.grasp is not None else None
+        return self._next_raw_action(
+            lambda: {"state": state, "images": images, "instruction": self._lang_instruction}, measured)
+
     def get_action(
         self, joint_positions: torch.Tensor, visual_obs: dict, log: bool = False
     ) -> torch.Tensor:
@@ -644,39 +702,10 @@ class SimRemotePolicy:
             Tensor of mapped joint actions in sim radians, ready
             for ``env.step()``.
         """
+        measured = None
         if self.grasp is not None:
-            measured = self._iface.get_raw_actions_from_radians(joint_positions)
-            self.grasp.measured = float(measured[self.grasp.gripper_index].item())
-        if self._smoothing is not None:
-            def query():
-                model_input = self._sim_obs_to_inputs(joint_positions, visual_obs)
-                if self._seed_per_episode:
-                    from source.sim_to_real_so101.policy_client.grasp import seed_query
-                    seed_query(self._client, self._episode_seed)
-                action_chunk = self._client.get_action(model_input)
-                self.inference_calls += 1
-                return self._decode_action_chunk(action_chunk, full_chunk=True)
-
-            action_dict = self._smoothing.get_action(query)
-        else:
-            if len(self._action_queue) == 0:
-                model_input = self._sim_obs_to_inputs(joint_positions, visual_obs)
-                if self._seed_per_episode:
-                    from source.sim_to_real_so101.policy_client.grasp import seed_query
-                    seed_query(self._client, self._episode_seed)
-                action_chunk = self._client.get_action(model_input)
-                self.inference_calls += 1
-                decoded = self._decode_action_chunk(action_chunk, full_chunk=self.grasp is not None)
-                if self.grasp is not None:
-                    self.grasp.observe_chunk(decoded, self.inference_calls - 1)
-                self._action_queue.extend(decoded[:self._effective_action_horizon])
-
-            action_dict = self._action_queue.popleft()
-            if self.grasp is not None:
-                keys = self._iface.SO101_JOINT_ORDER
-                raw = np.asarray([action_dict[k] for k in keys])
-                sent = self.grasp.process(raw, raw, self.inference_calls - 1)
-                action_dict = dict(zip(keys, sent))
+            measured = float(self._iface.get_raw_actions_from_radians(joint_positions)[self.grasp.gripper_index].item())
+        action_dict = self._next_raw_action(lambda: self._sim_obs_to_inputs(joint_positions, visual_obs), measured)
         raw_tensor = self._iface.get_raw_actions_tensor(action_dict)
         sim_action = self._iface.get_mapped_actions_vectorized(raw_tensor)
 
