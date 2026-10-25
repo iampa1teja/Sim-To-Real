@@ -105,9 +105,9 @@ class GenericTrainTest(unittest.TestCase):
             "--mount", "type=bind,source=/srv/so101,target=/workspace/repo,readonly",
             "--mount", "type=bind,source=/srv/so101/policies,target=/policies",
             "--mount", "type=bind,source=/data/src,target=/data/dataset,readonly",
-            "--mount", "type=bind,source=/data/out,target=/data/output",
+            "--mount", "type=bind,source=/data,target=/data/output",
             "-v", "policy-cache:/opt/cache",
-            "--env", "SO101_DATASET=/data/dataset", "--env", "SO101_OUTPUT=/data/output",
+            "--env", "SO101_DATASET=/data/dataset", "--env", "SO101_OUTPUT=/data/output/out",
             "--env", "SO101_POLICY=demo", "--env", "SO101_POLICY_DIR=/policies/demo",
             "so101-train:latest", "--env", "demo", "--", "bash", "/policies/demo/train/prepare.sh", "--x"))
 
@@ -115,6 +115,7 @@ class GenericTrainTest(unittest.TestCase):
         result = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o", base_model="/b",
                                  image="img:1", generic=True)
         self.assertIn("--gpus", result.argv)
+        self.assertEqual(result.argv[result.argv.index("--pid") + 1], "host")
         self.assertEqual(result.argv[-9:], ("img:1", "--env", "demo", "--", "sh", "-c",
                                             'exec "${SO101_PYTHON:-python3}" "$@"', "so101",
                                             "/policies/demo/train/train.py"))
@@ -134,6 +135,56 @@ class GenericTrainTest(unittest.TestCase):
         self.assertIn(f"SO101_POLICY_DIR={policies_dir}/demo", result.argv)
         script = result.argv[result.argv.index("--") + 2 if result.argv[result.argv.index("--") + 1] == "bash" else -1]
         self.assertTrue(script.startswith(f"{policies_dir}/demo/train/"), script)
+
+    def test_local_output_folder_is_created_before_running_but_not_on_dry_run_or_remote(self):
+        manifest = demo_manifest()
+        with tempfile.TemporaryDirectory() as folder:
+            output = str(Path(folder) / "new" / "out")
+            local = plan.plan_train("train", manifest, ROOT, dataset="/d", output=output)
+            self.assertEqual(local.make_dirs, (str(Path(output).resolve()),))
+            remote = plan.plan_train("train", manifest, ROOT, dataset="/d", output="/o", host="u@b", remote_root="/r")
+            self.assertEqual(remote.make_dirs, ())
+            with mock.patch.object(cli.subprocess, "run") as run:
+                run.return_value.returncode = 0
+                cli.execute(local, dry_run=True)
+                self.assertFalse(Path(output).exists())
+                cli.execute(local, dry_run=False)
+                self.assertTrue(Path(output).is_dir())
+
+    def test_prepare_keeps_destination_absent_for_atomic_dataset_build(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / "new" / "prepared"
+            result = plan.plan_train("prepare", demo_manifest(), ROOT, dataset="/d", output=str(output))
+            self.assertIn(f"type=bind,source={output.parent},target=/data/output", result.argv)
+            self.assertIn("SO101_OUTPUT=/data/output/prepared", result.argv)
+            with mock.patch.object(cli.subprocess, "run") as run:
+                run.return_value.returncode = 0
+                cli.execute(result, dry_run=False)
+            self.assertTrue(output.parent.is_dir())
+            self.assertFalse(output.exists(), "preparation refuses an existing destination")
+
+    def test_generic_mounts_hf_cache_readonly_for_offline_backbones(self):
+        local = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o")
+        self.assertIn(f"type=bind,source={Path.home() / '.cache/huggingface'},"
+                      "target=/root/.cache/huggingface,readonly", local.argv)
+        for command in ("prepare", "verify"):
+            data_tool = plan.plan_train(command, POLICIES["groot_n17"], ROOT, dataset="/d", output="/o", generic=True)
+            self.assertFalse(any("target=/root/.cache/huggingface" in arg for arg in data_tool.argv))
+        remote = plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o",
+                                 host="u@b", remote_root="/r", hf_home="/srv/hf")
+        self.assertIn("type=bind,source=/srv/hf,target=/root/.cache/huggingface,readonly", remote.argv)
+        with self.assertRaisesRegex(plan.CliError, "absolute path"):
+            plan.plan_train("train", demo_manifest(), ROOT, dataset="/d", output="/o",
+                            host="u@b", remote_root="/r", hf_home="relative")
+
+    def test_host_output_owner_is_forwarded_only_for_local_generic_commands(self):
+        local = plan.plan_train("prepare", demo_manifest(), ROOT, dataset="/d", output="/o",
+                                host_uid=1234, host_gid=5678)
+        self.assertIn("SO101_HOST_UID=1234", local.argv)
+        self.assertIn("SO101_HOST_GID=5678", local.argv)
+        remote = plan.plan_train("prepare", demo_manifest(), ROOT, dataset="/d", output="/o",
+                                 host="u@b", remote_root="/r", host_uid=1234, host_gid=5678)
+        self.assertFalse(any("SO101_HOST_UID=" in arg or "SO101_HOST_GID=" in arg for arg in remote.argv))
 
     def test_missing_command_and_relative_remote_path(self):
         with self.assertRaisesRegex(plan.CliError, "declares no 'verify'"):
@@ -184,7 +235,8 @@ class RemoteToolsTest(unittest.TestCase):
         self.assertEqual(result.argv, ("bash", str(ROOT / "docker" / "eval.sh"), "pick_place.yaml", "--external_server", "--dry_run"))
 
     def test_teleop_commands_exec_into_the_container_with_env_loaded(self):
-        shell = 'source /root/env 2>/dev/null; exec "$@"'
+        shell = ('source /root/env 2>/dev/null; console_script=$(command -v "$1") || exit; shift; '
+                 'exec /workspace/isaaclab/_isaac_sim/python.sh "$console_script" "$@"')
         record = plan.plan_teleop("pick_place_agent", ["--task", "T", "--repo_id", "u/d"])
         self.assertEqual(record.argv, (
             "docker", "exec", "-it", "-w", "/workspace/Sim-to-Real-SO-101-Workshop", "teleop", "bash", "-c", shell,

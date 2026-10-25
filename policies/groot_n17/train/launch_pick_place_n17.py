@@ -6,6 +6,7 @@ The official launcher still creates the model, processor, datasets and trainer.
 """
 
 import argparse
+from contextlib import contextmanager
 import importlib
 import os
 from pathlib import Path
@@ -15,6 +16,27 @@ import sys
 
 
 PIN = "51d4c89f72fda44cbf77285c6a8114b52676b8a1"
+
+
+@contextmanager
+def selected_action_statistics(config):
+    """Avoid the upstream empty relative-stats write for fully absolute actions."""
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+    original = factory.generate_rel_stats
+
+    def generate(dataset_path, embodiment_tag):
+        tag = getattr(embodiment_tag, "value", embodiment_tag)
+        modalities = config.data.modality_configs.get(tag, {})
+        actions = getattr(modalities.get("action"), "action_configs", None)
+        if actions and all(getattr(action.rep, "name", action.rep) == "ABSOLUTE" for action in actions):
+            return
+        return original(dataset_path, embodiment_tag)
+
+    factory.generate_rel_stats = generate
+    try:
+        yield
+    finally:
+        factory.generate_rel_stats = original
 
 
 def scope_dataset_modalities(config):
@@ -116,8 +138,11 @@ def main(argv=None):
         def run_selected(config):
             scope_dataset_modalities(config)
             from gr00t_offline_cosmos import offline_cosmos_processor
-            with offline_cosmos_processor(), milestone_checkpoints(args.milestone_steps, args.milestone_keep,
-                                                                           args.milestone_dir):
+            with (
+                offline_cosmos_processor(),
+                selected_action_statistics(config),
+                milestone_checkpoints(args.milestone_steps, args.milestone_keep, args.milestone_dir),
+            ):
                 return original_run(config)
 
         experiment.run = run_selected

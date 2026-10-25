@@ -31,6 +31,6 @@ PYTHONDONTWRITEBYTECODE = "1"
 dataset_format = "lerobot_v2.1"
 
 [train.commands]
-prepare = "train/prepare_pick_place_gr00t.py"
+prepare = "train/prepare.sh"
 train = "train/train_pick_place.sh"
-verify = "train/verify_pick_place_training.py"
+verify = "train/verify.sh"

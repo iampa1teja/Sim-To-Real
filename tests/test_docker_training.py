@@ -32,7 +32,7 @@ def options(command, flag):
 def test_training_preserves_host_paths_and_protects_inputs(tmp_path):
     env = fixture_env(tmp_path)
     env.update(BATCH='8', RESUME='1', PYTHONPATH='/host-only-packages', GROOT='/obsolete/checkout',
-               HF_TOKEN='must-not-be-forwarded', PYTEST_CURRENT_TEST='test-only')
+               HF_TOKEN='must-not-be-forwarded', PYTEST_CURRENT_TEST='test-only', USER='training-user')
     command, cache = training.build_command('train', ['--preflight_only'], env)
     settings = dict(item.split('=', 1) for item in options(command, '--env'))
     assert settings['GROOT'] == '/Isaac-GR00T'
@@ -42,6 +42,8 @@ def test_training_preserves_host_paths_and_protects_inputs(tmp_path):
     assert settings['DATASET'] == env['DATASET']
     assert settings['OUT'] == env['OUT']
     assert settings['BATCH'] == '8' and settings['RESUME'] == '1'
+    assert settings['USER'] == 'training-user'
+    assert settings['TORCHINDUCTOR_CACHE_DIR'] == str(cache / 'torchinductor')
     assert 'HF_TOKEN' not in settings and 'PYTEST_CURRENT_TEST' not in settings
     mounts = options(command, '--mount')
     for key in ('BASE_MODEL', 'DATASET'):
@@ -133,6 +135,8 @@ def test_container_failure_is_propagated_and_created_cache_is_user_owned(tmp_pat
     assert result.returncode == 47, result.stderr
     assert json.loads(record.read_text())[-1] == '--preflight_only'
     assert Path(env['TRAIN_CACHE']).stat().st_uid == os.getuid()
+    for name in ('torch', 'triton', 'torchinductor'):
+        assert (Path(env['TRAIN_CACHE']) / name).stat().st_uid == os.getuid()
     assert not Path(env['OUT']).exists()
 
 

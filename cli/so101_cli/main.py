@@ -38,6 +38,7 @@ def build_parser():
         sub.add_argument("--dataset", default="", help="dataset folder (source for prepare)")
         sub.add_argument("--output", default="", help="output folder (prepared dataset or checkpoints)")
         sub.add_argument("--base-model", default="", help="checkpoint to start from")
+        sub.add_argument("--hf-home", default="", help="Hugging Face cache for the generic container (mounted read-only)")
         sub.add_argument("--recipe", default="", choices=("",) + GROOT_RECIPES, help="GR00T training recipe (train only)")
         sub.add_argument("--image", default=default_image("train", os.environ),
                          help="train image for policies without a wrapper (default so101-train:latest, or the "
@@ -135,7 +136,9 @@ def make_plan(args, repo, policies):
     extra = args.extra[1:] if args.extra[:1] == ["--"] else args.extra
     return plan.plan_train(args.command, manifest, repo, dataset=args.dataset, output=args.output,
                            base_model=args.base_model, recipe=args.recipe, extra=extra, image=args.image,
-                           host=args.host, remote_root=args.remote_root, dry_run=args.dry_run, generic=args.generic)
+                           host=args.host, remote_root=args.remote_root, dry_run=args.dry_run, generic=args.generic,
+                           hf_home=args.hf_home, host_uid=os.getuid() if hasattr(os, "getuid") else None,
+                           host_gid=os.getgid() if hasattr(os, "getgid") else None)
 
 
 def execute(plan, dry_run, environ=None):
@@ -153,6 +156,8 @@ def execute(plan, dry_run, environ=None):
     print(f"+ {prefix}{shlex.join(plan.argv)}", flush=True)
     if dry_run and not plan.runs_on_dry_run:
         return 0
+    for folder in plan.make_dirs:
+        Path(folder).mkdir(parents=True, exist_ok=True)
     return subprocess.run(plan.argv, env=environ, cwd=plan.cwd or None).returncode
 
 

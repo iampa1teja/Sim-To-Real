@@ -70,6 +70,8 @@ class EntrypointTest(unittest.TestCase):
         self.bin.mkdir()
         (self.bin / "uv").write_text(FAKE_UV, encoding="utf-8", newline="\n")
         (self.bin / "python3").write_text(f"#!/usr/bin/env bash\nexec {shlex.join(PYTHON)} \"$@\"\n", encoding="utf-8", newline="\n")
+        for name in ("uv", "python3"):
+            (self.bin / name).chmod(0o755)
         demo = self.policies / "demo"
         (demo / "train").mkdir(parents=True)
         (demo / "policy.toml").write_text(MANIFEST, encoding="utf-8", newline="\n")
