@@ -14,11 +14,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GIT_LFS_SKIP_SMUDGE=1 \
     CUDA_HOME=/usr/local/cuda
 
-# python3 here is only the system interpreter used by entrypoint.sh to read policy.toml (tomllib, 3.11+).
-# Every policy gets its own interpreter from uv; this one never runs a model.
+# python3 reads policy.toml in entrypoint.sh (tomllib, 3.11+); uv selects each policy's interpreter.
+# When uv selects Ubuntu's Python 3.12, TorchCodec's native ops also need its shared library.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates cmake curl git git-lfs ninja-build \
-    python3 ffmpeg libegl1 libgl1 \
+    python3 libpython3.12t64 ffmpeg libegl1 libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned uv. Policies pin their own Python versions, so uv downloads them on demand.

@@ -111,6 +111,7 @@ def build_command(workflow, forwarded, environ):
         PYTHONPATH=GROOT, HF_HOME=str(hf_home), HF_HUB_CACHE=str(hub),
         XDG_CACHE_HOME=str(cache),
         TORCH_HOME=str(cache / 'torch'), TRITON_CACHE_DIR=str(cache / 'triton'),
+        TORCHINDUCTOR_CACHE_DIR=str(cache / 'torchinductor'), USER=env.get('USER') or 'so101',
         EXTRA_DATASETS=':'.join(map(str, extras)),
     )
     command = ['docker', 'run', '--rm', '--init', '--network', 'none', '--shm-size', '8g',
@@ -162,6 +163,8 @@ def main(argv=None):
     if result.returncode:
         parser.exit(1, f'Missing training image {image}; run ./docker/train/build.sh first.\n')
     cache.mkdir(parents=True, exist_ok=True)
+    for name in ('torch', 'triton', 'torchinductor'):
+        (cache / name).mkdir(exist_ok=True)
     os.execvp(command[0], command)
 
 

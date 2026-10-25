@@ -302,3 +302,5 @@ docker/env
 !/tests/test_real_rollout.py
 !/tests/test_real_rollout_script.py
 !/tests/test_entrypoint_env.py
+!/tests/test_train_image_runtime.py
+!/tests/test_n17_absolute_stats.py

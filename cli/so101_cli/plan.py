@@ -35,6 +35,7 @@ class Plan:
     env: dict = field(default_factory=dict)  # overlay on the caller's environment
     docker_host: str = ""                    # ssh://user@box when Docker must run on a remote machine
     cwd: str = ""
+    make_dirs: tuple = ()                    # local folders to create before running (a bind mount needs its source)
     runs_on_dry_run: bool = False            # the wrapped tool has its own dry run: run it, do not just print
 
 
@@ -136,7 +137,8 @@ ADAPTERS = {"groot_n17": _groot, "molmoact2": _molmo}
 
 
 def plan_train(command, manifest, repo, *, dataset="", output="", base_model="", recipe="", extra=(),
-               image=DEFAULT_TRAIN_IMAGE, host="", remote_root="", dry_run=False, generic=False):
+               image=DEFAULT_TRAIN_IMAGE, host="", remote_root="", dry_run=False, generic=False, hf_home="",
+               host_uid=None, host_gid=None):
     """Plan prepare / train / verify for one policy from its [train] table."""
     if manifest.train is None:
         raise CliError(f"policy {manifest.name!r} has no [train] table in its policy.toml")
@@ -155,25 +157,46 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
         raise CliError("--recipe is only used by the GR00T wrapper")
     root = remote_root.rstrip("/") if remote else str(Path(repo).resolve())
     env = {"SO101_POLICY": manifest.name, "SO101_POLICY_DIR": f"{CONTAINER_POLICIES}/{manifest.name}"}
+    if not remote and host_uid is not None and host_gid is not None:
+        env.update(SO101_HOST_UID=str(host_uid), SO101_HOST_GID=str(host_gid))
     argv = ["docker", "run", "--rm", "--init", "--ipc", "host", "--shm-size", "8g", "--workdir", CONTAINER_REPO]
     if command == "train":
-        argv += ["--gpus", "all"]
+        # NVML reports host PIDs; the busy-GPU guard needs their names to recognize Xorg.
+        argv += ["--gpus", "all", "--pid", "host"]
     argv += bind(root, CONTAINER_REPO, readonly=True)
     # Writable like serve's mount: uv writes a missing uv.lock into the policy folder.
     argv += bind(f"{root}/policies", CONTAINER_POLICIES)
+    make_dirs = ()
     for flag, value, target, writable, variable in (
             ("--dataset", dataset, "/data/dataset", False, "SO101_DATASET"),
             ("--output", output, "/data/output", True, "SO101_OUTPUT"),
             ("--base-model", base_model, "/data/base_model", False, "SO101_BASE_MODEL")):
         if value:
-            argv += bind(host_path(value, remote, flag), target, readonly=not writable)
-            env[variable] = target
+            source = host_path(value, remote, flag)
+            destination = target
+            if flag == "--output":
+                if command == "prepare":
+                    # Preparation atomically renames a sibling staging directory into a new destination.
+                    output_path = PurePosixPath(source) if remote else Path(source)
+                    if not output_path.name:
+                        raise CliError("prepare --output must name a new directory")
+                    source = str(output_path.parent)
+                    destination = f"{target}/{output_path.name}"
+                if not remote:
+                    make_dirs = (source,)
+            argv += bind(source, target, readonly=not writable)
+            env[variable] = destination
     argv += ["-v", "policy-cache:/opt/cache"]
+    if command == "train" and not remote and not hf_home:
+        hf_home = str(Path.home() / ".cache" / "huggingface")
+    if hf_home:
+        argv += bind(host_path(hf_home, remote, "--hf-home"), "/root/.cache/huggingface", readonly=True)
     for name, value in sorted(env.items()):
         argv += ["--env", f"{name}={value}"]
     path = f"{CONTAINER_POLICIES}/{manifest.name}/{script}"
     runner = ["bash", path] if path.endswith(".sh") else ["sh", "-c", 'exec "${SO101_PYTHON:-python3}" "$@"', "so101", path]
-    return Plan(tuple([*argv, image, "--env", manifest.name, "--", *runner, *extra]), docker_host=docker_host)
+    return Plan(tuple([*argv, image, "--env", manifest.name, "--", *runner, *extra]), docker_host=docker_host,
+                make_dirs=make_dirs)
 
 
 def image_name(role, registry="", tag="latest"):
@@ -237,7 +260,8 @@ def plan_teleop(program, args, container=TELEOP_CONTAINER):
     Always local: the simulator display and a real arm's USB device live on the machine running the container.
     """
     return Plan(("docker", "exec", "-it", "-w", TELEOP_REPO, container, "bash", "-c",
-                 'source /root/env 2>/dev/null; exec "$@"', "so101", program, *args))
+                 'source /root/env 2>/dev/null; console_script=$(command -v "$1") || exit; shift; '
+                 'exec /workspace/isaaclab/_isaac_sim/python.sh "$console_script" "$@"', "so101", program, *args))
 
 
 def plan_tunnel(host, port):
