@@ -454,7 +454,7 @@ a hand-off, not part of training. The 200-start set on current main is
 hash `779f5e18b147939309efb5638560c963f6d6aa5ca1d6271e1c186714ed576e14`.
 The older `pick_place_v1_seed1984.json` has only 150 starts.
 `eval_sets/pick_place_v1_75ep_reach150_seed1984.json` (75 train + 40 ID, 20 OOD, 15 yaw),
-hash `57d329bd627d64dc1b66f7122db49be7c75dea6c49af2115e3825ab6d435b3d6`, keeps every
+hash `233254427402237a00ade1db7c182e79fca1dc7054b42de78b637f040342fa4b`, keeps every
 training start and only generates new starts between the closest and farthest recorded
 pick from the base (0.125 to 0.436 m); the older sets contain starts nearer the base than
 any demonstration reached. Its results are not comparable with the older sets. Keep the same
