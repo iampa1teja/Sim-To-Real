@@ -452,7 +452,12 @@ Evaluation needs the GPU; run this **after training stops**. These commands are
 a hand-off, not part of training. The 200-start set on current main is
 `eval_sets/pick_place_v1_75ep_seed1984.json` (75 ID, 25 OOD, 25 yaw, 75 train),
 hash `779f5e18b147939309efb5638560c963f6d6aa5ca1d6271e1c186714ed576e14`.
-The older `pick_place_v1_seed1984.json` has only 150 starts. Keep the same
+The older `pick_place_v1_seed1984.json` has only 150 starts.
+`eval_sets/pick_place_v1_75ep_reach150_seed1984.json` (75 train + 40 ID, 20 OOD, 15 yaw),
+hash `57d329bd627d64dc1b66f7122db49be7c75dea6c49af2115e3825ab6d435b3d6`, keeps every
+training start and only generates new starts between the closest and farthest recorded
+pick from the base (0.125 to 0.436 m); the older sets contain starts nearer the base than
+any demonstration reached. Its results are not comparable with the older sets. Keep the same
 30-second timeout, action horizon 8, recorded arm start and benchmark for all
 five checkpoints; do not regenerate the start set between models.
 

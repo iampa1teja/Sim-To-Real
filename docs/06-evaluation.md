@@ -1544,6 +1544,11 @@ PYTHONPATH=source python3 -m sim_to_real_so101.scripts.make_eval_set \
   --ood_margin_m 0.02 0.05 --yaw_mode matched
 ```
 
+Add `--reach_envelope` to keep every ID/OOD start between the closest and farthest recorded
+pick from the base; the radii are stored as `parameters.reach_radius_m`. Without the flag the
+output is unchanged. A set made with it has a different hash, so compare checkpoints only
+within one set.
+
 After reinstalling the package, `make_pick_place_eval_set` is the equivalent
 console command. It uses `eval_sets/pick_place_scene.json` by default;
 `--scene_json` selects another live capture. To intentionally capture a changed

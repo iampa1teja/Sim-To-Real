@@ -37,6 +37,24 @@ def fixture(root):
 
 
 class GenerationTests(unittest.TestCase):
+    def test_reach_envelope_keeps_starts_inside_the_recorded_radial_band(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            xy, _, scene = fixture(root)
+            radii = np.linalg.norm(xy, axis=1)
+            kwargs = dict(seed=3, n_id=4, n_yaw=3, n_ood=2)
+            plain = b.generate_eval_set(root, scene, **kwargs)
+            self.assertNotIn('reach_radius_m', plain['parameters'])
+            self.assertTrue(any(not radii.min() <= math.hypot(s['x'], s['y']) <= radii.max()
+                                for s in plain['starts'] if s['split'] != 'train'), 'the rule must be what removes these')
+            fenced = b.generate_eval_set(root, scene, reach_envelope=True, **kwargs)
+            self.assertEqual(fenced['parameters']['reach_radius_m'], [radii.min(), radii.max()])
+            for start in fenced['starts']:
+                if start['split'] != 'train':
+                    self.assertTrue(radii.min() <= math.hypot(start['x'], start['y']) <= radii.max(), start['id'])
+            self.assertEqual(sum(s['split'] == 'train' for s in fenced['starts']), len(xy))
+            self.assertEqual(plain['starts'], b.generate_eval_set(root, scene, reach_envelope=False, **kwargs)['starts'])
+
     def test_geometry_and_determinism(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

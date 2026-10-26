@@ -128,7 +128,7 @@ def eval_set_digest(data):
 
 
 def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
-                      min_dist_m=.02, ood_margin_m=(.02, .05), yaw_mode='matched', git_commit='unknown'):
+                      min_dist_m=.02, ood_margin_m=(.02, .05), yaw_mode='matched', reach_envelope=False, git_commit='unknown'):
     if any(type(n) is not int or n < 0 for n in (n_id, n_ood, n_yaw)) or n_yaw > n_id:
         raise ValueError('Counts must be nonnegative integers, with n_yaw <= n_id')
     if (not math.isfinite(min_dist_m) or min_dist_m < 0 or len(ood_margin_m) != 2
@@ -139,6 +139,9 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
     recorded = RecordedStarts(Path(dataset)/'pick_place_meta', robot_states_root=dataset)
     xy = np.array([p[:2] for p, _ in recorded.starts])
     polygon = hull(xy)
+    # Opt-in: keep id/ood starts inside the radial band of the recorded picks, so none is closer to the base or
+    # farther out than an arm demonstrably reached (the original sampler only checks box, table and hull).
+    reach = (float(np.linalg.norm(xy, axis=1).min()), float(np.linalg.norm(xy, axis=1).max())) if reach_envelope else None
     bearings = np.arctan2(xy[:, 1], xy[:, 0])
     # Pan coverage means the polar sweep of the recorded cube starts. Resting
     # first-frame arm states are used for resetting, not inverse kinematics.
@@ -170,6 +173,8 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
                 estimated_pan = (np.arctan2(p[1], p[0])-pan_offset+np.pi) % (2*np.pi)-np.pi
                 if inside or not ood_margin_m[0] <= distance <= ood_margin_m[1] or not pan_limits[0] <= estimated_pan <= pan_limits[1]:
                     continue
+            if reach and not reach[0] <= np.linalg.norm(p) <= reach[1]:
+                continue
             if np.linalg.norm(xy-p, axis=1).min() < min_dist_m:
                 continue
             yaw, _, source = sample_yaw(p, xy, relative_yaws, yaw_mode, rng)
@@ -192,10 +197,12 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
                 dataset_path=str(Path(dataset).resolve()), seed=seed, git_commit=git_commit,
                 created_at=datetime.now(timezone.utc).isoformat(), scene=scene,
                 parameters=dict(seed=seed, n_id=n_id, n_ood=n_ood, n_yaw=n_yaw, min_dist_m=min_dist_m,
-                                ood_margin_m=list(ood_margin_m), yaw_mode=yaw_mode, require_table_support=True),
+                                ood_margin_m=list(ood_margin_m), yaw_mode=yaw_mode, require_table_support=True,
+                                **({'reach_radius_m': list(reach)} if reach else {})),
                 training_region=dict(hull_xy=polygon.tolist(), low=recorded.low.tolist(), high=recorded.high.tolist(),
                                      pan_limits_rad=pan_limits, pan_centre_rad=pan_offset,
                                      pan_rule='cube-start azimuth relative to circular centre, expanded by 10 degrees',
+                                     **({'reach_rule': 'id/ood starts lie between the closest and farthest recorded pick from the base'} if reach else {}),
                                      rel_yaw_distribution=dict(mean=float(relative_yaws.mean()), std=float(relative_yaws.std()),
                                                                min=float(relative_yaws.min()), max=float(relative_yaws.max())),
                                      yaw_rule='matched: bearing plus nearest recorded relative yaw; radial: bearing; random: uniform [0, pi/2)' ), starts=starts)
