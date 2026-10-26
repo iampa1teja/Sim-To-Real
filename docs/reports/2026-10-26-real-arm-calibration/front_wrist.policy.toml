@@ -1,0 +1,33 @@
+[policy]
+name = "molmoact2"
+description = "Official MolmoAct2 checkpoints, including the SO-100/101 fine-tune, with calibrated joint-frame conversion."
+enabled = true
+default_port = 5556
+
+# Versions follow github.com/allenai/molmoact2 pyproject.toml (Python 3.11-3.12, torch 2.11.0 cu128,
+# transformers >=4.57,<4.58). The lockfile lives in this folder.
+[environment]
+python = "3.12"
+
+[observation]
+cameras = ["front", "wrist"]
+language = true
+
+[action]
+default_horizon = 30
+representation = "absolute_joint"
+
+[runtime.env]
+HF_HUB_OFFLINE = "1"
+TRANSFORMERS_OFFLINE = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+
+# LoRA fine-tuning. The training runtime adds the packages in train/requirements.txt on top of this
+# policy's environment. train/run_molmo_lora_pipeline.sh chains the three steps with export.
+[train]
+dataset_format = "lerobot_v3"
+
+[train.commands]
+prepare = "train/prepare_molmo_lora.py"
+train = "train/train_molmo_lora.py"
+verify = "train/probe_molmo_lora.py"

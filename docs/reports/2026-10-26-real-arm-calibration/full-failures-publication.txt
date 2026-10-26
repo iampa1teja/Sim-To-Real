@@ -1,0 +1,103 @@
+ERROR tests/policies/test_hold_position_e2e.py
+ERROR tests/policy_servers/test_launcher.py
+ERROR tests/test_audit_grasps.py
+ERROR tests/test_demo_alignment.py
+ERROR tests/test_dr_variants.py
+ERROR tests/test_pick_place_benchmark.py
+ERROR tests/test_replay_math.py
+ERROR tests/test_replay_scene.py
+ERROR tests/test_replay_source.py
+ERROR tests/test_rerecording.py
+ERROR tests/test_resets_dr.py
+ERROR tests/test_robot_start.py
+ERROR tests/test_summarize_sweep.py
+ERROR tests/test_train_dit_only.py
+FAILED tests/test_eval_script.py::test_action_repeat_reaches_the_evaluator
+FAILED tests/test_eval_script.py::test_action_repeat_requires_positive_integer_before_launch[0]
+FAILED tests/test_eval_script.py::test_action_repeat_requires_positive_integer_before_launch[-1]
+FAILED tests/test_eval_script.py::test_action_repeat_requires_positive_integer_before_launch[1.5]
+FAILED tests/test_eval_script.py::test_action_repeat_requires_positive_integer_before_launch[true]
+FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval
+FAILED tests/test_eval_script.py::test_defaults_start_the_policy_server_and_the_evaluator
+FAILED tests/test_eval_script.py::test_dependency_is_checked_without_installing_each_run
+FAILED tests/test_eval_script.py::test_disabling_overhead_camera_restores_the_original_room_policy_input
+FAILED tests/test_eval_script.py::test_eval_set_grasp_dr_and_rerun_flags
+FAILED tests/test_eval_script.py::test_existing_rerun_endpoint_does_not_spawn_owned_viewer
+FAILED tests/test_eval_script.py::test_external_server_skips_docker_run
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[eval:\n  dataset: /d\n-policy.checkpoint is required]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\n  bogus: 1\neval:\n  dataset: /d\n-Unknown key]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\n-eval.dataset is required]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  action_horizon: 17\n-1..16]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  episode_length_s: -1\n-finite and positive]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  episodes: 0\n-eval.episodes]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  eval_set: /e.json\n  splits: [nope]\n-Invalid eval.splits]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  lang_by_color:\n    red: x\n-lang_by_color]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  random_fraction: 2\n-random_fraction]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/../b\neval:\n  dataset: /d\n-relative path]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  repeats: 2\n-require eval.eval_set]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  robot_usd: relative.usd\n-eval.robot_usd]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  robot_usd: true\n-eval.robot_usd]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  start_mode: sideways\n-start_mode]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\neval:\n  dataset: relative\n-absolute path]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: a/b\n  port: 70000\neval:\n  dataset: /d\n-policy.port]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  checkpoint: /abs/ckpt\neval:\n  dataset: /d\n-relative path]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[policy:\n  name: no_such_policy\n  checkpoint: a/b\neval:\n  dataset: /d\n-no_such_policy]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[surprise: 1\n-Unknown top-level key]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[task: nope\n-task must be]
+FAILED tests/test_eval_script.py::test_invalid_configs_are_rejected[task: pick_place_dr\npolicy:\n  checkpoint: a/b\neval:\n  dataset: /d\n  lang_by_color:\n    blue: x\n-lang_by_color]
+FAILED tests/test_eval_script.py::test_invalid_smoke_protocol_is_rejected[reach_timeout_s: 0\n  progress_timeout_s: 30]
+FAILED tests/test_eval_script.py::test_invalid_smoke_protocol_is_rejected[reach_timeout_s: 60]
+FAILED tests/test_eval_script.py::test_invalid_smoke_protocol_is_rejected[reach_timeout_s: .nan\n  progress_timeout_s: 30]
+FAILED tests/test_eval_script.py::test_invalid_smoke_protocol_is_rejected[reach_timeout_s: true\n  progress_timeout_s: 30]
+FAILED tests/test_eval_script.py::test_invalid_smoke_protocol_is_rejected[selection: unknown]
+FAILED tests/test_eval_script.py::test_molmo_config_selects_original_wrist_asset[pick_place_molmo_base.yaml-molmoact2_base]
+FAILED tests/test_eval_script.py::test_molmo_config_selects_original_wrist_asset[pick_place_molmo_so101.yaml-molmoact2_so101]
+FAILED tests/test_eval_script.py::test_molmo_horizon_above_chunk_length_is_rejected_before_launch
+FAILED tests/test_eval_script.py::test_molmo_horizon_uses_full_chunk_default_and_accepts_boundaries[1]
+FAILED tests/test_eval_script.py::test_molmo_horizon_uses_full_chunk_default_and_accepts_boundaries[30]
+FAILED tests/test_eval_script.py::test_molmo_horizon_uses_full_chunk_default_and_accepts_boundaries[None]
+FAILED tests/test_eval_script.py::test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view[False-False-False]
+FAILED tests/test_eval_script.py::test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view[False-True-True]
+FAILED tests/test_eval_script.py::test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view[None-False-False]
+FAILED tests/test_eval_script.py::test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view[True-False-True]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_non_boolean_yaml_values[0]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_non_boolean_yaml_values[1]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_non_boolean_yaml_values[null]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_non_boolean_yaml_values["true"]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_other_policies_before_launch[False]
+FAILED tests/test_eval_script.py::test_overhead_camera_rejects_other_policies_before_launch[True]
+FAILED tests/test_eval_script.py::test_policy_options_reach_server_and_client
+FAILED tests/test_eval_script.py::test_real_launcher_keeps_full_log_and_result_without_verbose_dump[0]
+FAILED tests/test_eval_script.py::test_real_launcher_keeps_full_log_and_result_without_verbose_dump[7]
+FAILED tests/test_eval_script.py::test_repeated_interrupt_cannot_abort_owned_container_cleanup[15]
+FAILED tests/test_eval_script.py::test_repeated_interrupt_cannot_abort_owned_container_cleanup[2]
+FAILED tests/test_eval_script.py::test_rerun_starts_matched_native_viewer_before_loading_policy
+FAILED tests/test_eval_script.py::test_resume_requires_fixed_benchmark_and_absolute_explicit_path
+FAILED tests/test_eval_script.py::test_resume_selects_latest_matching_or_explicit_report_and_preserves_video_flag
+FAILED tests/test_eval_script.py::test_save_videos_cli_and_yaml_options_reach_evaluator
+FAILED tests/test_eval_script.py::test_server_only_never_runs_the_evaluator
+FAILED tests/test_eval_script.py::test_shipped_pick_place_config_is_valid
+FAILED tests/test_eval_script.py::test_smoke_lifecycle_creates_no_output_files_even_on_failure_or_interrupt[failure-True]
+FAILED tests/test_eval_script.py::test_smoke_lifecycle_creates_no_output_files_even_on_failure_or_interrupt[interrupt-False]
+FAILED tests/test_eval_script.py::test_smoke_lifecycle_creates_no_output_files_even_on_failure_or_interrupt[success-False]
+FAILED tests/test_eval_script.py::test_smoke_test_forces_five_rerun_episodes_and_overrides_saved_outputs
+FAILED tests/test_eval_script.py::test_video_directory_requires_absolute_container_path[123]
+FAILED tests/test_eval_script.py::test_video_directory_requires_absolute_container_path[relative/videos]
+FAILED tests/test_eval_script.py::test_video_directory_requires_absolute_container_path[true]
+FAILED tests/test_eval_script.py::test_video_encoder_reaches_evaluator_without_changing_resume_identity[h264_nvenc]
+FAILED tests/test_eval_script.py::test_video_encoder_reaches_evaluator_without_changing_resume_identity[libx264]
+FAILED tests/test_eval_script.py::test_video_encoder_rejects_unsupported_values_before_launch[42]
+FAILED tests/test_eval_script.py::test_video_encoder_rejects_unsupported_values_before_launch[null]
+FAILED tests/test_eval_script.py::test_video_encoder_rejects_unsupported_values_before_launch[true]
+FAILED tests/test_eval_script.py::test_video_encoder_rejects_unsupported_values_before_launch[unknown]
+FAILED tests/test_eval_script.py::test_video_save_option_requires_yaml_boolean[1]
+FAILED tests/test_eval_script.py::test_video_save_option_requires_yaml_boolean[null]
+FAILED tests/test_eval_script.py::test_video_save_option_requires_yaml_boolean["yes"]
+FAILED tests/test_eval_script.py::test_zone_smoke_config_forwards_deadlines_without_saved_outputs
+FAILED tests/test_grasp.py::test_latch_sweep_summary_pairs_schedule_and_reports_metrics
+FAILED tests/test_grasp.py::test_runner_forwards_grasp_controls_and_seeded_server_without_eval_set
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored
+FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone
+FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start

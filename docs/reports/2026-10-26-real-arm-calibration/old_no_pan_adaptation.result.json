@@ -1,0 +1,15 @@
+{
+  "id": "old_no_pan_adaptation",
+  "label": "Old USD, omit experimental pan adaptation",
+  "config": "/tmp/so101-mapping-smoke/trials/old_no_pan_adaptation.yaml",
+  "expected_wrist_offset": 0,
+  "config_sha256": "f3a014ef84e153b2408e2e0cae293781c958ca3c2e8f8a2d2ea4e43081437c73",
+  "started": "2026-10-26T07:41:22.176886+00:00",
+  "log": "/tmp/so101-mapping-smoke/trials/old_no_pan_adaptation.log",
+  "validated": false,
+  "status": "failed_validation",
+  "host_pid": 38120,
+  "exit_code": 1,
+  "finished": "2026-10-26T07:41:36.738151+00:00",
+  "error": "evaluator exited 1"
+}

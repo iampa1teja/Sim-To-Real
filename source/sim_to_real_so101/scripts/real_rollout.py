@@ -30,7 +30,7 @@ def build_parser():
     parser.add_argument("--policy_option", action="append", default=[], metavar="KEY=VALUE")
     parser.add_argument("--checkpoint", default="", help="label stored in the report; the server decides what is loaded")
     parser.add_argument("--lang_instruction", required=True)
-    parser.add_argument("--action_horizon", type=int, default=8)
+    parser.add_argument("--action_horizon", type=int, default=30)
     parser.add_argument("--episodes", type=int, default=1)
     parser.add_argument("--episode_seconds", type=float, default=30.0)
     parser.add_argument("--enable-motion", dest="enable_motion", action="store_true",
@@ -43,6 +43,9 @@ def build_parser():
                         help="disable torque on exit; the arm will drop")
     parser.add_argument("--follower_port", default=env("ROBOT_PORT"))
     parser.add_argument("--follower_id", default=env("ROBOT_ID"))
+    parser.add_argument("--calibration_file", help="follower mapping JSON (default: "
+                        "$HF_LEROBOT_CALIBRATION/robots/so101_follower/<follower_id>.json, "
+                        "or ~/.cache/huggingface/lerobot/calibration/robots/so101_follower/<follower_id>.json)")
     parser.add_argument("--camera_gripper", default=env("CAMERA_GRIPPER"))
     parser.add_argument("--camera_external", default=env("CAMERA_EXTERNAL"))
     parser.add_argument("--camera_width", type=int, default=int(env("CAMERA_WIDTH", "640")))
@@ -62,6 +65,15 @@ def validate(args):
         errors.append("set ROBOT_PORT or pass --follower_port")
     if not args.follower_id:
         errors.append("set ROBOT_ID or pass --follower_id")
+    if args.calibration_file is None:
+        calibration_root = Path(os.environ.get("HF_LEROBOT_CALIBRATION", "~/.cache/huggingface/lerobot/calibration"))
+        args.calibration_file = calibration_root.expanduser() / "robots" / "so101_follower" / f"{args.follower_id}.json"
+    else:
+        args.calibration_file = Path(args.calibration_file).expanduser()
+    try:
+        args.joint_mapping = rr.follower_mapping_from_calibration(args.calibration_file)
+    except ValueError as error:
+        errors.append(str(error))
     if not (args.camera_gripper or args.camera_external):
         errors.append("set CAMERA_GRIPPER and/or CAMERA_EXTERNAL, or pass --camera_gripper / --camera_external")
     if args.episodes < 1 or args.episode_seconds <= 0 or args.fps < 1:
@@ -97,7 +109,7 @@ def make_interface(args):
 
     return LeRobotSO101Interface(
         device="cpu", port=args.follower_port, id=args.follower_id, cameras=camera_specs(args), fps=args.fps,
-        kind="follower", rename_map=json.loads(args.rename_map),
+        kind="follower", rename_map=json.loads(args.rename_map), joint_mapping=args.joint_mapping,
         follower_options={"max_relative_target": args.max_relative_target,
                           "disable_torque_on_disconnect": args.release_on_exit})
 

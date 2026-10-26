@@ -5,7 +5,15 @@
 `real_rollout` runs a served policy on the physical SO-101 follower with the same client the simulator uses
 (`SimRemotePolicy`): one action queue, smoothing, grasp controller and plugin client, with the real arm
 supplying raw LeRobot units (-100..100 for the body joints, 0..100 for the gripper) instead of radians.
-It runs in the teleop container and starts no simulator.
+It runs in the teleop container and starts no simulator. The action horizon defaults to 30 targets per query;
+pass `--action_horizon` to override it.
+
+The real joint mapping comes from the follower's calibration file, using its encoder ranges and the
+2048-count zero (4096 counts per turn). The default is
+`$HF_LEROBOT_CALIBRATION/robots/so101_follower/$ROBOT_ID.json`, with
+`~/.cache/huggingface/lerobot/calibration` as the calibration root when the variable is unset;
+`--follower_id` overrides the robot ID. Pass `--calibration_file /path/to/follower.json` to override the
+mapping file. Missing or invalid mapping files are rejected before any hardware is initialized.
 
 > **Not yet run on hardware.** The control loop, the safety rules and the script flow are covered by tests with
 > a fake robot and a fake policy. No arm has been moved with this code. Do the shadow run below first.

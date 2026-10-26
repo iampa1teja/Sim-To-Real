@@ -1,0 +1,367 @@
+Evaluation: policy=molmoact2 checkpoint=molmoact2_so101 port=5556
+Smoke test: one original example per zone with Rerun; no evaluation artifacts will be saved.
+[RERUN] Using SDK-matched native viewer 0.26.2
+[2026-10-26T07:22:54Z INFO  re_grpc_server] Listening for gRPC connections on 127.0.0.1:9876. Connect by running `rerun --connect rerun+http://127.0.0.1:9876/proxy`
+[2026-10-26T07:22:54Z INFO  winit::platform_impl::linux::x11::window] Guessed window scale factor: 1
+[RERUN] Native viewer ready: rerun+http://127.0.0.1:9876/proxy
+[2026-10-26T07:22:54Z WARN  wgpu_hal::vulkan::instance] Unable to find extension: VK_EXT_physical_device_drm
+Rerun viewer ready: rerun+http://127.0.0.1:9876/proxy
+Starting policy server; loading molmoact2_so101...
+Audited 51 packages in 0.28ms
+`use_fast` is set to `True` but the image processor class does not have a fast version.  Falling back to the slow version.
+
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]
+Loading checkpoint shards:  20%|██        | 1/5 [00:00<00:00,  5.15it/s]
+Loading checkpoint shards:  40%|████      | 2/5 [00:00<00:00,  5.19it/s]
+Loading checkpoint shards:  60%|██████    | 3/5 [00:00<00:00,  5.20it/s]
+Loading checkpoint shards:  80%|████████  | 4/5 [00:00<00:00,  5.16it/s]
+Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00,  5.76it/s]
+2026-10-26 07:22:59,742 INFO server_core.server: Policy server listening on tcp://*:5556
+2026-10-26 07:22:59,742 INFO __main__: Starting policy 'molmoact2' on *:5556
+Using policy server on port 5556.
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /workspace/isaaclab/apps/isaaclab.python.headless.rendering.kit
+Loading user config located at: '/isaac-sim/kit/data/Kit/Isaac-Sim/5.1/user.config.json'
+[Info] [carb] Logging to file: /isaac-sim/kit/logs/Kit/Isaac-Sim/5.1/kit_20261026_072301.log
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 580.173.02    | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 4090          | Yes: 0 |     | 24564   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2684      | 0aa900f2.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 24.04.2 LTS (Noble Numbat) ubuntu, Version: 24.04.2, Kernel: 6.8.0-142-generic
+| XServer Vendor: The X.Org Foundation, XServer Version: 12101011 (1.21.1.11)
+| Processor: Intel(R) Core(TM) i9-14900K
+| Bare Metal Cores: 24 | Bare Metal Logical Cores: 48
+| Available Cores:  32
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 63040 | Free Memory: 52287
+| Total Page/Swap (MB): 2047 | Free Page/Swap: 0
+|---------------------------------------------------------------------------------------------|
+2026-10-26T07:23:02Z [596ms] [Warning] [gpu.foundation.plugin] CPU performance profile is set to powersave. This profile sets the CPU to the lowest frequency reducing performance.
+2026-10-26T07:23:02Z [603ms] [Warning] [gpu.foundation.plugin] IOMMU is enabled.
+2026-10-26T07:23:02Z [1,056ms] [Warning] [omni.log] Source: omni.hydra was already registered.
+2026-10-26T07:23:03Z [1,241ms] [Warning] [carb] Acquiring non optional plugin interface which is not listed as dependency: [omni::physx::IPhysxBenchmarks v1.0] (plugin: <default plugin>), by client: omni.physics.physx.plugin. Add it to CARB_PLUGIN_IMPL_DEPS() macro of a client.
+2026-10-26T07:23:03Z [1,244ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+2026-10-26T07:23:04Z [2,645ms] [Warning] [pxr.Semantics] pxr.Semantics is deprecated - please use Semantics instead
+2026-10-26T07:23:04Z [2,711ms] [Warning] [omni.graph.core.plugin] Found duplicate of category 'Replicator' - was 'Annotators', adding 'Fabric Reader'
+2026-10-26T07:23:04Z [2,711ms] [Warning] [omni.graph.core.plugin] Category 'Replicator' not accepted on node type 'omni.replicator.core.FabricReader' in extension 'omni.replicator.core'
+2026-10-26T07:23:04Z [2,711ms] [Warning] [omni.replicator.core.scripts.extension] No material configuration file, adding configuration to material settings directly.
+2026-10-26T07:23:06Z [4,844ms] [Warning] [omni.fabric.plugin] Warning: attribute viewportHandle not found for bucket id 7
+
+[SMOKE TEST] One example per zone with Rerun; evaluation output is console-only.
+[INFO]: Parsing configuration from: sim_to_real_so101.tasks.pick_place_env_cfg:PickPlaceEvalEnvCfg
+[INFO]: Robot USD: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd
+
+======================================================================================
+[INFO][IsaacLab]: Logging to file: /tmp/isaaclab/logs/isaaclab_2026-10-26_07-23-09.log
+======================================================================================
+
+07:23:09 [simulation_context.py] WARNING: The `enable_external_forces_every_iteration` parameter in the PhysxCfg is set to False. If you are experiencing noisy velocities, consider enabling this flag. You may need to slightly increase the number of velocity iterations (setting it to 1 or 2 rather than 0), together with this flag, to improve the accuracy of velocity updates.
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : 1984
+	Physics step-size     : 0.008333333333333333
+	Rendering step-size   : 0.03333333333333333
+	Environment step-size : 0.03333333333333333
+[INFO]: Time taken for scene creation : 0.419128 seconds
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 1
+	Environment spacing   : 4.0
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : []
+	Replicate physics     : True
+[INFO]: Starting the simulation. This may take a few seconds. Please wait...
+2026-10-26T07:23:11Z [9,888ms] [Warning] [omni.fabric.plugin] getAttributeCount called on non-existent path /World/envs/env_0/Robot/gripper/visuals/camera_mount/transistors
+2026-10-26T07:23:11Z [9,888ms] [Warning] [omni.fabric.plugin] getTypes called on non-existent path /World/envs/env_0/Robot/gripper/visuals/camera_mount/transistors
+[INFO]: Time taken for simulation start : 2.804764 seconds
+[INFO] Command Manager:  <CommandManager> contains 0 active terms.
++------------------------+
+|  Active Command Terms  |
++--------+-------+-------+
+| Index  | Name  |  Type |
++--------+-------+-------+
++--------+-------+-------+
+
+[INFO] Event Manager:  <EventManager> contains 2 active terms.
++-----------------------------------------+
+|   Active Event Terms in Mode: 'reset'   |
++-------+---------------------------------+
+| Index | Name                            |
++-------+---------------------------------+
+|   0   | reset_robot_position            |
+|   1   | reset_set_robot_visual_material |
+|   2   | spawn_cube                      |
+|   3   | reset_tracking                  |
++-------+---------------------------------+
++----------------------------------------+
+| Active Event Terms in Mode: 'startup'  |
++--------+-------------------------------+
+| Index  | Name                          |
++--------+-------------------------------+
+|   0    | configure_scene_updates       |
+|   1    | set_robot_visual_material     |
+|   2    | check_eval_order              |
++--------+-------------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.
++---------------------+
+| Active Recorder Terms |
++-----------+---------+
+|   Index   | Name    |
++-----------+---------+
++-----------+---------+
+
+[INFO] Action Manager:  <ActionManager> contains 1 active terms.
++-------------------------------------+
+|    Active Action Terms (shape: 6)   |
++-------+-----------------+-----------+
+| Index | Name            | Dimension |
++-------+-----------------+-----------+
+|   0   | joint_positions |         6 |
++-------+-----------------+-----------+
+
+[INFO] Observation Manager: <ObservationManager> contains 3 groups.
++---------------------------------------------+
+| Active Observation Terms in Group: 'policy' |
++----------+-----------------------+----------+
+|  Index   | Name                  |  Shape   |
++----------+-----------------------+----------+
+|    0     | joint_pos_obs         |   (6,)   |
+|    1     | joint_pos_rel         |   (6,)   |
+|    2     | ee_frame_state        |   (7,)   |
++----------+-----------------------+----------+
++------------------------------------------------+
+|  Active Observation Terms in Group: 'visual'   |
++--------+---------------------+-----------------+
+| Index  | Name                |      Shape      |
++--------+---------------------+-----------------+
+|   0    | rgb_realsense_rgb   |  (480, 640, 3)  |
+|   1    | rgb_wrist_cam       |  (480, 640, 3)  |
++--------+---------------------+-----------------+
++------------------------------------------------+
+| Active Observation Terms in Group: 'subtask_terms' |
++-----------+------------------------+-----------+
+|   Index   | Name                   |   Shape   |
++-----------+------------------------+-----------+
+|     0     | cube_grasped           |    (1,)   |
+|     1     | cube_placed            |    (1,)   |
++-----------+------------------------+-----------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 2 active terms.
++-----------------------------+
+|   Active Termination Terms  |
++-------+----------+----------+
+| Index | Name     | Time Out |
++-------+----------+----------+
+|   0   | time_out |   True   |
+|   1   | success  |  False   |
++-------+----------+----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 0 active terms.
++-----------------------+
+|  Active Reward Terms  |
++-------+------+--------+
+| Index | Name | Weight |
++-------+------+--------+
++-------+------+--------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++----------------------+
+| Active Curriculum Terms |
++-----------+----------+
+|   Index   | Name     |
++-----------+----------+
++-----------+----------+
+
+[Pick-place eval] Reset event order: ['reset_robot_position', 'reset_set_robot_visual_material', 'spawn_cube', 'reset_tracking']
+[INFO]: Completed setting up the environment...
+[INFO]: Replanning every 1.00s sim (30 targets held for 1 control ticks each).
+[SMOKE TEST] 60s sim to reach; 30s per new milestone; repeated milestones do not extend the deadline.
+[SMOKE TEST] Fixed starts: [{"start_id": "id-000", "zone": "MC", "policy_seed": 2177438227}, {"start_id": "id-001", "zone": "FR", "policy_seed": 3306903688}, {"start_id": "id-002", "zone": "MR", "policy_seed": 102768121}, {"start_id": "id-003", "zone": "NL", "policy_seed": 1457670348}, {"start_id": "id-004", "zone": "FL", "policy_seed": 3168261539}, {"start_id": "id-006", "zone": "NC", "policy_seed": 1502902985}, {"start_id": "id-011", "zone": "FC", "policy_seed": 1917032099}, {"start_id": "id-013", "zone": "ML", "policy_seed": 2875337577}, {"start_id": "ood-000", "zone": "OUT", "policy_seed": 3350049564}]
+[INFO]: Gym observation space: Dict('policy': Dict('ee_frame_state': Box(-inf, inf, (1, 7), float32), 'joint_pos_obs': Box(-inf, inf, (1, 6), float32), 'joint_pos_rel': Box(-inf, inf, (1, 6), float32)), 'subtask_terms': Dict('cube_grasped': Box(-inf, inf, (1, 1), float32), 'cube_placed': Box(-inf, inf, (1, 1), float32)), 'visual': Dict('rgb_realsense_rgb': Box(-inf, inf, (1, 480, 640, 3), float32), 'rgb_wrist_cam': Box(-inf, inf, (1, 480, 640, 3), float32)))
+[INFO]: Gym action space: Box(-inf, inf, (1, 6), float32)
+[INFO]: Click 'R' to reset the world
+[INFO]: Found Camera: realsense_rgb
+[INFO]: Found Camera: wrist_cam
+[INFO]: Initializing device with Rerun visualization: True
+[INFO]: Initialized LeRobot device at None with id leader_arm_1
+[INFO]: Molmo camera inputs: ['front', 'wrist']
+[INFO]: Policy joint transform: {'input_joint_units': 'usd_normalized', 'model_joint_units': 'so100_so101_molmoact2', 'scale': [0.5785821676254272, -1.0, 0.949999988079071, 0.949999988079071, 1.5999999046325684, 1.0], 'offset': [4.3968586921691895, 90.0, 85.0, 0.0, -90.0, 0.0], 'pan_adaptation': {'scale': 0.49016972984379564, 'offset': 3.5352321757436442, 'status': 'experimental policy adaptation; not physical calibration'}}
+[INFO]: Connecting to the molmoact2 policy server at localhost:5556...
+[INFO]: Policy server connected
+[INFO]: Smoke grasp diagnostics enabled (millimetres; in memory only).
+2026-10-26T07:23:14Z [12,961ms] [Warning] [omni.fabric.plugin] Warning: attribute primvars:st:indices not found for path /World/envs/env_0/Room/Room/Visual/Furniture/Tabletop
+
+2026-10-26T07:23:14Z [12,965ms] [Warning] [omni.fabric.plugin] removePaths called with a non-existent path /__Prototype_14121168238276259709
+
+
+Rollout (ep 1/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 1/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=N/A (0/0)]
+Rollout (ep 1/9):   0%|          | 4/6300 [00:01<23:54,  4.39step/s, stage=reached, success=N/A (0/0)]
+2026-10-26T07:23:18Z [16,868ms] [Warning] [carb] Client gpu.foundation.plugin has acquired [gpu::unstable::IMemoryBudgetManagerFactory v0.1] 100 times. Consider accessing this interface with carb::getCachedInterface() (Performance warning)
+
+Rollout (ep 1/9):   2%|▏         | 106/6300 [00:06<04:56, 20.91step/s, stage=reached, success=N/A (0/0)]
+Rollout (ep 1/9):   3%|▎         | 163/6300 [00:08<06:03, 16.90step/s, stage=lifted, held=yes, success=N/A (0/0)]
+Rollout (ep 1/9):   3%|▎         | 196/6300 [00:10<05:30, 18.48step/s, stage=over box, held=yes, success=N/A (0/0)]
+Rollout (ep 1/9):   4%|▎         | 226/6300 [00:11<05:38, 17.97step/s, stage=over box, held=no, success=N/A (0/0)]
+Rollout (ep 1/9):   4%|▎         | 229/6300 [00:12<05:01, 20.11step/s, stage=placed, success=N/A (0/0)]
+Rollout (ep 1/9):   4%|▍         | 252/6300 [00:13<05:06, 19.73step/s, stage=success, success=100.0% (1/1)]
+[EPISODE 1] start=0 zone=MC cube_color=blue success steps=252 time_to_success=8.40s sim (13.04s wall) stage=success
+[GRASP 1] {"closest": {"tool_error_xyz_mm": [-0.7928837377634741, -6.006634796639746, 8.141724548526689], "tool_error_mm": 10.1486947350827, "jaw_gap_mm": 20.994158366431062, "cube_width_mm": 20.0, "sim_time_s": 5.2, "max_joint_tracking_error_deg": 4.375754715353145, "measured_gripper_pct": 12.82883761206221, "command_gripper_pct": 8.850878779922986}, "closest_closing": {"tool_error_xyz_mm": [-0.7928837377634741, -6.006634796639746, 8.141724548526689], "tool_error_mm": 10.1486947350827, "jaw_gap_mm": 20.994158366431062, "cube_width_mm": 20.0, "sim_time_s": 5.2, "max_joint_tracking_error_deg": 4.375754715353145, "measured_gripper_pct": 12.82883761206221, "command_gripper_pct": 8.850878779922986}, "first_closing": {"tool_error_xyz_mm": [-7.233562484616756, 25.661266006141958, 73.228403732676], "tool_error_mm": 77.93089318423489, "jaw_gap_mm": 16.51793787605812, "cube_width_mm": 20.0, "sim_time_s": 1.3666666666666667, "max_joint_tracking_error_deg": 2.7079309492891053, "measured_gripper_pct": 9.609833974357333, "command_gripper_pct": 9.80514619277569}, "closing_events": 11, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 2/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 2/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):   2%|▏         | 127/6300 [00:05<03:35, 28.59step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):   4%|▍         | 254/6300 [00:10<04:31, 22.29step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):   6%|▌         | 375/6300 [00:15<04:37, 21.35step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):   8%|▊         | 497/6300 [00:20<04:12, 22.99step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  10%|▉         | 622/6300 [00:25<03:48, 24.81step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  12%|█▏        | 749/6300 [00:30<03:24, 27.12step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  14%|█▍        | 876/6300 [00:35<03:20, 27.00step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  16%|█▌        | 998/6300 [00:40<03:21, 26.32step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  18%|█▊        | 1121/6300 [00:45<04:31, 19.09step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  20%|█▉        | 1245/6300 [00:50<03:48, 22.12step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  22%|██▏       | 1368/6300 [00:55<03:31, 23.36step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  24%|██▎       | 1493/6300 [01:00<03:06, 25.84step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  26%|██▌       | 1612/6300 [01:06<03:18, 23.57step/s, stage=approaching, success=100.0% (1/1)]
+Rollout (ep 2/9):  28%|██▊       | 1737/6300 [01:11<03:10, 23.95step/s, stage=approaching, success=100.0% (1/1)]
+[EPISODE 2] start=1 zone=FR cube_color=blue fail steps=1800 timeout_elapsed=60.00s sim (73.79s wall) stage=approaching failure=never_reached stop=reach_timeout
+[GRASP 2] {"closest": {"tool_error_xyz_mm": [29.494612858991886, 85.54418208072344, 50.82395774431262], "tool_error_mm": 103.78253203866944, "jaw_gap_mm": 50.031684139796866, "cube_width_mm": 20.0, "sim_time_s": 4.333333333333333, "max_joint_tracking_error_deg": 1.682487328438411, "measured_gripper_pct": 33.788603026739835, "command_gripper_pct": 33.798669794187006}, "closest_closing": {"tool_error_xyz_mm": [15.326051220666253, 95.62483579809187, 47.44218122248681], "tool_error_mm": 107.84135397229485, "jaw_gap_mm": 50.43046691625948, "cube_width_mm": 20.0, "sim_time_s": 4.433333333333334, "max_joint_tracking_error_deg": 1.710371575724988, "measured_gripper_pct": 34.08697984063184, "command_gripper_pct": 34.177802728804366}, "first_closing": {"tool_error_xyz_mm": [-100.51466939890331, 110.99705854176345, 190.3971571648351], "tool_error_mm": 242.22845255201835, "jaw_gap_mm": 8.00333409860199, "cube_width_mm": 20.0, "sim_time_s": 0.9, "max_joint_tracking_error_deg": 1.8374113867399327, "measured_gripper_pct": 3.385799547190884, "command_gripper_pct": 3.379138948513331}, "closing_events": 77, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 3/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 3/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=50.0% (1/2)]
+Rollout (ep 3/9):   2%|▏         | 126/6300 [00:04<03:37, 28.37step/s, stage=approaching, success=50.0% (1/2)]
+Rollout (ep 3/9):   3%|▎         | 198/6300 [00:08<04:34, 22.22step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):   5%|▍         | 312/6300 [00:13<05:26, 18.37step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):   7%|▋         | 435/6300 [00:18<04:52, 20.06step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):   9%|▊         | 551/6300 [00:23<05:10, 18.50step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):  11%|█         | 670/6300 [00:28<03:36, 26.06step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):  13%|█▎        | 789/6300 [00:33<04:22, 20.98step/s, stage=reached, success=50.0% (1/2)]
+Rollout (ep 3/9):  13%|█▎        | 805/6300 [00:34<04:59, 18.36step/s, stage=lifted, held=yes, success=50.0% (1/2)]
+Rollout (ep 3/9):  13%|█▎        | 836/6300 [00:35<04:42, 19.35step/s, stage=over box, held=yes, success=50.0% (1/2)]
+Rollout (ep 3/9):  14%|█▍        | 884/6300 [00:38<05:24, 16.69step/s, stage=over box, held=no, success=50.0% (1/2)]
+Rollout (ep 3/9):  14%|█▍        | 887/6300 [00:38<04:52, 18.51step/s, stage=placed, success=50.0% (1/2)]
+Rollout (ep 3/9):  14%|█▍        | 909/6300 [00:39<03:34, 25.15step/s, stage=success, success=66.7% (2/3)]
+[EPISODE 3] start=2 zone=MR cube_color=blue success steps=909 time_to_success=30.30s sim (39.58s wall) stage=success
+[GRASP 3] {"closest": {"tool_error_xyz_mm": [-3.4447209133371217, 0.1506245135466834, 8.509814461513217], "tool_error_mm": 9.181815293515918, "jaw_gap_mm": 31.264171909992868, "cube_width_mm": 20.0, "sim_time_s": 25.866666666666667, "max_joint_tracking_error_deg": 1.494225116798057, "measured_gripper_pct": 20.16107556814852, "command_gripper_pct": 18.802689098332102}, "closest_closing": {"tool_error_xyz_mm": [-3.4447209133371217, 0.1506245135466834, 8.509814461513217], "tool_error_mm": 9.181815293515918, "jaw_gap_mm": 31.264171909992868, "cube_width_mm": 20.0, "sim_time_s": 25.866666666666667, "max_joint_tracking_error_deg": 1.494225116798057, "measured_gripper_pct": 20.16107556814852, "command_gripper_pct": 18.802689098332102}, "first_closing": {"tool_error_xyz_mm": [-29.34489803166769, 10.399849506873975, 85.85481540851434], "tool_error_mm": 91.32540303269771, "jaw_gap_mm": 6.69770886278922, "cube_width_mm": 20.0, "sim_time_s": 0.7666666666666666, "max_joint_tracking_error_deg": 1.7468857670278761, "measured_gripper_pct": 2.414759314468773, "command_gripper_pct": 2.3343020145196034}, "closing_events": 49, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 4/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 4/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):   2%|▏         | 122/6300 [00:05<03:52, 26.53step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):   4%|▍         | 245/6300 [00:10<03:51, 26.14step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):   6%|▌         | 364/6300 [00:15<03:40, 26.96step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):   8%|▊         | 485/6300 [00:20<03:31, 27.51step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  10%|▉         | 606/6300 [00:25<03:44, 25.38step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  12%|█▏        | 728/6300 [00:30<03:24, 27.20step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  13%|█▎        | 849/6300 [00:35<03:19, 27.35step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  15%|█▌        | 972/6300 [00:40<04:36, 19.26step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  17%|█▋        | 1093/6300 [00:45<04:27, 19.49step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  19%|█▉        | 1213/6300 [00:50<04:39, 18.21step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  21%|██        | 1335/6300 [00:55<03:54, 21.14step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  23%|██▎       | 1458/6300 [01:00<03:27, 23.37step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  25%|██▌       | 1580/6300 [01:05<03:08, 24.99step/s, stage=approaching, success=66.7% (2/3)]
+Rollout (ep 4/9):  27%|██▋       | 1705/6300 [01:11<03:01, 25.30step/s, stage=approaching, success=66.7% (2/3)]
+[EPISODE 4] start=3 zone=NL cube_color=blue fail steps=1800 timeout_elapsed=60.00s sim (75.00s wall) stage=approaching failure=never_reached stop=reach_timeout
+[GRASP 4] {"closest": {"tool_error_xyz_mm": [74.66821601265723, 57.640563280066814, 22.873802104989377], "tool_error_mm": 97.06177332242825, "jaw_gap_mm": 51.814550089240306, "cube_width_mm": 20.0, "sim_time_s": 29.3, "max_joint_tracking_error_deg": 1.2346045038039948, "measured_gripper_pct": 35.12701895481257, "command_gripper_pct": 35.25050256574352}, "closest_closing": {"tool_error_xyz_mm": [77.09364631756492, 57.07637084708309, 23.16102105468352], "tool_error_mm": 98.67915336030728, "jaw_gap_mm": 48.535314643210434, "cube_width_mm": 20.0, "sim_time_s": 40.333333333333336, "max_joint_tracking_error_deg": 1.1542029319891898, "measured_gripper_pct": 32.6735855109453, "command_gripper_pct": 32.29128740457393}, "first_closing": {"tool_error_xyz_mm": [162.9517705909572, -99.75145565143133, 53.02997743353456], "tool_error_mm": 198.28214985194356, "jaw_gap_mm": 6.108030213060269, "cube_width_mm": 20.0, "sim_time_s": 0.43333333333333335, "max_joint_tracking_error_deg": 6.670157837759352, "measured_gripper_pct": 1.9743502691020713, "command_gripper_pct": 1.6878315949986393}, "closing_events": 165, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 5/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 5/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=50.0% (2/4)]
+Rollout (ep 5/9):   2%|▏         | 122/6300 [00:05<04:06, 25.09step/s, stage=approaching, success=50.0% (2/4)]
+Rollout (ep 5/9):   3%|▎         | 188/6300 [00:07<03:43, 27.29step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):   5%|▍         | 314/6300 [00:13<04:43, 21.08step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):   7%|▋         | 434/6300 [00:18<04:31, 21.61step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):   9%|▉         | 559/6300 [00:23<04:01, 23.75step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):  11%|█         | 681/6300 [00:28<03:47, 24.73step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):  13%|█▎        | 809/6300 [00:33<03:19, 27.57step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):  15%|█▍        | 930/6300 [00:38<03:42, 24.15step/s, stage=reached, success=50.0% (2/4)]
+Rollout (ep 5/9):  17%|█▋        | 1050/6300 [00:43<03:12, 27.33step/s, stage=reached, success=50.0% (2/4)]
+[EPISODE 5] start=4 zone=FL cube_color=blue fail steps=1086 timeout_elapsed=36.20s sim (44.72s wall) stage=reached failure=missed_grasp stop=progress_timeout
+[GRASP 5] {"closest": {"tool_error_xyz_mm": [-8.741249740930774, 8.180598771508523, 23.39683284653617], "tool_error_mm": 26.281998222024196, "jaw_gap_mm": 49.00228177103037, "cube_width_mm": 20.0, "sim_time_s": 6.333333333333333, "max_joint_tracking_error_deg": 1.4684701809852314, "measured_gripper_pct": 33.02079352045573, "command_gripper_pct": 32.806154825788084}, "closest_closing": {"tool_error_xyz_mm": [-8.741249740930774, 8.180598771508523, 23.39683284653617], "tool_error_mm": 26.281998222024196, "jaw_gap_mm": 49.00228177103037, "cube_width_mm": 20.0, "sim_time_s": 6.333333333333333, "max_joint_tracking_error_deg": 1.4684701809852314, "measured_gripper_pct": 33.02079352045573, "command_gripper_pct": 32.806154825788084}, "first_closing": {"tool_error_xyz_mm": [9.750535690907427, -147.6788390607858, 123.45285820245115], "tool_error_mm": 192.7296569056139, "jaw_gap_mm": 7.226019372279735, "cube_width_mm": 20.0, "sim_time_s": 0.4666666666666667, "max_joint_tracking_error_deg": 4.186706178184593, "measured_gripper_pct": 2.8082818277358483, "command_gripper_pct": 2.8353740059260613}, "closing_events": 102, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 6/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 6/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):   2%|▏         | 123/6300 [00:05<04:03, 25.39step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):   4%|▍         | 248/6300 [00:10<03:34, 28.15step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):   6%|▌         | 371/6300 [00:15<05:21, 18.44step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):   8%|▊         | 492/6300 [00:20<04:59, 19.36step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):  10%|▉         | 616/6300 [00:25<04:31, 20.91step/s, stage=approaching, success=40.0% (2/5)]
+Rollout (ep 6/9):  11%|█         | 698/6300 [00:28<03:59, 23.37step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  13%|█▎        | 819/6300 [00:34<03:20, 27.37step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  15%|█▍        | 941/6300 [00:39<04:32, 19.68step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  17%|█▋        | 1065/6300 [00:44<04:00, 21.75step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  19%|█▉        | 1188/6300 [00:49<03:47, 22.52step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  21%|██        | 1308/6300 [00:54<03:49, 21.79step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  23%|██▎       | 1424/6300 [00:59<03:49, 21.25step/s, stage=reached, success=40.0% (2/5)]
+Rollout (ep 6/9):  24%|██▍       | 1543/6300 [01:04<04:03, 19.52step/s, stage=reached, success=40.0% (2/5)]
+[EPISODE 6] start=5 zone=NC cube_color=blue fail steps=1595 timeout_elapsed=53.17s sim (66.69s wall) stage=reached failure=missed_grasp stop=progress_timeout
+[GRASP 6] {"closest": {"tool_error_xyz_mm": [-4.743714722886082, 14.132866000400318, 12.468599592025107], "tool_error_mm": 19.43467793773918, "jaw_gap_mm": 43.55112786719688, "cube_width_mm": 20.0, "sim_time_s": 23.333333333333332, "max_joint_tracking_error_deg": 0.7785391125439034, "measured_gripper_pct": 29.006103017581193, "command_gripper_pct": 29.07160608403733}, "closest_closing": {"tool_error_xyz_mm": [-3.6814021805568746, 7.000751448787997, 23.652886574350504], "tool_error_mm": 24.94037461951617, "jaw_gap_mm": 43.1454013626494, "cube_width_mm": 20.0, "sim_time_s": 50.333333333333336, "max_joint_tracking_error_deg": 0.7560336392287114, "measured_gripper_pct": 28.71030304778514, "command_gripper_pct": 28.694725559530347}, "first_closing": {"tool_error_xyz_mm": [80.45986902033759, 64.43020712815036, -2.3380098472075836], "tool_error_mm": 103.10435685940666, "jaw_gap_mm": 6.319536773777737, "cube_width_mm": 20.0, "sim_time_s": 0.5333333333333333, "max_joint_tracking_error_deg": 1.933162101167049, "measured_gripper_pct": 2.132462162967124, "command_gripper_pct": 2.0370514056827878}, "closing_events": 121, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 7/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 7/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):   2%|▏         | 122/6300 [00:05<03:46, 27.31step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):   4%|▍         | 246/6300 [00:10<03:37, 27.78step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):   6%|▌         | 368/6300 [00:15<03:40, 26.90step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):   8%|▊         | 488/6300 [00:20<03:40, 26.33step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  10%|▉         | 612/6300 [00:25<04:57, 19.14step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  12%|█▏        | 733/6300 [00:30<04:38, 19.99step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  14%|█▎        | 857/6300 [00:35<03:53, 23.34step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  16%|█▌        | 977/6300 [00:40<04:02, 21.92step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  17%|█▋        | 1099/6300 [00:45<03:48, 22.73step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  19%|█▉        | 1219/6300 [00:50<03:41, 22.89step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  21%|██▏       | 1343/6300 [00:55<03:15, 25.34step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  23%|██▎       | 1465/6300 [01:00<03:24, 23.70step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  25%|██▌       | 1589/6300 [01:06<02:53, 27.22step/s, stage=approaching, success=33.3% (2/6)]
+Rollout (ep 7/9):  27%|██▋       | 1710/6300 [01:10<02:57, 25.80step/s, stage=approaching, success=33.3% (2/6)]
+[EPISODE 7] start=6 zone=FC cube_color=blue fail steps=1800 timeout_elapsed=60.00s sim (74.83s wall) stage=approaching failure=never_reached stop=reach_timeout
+[GRASP 7] {"closest": {"tool_error_xyz_mm": [0.09201689952296338, 5.187542732688143, 64.44086266903494], "tool_error_mm": 64.64939170821862, "jaw_gap_mm": 53.7709216646115, "cube_width_mm": 20.0, "sim_time_s": 53.5, "max_joint_tracking_error_deg": 1.606422926746564, "measured_gripper_pct": 36.60949288637519, "command_gripper_pct": 36.67135266783543}, "closest_closing": {"tool_error_xyz_mm": [8.752027206683412, 12.212288596092382, 63.907374935583725], "tool_error_mm": 65.64975661903135, "jaw_gap_mm": 53.244888045356724, "cube_width_mm": 20.0, "sim_time_s": 27.4, "max_joint_tracking_error_deg": 1.622528512809454, "measured_gripper_pct": 36.20938971869017, "command_gripper_pct": 36.349588665299}, "first_closing": {"tool_error_xyz_mm": [-102.26597136603988, 33.63957420176407, 181.34352794130749], "tool_error_mm": 210.89197466502952, "jaw_gap_mm": 7.585582299278625, "cube_width_mm": 20.0, "sim_time_s": 1.3666666666666667, "max_joint_tracking_error_deg": 4.313390819362698, "measured_gripper_pct": 3.0756837337418474, "command_gripper_pct": 2.9201874918657644}, "closing_events": 74, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 8/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 8/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):   2%|▏         | 124/6300 [00:05<03:46, 27.22step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):   4%|▍         | 248/6300 [00:10<03:49, 26.42step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):   6%|▌         | 370/6300 [00:15<03:41, 26.75step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):   8%|▊         | 493/6300 [00:20<04:48, 20.12step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  10%|▉         | 618/6300 [00:25<04:11, 22.63step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  12%|█▏        | 741/6300 [00:30<03:47, 24.45step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  14%|█▎        | 864/6300 [00:35<03:42, 24.47step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  16%|█▌        | 987/6300 [00:40<03:28, 25.47step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  18%|█▊        | 1106/6300 [00:45<03:39, 23.64step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  19%|█▉        | 1226/6300 [00:50<03:13, 26.25step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  21%|██▏       | 1348/6300 [00:55<03:10, 26.05step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  23%|██▎       | 1470/6300 [01:00<03:19, 24.21step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  25%|██▌       | 1590/6300 [01:05<02:59, 26.18step/s, stage=approaching, success=28.6% (2/7)]
+Rollout (ep 8/9):  27%|██▋       | 1711/6300 [01:10<02:57, 25.81step/s, stage=approaching, success=28.6% (2/7)]
+[EPISODE 8] start=7 zone=ML cube_color=blue fail steps=1800 timeout_elapsed=60.00s sim (74.60s wall) stage=approaching failure=never_reached stop=reach_timeout
+[GRASP 8] {"closest": {"tool_error_xyz_mm": [-114.2192523040105, 76.7580303405385, 44.17332637695885], "tool_error_mm": 144.5306734982286, "jaw_gap_mm": 47.295620673886376, "cube_width_mm": 20.0, "sim_time_s": 21.333333333333332, "max_joint_tracking_error_deg": 1.2643738833014955, "measured_gripper_pct": 31.755125316306525, "command_gripper_pct": 32.305800004244475}, "closest_closing": {"tool_error_xyz_mm": [-111.04818817636655, 83.74790666525523, 46.84910145462429], "tool_error_mm": 146.76597110765047, "jaw_gap_mm": 47.237240306037094, "cube_width_mm": 20.0, "sim_time_s": 21.366666666666667, "max_joint_tracking_error_deg": 2.4942348207269163, "measured_gripper_pct": 31.71194610222628, "command_gripper_pct": 31.666444623828234}, "first_closing": {"tool_error_xyz_mm": [182.52050259748108, -91.77161428746453, 48.97722096977421], "tool_error_mm": 210.08220112919219, "jaw_gap_mm": 6.469002000607354, "cube_width_mm": 20.0, "sim_time_s": 0.4, "max_joint_tracking_error_deg": 10.640801226834347, "measured_gripper_pct": 2.2440922910566603, "command_gripper_pct": 1.9480602500604036}, "closing_events": 203, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+
+Rollout (ep 9/9):   0%|          | 0/6300 [00:00<?, ?step/s]
+Rollout (ep 9/9):   0%|          | 0/6300 [00:00<?, ?step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):   2%|▏         | 125/6300 [00:05<03:52, 26.53step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):   4%|▍         | 248/6300 [00:10<03:37, 27.76step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):   6%|▌         | 370/6300 [00:15<03:36, 27.39step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):   8%|▊         | 494/6300 [00:20<04:40, 20.71step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  10%|▉         | 614/6300 [00:25<04:23, 21.54step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  12%|█▏        | 734/6300 [00:30<04:40, 19.85step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  14%|█▎        | 854/6300 [00:35<04:19, 20.99step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  15%|█▌        | 974/6300 [00:40<04:14, 20.96step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  17%|█▋        | 1099/6300 [00:45<03:44, 23.20step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  19%|█▉        | 1220/6300 [00:50<03:33, 23.82step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  21%|██▏       | 1344/6300 [00:55<03:24, 24.22step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  23%|██▎       | 1464/6300 [01:00<03:33, 22.60step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  25%|██▌       | 1584/6300 [01:05<03:01, 25.93step/s, stage=approaching, success=25.0% (2/8)]
+Rollout (ep 9/9):  27%|██▋       | 1707/6300 [01:10<03:03, 25.09step/s, stage=approaching, success=25.0% (2/8)]
+[EPISODE 9] start=8 zone=OUT cube_color=blue fail steps=1800 timeout_elapsed=60.00s sim (74.70s wall) stage=approaching failure=never_reached stop=reach_timeout
+[GRASP 9] {"closest": {"tool_error_xyz_mm": [-12.674298809933811, -2.7101083639794465, 108.58373075358477], "tool_error_mm": 109.35451121026051, "jaw_gap_mm": 48.0574504378835, "cube_width_mm": 20.0, "sim_time_s": 3.6666666666666665, "max_joint_tracking_error_deg": 1.7281266524724361, "measured_gripper_pct": 32.318958984606795, "command_gripper_pct": 32.3200362917168}, "closest_closing": {"tool_error_xyz_mm": [-12.674298809933811, -2.7101083639794465, 108.58373075358477], "tool_error_mm": 109.35451121026051, "jaw_gap_mm": 48.0574504378835, "cube_width_mm": 20.0, "sim_time_s": 3.6666666666666665, "max_joint_tracking_error_deg": 1.7281266524724361, "measured_gripper_pct": 32.318958984606795, "command_gripper_pct": 32.3200362917168}, "first_closing": {"tool_error_xyz_mm": [-179.0193471931831, -51.36709889217025, 237.58082052667692], "tool_error_mm": 301.87936630415885, "jaw_gap_mm": 7.510618457695767, "cube_width_mm": 20.0, "sim_time_s": 0.8333333333333334, "max_joint_tracking_error_deg": 1.0668072464642915, "measured_gripper_pct": 3.0199633609560275, "command_gripper_pct": 2.965409941513061}, "closing_events": 62, "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip", "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"}
+[RESULT] complete: 9/9 episodes; success 2/9 (22.2%)
+[RESULT] Median time to success: 19.35s sim
+[RESULT] Split: id 2/8, ood 0/1
+[RESULT] Zone: FC 0/1, FL 0/1, FR 0/1, MC 1/1, ML 0/1, MR 1/1, NC 0/1, NL 0/1, OUT 0/1
+[RESULT] Colour: blue 2/9
+[SMOKE_RESULT] {"complete":true,"requested_episodes":9,"checkpoint":"molmoact2_so101","seed":1984,"step_dt":0.03333333333333333,"episode_length_s":210.0,"action_horizon":30,"action_repeat":1,"policy_cameras":["front","wrist"],"policy_joint_transform":{"input_joint_units":"usd_normalized","model_joint_units":"so100_so101_molmoact2","scale":[0.5785821676254272,-1.0,0.949999988079071,0.949999988079071,1.5999999046325684,1.0],"offset":[4.3968586921691895,90.0,85.0,0.0,-90.0,0.0],"pan_adaptation":{"scale":0.49016972984379564,"offset":3.5352321757436442,"status":"experimental policy adaptation; not physical calibration"}},"resume_settings":{"policy":"molmoact2","policy_options":{"norm_tag":"so100_so101_molmoact2","dtype":"bfloat16","action_dtype":"float32","include_original_room":"False","pan_model_scale":"0.49016972984379564","pan_model_offset":"3.5352321757436442","num_steps":"10","arm_zero_degrees":"1.7578125,0,-5,0,-90"},"cube_starts":"/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1/pick_place_meta","rename_map":{"realsense_rgb":"front","wrist_cam":"wrist"},"lang":"Pick up the blue cube and place it in the white box","lang_by_color":null,"render_warmup":0,"molmo_overhead_camera":false,"smoothing":{"prefetch_steps":0,"blend_steps":0,"ema_alpha":1.0,"smooth_gripper":false,"temporal_ensemble":0,"te_decay":0.01},"grasp":{"gripper_latch":false,"latch_close_below":null,"latch_confirm_steps":3,"latch_open_above":null,"latch_release_confirm":5,"latch_min_hold":30,"latch_dataset":"","latch_steady_steps":10,"latch_steady_max_delta":2.0,"gripper_empty_closed":null,"latch_empty_margin":3.0,"latch_empty_confirm":15,"latch_reopen_steps":15},"seed_per_episode":false},"smoke_test":{"selection":"one_per_zone","reach_timeout_s":60.0,"progress_timeout_s":30.0},"overall":{"episodes":9,"successes":2,"success_rate":0.2222222222222222,"success_rate_ci95":[0.06322510711784671,0.5474110308930111],"stage_rates":{"reached":0.4444444444444444,"grasped":0.2222222222222222,"lifted":0.2222222222222222,"over_box":0.2222222222222222,"placed":0.2222222222222222,"success":0.2222222222222222},"failure_modes":{"never_reached":5,"missed_grasp":2,"dropped_before_box":0,"dropped_outside":0,"placed_not_confirmed":0,"timeout_holding":0},"median_time_to_success_s":19.35},"episodes":[{"start_id":"id-000","zone":"MC","policy_seed":2177438227,"success":true,"elapsed_sim_s":8.4,"wall_time_s":13.038527370000338,"failure_mode":null,"stages":{"reached":true,"grasped":true,"lifted":true,"over_box":true,"placed":true,"success":true},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":37.6,"milestone_times_s":{"reached":0.03333333333333333,"grasped":5.366666666666666,"lifted":5.366666666666666,"over_box":6.433333333333334,"placed":7.6},"stop_reason":null},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-0.7928837377634741,-6.006634796639746,8.141724548526689],"tool_error_mm":10.1486947350827,"jaw_gap_mm":20.994158366431062,"cube_width_mm":20.0,"sim_time_s":5.2,"max_joint_tracking_error_deg":4.375754715353145,"measured_gripper_pct":12.82883761206221,"command_gripper_pct":8.850878779922986},"closest_closing":{"tool_error_xyz_mm":[-0.7928837377634741,-6.006634796639746,8.141724548526689],"tool_error_mm":10.1486947350827,"jaw_gap_mm":20.994158366431062,"cube_width_mm":20.0,"sim_time_s":5.2,"max_joint_tracking_error_deg":4.375754715353145,"measured_gripper_pct":12.82883761206221,"command_gripper_pct":8.850878779922986},"first_closing":{"tool_error_xyz_mm":[-7.233562484616756,25.661266006141958,73.228403732676],"tool_error_mm":77.93089318423489,"jaw_gap_mm":16.51793787605812,"cube_width_mm":20.0,"sim_time_s":1.3666666666666667,"max_joint_tracking_error_deg":2.7079309492891053,"measured_gripper_pct":9.609833974357333,"command_gripper_pct":9.80514619277569},"closing_events":11,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":10.1486947350827,"closest_closing_tool_error_mm":10.1486947350827},{"start_id":"id-001","zone":"FR","policy_seed":3306903688,"success":false,"elapsed_sim_s":60.0,"wall_time_s":73.78729605099943,"failure_mode":"never_reached","stages":{"reached":false,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":60.0,"milestone_times_s":{},"stop_reason":"reach_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[29.494612858991886,85.54418208072344,50.82395774431262],"tool_error_mm":103.78253203866944,"jaw_gap_mm":50.031684139796866,"cube_width_mm":20.0,"sim_time_s":4.333333333333333,"max_joint_tracking_error_deg":1.682487328438411,"measured_gripper_pct":33.788603026739835,"command_gripper_pct":33.798669794187006},"closest_closing":{"tool_error_xyz_mm":[15.326051220666253,95.62483579809187,47.44218122248681],"tool_error_mm":107.84135397229485,"jaw_gap_mm":50.43046691625948,"cube_width_mm":20.0,"sim_time_s":4.433333333333334,"max_joint_tracking_error_deg":1.710371575724988,"measured_gripper_pct":34.08697984063184,"command_gripper_pct":34.177802728804366},"first_closing":{"tool_error_xyz_mm":[-100.51466939890331,110.99705854176345,190.3971571648351],"tool_error_mm":242.22845255201835,"jaw_gap_mm":8.00333409860199,"cube_width_mm":20.0,"sim_time_s":0.9,"max_joint_tracking_error_deg":1.8374113867399327,"measured_gripper_pct":3.385799547190884,"command_gripper_pct":3.379138948513331},"closing_events":77,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":103.78253203866944,"closest_closing_tool_error_mm":107.84135397229485},{"start_id":"id-002","zone":"MR","policy_seed":102768121,"success":true,"elapsed_sim_s":30.3,"wall_time_s":39.578594061999866,"failure_mode":null,"stages":{"reached":true,"grasped":true,"lifted":true,"over_box":true,"placed":true,"success":true},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":59.5,"milestone_times_s":{"reached":6.533333333333333,"grasped":26.766666666666666,"lifted":26.766666666666666,"over_box":27.833333333333332,"placed":29.5},"stop_reason":null},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-3.4447209133371217,0.1506245135466834,8.509814461513217],"tool_error_mm":9.181815293515918,"jaw_gap_mm":31.264171909992868,"cube_width_mm":20.0,"sim_time_s":25.866666666666667,"max_joint_tracking_error_deg":1.494225116798057,"measured_gripper_pct":20.16107556814852,"command_gripper_pct":18.802689098332102},"closest_closing":{"tool_error_xyz_mm":[-3.4447209133371217,0.1506245135466834,8.509814461513217],"tool_error_mm":9.181815293515918,"jaw_gap_mm":31.264171909992868,"cube_width_mm":20.0,"sim_time_s":25.866666666666667,"max_joint_tracking_error_deg":1.494225116798057,"measured_gripper_pct":20.16107556814852,"command_gripper_pct":18.802689098332102},"first_closing":{"tool_error_xyz_mm":[-29.34489803166769,10.399849506873975,85.85481540851434],"tool_error_mm":91.32540303269771,"jaw_gap_mm":6.69770886278922,"cube_width_mm":20.0,"sim_time_s":0.7666666666666666,"max_joint_tracking_error_deg":1.7468857670278761,"measured_gripper_pct":2.414759314468773,"command_gripper_pct":2.3343020145196034},"closing_events":49,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":9.181815293515918,"closest_closing_tool_error_mm":9.181815293515918},{"start_id":"id-003","zone":"NL","policy_seed":1457670348,"success":false,"elapsed_sim_s":60.0,"wall_time_s":75.0029750019994,"failure_mode":"never_reached","stages":{"reached":false,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":60.0,"milestone_times_s":{},"stop_reason":"reach_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[74.66821601265723,57.640563280066814,22.873802104989377],"tool_error_mm":97.06177332242825,"jaw_gap_mm":51.814550089240306,"cube_width_mm":20.0,"sim_time_s":29.3,"max_joint_tracking_error_deg":1.2346045038039948,"measured_gripper_pct":35.12701895481257,"command_gripper_pct":35.25050256574352},"closest_closing":{"tool_error_xyz_mm":[77.09364631756492,57.07637084708309,23.16102105468352],"tool_error_mm":98.67915336030728,"jaw_gap_mm":48.535314643210434,"cube_width_mm":20.0,"sim_time_s":40.333333333333336,"max_joint_tracking_error_deg":1.1542029319891898,"measured_gripper_pct":32.6735855109453,"command_gripper_pct":32.29128740457393},"first_closing":{"tool_error_xyz_mm":[162.9517705909572,-99.75145565143133,53.02997743353456],"tool_error_mm":198.28214985194356,"jaw_gap_mm":6.108030213060269,"cube_width_mm":20.0,"sim_time_s":0.43333333333333335,"max_joint_tracking_error_deg":6.670157837759352,"measured_gripper_pct":1.9743502691020713,"command_gripper_pct":1.6878315949986393},"closing_events":165,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":97.06177332242825,"closest_closing_tool_error_mm":98.67915336030728},{"start_id":"id-004","zone":"FL","policy_seed":3168261539,"success":false,"elapsed_sim_s":36.2,"wall_time_s":44.72252344000026,"failure_mode":"missed_grasp","stages":{"reached":true,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":36.2,"milestone_times_s":{"reached":6.2},"stop_reason":"progress_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-8.741249740930774,8.180598771508523,23.39683284653617],"tool_error_mm":26.281998222024196,"jaw_gap_mm":49.00228177103037,"cube_width_mm":20.0,"sim_time_s":6.333333333333333,"max_joint_tracking_error_deg":1.4684701809852314,"measured_gripper_pct":33.02079352045573,"command_gripper_pct":32.806154825788084},"closest_closing":{"tool_error_xyz_mm":[-8.741249740930774,8.180598771508523,23.39683284653617],"tool_error_mm":26.281998222024196,"jaw_gap_mm":49.00228177103037,"cube_width_mm":20.0,"sim_time_s":6.333333333333333,"max_joint_tracking_error_deg":1.4684701809852314,"measured_gripper_pct":33.02079352045573,"command_gripper_pct":32.806154825788084},"first_closing":{"tool_error_xyz_mm":[9.750535690907427,-147.6788390607858,123.45285820245115],"tool_error_mm":192.7296569056139,"jaw_gap_mm":7.226019372279735,"cube_width_mm":20.0,"sim_time_s":0.4666666666666667,"max_joint_tracking_error_deg":4.186706178184593,"measured_gripper_pct":2.8082818277358483,"command_gripper_pct":2.8353740059260613},"closing_events":102,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":26.281998222024196,"closest_closing_tool_error_mm":26.281998222024196},{"start_id":"id-006","zone":"NC","policy_seed":1502902985,"success":false,"elapsed_sim_s":53.166666666666664,"wall_time_s":66.68836997400012,"failure_mode":"missed_grasp","stages":{"reached":true,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":53.16666666666667,"milestone_times_s":{"reached":23.166666666666668},"stop_reason":"progress_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-4.743714722886082,14.132866000400318,12.468599592025107],"tool_error_mm":19.43467793773918,"jaw_gap_mm":43.55112786719688,"cube_width_mm":20.0,"sim_time_s":23.333333333333332,"max_joint_tracking_error_deg":0.7785391125439034,"measured_gripper_pct":29.006103017581193,"command_gripper_pct":29.07160608403733},"closest_closing":{"tool_error_xyz_mm":[-3.6814021805568746,7.000751448787997,23.652886574350504],"tool_error_mm":24.94037461951617,"jaw_gap_mm":43.1454013626494,"cube_width_mm":20.0,"sim_time_s":50.333333333333336,"max_joint_tracking_error_deg":0.7560336392287114,"measured_gripper_pct":28.71030304778514,"command_gripper_pct":28.694725559530347},"first_closing":{"tool_error_xyz_mm":[80.45986902033759,64.43020712815036,-2.3380098472075836],"tool_error_mm":103.10435685940666,"jaw_gap_mm":6.319536773777737,"cube_width_mm":20.0,"sim_time_s":0.5333333333333333,"max_joint_tracking_error_deg":1.933162101167049,"measured_gripper_pct":2.132462162967124,"command_gripper_pct":2.0370514056827878},"closing_events":121,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":19.43467793773918,"closest_closing_tool_error_mm":24.94037461951617},{"start_id":"id-011","zone":"FC","policy_seed":1917032099,"success":false,"elapsed_sim_s":60.0,"wall_time_s":74.831734374,"failure_mode":"never_reached","stages":{"reached":false,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":60.0,"milestone_times_s":{},"stop_reason":"reach_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[0.09201689952296338,5.187542732688143,64.44086266903494],"tool_error_mm":64.64939170821862,"jaw_gap_mm":53.7709216646115,"cube_width_mm":20.0,"sim_time_s":53.5,"max_joint_tracking_error_deg":1.606422926746564,"measured_gripper_pct":36.60949288637519,"command_gripper_pct":36.67135266783543},"closest_closing":{"tool_error_xyz_mm":[8.752027206683412,12.212288596092382,63.907374935583725],"tool_error_mm":65.64975661903135,"jaw_gap_mm":53.244888045356724,"cube_width_mm":20.0,"sim_time_s":27.4,"max_joint_tracking_error_deg":1.622528512809454,"measured_gripper_pct":36.20938971869017,"command_gripper_pct":36.349588665299},"first_closing":{"tool_error_xyz_mm":[-102.26597136603988,33.63957420176407,181.34352794130749],"tool_error_mm":210.89197466502952,"jaw_gap_mm":7.585582299278625,"cube_width_mm":20.0,"sim_time_s":1.3666666666666667,"max_joint_tracking_error_deg":4.313390819362698,"measured_gripper_pct":3.0756837337418474,"command_gripper_pct":2.9201874918657644},"closing_events":74,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":64.64939170821862,"closest_closing_tool_error_mm":65.64975661903135},{"start_id":"id-013","zone":"ML","policy_seed":2875337577,"success":false,"elapsed_sim_s":60.0,"wall_time_s":74.59830888400029,"failure_mode":"never_reached","stages":{"reached":false,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":60.0,"milestone_times_s":{},"stop_reason":"reach_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-114.2192523040105,76.7580303405385,44.17332637695885],"tool_error_mm":144.5306734982286,"jaw_gap_mm":47.295620673886376,"cube_width_mm":20.0,"sim_time_s":21.333333333333332,"max_joint_tracking_error_deg":1.2643738833014955,"measured_gripper_pct":31.755125316306525,"command_gripper_pct":32.305800004244475},"closest_closing":{"tool_error_xyz_mm":[-111.04818817636655,83.74790666525523,46.84910145462429],"tool_error_mm":146.76597110765047,"jaw_gap_mm":47.237240306037094,"cube_width_mm":20.0,"sim_time_s":21.366666666666667,"max_joint_tracking_error_deg":2.4942348207269163,"measured_gripper_pct":31.71194610222628,"command_gripper_pct":31.666444623828234},"first_closing":{"tool_error_xyz_mm":[182.52050259748108,-91.77161428746453,48.97722096977421],"tool_error_mm":210.08220112919219,"jaw_gap_mm":6.469002000607354,"cube_width_mm":20.0,"sim_time_s":0.4,"max_joint_tracking_error_deg":10.640801226834347,"measured_gripper_pct":2.2440922910566603,"command_gripper_pct":1.9480602500604036},"closing_events":203,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":144.5306734982286,"closest_closing_tool_error_mm":146.76597110765047},{"start_id":"ood-000","zone":"OUT","policy_seed":3350049564,"success":false,"elapsed_sim_s":60.0,"wall_time_s":74.69996237699979,"failure_mode":"never_reached","stages":{"reached":false,"grasped":false,"lifted":false,"over_box":false,"placed":false,"success":false},"smoke_deadline":{"reach_timeout_s":60.0,"progress_timeout_s":30.0,"deadline_s":60.0,"milestone_times_s":{},"stop_reason":"reach_timeout"},"grasp_diagnostics":{"closest":{"tool_error_xyz_mm":[-12.674298809933811,-2.7101083639794465,108.58373075358477],"tool_error_mm":109.35451121026051,"jaw_gap_mm":48.0574504378835,"cube_width_mm":20.0,"sim_time_s":3.6666666666666665,"max_joint_tracking_error_deg":1.7281266524724361,"measured_gripper_pct":32.318958984606795,"command_gripper_pct":32.3200362917168},"closest_closing":{"tool_error_xyz_mm":[-12.674298809933811,-2.7101083639794465,108.58373075358477],"tool_error_mm":109.35451121026051,"jaw_gap_mm":48.0574504378835,"cube_width_mm":20.0,"sim_time_s":3.6666666666666665,"max_joint_tracking_error_deg":1.7281266524724361,"measured_gripper_pct":32.318958984606795,"command_gripper_pct":32.3200362917168},"first_closing":{"tool_error_xyz_mm":[-179.0193471931831,-51.36709889217025,237.58082052667692],"tool_error_mm":301.87936630415885,"jaw_gap_mm":7.510618457695767,"cube_width_mm":20.0,"sim_time_s":0.8333333333333334,"max_joint_tracking_error_deg":1.0668072464642915,"measured_gripper_pct":3.0199633609560275,"command_gripper_pct":2.965409941513061},"closing_events":62,"coordinate_frame":"fixed gripper; tool point is cube centre against fixed fingertip","jaw_gap_source":"opposing CAD fingertip centres projected on gripper X"},"closest_tool_error_mm":109.35451121026051,"closest_closing_tool_error_mm":109.35451121026051}]}

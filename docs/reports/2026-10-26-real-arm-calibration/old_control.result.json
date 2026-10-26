@@ -1,0 +1,804 @@
+{
+  "id": "old_control",
+  "label": "Old USD, existing model transform",
+  "config": "/tmp/so101-mapping-smoke/trials/old_control.yaml",
+  "expected_wrist_offset": 0,
+  "config_sha256": "b254b1579fae3eee91f4d8f98311ad2c2235bd60a366a49d5363f27e4f26796d",
+  "started": "2026-10-26T07:12:11.127809+00:00",
+  "log": "/tmp/so101-mapping-smoke/trials/old_control.log",
+  "validated": true,
+  "status": "complete",
+  "host_pid": 32118,
+  "exit_code": 0,
+  "finished": "2026-10-26T07:22:53.522181+00:00",
+  "summary": {
+    "reached": 2,
+    "grasped": 1,
+    "lifted": 1,
+    "over_box": 1,
+    "placed": 1,
+    "success": 1
+  },
+  "report": {
+    "complete": true,
+    "requested_episodes": 9,
+    "checkpoint": "molmoact2_so101",
+    "seed": 1984,
+    "step_dt": 0.03333333333333333,
+    "episode_length_s": 210.0,
+    "action_horizon": 30,
+    "action_repeat": 1,
+    "policy_cameras": [
+      "front",
+      "wrist"
+    ],
+    "policy_joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.5999999046325684,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    },
+    "resume_settings": {
+      "policy": "molmoact2",
+      "policy_options": {
+        "norm_tag": "so100_so101_molmoact2",
+        "dtype": "bfloat16",
+        "action_dtype": "float32",
+        "include_original_room": "False",
+        "pan_model_scale": "0.49016972984379564",
+        "pan_model_offset": "3.5352321757436442",
+        "num_steps": "10"
+      },
+      "cube_starts": "/workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1/pick_place_meta",
+      "rename_map": {
+        "realsense_rgb": "front",
+        "wrist_cam": "wrist"
+      },
+      "lang": "Pick up the blue cube and place it in the white box",
+      "lang_by_color": null,
+      "render_warmup": 0,
+      "molmo_overhead_camera": false,
+      "smoothing": {
+        "prefetch_steps": 0,
+        "blend_steps": 0,
+        "ema_alpha": 1.0,
+        "smooth_gripper": false,
+        "temporal_ensemble": 0,
+        "te_decay": 0.01
+      },
+      "grasp": {
+        "gripper_latch": false,
+        "latch_close_below": null,
+        "latch_confirm_steps": 3,
+        "latch_open_above": null,
+        "latch_release_confirm": 5,
+        "latch_min_hold": 30,
+        "latch_dataset": "",
+        "latch_steady_steps": 10,
+        "latch_steady_max_delta": 2.0,
+        "gripper_empty_closed": null,
+        "latch_empty_margin": 3.0,
+        "latch_empty_confirm": 15,
+        "latch_reopen_steps": 15
+      },
+      "seed_per_episode": false
+    },
+    "smoke_test": {
+      "selection": "one_per_zone",
+      "reach_timeout_s": 60.0,
+      "progress_timeout_s": 30.0
+    },
+    "overall": {
+      "episodes": 9,
+      "successes": 1,
+      "success_rate": 0.1111111111111111,
+      "success_rate_ci95": [
+        0.019890887638544907,
+        0.434999705576656
+      ],
+      "stage_rates": {
+        "reached": 0.2222222222222222,
+        "grasped": 0.1111111111111111,
+        "lifted": 0.1111111111111111,
+        "over_box": 0.1111111111111111,
+        "placed": 0.1111111111111111,
+        "success": 0.1111111111111111
+      },
+      "failure_modes": {
+        "never_reached": 7,
+        "missed_grasp": 1,
+        "dropped_before_box": 0,
+        "dropped_outside": 0,
+        "placed_not_confirmed": 0,
+        "timeout_holding": 0
+      },
+      "median_time_to_success_s": 38.2
+    },
+    "episodes": [
+      {
+        "start_id": "id-000",
+        "zone": "MC",
+        "policy_seed": 2177438227,
+        "success": false,
+        "elapsed_sim_s": 30.03333333333333,
+        "wall_time_s": 38.787773044999994,
+        "failure_mode": "missed_grasp",
+        "stages": {
+          "reached": true,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 30.033333333333335,
+          "milestone_times_s": {
+            "reached": 0.03333333333333333
+          },
+          "stop_reason": "progress_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              -6.391126466000405,
+              -14.631502274714915,
+              24.94223522380354
+            ],
+            "tool_error_mm": 29.614902570816344,
+            "jaw_gap_mm": 6.8357244120457406,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.36666666666666664,
+            "max_joint_tracking_error_deg": 2.7819975206487237,
+            "measured_gripper_pct": 2.5176553381571547,
+            "command_gripper_pct": 2.3753328236427342
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              -6.557014838899819,
+              -9.686997226917525,
+              29.08977815289441
+            ],
+            "tool_error_mm": 31.353589138350227,
+            "jaw_gap_mm": 6.744851345552052,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.43333333333333335,
+            "max_joint_tracking_error_deg": 0.9197805943905971,
+            "measured_gripper_pct": 2.44990529469565,
+            "command_gripper_pct": 2.3501224401846454
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              -6.557014838899819,
+              -9.686997226917525,
+              29.08977815289441
+            ],
+            "tool_error_mm": 31.353589138350227,
+            "jaw_gap_mm": 6.744851345552052,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.43333333333333335,
+            "max_joint_tracking_error_deg": 0.9197805943905971,
+            "measured_gripper_pct": 2.44990529469565,
+            "command_gripper_pct": 2.3501224401846454
+          },
+          "closing_events": 21,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 29.614902570816344,
+        "closest_closing_tool_error_mm": 31.353589138350227
+      },
+      {
+        "start_id": "id-001",
+        "zone": "FR",
+        "policy_seed": 3306903688,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 74.09019178200015,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              -8.501169618320876,
+              5.857853946341422,
+              67.68989244188846
+            ],
+            "tool_error_mm": 68.47266517764997,
+            "jaw_gap_mm": 53.6013781692191,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 46.43333333333333,
+            "max_joint_tracking_error_deg": 1.7095212171733214,
+            "measured_gripper_pct": 36.480377474010425,
+            "command_gripper_pct": 36.67397608140299
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              -4.353121337756406,
+              2.008741095544355,
+              68.79141579467488
+            ],
+            "tool_error_mm": 68.95827429109579,
+            "jaw_gap_mm": 53.88656439172671,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 45.766666666666666,
+            "max_joint_tracking_error_deg": 1.8252485273754324,
+            "measured_gripper_pct": 36.69757438498538,
+            "command_gripper_pct": 36.59329912877938
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              -180.31393599731425,
+              -186.6062549793098,
+              122.12136491936558
+            ],
+            "tool_error_mm": 286.7902328915955,
+            "jaw_gap_mm": 6.796730651883543,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.6,
+            "max_joint_tracking_error_deg": 0.8990099891245883,
+            "measured_gripper_pct": 2.4886045256066542,
+            "command_gripper_pct": 2.4284585007018102
+          },
+          "closing_events": 143,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 68.47266517764997,
+        "closest_closing_tool_error_mm": 68.95827429109579
+      },
+      {
+        "start_id": "id-002",
+        "zone": "MR",
+        "policy_seed": 102768121,
+        "success": true,
+        "elapsed_sim_s": 38.2,
+        "wall_time_s": 48.868491612999605,
+        "failure_mode": null,
+        "stages": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_box": true,
+          "placed": true,
+          "success": true
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 67.4,
+          "milestone_times_s": {
+            "reached": 7.633333333333333,
+            "grasped": 35.0,
+            "lifted": 35.0,
+            "over_box": 35.833333333333336,
+            "placed": 37.4
+          },
+          "stop_reason": null
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              -1.6384006951834613,
+              5.8752033477190295,
+              3.211846216381403
+            ],
+            "tool_error_mm": 6.893353852277574,
+            "jaw_gap_mm": 24.17026524959459,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 34.53333333333333,
+            "max_joint_tracking_error_deg": 1.0896542292379843,
+            "measured_gripper_pct": 15.100396701094592,
+            "command_gripper_pct": 15.110487529435426
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              -3.042382546709315,
+              6.179697872253846,
+              3.981498241720655
+            ],
+            "tool_error_mm": 7.955946555984701,
+            "jaw_gap_mm": 24.134967677937855,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 34.7,
+            "max_joint_tracking_error_deg": 1.019520139293001,
+            "measured_gripper_pct": 15.075171570637162,
+            "command_gripper_pct": 14.85502991674049
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              36.633959391311556,
+              -3.3622149333268276,
+              85.74663693875505
+            ],
+            "tool_error_mm": 93.30507604760216,
+            "jaw_gap_mm": 6.635225969850563,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 1.1666666666666667,
+            "max_joint_tracking_error_deg": 2.0251886549492157,
+            "measured_gripper_pct": 2.3681130032268864,
+            "command_gripper_pct": 2.2933596873925386
+          },
+          "closing_events": 75,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 6.893353852277574,
+        "closest_closing_tool_error_mm": 7.955946555984701
+      },
+      {
+        "start_id": "id-003",
+        "zone": "NL",
+        "policy_seed": 1457670348,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 76.08417906199975,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              -56.48989578289229,
+              74.653353155096,
+              27.90720726481676
+            ],
+            "tool_error_mm": 97.68850331632149,
+            "jaw_gap_mm": 49.677553928741766,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 37.13333333333333,
+            "max_joint_tracking_error_deg": 1.523504430222609,
+            "measured_gripper_pct": 33.524072904816684,
+            "command_gripper_pct": 33.78452664565791
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              -52.72272239675197,
+              78.61821354935073,
+              24.82800775608482
+            ],
+            "tool_error_mm": 97.86183591039202,
+            "jaw_gap_mm": 52.11915775225906,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 29.4,
+            "max_joint_tracking_error_deg": 1.4465725945061705,
+            "measured_gripper_pct": 35.356873448172145,
+            "command_gripper_pct": 35.37825194027428
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              2.43829353405885,
+              -57.6545808077416,
+              128.29298059724843
+            ],
+            "tool_error_mm": 140.67368209441523,
+            "jaw_gap_mm": 6.0577555349159775,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.9333333333333333,
+            "max_joint_tracking_error_deg": 1.8118955075480576,
+            "measured_gripper_pct": 1.9367834525091407,
+            "command_gripper_pct": 1.904343158583021
+          },
+          "closing_events": 159,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 97.68850331632149,
+        "closest_closing_tool_error_mm": 97.86183591039202
+      },
+      {
+        "start_id": "id-004",
+        "zone": "FL",
+        "policy_seed": 3168261539,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 74.8026204179996,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              0.7794950679812195,
+              1.2289704551184908,
+              40.59594152540791
+            ],
+            "tool_error_mm": 40.62201926634002,
+            "jaw_gap_mm": 45.8285363138223,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 23.266666666666666,
+            "max_joint_tracking_error_deg": 1.5735970375954826,
+            "measured_gripper_pct": 30.673814784066,
+            "command_gripper_pct": 30.66747202203221
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              4.40919027849623,
+              2.1590937479370536,
+              41.02818177086468
+            ],
+            "tool_error_mm": 41.3208705637657,
+            "jaw_gap_mm": 44.99910586821525,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 50.7,
+            "max_joint_tracking_error_deg": 1.5565318099542058,
+            "measured_gripper_pct": 30.064979483029663,
+            "command_gripper_pct": 29.852968858876753
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              77.6648198141282,
+              -142.82906109792845,
+              116.15088519596657
+            ],
+            "tool_error_mm": 199.80738991009162,
+            "jaw_gap_mm": 7.081178083895986,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.4666666666666667,
+            "max_joint_tracking_error_deg": 0.8626597223617805,
+            "measured_gripper_pct": 2.7005045472644875,
+            "command_gripper_pct": 2.6594046600917967
+          },
+          "closing_events": 124,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 40.62201926634002,
+        "closest_closing_tool_error_mm": 41.3208705637657
+      },
+      {
+        "start_id": "id-006",
+        "zone": "NC",
+        "policy_seed": 1502902985,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 76.43543119900005,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              20.467046609949737,
+              36.287107645994965,
+              -1.3415110066214013
+            ],
+            "tool_error_mm": 41.68277617945772,
+            "jaw_gap_mm": 3.4924147484627994,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 22.733333333333334,
+            "max_joint_tracking_error_deg": 0.8075264353814375,
+            "measured_gripper_pct": 0.006211855816391094,
+            "command_gripper_pct": -5.116968796156387e-07
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              41.09461203235667,
+              49.66512234126544,
+              -5.643642205744197
+            ],
+            "tool_error_mm": 64.70890365791429,
+            "jaw_gap_mm": 3.6491222587448355,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 3.3666666666666667,
+            "max_joint_tracking_error_deg": 0.788490698164612,
+            "measured_gripper_pct": 0.1248584509623947,
+            "command_gripper_pct": -5.116968796156387e-07
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              54.33371178557176,
+              72.26165049841947,
+              -14.64134279841037
+            ],
+            "tool_error_mm": 91.58748434198785,
+            "jaw_gap_mm": 6.280079697116236,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.7,
+            "max_joint_tracking_error_deg": 0.8240964743078885,
+            "measured_gripper_pct": 2.102969716594153,
+            "command_gripper_pct": 2.0167696246371514
+          },
+          "closing_events": 9,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 41.68277617945772,
+        "closest_closing_tool_error_mm": 64.70890365791429
+      },
+      {
+        "start_id": "id-011",
+        "zone": "FC",
+        "policy_seed": 1917032099,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 76.50038289500026,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              0.7290344506709935,
+              2.3144724474735354,
+              64.42183330887835
+            ],
+            "tool_error_mm": 64.4675180289833,
+            "jaw_gap_mm": 50.54921753141906,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 17.333333333333332,
+            "max_joint_tracking_error_deg": 1.6106269081807068,
+            "measured_gripper_pct": 34.17597099625423,
+            "command_gripper_pct": 34.111582492485375
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              0.7290344506709935,
+              2.3144724474735354,
+              64.42183330887835
+            ],
+            "tool_error_mm": 64.4675180289833,
+            "jaw_gap_mm": 50.54921753141906,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 17.333333333333332,
+            "max_joint_tracking_error_deg": 1.6106269081807068,
+            "measured_gripper_pct": 34.17597099625423,
+            "command_gripper_pct": 34.111582492485375
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              -93.07679416350106,
+              -50.532298662980594,
+              195.57585254518324
+            ],
+            "tool_error_mm": 222.41114387254672,
+            "jaw_gap_mm": 6.413867650788091,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 1.2333333333333334,
+            "max_joint_tracking_error_deg": 2.234305141672911,
+            "measured_gripper_pct": 2.202859680889869,
+            "command_gripper_pct": 2.1264795381804813
+          },
+          "closing_events": 131,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 64.4675180289833,
+        "closest_closing_tool_error_mm": 64.4675180289833
+      },
+      {
+        "start_id": "id-013",
+        "zone": "ML",
+        "policy_seed": 2875337577,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 76.2080866669994,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              -78.49242299933076,
+              52.208646218566706,
+              97.93010228105982
+            ],
+            "tool_error_mm": 135.93052689171833,
+            "jaw_gap_mm": 18.38135317221531,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 4.333333333333333,
+            "max_joint_tracking_error_deg": 5.468943567486611,
+            "measured_gripper_pct": 10.953012698119624,
+            "command_gripper_pct": 15.924779577652906
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              -66.94720962456988,
+              127.12958213572134,
+              31.622226486557782
+            ],
+            "tool_error_mm": 147.11840380620765,
+            "jaw_gap_mm": 49.86098191476318,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 55.1,
+            "max_joint_tracking_error_deg": 1.6405260612724377,
+            "measured_gripper_pct": 33.66103993009553,
+            "command_gripper_pct": 33.20673921134645
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              240.04403698488878,
+              10.541164779820372,
+              21.816598414936216
+            ],
+            "tool_error_mm": 241.2637971460214,
+            "jaw_gap_mm": 6.534267480794781,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.8333333333333334,
+            "max_joint_tracking_error_deg": 0.853862438710804,
+            "measured_gripper_pct": 2.292748074998678,
+            "command_gripper_pct": 2.2167016801691886
+          },
+          "closing_events": 145,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 135.93052689171833,
+        "closest_closing_tool_error_mm": 147.11840380620765
+      },
+      {
+        "start_id": "ood-000",
+        "zone": "OUT",
+        "policy_seed": 3350049564,
+        "success": false,
+        "elapsed_sim_s": 60.0,
+        "wall_time_s": 76.50712813100017,
+        "failure_mode": "never_reached",
+        "stages": {
+          "reached": false,
+          "grasped": false,
+          "lifted": false,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "smoke_deadline": {
+          "reach_timeout_s": 60.0,
+          "progress_timeout_s": 30.0,
+          "deadline_s": 60.0,
+          "milestone_times_s": {},
+          "stop_reason": "reach_timeout"
+        },
+        "grasp_diagnostics": {
+          "closest": {
+            "tool_error_xyz_mm": [
+              5.443740656338146,
+              -4.689073261127039,
+              108.68264526214317
+            ],
+            "tool_error_mm": 108.91987468574564,
+            "jaw_gap_mm": 45.43829021837675,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 32.166666666666664,
+            "max_joint_tracking_error_deg": 1.660067232487844,
+            "measured_gripper_pct": 30.387130012180474,
+            "command_gripper_pct": 30.41450975685791
+          },
+          "closest_closing": {
+            "tool_error_xyz_mm": [
+              21.240206655816994,
+              0.2656631352516148,
+              108.40395324223998
+            ],
+            "tool_error_mm": 110.46553324104762,
+            "jaw_gap_mm": 47.01109331795036,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 34.13333333333333,
+            "max_joint_tracking_error_deg": 1.9936878224971168,
+            "measured_gripper_pct": 31.5449355584937,
+            "command_gripper_pct": 31.540950764039295
+          },
+          "first_closing": {
+            "tool_error_xyz_mm": [
+              -64.04824792035743,
+              -279.9723289505311,
+              169.70419293238035
+            ],
+            "tool_error_mm": 333.59585749598654,
+            "jaw_gap_mm": 6.855596057559409,
+            "cube_width_mm": 20.0,
+            "sim_time_s": 0.5,
+            "max_joint_tracking_error_deg": 0.8635203261972021,
+            "measured_gripper_pct": 2.5324450261838134,
+            "command_gripper_pct": 2.441026048774633
+          },
+          "closing_events": 131,
+          "coordinate_frame": "fixed gripper; tool point is cube centre against fixed fingertip",
+          "jaw_gap_source": "opposing CAD fingertip centres projected on gripper X"
+        },
+        "closest_tool_error_mm": 108.91987468574564,
+        "closest_closing_tool_error_mm": 110.46553324104762
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "created_utc": "2026-10-26T07:44:51.756819+00:00",
+  "experiment_base_commit": "875519ed62291e626095b88ab9abe54bc56f3c04",
+  "publication_base_commit": "7da176c18548d9454891fa40e271e4dac1c602f8",
+  "files": {
+    "checkpoint_quantiles.json": "37c4fcb899103875d52f2baf83558f2f7f1046bf9b14af354de3a4dfd2fe7aac",
+    "front_wrist.policy.toml": "21c001320bebf0a9733d76ed76432a17e82f5eab44135add7d31054e01fa4def",
+    "full-failures-before.txt": "5e557f44bb0af397f2e494529644e9416dd31dd02f63a8b84bccc8376068349f",
+    "full-failures-publication.txt": "5e557f44bb0af397f2e494529644e9416dd31dd02f63a8b84bccc8376068349f",
+    "local_action_quantiles.txt": "b2f0841057e0d777c9f64c2c7a70446cab876165763f41efe88d917281c6bff1",
+    "old_control-console.txt": "da8ba98bc9ea263deedf6eabefc562eb3d8e96d19c4b7acae9ed2b2b9703fd8e",
+    "old_control.result.json": "19227110c409652119443a375b35ba6e094024bb9b65144f44b3259003a53f3a",
+    "old_control.yaml": "b254b1579fae3eee91f4d8f98311ad2c2235bd60a366a49d5363f27e4f26796d",
+    "old_no_pan_adaptation-console.txt": "4beb090428eae0180d70921901494f1354ff92d1a8ff9c79bb0b88055dfab4c7",
+    "old_no_pan_adaptation.result.json": "4c1596ebcf5751dee6a7d5169dbf8c100eb2739682956d6095aa7930a4838137",
+    "old_no_pan_adaptation.yaml": "f3a014ef84e153b2408e2e0cae293781c958ca3c2e8f8a2d2ea4e43081437c73",
+    "old_wrist_minus90-console.txt": "7a48b85b548e51c2a5b0911b7332534e158a21743ddaf904e0edd85d31c3ace5",
+    "old_wrist_minus90.result.json": "09862c5685627f017a110cb0169f9f45a7f7a0a24835b53ddd4862ac18296670",
+    "old_wrist_minus90.yaml": "e0855f201fcafbfd791c7f8690b67231885ba5ee2322d90d6ad483246489d5b8",
+    "old_wrist_plus90-console.txt": "8bcd0056284813aa26f2ca7d2fffd883dcd3183cd581a89fc67870d9ceae2059",
+    "old_wrist_plus90.result.json": "53e1dd08b423659470db870954b29092b9c6a2976b34eb80b066ba0b11bf8c28",
+    "old_wrist_plus90.yaml": "939075f8d1fcc86a1df3c0c976abe23e3e525d4013471a5f4902e1be3491e564",
+    "pick_place_molmo_old_usd.yaml": "bec29563ff0e681a2a863785a774465cdfea2f143b7e3ec639834c2224379edb",
+    "pick_place_molmo_two_cameras.yaml": "f882ab3d29d0ce984a17f4bca4944e6ada2ffd4f656c892214870ac579b5c348",
+    "publication-targeted.txt": "2b3a69f84c0a0ddbc82fa660fc9d5537e4bc2f358a25aca32cd20074a4db5842",
+    "publication-validation.json": "78eda4209106889d6c0becde6aef1a3db36016fe9e436bf23347c12168685ba7",
+    "quantile_fit.json": "4bc9ad924723fc2de4b2452a8e74560b3215e36c072841e61384cc3dcaf9c52b",
+    "reachable_output_bounds.json": "8a2e301d13cc82f3b248b4b0963b84fb936b9f74a1647395b9756932773f9bee",
+    "sim-before.txt": "9cba10a6e746ad75c1c51ea39c60ef9bce0239dffa262e783adea6683040e623",
+    "sim-publication.txt": "9cba10a6e746ad75c1c51ea39c60ef9bce0239dffa262e783adea6683040e623",
+    "smoke-front-wrist-console.txt": "d6866e65cf86045c5295f8942120c0d2bced9c72b22c23f59ae58a8ec103f23c",
+    "smoke-old-usd-console.txt": "8a4fc69246e2cf2ab07b30c33d19926bd536fb83b1bd4e9a72fd026aa36b21d5"
+  },
+  "console_text_normalization": "Line endings normalized to LF and trailing spaces/tabs removed; all messages and numeric data retained.",
+  "original_console_sha256": {
+    "smoke-old-usd-console.txt": "894725d7329d90ef277611ee81b07d53c60375cd12508071d906b4854b0be76c",
+    "old_no_pan_adaptation-console.txt": "ca309c0361d2c368f3afc3bc69ccfb04d8f36e0402ff554c949edf0d148448a0",
+    "old_control-console.txt": "077654dded6e69f70cd2887863cea979a8d2bdddbeeaaa3f3698c89028c92d6f",
+    "old_wrist_plus90-console.txt": "a83c20666dd7e0309dbf4a7dbaea8c3b5e01a0fa4f9ce27d0ebe8cf37175f805",
+    "smoke-front-wrist-console.txt": "528df3b62edb77a83f20ea696fd3b880e95b780bee0ec2e17d87ec16b4948100",
+    "old_wrist_minus90-console.txt": "05634779d45a6fadc6e363c6af22ccdf5a7529737e2e4f502c021df4457b50fe"
+  }
+}

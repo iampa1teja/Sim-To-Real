@@ -16,6 +16,69 @@ JOINTS = ["shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos", "wrist_flex
 CAMERAS = ["room", "wrist"]
 
 
+class CalibrationMappingTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "follower.json"
+        ranges = ((725, 3411), (831, 3326), (877, 3109), (888, 3245), (0, 4095), (2039, 3514))
+        self.calibration = {
+            name: {"id": index + 1, "drive_mode": 0, "homing_offset": 123, "range_min": low, "range_max": high}
+            for index, (name, (low, high)) in enumerate(zip(rr.FOLLOWER_JOINTS, ranges))
+        }
+
+    def mapping(self):
+        self.path.write_text(json.dumps(self.calibration), encoding="utf-8")
+        return rr.follower_mapping_from_calibration(self.path)
+
+    def test_audited_follower_ranges_and_body_scales(self):
+        mapping = self.mapping()
+        expected = ((-116.279296875, 119.794921875), (-106.962890625, 112.32421875),
+                    (-102.919921875, 93.251953125), (-101.953125, 105.205078125),
+                    (-180.0, 179.912109375), (-0.791015625, 128.84765625))
+        for name, (low, high) in zip(rr.FOLLOWER_JOINTS, expected):
+            self.assertEqual(mapping[name], {"joint_min": low, "joint_max": high})
+        setup = json.loads((ROOT / "source/sim_to_real_so101/assets/real_setup.json").read_text(encoding="utf-8"))
+        self.assertEqual(mapping["shoulder_pan"], setup["sim_joint_mapping"]["shoulder_pan"])
+        scales = [(mapping[name]["joint_max"] - mapping[name]["joint_min"]) / 200
+                  for name in rr.FOLLOWER_JOINTS[:5]]
+        np.testing.assert_allclose(scales, [1.1804, 1.0964, 0.9809, 1.0358, 1.7996], rtol=0, atol=0.00005)
+
+    def test_missing_file_names_the_path(self):
+        with self.assertRaisesRegex(ValueError, f"Cannot read follower calibration file {self.path}"):
+            rr.follower_mapping_from_calibration(self.path)
+
+    def test_missing_joint_names_the_joint(self):
+        for name in rr.FOLLOWER_JOINTS:
+            with self.subTest(name=name):
+                entry = self.calibration.pop(name)
+                with self.assertRaisesRegex(ValueError, f"missing joint {name}"):
+                    self.mapping()
+                self.calibration[name] = entry
+
+    def test_bad_ranges_are_rejected(self):
+        for low, high in ((10, 10), (20, 10), (None, 10), (0, "4095"), (True, 10),
+                          (0, float("nan")), (float("-inf"), 10)):
+            with self.subTest(low=low, high=high):
+                self.calibration["shoulder_pan"].update(range_min=low, range_max=high)
+                with self.assertRaisesRegex(ValueError, "shoulder_pan range_"):
+                    self.mapping()
+        del self.calibration["shoulder_pan"]["range_min"]
+        with self.assertRaisesRegex(ValueError, "shoulder_pan range_min"):
+            self.mapping()
+
+    def test_malformed_json_and_joint_objects_are_rejected(self):
+        self.path.write_text("{", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Cannot read follower calibration file"):
+            rr.follower_mapping_from_calibration(self.path)
+        self.calibration = []
+        with self.assertRaisesRegex(ValueError, "must contain a joint object"):
+            self.mapping()
+        self.calibration = {"shoulder_pan": []}
+        with self.assertRaisesRegex(ValueError, "shoulder_pan must contain range_min"):
+            self.mapping()
+
+
 class FakeClock:
     def __init__(self):
         self.now = 0.0

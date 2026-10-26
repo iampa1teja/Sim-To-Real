@@ -3,10 +3,13 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -78,8 +81,15 @@ class ScriptTest(unittest.TestCase):
         self.dir = Path(self.tmp.name)
         self.calibration = self.dir / "rpd_robot.json"
         self.calibration.write_text("{}", encoding="utf-8")
+        self.mapping_file = self.dir / "mapping.json"
+        ranges = ((725, 3411), (831, 3326), (877, 3109), (888, 3245), (0, 4095), (2039, 3514))
+        self.mapping_file.write_text(json.dumps({
+            name.removesuffix(".pos"): {"range_min": low, "range_max": high}
+            for name, (low, high) in zip(JOINTS, ranges)
+        }), encoding="utf-8")
 
-    def run_script(self, extra=(), answers=(), calibrated=True, calibration_exists=True, policy=None):
+    def run_script(self, extra=(), answers=(), calibrated=True, calibration_exists=True, policy=None,
+                   interface_factory=None):
         if not calibration_exists:
             self.calibration.unlink()
         interface = FakeInterface(self.calibration, calibrated)
@@ -87,11 +97,12 @@ class ScriptTest(unittest.TestCase):
         answers = iter(answers)
         argv = ["--policy", "demo", "--lang_instruction", "pick it", "--follower_port", "/dev/ttyACM1",
                 "--follower_id", "rpd_robot", "--camera_gripper", "/dev/g", "--camera_external", "/dev/e",
+                "--calibration_file", str(self.mapping_file),
                 "--fps", "10", "--episode_seconds", "0.3", "--output", str(self.dir / "out"), *extra]
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             try:
-                code = script.main(argv, interface_factory=lambda args: interface,
+                code = script.main(argv, interface_factory=interface_factory or (lambda args: interface),
                                    policy_factory=lambda args, iface: policy, input_fn=lambda prompt: next(answers))
             except SystemExit as exit_:
                 code = exit_.code
@@ -99,6 +110,11 @@ class ScriptTest(unittest.TestCase):
 
     def report(self):
         return json.loads((self.dir / "out" / "report.json").read_text(encoding="utf-8"))
+
+    def test_default_action_horizon_is_thirty_and_can_be_overridden(self):
+        argv = ["--policy", "molmoact2", "--lang_instruction", "pick it"]
+        self.assertEqual(script.build_parser().parse_args(argv).action_horizon, 30)
+        self.assertEqual(script.build_parser().parse_args([*argv, "--action_horizon", "8"]).action_horizon, 8)
 
     def test_default_is_shadow_mode_and_never_moves_the_arm(self):
         code, interface, policy, text = self.run_script(["--no_prompt"])
@@ -126,6 +142,54 @@ class ScriptTest(unittest.TestCase):
         self.assertIn("lerobot-calibrate", str(code))
         self.assertNotIn("connect(calibrate=False)", interface.events)
         self.assertEqual(interface.events[-1], "disconnect")
+
+    def test_main_hands_calibration_mapping_to_the_follower_interface(self):
+        interface = FakeInterface(self.calibration)
+        constructor = Mock(return_value=interface)
+        module = SimpleNamespace(LeRobotSO101Interface=constructor)
+        factory = Mock(side_effect=script.make_interface)
+        with patch.dict(sys.modules, {"sim_to_real_so101.utils.lerobot_interface": module}):
+            code, _, _, _ = self.run_script(["--no_prompt"], interface_factory=factory)
+        self.assertEqual(code, 0)
+        factory.assert_called_once()
+        constructor.assert_called_once()
+        kwargs = constructor.call_args.kwargs
+        self.assertEqual(kwargs["kind"], "follower")
+        self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(self.mapping_file))
+        self.assertEqual(kwargs["joint_mapping"]["wrist_roll"], {"joint_min": -180.0, "joint_max": 179.912109375})
+        self.assertEqual(interface.robot.sent, [])
+
+    def test_missing_or_invalid_mapping_refuses_before_interface_factory(self):
+        for content, message in ((None, "Cannot read follower calibration file"), ("{}", "missing joint"),
+                                 ('{"shoulder_pan": {"range_min": 1, "range_max": 0}}', "range_max")):
+            with self.subTest(content=content):
+                if content is None:
+                    self.mapping_file.unlink()
+                else:
+                    self.mapping_file.write_text(content, encoding="utf-8")
+                factory = Mock(side_effect=AssertionError("must not initialize hardware"))
+                code, interface, policy, text = self.run_script(["--no_prompt"], interface_factory=factory)
+                self.assertEqual(code, 2)
+                self.assertIn(message, text)
+                factory.assert_not_called()
+                self.assertEqual(interface.events, [])
+                self.assertEqual(policy.inference_calls, 0)
+
+    def test_default_mapping_path_uses_calibration_root_and_follower_id(self):
+        for root in (self.dir, None):
+            with self.subTest(root=root), patch.dict(os.environ, {}, clear=True), patch.object(
+                    script.rr, "follower_mapping_from_calibration", return_value={}) as load:
+                if root is not None:
+                    os.environ["HF_LEROBOT_CALIBRATION"] = str(root)
+                os.environ["ROBOT_ID"] = "rpd_robot"
+                args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it"])
+                script.validate(args)
+                expected_root = root or Path("~/.cache/huggingface/lerobot/calibration").expanduser()
+                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json")
+                args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it",
+                                                        "--follower_id", "other_robot"])
+                script.validate(args)
+                self.assertEqual(load.call_args.args[0], expected_root / "robots/so101_follower/other_robot.json")
 
     def test_calibration_mismatch_on_the_arm_refuses_to_run(self):
         code, interface, policy, _ = self.run_script(["--no_prompt", "--enable-motion"], calibrated=False)

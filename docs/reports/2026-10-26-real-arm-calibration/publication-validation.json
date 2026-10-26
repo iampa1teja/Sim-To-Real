@@ -1,0 +1,28 @@
+{
+  "verified_utc": "2026-10-26T07:46:20.708480+00:00",
+  "publication_base_commit": "7da176c18548d9454891fa40e271e4dac1c602f8",
+  "targeted": {
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest tests/test_real_rollout.py tests/test_real_rollout_script.py -q",
+    "exit_code": 0,
+    "passed": 30
+  },
+  "simulator_regression": {
+    "passed": 108,
+    "pre_existing_failures": 4,
+    "skipped": 14,
+    "before_after_per_test_diff_exit_code": 0
+  },
+  "full_suite": {
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /usr/bin/python3 -m pytest tests -q -rA --continue-on-collection-errors",
+    "exit_code": 1,
+    "passed": 518,
+    "failed": 89,
+    "skipped": 53,
+    "collection_errors": 14,
+    "before_after_failed_error_sets_diff_exit_code": 0
+  },
+  "hardware_connected": false,
+  "experimentation_status": "paused",
+  "portable_artifact_hashes_verified": true,
+  "report_relative_links_verified": true
+}

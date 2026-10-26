@@ -1,0 +1,471 @@
+[
+  {
+    "id": "old_control",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      -65.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      43.53107398260694
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_wrist_minus90",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      24.424313823546584
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      133.53107398260693
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      27.017195741500075
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2,
+      4
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        -90.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_wrist_plus90",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      -155.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      -46.46892601739306
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      43.87604409943957
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2,
+      4
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        90.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_no_pan_adaptation",
+    "available_joint_min_degrees": [
+      -42.1300246338976,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      -65.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      48.55349563198916,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      43.53107398260694
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        1.1803710460662842,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        1.7578125,
+        90.0,
+        85.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  {
+    "id": "new_control",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      -65.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      43.53107398260694
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_body_quantile_fit",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -99.49687580988527,
+      -51.18643970153036,
+      -12.007738980421477,
+      -75.99003926260299
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      58.65827839630091,
+      88.98305787249727,
+      84.87103918876332,
+      24.232069599087804
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      0.0,
+      0.2698260386355429,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -0.8910483121871948,
+        0.9366996884346008,
+        0.8676486611366272,
+        1.7418394088745117,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        97.44994354248047,
+        80.9404067993164,
+        15.896622657775879,
+        17.150840759277344,
+        0.0
+      ]
+    }
+  },
+  {
+    "id": "old_lift_quantile_fit",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -99.49687580988527,
+      -54.59940817037187,
+      4.929781836327758,
+      -65.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      58.65827839630091,
+      83.60767220139971,
+      93.41056417929472,
+      43.53107398260694
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      0.0,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -0.8910483121871948,
+        0.949999988079071,
+        0.949999988079071,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        97.44994354248047,
+        85.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_wrist_flex_quantile_fit",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      -12.007738980421477,
+      -65.57568617645342
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      84.87103918876332,
+      43.53107398260694
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.8676486611366272,
+        1.600000023841858,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        15.896622657775879,
+        0.0,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  },
+  {
+    "id": "old_wrist_roll_quantile_fit",
+    "available_joint_min_degrees": [
+      -93.16212975675451,
+      -96.10646680077767,
+      -54.59940817037187,
+      4.929781836327758,
+      -75.99003926260299
+    ],
+    "available_joint_max_degrees": [
+      91.8421923026758,
+      44.81741641835005,
+      83.60767220139971,
+      93.41056417929472,
+      24.232069599087804
+    ],
+    "initial_pose_gap_degrees": [
+      0.0,
+      3.0856947592809263,
+      5.645211709733104,
+      0.0,
+      0.0
+    ],
+    "initial_state_clipped_joint_indices": [
+      1,
+      2
+    ],
+    "joint_transform": {
+      "input_joint_units": "usd_normalized",
+      "model_joint_units": "so100_so101_molmoact2",
+      "scale": [
+        0.5785821676254272,
+        -1.0,
+        0.949999988079071,
+        0.949999988079071,
+        1.7418394088745117,
+        1.0
+      ],
+      "offset": [
+        4.3968586921691895,
+        90.0,
+        85.0,
+        0.0,
+        17.150840759277344,
+        0.0
+      ],
+      "pan_adaptation": {
+        "scale": 0.49016972984379564,
+        "offset": 3.5352321757436442,
+        "status": "experimental policy adaptation; not physical calibration"
+      }
+    }
+  }
+]

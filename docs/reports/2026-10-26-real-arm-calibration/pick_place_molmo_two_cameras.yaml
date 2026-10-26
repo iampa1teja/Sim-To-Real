@@ -1,0 +1,42 @@
+task: pick_place
+policy:
+  name: molmoact2
+  checkpoint: molmoact2_so101
+  models_dir: /external_storage/molmoact2
+  server_image: policy-server:latest
+  options:
+    norm_tag: so100_so101_molmoact2
+    dtype: bfloat16
+    action_dtype: float32
+    include_original_room: false
+    pan_model_scale: 0.49016972984379564
+    pan_model_offset: 3.5352321757436442
+    num_steps: 10
+eval:
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
+  episodes: 150
+  splits:
+  - id
+  - ood
+  - yaw
+  - train
+  repeats: 1
+  start_mode: cycle
+  random_fraction: 0.0
+  robot_start: recorded
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
+  action_horizon: 30
+  action_repeat: 1
+  molmo_overhead_camera: false
+  episode_length_s: 180
+  render_warmup: 0
+  save_videos: true
+  video_encoder: libx264
+  lang: Pick up the blue cube and place it in the white box
+  rename_map:
+    realsense_rgb: front
+    wrist_cam: wrist
+run:
+  gui: false
+  rerun: false
