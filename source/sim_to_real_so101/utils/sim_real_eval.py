@@ -39,13 +39,15 @@ class Trial:
     sim: dict
     real: dict
     created: str
+    cube_pose_w: list | None = None      # cube position xyz + quaternion wxyz in the world frame at the trial start
+    arm_start_state: list | None = None  # sim arm start pose in raw LeRobot units (the real arm should match)
 
     def to_dict(self):
         return asdict(self)
 
     @classmethod
     def from_dict(cls, d):
-        return cls(**{f.name: d[f.name] for f in fields(cls)})
+        return cls(**{f.name: d[f.name] for f in fields(cls) if f.name in d})
 
 
 def append_trial(path, trial):
@@ -220,7 +222,9 @@ class SimRealSession:
             trial = Trial(trial_id=self._next_id(), start_id=str(self.start['start_id']),
                           split=str(self.start['split']), x=float(self.start['x']), y=float(self.start['y']),
                           yaw=float(self.start['yaw']), sim=dict(self.sim), real=dict(self.real),
-                          created=self._now().isoformat(timespec='seconds'))
+                          created=self._now().isoformat(timespec='seconds'),
+                          cube_pose_w=self.start.get("cube_pose_w"),
+                          arm_start_state=self.start.get("arm_start_state"))
             append_trial(self.out_dir / 'trials.jsonl', trial)
             self.trials.append(trial)
             write_trials_report(self.out_dir / 'report.json', self.header, self.trials)

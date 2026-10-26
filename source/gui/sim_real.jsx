@@ -19,8 +19,6 @@ const fmtPp = (gap) => (typeof gap === "number" ? (100 * gap).toFixed(1) : "—"
 const fmtP = (p) => (typeof p === "number" ? p.toFixed(3) : "—");
 const fmtM = (v) => (typeof v === "number" ? v.toFixed(3) : "—");
 const toDeg = (rad) => (typeof rad === "number" ? ((rad * 180) / Math.PI).toFixed(1) : "—");
-const round3 = (v) => Math.round(v * 1000) / 1000;
-const parseField = (text) => (text.trim() === "" ? NaN : Number(text));
 const labelText = (label) => {
   if (label === null || label === undefined) return "—";
   return typeof label === "string" ? label : show(label.stage);
@@ -92,34 +90,25 @@ function squarePoints({ x, y, yaw }, side) {
     .join(" ");
 }
 
-function StartMap({ info, current, disabled, onPick }) {
-  const svgRef = useRef(null);
+function StartMap({ info, trials, current }) {
   const scene = info?.scene ?? {};
   const outline = scene.table_outline_base_xy ?? [];
   const footprint = scene.box_footprint_base_xy ?? [];
-  const starts = info?.starts ?? [];
   const view = mapViewBox(outline);
   const dot = view.w * 0.008;
   const robot = view.w * 0.016;
 
-  const onClick = (event) => {
-    const svg = svgRef.current;
-    const ctm = svg?.getScreenCTM ? svg.getScreenCTM() : null;
-    if (disabled || !ctm) return;
-    const point = svg.createSVGPoint();
-    point.x = event.clientX;
-    point.y = event.clientY;
-    const local = point.matrixTransform(ctm.inverse());
-    onPick(round3(local.x), round3(-local.y));
-  };
-
   return (
-    <svg ref={svgRef} className="map" viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
-      role="img" aria-label="Top-down map in the robot base frame, click to set x and y" onClick={onClick}>
+    <svg className="map" viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+      role="img" aria-label="Top-down map in the robot base frame">
       {outline.length > 0 && <polygon className="map-table" points={polyPoints(outline)} />}
       {footprint.length > 0 && <polygon className="map-box" points={polyPoints(footprint)} />}
-      {starts.map((s, i) => <circle key={`${s.start_id}-${i}`} className="map-start" cx={s.x} cy={-s.y} r={dot} />)}
-      {current && <polygon className="map-current" points={squarePoints(current, SIDE_M)} />}
+      {trials.map((t) => (
+        typeof t.x === "number" && typeof t.y === "number"
+          ? <circle key={t.trial_id} className="map-trial" style={{ fill: "var(--ink-muted)" }} cx={t.x} cy={-t.y} r={dot} />
+          : null
+      ))}
+      {current && <polygon className="map-current" style={{ fill: "var(--cobalt)" }} points={squarePoints(current, SIDE_M)} />}
       <circle className="map-robot" cx={0} cy={0} r={robot} />
     </svg>
   );
@@ -216,7 +205,7 @@ function TrialsTable({ trials }) {
       <table>
         <thead>
           <tr>
-            <th className="n">ID</th><th>Start</th><th className="n">x (m)</th><th className="n">y (m)</th>
+            <th className="n">ID</th><th>Cube</th><th className="n">x (m)</th><th className="n">y (m)</th>
             <th className="n">Yaw (deg)</th><th>Sim</th><th>Real</th><th>Real note</th>
           </tr>
         </thead>
@@ -242,8 +231,6 @@ function TrialsTable({ trials }) {
 function App() {
   const [payload, connected] = useSimRealStream();
   const [fault, setFault] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [manual, setManual] = useState({ x: "0", y: "0", yaw: "0" });
   const [pick, setPick] = useState("none");
   const [note, setNote] = useState("");
   const [opacity, setOpacity] = useState(50);
@@ -258,12 +245,10 @@ function App() {
   const locked = !live || !!payload?.busy || !!payload?.pending;
   const running = state.endsWith("_running");
   const realPlaced = !!session?.real_placed;
-  const starts = info?.starts ?? [];
-  const index = selectedIndex < starts.length ? selectedIndex : 0;
   const trials = [...(payload?.trials ?? [])].sort((a, b) => b.trial_id - a.trial_id);
 
   // Enabled buttons follow the session state table in the contract.
-  const canSpawn = live && !locked && ["idle", "spawned", "sim_done"].includes(state);
+  const canSpawn = live && !locked && state === "idle";
   const canPlaced = live && !locked && ["spawned", "sim_done"].includes(state);
   const canRunSim = live && !locked && ["spawned", "sim_done", "real_done"].includes(state);
   const canRunReal = live && !locked && realPlaced && ["sim_done", "real_done"].includes(state);
@@ -276,19 +261,6 @@ function App() {
     setFault(null);
     postCommand(body).catch((err) => setFault(err.message));
   };
-
-  const spawnManual = () => {
-    const x = parseField(manual.x);
-    const y = parseField(manual.y);
-    const yawDeg = parseField(manual.yaw);
-    if (![x, y, yawDeg].every(Number.isFinite)) {
-      setFault("x, y and yaw must be numbers");
-      return;
-    }
-    send({ cmd: "spawn", x, y, yaw: (yawDeg * Math.PI) / 180 });
-  };
-
-  const pickPoint = (x, y) => setManual((m) => ({ ...m, x: String(x), y: String(y) }));
 
   return (
     <main>
@@ -312,7 +284,6 @@ function App() {
         <div><dt>Policy</dt><dd>{show(info?.policy)}</dd></div>
         <div><dt>Checkpoint</dt><dd>{show(info?.checkpoint)}</dd></div>
         <div><dt>Instruction</dt><dd>{show(info?.instruction)}</dd></div>
-        <div><dt>Eval set</dt><dd>{show(info?.eval_set)}</dd></div>
       </dl>
 
       <div className="statusbar">
@@ -328,44 +299,16 @@ function App() {
 
       <div className="columns">
         <div className="col">
-          <section className="panel" aria-label="Start picker">
-            <h2 className="label panel-title">Start</h2>
-            <div className="row">
-              <select aria-label="Eval-set start" value={index} disabled={!canSpawn || starts.length === 0}
-                onChange={(e) => setSelectedIndex(Number(e.target.value))}>
-                {starts.map((s, i) => (
-                  <option key={`${s.start_id}-${i}`} value={i}>{`${s.start_id} (${s.split})`}</option>
-                ))}
-              </select>
-              <button className="btn" disabled={!canSpawn || starts.length === 0}
-                onClick={() => send({ cmd: "spawn", start_id: starts[index]?.start_id })}>
-                Spawn selected
-              </button>
-            </div>
-            <div className="fields">
-              <label className="field">
-                <span className="label">x (m)</span>
-                <input type="number" step="any" value={manual.x} disabled={!canSpawn}
-                  onChange={(e) => setManual((m) => ({ ...m, x: e.target.value }))} />
-              </label>
-              <label className="field">
-                <span className="label">y (m)</span>
-                <input type="number" step="any" value={manual.y} disabled={!canSpawn}
-                  onChange={(e) => setManual((m) => ({ ...m, y: e.target.value }))} />
-              </label>
-              <label className="field">
-                <span className="label">yaw (deg)</span>
-                <input type="number" step="any" value={manual.yaw} disabled={!canSpawn}
-                  onChange={(e) => setManual((m) => ({ ...m, yaw: e.target.value }))} />
-              </label>
-            </div>
-            <button className="btn" disabled={!canSpawn} onClick={spawnManual}>Spawn manual</button>
+          <section className="panel" aria-label="Cube start">
+            <h2 className="label panel-title">Cube start</h2>
+            <p className="hint">Move the leader arm to put the sim gripper where the cube should start, then Spawn cube. The sim arm then returns to its start pose; put the real arm in the same pose and the real cube on the overlay.</p>
+            <button className="btn" disabled={!canSpawn} onClick={() => send({ cmd: "spawn" })}>Spawn cube</button>
           </section>
 
           <section className="panel" aria-label="Map">
             <h2 className="label panel-title">Map, robot base frame (m)</h2>
-            <StartMap info={info} current={session?.start ?? null} disabled={!canSpawn} onPick={pickPoint} />
-            <p className="hint">Click the map to fill x and y. +y is up.</p>
+            <StartMap info={info} trials={trials} current={session?.start ?? null} />
+            <p className="hint">Top view, robot base frame: grey = saved trials, blue = current cube</p>
           </section>
 
           <section className="panel" aria-label="Trial">

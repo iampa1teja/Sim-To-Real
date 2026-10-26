@@ -10,7 +10,6 @@ are only driven from its thread. Stop is a flag the real rollout polls.
 import base64
 import io
 import json
-import math
 import threading
 import time
 from collections import deque
@@ -41,20 +40,6 @@ def parse_command(body) -> dict:
     if not isinstance(body, dict) or not isinstance(body.get("cmd"), str) or body["cmd"] not in COMMANDS:
         raise ValueError(f"Expected JSON object with \"cmd\" in {COMMANDS}")
     cmd = body["cmd"]
-    if cmd == "spawn":
-        if "start_id" in body:
-            start_id = body["start_id"]
-            if not isinstance(start_id, str) or not 0 < len(start_id) <= 100:
-                raise ValueError("start_id must be a non-empty string of at most 100 characters")
-            return {"cmd": cmd, "start_id": start_id}
-        pose = {}
-        for key, limit in (("x", 2.0), ("y", 2.0), ("yaw", 7.0)):
-            value = body.get(key)
-            if (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
-                    or abs(value) > limit):
-                raise ValueError(f"spawn needs start_id or a finite {key} with |{key}| <= {limit:g}")
-            pose[key] = float(value)
-        return {"cmd": cmd, **pose}
     if cmd == "label":
         stage = body.get("stage")
         if not isinstance(stage, str) or stage not in STAGE_ORDER:

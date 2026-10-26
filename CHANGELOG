@@ -5,11 +5,9 @@ All notable changes to this project will be documented in this file.
 ## 26-10-26 /1
 
 ## Added
-- Paired sim/real evaluation page (`sim_real_eval`, `./so101 sim-real-eval`, docs/09): one start is run in Isaac and
-  on the real arm with one policy server, and the per-stage sim-to-real gap is reported
-
-## Changed
-- Eval reset accepts forced starts (cube pose and arm start pose) so a sim trial can match a recorded real setup
+- Paired sim/real evaluation page (`sim_real_eval`, `./so101 sim-real-eval`, docs/09): one cube start, spawned with
+  the leader arm as in recording, is run in Isaac and on the real arm with one policy server, and the per-stage
+  sim-to-real gap is reported
 
 
 ## 29-11-25 /1

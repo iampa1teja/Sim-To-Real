@@ -2,10 +2,11 @@
 
 [Guide hub](../README.md) · Previous: [Real-arm rollout](08-real-arm-rollout.md)
 
-`sim_real_eval` runs one fixed start in Isaac and then on the physical SO-101 follower, one after the other, with the
-same policy. Both halves query one policy server, so only one copy of the model is in GPU memory. After each trial it
-reports the per-stage gap between sim and real, which shows where the simulator is optimistic. It runs in the teleop
-container (`./so101 sim-real-eval`) and serves a page at http://localhost:8766.
+`sim_real_eval` runs one cube start in Isaac and then on the physical SO-101 follower, one after the other, with the
+same policy. The cube start is spawned with the leader arm, as in recording. Both halves query one policy server, so
+only one copy of the model is in GPU memory. After each trial it reports the per-stage gap between sim and real, which
+shows where the simulator is optimistic. It runs in the teleop container (`./so101 sim-real-eval`) and serves a page at
+http://localhost:8766.
 
 > **Not yet run on hardware.** The trial flow, stage labelling and report are covered by tests with a fake robot,
 > a fake simulator and a fake policy. The real arm has not been run through this page. Do the shadow pass below first.
@@ -15,7 +16,9 @@ container (`./so101 sim-real-eval`) and serves a page at http://localhost:8766.
 1. The follower is calibrated and the teleop container has the arm and cameras attached, as in
    [Real-arm rollout](08-real-arm-rollout.md#before-the-first-run). `/root/env` has `ROBOT_PORT`, `ROBOT_ID`,
    `CAMERA_GRIPPER`, `CAMERA_EXTERNAL` and `CONTROL_FPS`.
-2. A policy server is up for the checkpoint, either on its own or from the host-managed lifecycle:
+2. The leader arm is connected (`TELEOP_PORT`/`TELEOP_ID` in `/root/env`, or `--leader_port`/`--leader_id`). It drives
+   the sim arm between trials, as in recording.
+3. A policy server is up for the checkpoint, either on its own or from the host-managed lifecycle:
 
 ```bash
 ./so101 serve --policy groot_n17 --checkpoint <ckpt> --models-dir /external_storage/models
@@ -26,14 +29,14 @@ container (`./so101 sim-real-eval`) and serves a page at http://localhost:8766.
 ## Start
 
 ```bash
-./so101 sim-real-eval --policy groot_n17 --eval_set eval_sets/pick_place_v1_seed1984.json \
-  --lang_instruction "Pick up the blue cube and place it in the white box"
+./so101 sim-real-eval --policy groot_n17 --lang_instruction "Pick up the blue cube and place it in the white box"
 ```
 
 Useful flags:
 
 - `--enable-motion` lets the arm move. Without it the arm is read and the policy is queried, but nothing is sent.
 - `--no_real` opens the page and runs the sim half without an arm connected.
+- `--settle_steps` sets how many sim steps the spawned cube settles before its pose is recorded (default 30).
 - `--resume outputs/sim_real_eval/<time>` continues an earlier session and appends to its trials.
 - `--gui_port` changes the page port (default 8766).
 
@@ -42,18 +45,21 @@ with `./so101 tunnel --host <gpu-host> --port 8766`, then open the same address 
 
 ## One trial
 
-1. **Pick a start.** Choose an entry in the eval-set dropdown, type x, y and yaw, or click a point on the table map.
-2. **Spawn.** The sim resets with the cube at that pose and the arm at the start's recorded arm pose, shown in raw
-   LeRobot units.
-3. **Match the real scene.** Put the real arm in that arm pose and place the real cube so it lines up with the sim cube
-   in the overlay. Use the opacity slider; Difference mode turns matching areas black. Then press **Placed**.
-4. **Run sim.** The policy runs in Isaac. The stage is detected automatically.
-5. **Run real.** Enabled only after a sim run and **Placed**. The arm moves only if `--enable-motion` is set.
-   **Stop** works at any time.
-6. **Save.** Pick the furthest stage the real arm reached and save. The sim stage is already recorded.
+1. **Position with the leader.** Between trials the leader arm teleoperates the sim arm, as in recording. Move it so the
+   sim gripper is where the cube should start.
+2. **Spawn cube.** The cube appears beside the sim gripper's fixed jaw, at the same placement as the recorder's spawn.
+   It settles for a moment and its pose is recorded. The sim arm then returns to its home (start) pose. The page shows
+   that pose in raw LeRobot units.
+3. **Match the real scene.** Put the real arm in that start pose and place the real cube where the sim cube is, using
+   the overlay. Use the opacity slider; Difference mode turns matching areas black. Then press **Placed**.
+4. **Run sim, then Run real.** Run sim restarts from exactly the recorded scene: the arm at home and the recorded cube
+   pose. The policy runs in Isaac and the stage is detected automatically. Then press **Run real**, which is enabled
+   only after a sim run and **Placed**. The arm moves only if `--enable-motion` is set. **Stop** works at any time.
+5. **Save or Discard.** Pick the furthest stage the real arm reached and press **Save**. **Discard** drops the trial and
+   writes nothing. The leader drives the sim arm again only after Save or Discard.
 
-**Discard** throws the trial away and writes nothing. **Run sim** and **Run real** can be pressed again to re-run that
-half; re-running clears the result and label that come after it.
+**Run sim** and **Run real** can be pressed again to re-run that half; re-running clears the result and label that come
+after it.
 
 ## Stages
 
@@ -87,10 +93,12 @@ Label the real arm with the same meaning: the furthest stage it reached during i
 
 Each session writes to `outputs/sim_real_eval/<time>/` (or the folder given with `--output`):
 
-- `trials.jsonl` holds one line per saved trial, appended on each save.
+- `trials.jsonl` holds one line per saved trial, appended on each save. Each trial stores the cube's start position
+  (x, y, yaw in the robot base frame), its world pose (`cube_pose_w`) and the arm start pose, alongside its sim result,
+  real result and label.
 - `report.json` (schema `so101_sim_real_eval_v1`) is rewritten atomically on each save. It holds:
-  - `header`: policy, checkpoint, instruction, eval set and its hash, motion flag and safety limits;
-  - `trials`: every saved trial with its start, sim result, real result and label;
+  - `header`: policy, checkpoint, instruction, motion flag and safety limits;
+  - `trials`: every saved trial with its cube start, sim result, real result and label;
   - `summary`: per-stage rates for sim, real and the gap (sim minus real); a confusion matrix of sim stage by real
     stage; paired success counts (both, sim only, real only, neither) with an exact McNemar test.
 - `real_trial_NNN.jsonl` holds the per-step real trace for each real run.
@@ -101,8 +109,6 @@ between sim and real comes from the scene and the arm, not from the client.
 ## Limitations
 
 - The Isaac and hardware paths are tested only with fakes. Expect the first real run to surface problems.
-- Matching the scene is manual. The cube position and the arm's start pose are set by hand, so small offsets count
-  against the gap. The page does not move the arm to the recorded start pose.
-- Keep the same eval set (and its hash) across the checkpoints you compare, as in
-  [Evaluation](06-evaluation.md).
+- Matching the scene is manual. The real cube is placed by eye using the overlay, and the real arm is put in the start
+  pose by hand, so small offsets count against the gap. The page does not move the real arm to the recorded start pose.
 - The sim side runs one environment, so `--num_envs` must be 1 or unset.

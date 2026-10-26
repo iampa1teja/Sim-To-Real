@@ -301,6 +301,8 @@ docker/env
 !/tests/test_so101_cli.py
 !/tests/test_real_rollout.py
 !/tests/test_real_rollout_script.py
+!/tests/test_sim_real_eval.py
+!/tests/test_sim_real_web_gui.py
 !/tests/test_entrypoint_env.py
 !/tests/test_train_image_runtime.py
 !/tests/test_n17_absolute_stats.py
