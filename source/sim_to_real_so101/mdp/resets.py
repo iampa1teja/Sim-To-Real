@@ -269,6 +269,10 @@ def reset_cube_from_recorded_starts(
     With reset_robot, the arm is also put at the recorded first-frame state of the same
     episode (the mean recorded state for random starts), so the policy starts from the
     same initial conditions it was trained on.
+
+    If env._sim_real_forced_start is set (start_id, split, x, y, yaw in the base-link frame and optionally
+    arm_start_state in raw LeRobot units), the cube is placed at that pose and the arm at that state instead of
+    the sampled start's.
     """
     from sim_to_real_so101.utils.pick_place_eval import (
         RecordedStarts, SO101_USD_JOINTS, dataset_state_to_radians, resting_pose, rotation_matrix,
@@ -323,11 +327,21 @@ def reset_cube_from_recorded_starts(
             return not footprints_overlap(footprint(world, rotation, size), box_polygon)
 
         start, p, q, zone = sampler.sample(accepts_random)
-        if start == -1 or (eval_set and sampler.current['split'] != 'train'):
+        forced = getattr(env, "_sim_real_forced_start", None)
+        if forced is not None:
+            half = float(forced["yaw"]) / 2
+            p = np.array([float(forced["x"]), float(forced["y"]), 0.0])
+            q = np.array([math.cos(half), 0.0, 0.0, math.sin(half)])
+        if forced is not None or start == -1 or (eval_set and sampler.current['split'] != 'train'):
             q = upright_orientation(base_q, plane, q)
         world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
-        if start != -1 and footprints_overlap(footprint(world, rotation, size), box_polygon):
-            raise ValueError(f"Recorded start {start} overlaps the live white box; verify the dataset and box pose")
+        overlaps = (forced is not None or start != -1) and footprints_overlap(
+            footprint(world, rotation, size), box_polygon)
+        if overlaps:
+            raise ValueError(
+                f"Start {forced['start_id']} overlaps the live white box; move the cube away from the box"
+                if forced is not None else
+                f"Recorded start {start} overlaps the live white box; verify the dataset and box pose")
         positions.append(world)
         orientations.append(math_utils.quat_mul(
             torch.as_tensor(base_q, device=env.device),
@@ -335,11 +349,17 @@ def reset_cube_from_recorded_starts(
         ))
         env._pick_place_start_index[index] = start
         env._pick_place_start_zone[index] = zone
-        if eval_set:
+        if forced is not None:
+            env._benchmark_start = dict(sampler.current if eval_set else {}, id=str(forced["start_id"]),
+                                        split=str(forced["split"]), x=float(forced["x"]), y=float(forced["y"]),
+                                        yaw=float(forced["yaw"]))
+        elif eval_set:
             env._benchmark_start = dict(sampler.current)
         if reset_robot:
-            joint_starts.append(dataset_state_to_radians(
-                sampler.robot_state(start), getattr(env.cfg, "sim_joint_mapping", None)))
+            arm_state = (np.asarray(forced["arm_start_state"], dtype=float)
+                         if forced is not None and forced.get("arm_start_state") is not None
+                         else sampler.robot_state(start))
+            joint_starts.append(dataset_state_to_radians(arm_state, getattr(env.cfg, "sim_joint_mapping", None)))
     if reset_robot:
         joint_ids, _ = robot.find_joints(list(SO101_USD_JOINTS), preserve_order=True)
         joint_pos = torch.as_tensor(np.array(joint_starts), device=env.device, dtype=robot.data.joint_pos.dtype)

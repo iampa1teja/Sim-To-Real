@@ -362,6 +362,11 @@ class MainTest(unittest.TestCase):
         _, _, _, run = self.run_main(["record", "--task", "Lerobot-So101-Teleop-Pick-Place"])
         self.assertEqual(run.call_args.args[0][10:], ("pick_place_agent", "--task", "Lerobot-So101-Teleop-Pick-Place"))
 
+    def test_sim_real_eval_passes_flags_through(self):
+        _, out, _, run = self.run_main(["sim-real-eval", "--policy", "groot_n17", "--eval_set", "eval_sets/x.json"])
+        self.assertEqual(run.call_args.args[0][-5:], ("sim_real_eval", "--policy", "groot_n17", "--eval_set", "eval_sets/x.json"))
+        self.assertIn("so101 sim_real_eval --policy groot_n17 --eval_set eval_sets/x.json", out)
+
     def test_leading_dry_run_prints_pass_through_commands_without_running_them(self):
         code, out, _, run = self.run_main(["--dry-run", "rollout", "--policy", "molmoact2", "--dry-run"])
         self.assertEqual(code, 0)

@@ -208,6 +208,8 @@ and viewer troubleshooting.
 | [04 Recording](docs/04-recording.md) | Recorder flags, GUI, storage, coverage and failed demos |
 | [05 Training](docs/05-training.md) | Filtered preparation, verification and GR00T fine-tuning |
 | [06 Evaluation](docs/06-evaluation.md) | Recorded starts, DR, results and simulation diagnostics |
+| [08 Real-arm rollout](docs/08-real-arm-rollout.md) | Shadow runs, motion limits and arm safety on the physical follower |
+| [09 Paired sim/real evaluation](docs/09-sim-real-eval.md) | `./so101 sim-real-eval`: same start in sim and on the real arm, per-stage gap |
 | [Troubleshooting](docs/troubleshooting.md) | Symptoms, recovery and known implementation gaps |
 
 ## Repository layout

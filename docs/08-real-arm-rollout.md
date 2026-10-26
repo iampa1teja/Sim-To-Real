@@ -61,3 +61,5 @@ or pass `--release-on-exit` (the arm will fall), to release it. Lower it to a re
 `report.json` holds the run settings, one entry per episode (status, steps, seconds, outcome, inference calls) and a
 summary where only labelled episodes count towards the success rate. It is a separate format from the simulator's
 fixed-start benchmark report, so `compare_eval_results.py` does not read it.
+
+Next: [Paired sim/real evaluation](09-sim-real-eval.md)

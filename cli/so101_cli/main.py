@@ -9,9 +9,9 @@ import sys
 REPO = Path(__file__).resolve().parents[2]
 # Commands that hand every argument, flags included, to another program. argparse cannot do this reliably:
 # a REMAINDER positional rejects a first argument that starts with a dash.
-PASSTHROUGH = {"eval": "", "record": "pick_place_agent", "rollout": "real_rollout"}
+PASSTHROUGH = {"eval": "", "record": "pick_place_agent", "rollout": "real_rollout", "sim-real-eval": "sim_real_eval"}
 USAGE_NOTE = (
-    "For eval, record and rollout, flags after the command belong to the wrapped program; to only print its command "
+    "For eval, record, rollout and sim-real-eval, flags after the command belong to the wrapped program; to only print its command "
     "put --dry-run first: 'so101 --dry-run rollout --policy ...'. "
     "Remote GPU: run 'so101 sync', then serve/train with --host user@box --remote-root /abs/path. To evaluate a "
     "remote server from a local simulator: 'so101 tunnel --host user@box --port N', then "
@@ -76,7 +76,9 @@ def build_parser():
 
     for name, program, summary in (
             ("record", "pick_place_agent", "record demonstrations: runs pick_place_agent in the teleop container"),
-            ("rollout", "real_rollout", "run a served policy on the real arm: runs real_rollout in the teleop container")):
+            ("rollout", "real_rollout", "run a served policy on the real arm: runs real_rollout in the teleop container"),
+            ("sim-real-eval", "sim_real_eval",
+             "paired sim/real evaluation page (http://localhost:8766): runs sim_real_eval in the teleop container")):
         sub = commands.add_parser(name, help=summary + "; everything after the command is passed to it")
         sub.set_defaults(program=program)
         sub.add_argument("args", nargs=argparse.REMAINDER)
@@ -120,7 +122,7 @@ def make_plan(args, repo, policies):
             return plan.plan_pull(roles, registry=args.registry, tag=args.tag)
         return plan.plan_build(roles, repo, registry=args.registry, tag=args.tag, push=args.push,
                                allow_isaac_push=args.allow_isaac_push)
-    if args.command in ("record", "rollout"):
+    if args.command in ("record", "rollout", "sim-real-eval"):
         return plan.plan_teleop(args.program, args.args)
     if args.command == "tunnel":
         return plan.plan_tunnel(args.host, args.port)
