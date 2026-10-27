@@ -155,3 +155,37 @@ Tests cover observed-extrema coverage, the restricted wrist range, jaw anchor/li
 | `/tmp/so101-camera-gripper-recording/part4-host-tests.txt` | `743f4053f98d4adcfe4425e7dd10d69ebe01468bb9b733050b1f10788958a6ff` |
 | `/tmp/so101-camera-gripper-recording/part4-container-tests.txt` | `55e284b3e2ee5a5e787bf92b1976d50301bef8baa065234f4926010651e2ed2c` |
 | `/tmp/so101-camera-gripper-recording/collision_meshes.npz` | `60ffd4bedc951fd3d7cceec2dd41dc1fd830814803ca2864a8dbeb1dc371ddb8` |
+
+## Part 5 — calibrated_A2, sources unchanged
+
+Created **`datasets/pick_place_v1_calibrated_A2` directly from the ORIGINAL `pick_place_v1`**, never from calibrated_A. Method A applies `inverse_new_mapping(old_mapping(units))` to both actions and observation.state, without clamping. Metadata joint statistics are transformed too. Maximum preserved physical-angle error is **0.00000488311°** (float32 relabel rounding). The explicit roll/contact values retain the Part 3 mapping; A2 is a fresh original-source derivation with current provenance, not a second relabel.
+
+A2 has **75 episodes / 16,448 frames**. All **150 original video files are byte-identical**. Fully decoded 16,448 frames in each camera, RGB 640×480. The official container `LeRobotDataset` reader reports 16,448 frames / 75 episodes and decodes both cameras at indices 0, 8,224 and 16,447. There are no failed video files in this decode check. Demonstration cube trajectories and source images remain unchanged.
+
+Part 5a's camera image rerender is **skipped** because Part 1 missed its gate. Part 5b's entire `pick_place_v1_realpaired` measurement dataset is **skipped for the same dependency**, including cube detection, hand-checked detection error and held-phase FK. No substitute paired dataset or cube-placement measurement is claimed. The Molmo smoke config now points to A2.
+
+Every file in the two source datasets, all four source hardware calibration files and all eight USD assets matches the before hash. These source dataset manifest digests use SHA-256 of the sorted path→file-SHA dictionary:
+
+| Source | Files | Before digest | After digest |
+|---|---:|---|---|
+| pick_place_v1 | 379 | `361878a6d44e6c2a6aea2d33ea89b0624fe848e2a37f9d0b9deaf53ba5bda1b3` | `361878a6d44e6c2a6aea2d33ea89b0624fe848e2a37f9d0b9deaf53ba5bda1b3` |
+| pick_place_v1-real | 249 | `7e8dfde4b3bc5a0d2647fe59063ef163a67ccacc3ff7751c346b43bf27e6fc05` | `7e8dfde4b3bc5a0d2647fe59063ef163a67ccacc3ff7751c346b43bf27e6fc05` |
+
+Hardware calibration files (before = after):
+
+| File | Matching SHA-256 |
+|---|---|
+| `/home/rpuser1/.cache/huggingface/lerobot/calibration/robots/so101_follower/orange_robot.json` | `54c01e5a649f7396b5d0b6c4d8b6e89a88b95b1305c82922ef1c42847e99a3ad` |
+| `/home/rpuser1/.cache/huggingface/lerobot/calibration/robots/so101_follower/rpd_robot.json` | `86c6eee0eb97435082d5d6b820dafc3c4ad774b424ad84105c32cad96365be03` |
+| `/home/rpuser1/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/orange_teleop.json` | `1e99f3fc1d9c15b11249393559f0661a17152ea6f1a3b45d37ecdf2af7eff6b3` |
+| `/home/rpuser1/.cache/huggingface/lerobot/calibration/teleoperators/so101_leader/rpd_teleop.json` | `baaf77e9fc25d93b6d5d3710bfd899be77cb9865b89d80340c12ef2c33f10518` |
+
+Evidence and all per-file hashes:
+
+| File | SHA-256 |
+|---|---|
+| `/tmp/so101-camera-gripper-recording/a2_relabel_manifest.json` | `b92b8198ab1e56821c6a87134749fae3dcfdc4c0ae11cfdccc902608c8171de4` |
+| `/tmp/so101-camera-gripper-recording/a2_lerobot_reader.json` | `58f011880fe01e3cec0dc415842e108be5dd722d2c56e3bef840a585c06fc2fc` |
+| `/tmp/so101-camera-gripper-recording/a2_video_decode.json` | `5547b9de620f31cef1471a928493f0b331e496e04dd8de3f1eb66c6623eced0c` |
+| `/tmp/so101-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
+| `/tmp/so101-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |

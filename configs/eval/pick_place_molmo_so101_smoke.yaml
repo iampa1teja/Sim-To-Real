@@ -20,7 +20,7 @@ policy:
     pan_model_offset: 3.5352321757436442
     num_steps: 10
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A2
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   splits:
   - id
