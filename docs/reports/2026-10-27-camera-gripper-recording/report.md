@@ -126,3 +126,32 @@ Validation: 43 host tests passed (21 subtests), including nonzero contact sample
 |---|---|
 | `/tmp/so101-camera-gripper-recording/part3-tests.txt` | `c84b94f19321f17dc22bf833a32dd20279b48839c79679ba855e94f9c5ce6d2a` |
 | `/tmp/so101-camera-gripper-recording/part3-container-import.txt` | `233aacf17c929f913d25e81ee318eabf46fe5eba91bd61211ef6422af88be77b` |
+
+## Part 4 — runtime limits
+
+Both clamps now read `runtime_joint_limits` in `real_setup.json`: the interface's code clamp and the startup PhysX articulation limits. The installed Isaac Lab call is `Articulation.write_joint_position_limit_to_sim(limits, joint_ids=..., env_ids=...)`, confirmed in `/workspace/isaaclab/source/isaaclab/isaaclab/assets/articulation/articulation.py:710`. Limits are radians at that API and degrees in JSON. A fresh Isaac environment read them back from `robot.data.joint_pos_limits`; all six match the code clamp within 0.00002°. Twelve full recorded poses at per-joint extrema pass the production mapping without clipping, maximum float32 conversion error 0.0000214°.
+
+Bounds are the union of previous bounds and observed real extrema plus 1°; the jaw lower is 5° below the retained unit-zero anchor. The wrist roll remains **−160…+160°**, which already covers −117.070…+39.551°; it was not expanded to ±180°.
+
+| Joint | Observed min / max (deg) | Runtime min / max (deg) |
+|---|---:|---:|
+| shoulder_pan | -111.88477 / 96.15234 | -112.88477 / 110.00000 |
+| shoulder_lift | -106.69922 / 99.93164 | -107.69922 / 100.93164 |
+| elbow_flex | -74.44336 / 92.37305 | -100.00000 / 93.37305 |
+| wrist_flex | -19.16016 / 103.79883 | -95.00000 / 104.79883 |
+| wrist_roll | -117.07031 / 39.55078 | -160.00000 / 160.00000 |
+| gripper | -8.15430 / 104.43359 | -15.00000 / 105.43359 |
+
+The base USD and its layers were not modified. Self-collision remains off. Checked the 12 recorded joint-extreme poses, configured start, and simultaneous all-lower/all-upper limit corners. Using conservative convex hulls of each authored collision mesh, FCL found **zero intersections** between the base and upper arm/distal links; minimum tested clearance is **5.229 mm**. The directly adjacent shoulder/base joint is excluded. These discrete checks do not prove clearance for every combined pose or intermediate trajectory.
+
+![Extreme pose checks](joint_limit_extremes.png)
+
+Tests cover observed-extrema coverage, the restricted wrist range, jaw anchor/limit separation, ordered radians passed to the actual API name, malformed limits and existing interface round trips. Host: 17 passed. Teleop container: 37 passed (8 subtests), including actual LeRobot interface round trips. Readback evidence:
+
+| Evidence | SHA-256 |
+|---|---|
+| `/tmp/so101-camera-gripper-recording/runtime_limits_verified.json` | `00bbbdc89f065afee75f8345e5961f41d503c6f895eb94ab5ca168c214956ee4` |
+| `/tmp/so101-camera-gripper-recording/base_clearance.json` | `57343e18cabc4d78074e0a79c7f2227aecf33c1bc95ed365a58e0dae35a43b3c` |
+| `/tmp/so101-camera-gripper-recording/part4-host-tests.txt` | `743f4053f98d4adcfe4425e7dd10d69ebe01468bb9b733050b1f10788958a6ff` |
+| `/tmp/so101-camera-gripper-recording/part4-container-tests.txt` | `55e284b3e2ee5a5e787bf92b1976d50301bef8baa065234f4926010651e2ed2c` |
+| `/tmp/so101-camera-gripper-recording/collision_meshes.npz` | `60ffd4bedc951fd3d7cceec2dd41dc1fd830814803ca2864a8dbeb1dc371ddb8` |
