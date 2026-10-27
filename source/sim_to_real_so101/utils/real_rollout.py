@@ -15,6 +15,7 @@ import numpy as np
 
 from sim_to_real_so101.utils.joint_calibration import (
     FOLLOWER_JOINTS, follower_mapping_from_calibration, sim_gripper_closed_degrees,
+    sim_mapping_parameters, sim_wrist_roll_zero_offset_degrees,
 )
 
 BODY_RANGE = (-100.0, 100.0)

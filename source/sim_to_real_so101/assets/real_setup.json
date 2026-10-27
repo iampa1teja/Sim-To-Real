@@ -491,8 +491,8 @@
     "encoder_counts_per_turn": 4096,
     "zero_count": 2048,
     "gripper_closed_degrees": -10.000003814697266,
-    "gripper_closed_source": "SO-ARM101-USD.usd:/so101_new_calib/joints/Jaw.physics:lowerLimit",
-    "note": "Unclipped follower ranges; the USD joint limits still clamp simulation targets. No added wrist zero offset. Gripper unit 0 is the USD closing end-stop.",
+    "gripper_closed_source": "Retained legacy -10.000003814697266 degrees at unit 0; empty-pad contact has not been established independently of the former USD lower limit. See Part 2B.",
+    "note": "Unclipped encoder spans, with explicit USD-vs-arm roll zero and gripper contact anchor. Anchor values and their verification status are independent of runtime articulation limits. Molmo's wrist_roll_model_offset remains a separate policy convention.",
     "joints": {
       "shoulder_pan": {
         "id": 1,
@@ -532,7 +532,7 @@
         "homing_offset": 1578,
         "range_min": 0,
         "range_max": 4095,
-        "method": "(count - 2048) * 360 / 4096"
+        "method": "(count - 2048) * 360 / 4096 + wrist_roll_zero_offset_degrees"
       },
       "gripper": {
         "id": 6,
@@ -540,8 +540,14 @@
         "homing_offset": -458,
         "range_min": 2039,
         "range_max": 3514,
-        "method": "closed_degrees + (count - range_min) * 360 / 4096"
+        "method": "closed_degrees + ((count - range_min) / (range_max - range_min) * 100 - contact_units) * (range_max - range_min) * 360 / 4096 / 100"
       }
-    }
+    },
+    "wrist_roll_zero_offset_degrees": 0.0,
+    "wrist_roll_fit_status": "unresolved",
+    "wrist_roll_fit_source": "docs/reports/2026-10-27-camera-gripper-recording/report.md, Part 2A; insufficient cross-episode edge consistency; retain prior zero",
+    "gripper_contact_units": 0.0,
+    "gripper_contact_fit_status": "unresolved",
+    "gripper_contact_proxy_degrees": -12.930982587
   }
 }

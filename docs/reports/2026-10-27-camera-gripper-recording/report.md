@@ -109,3 +109,20 @@ Additional bulk evidence:
 | `/tmp/so101-camera-gripper-recording/roll_fit.json` | `8dcb61e2aa50b0e795e96dd3588d6cb65173e44cc55af19a9abdf2345f00363b` |
 | `/tmp/so101-camera-gripper-recording/gripper_measurements.json` | `790c0402b631458c1f0a86961a880732eb0d366a9602852c7b37248c3d20c714` |
 | `/tmp/so101-camera-gripper-recording/gripper_fit.json` | `34b37adcbf954b40ffeee1e25ae6c422ca84c32edacde8064c211b7155af68c2` |
+
+## Part 3 — one shared mapping derivation
+
+`utils/joint_calibration.py` now accepts and validates explicit persisted `wrist_roll_zero_offset_degrees`, `gripper_closed_degrees`, and `gripper_contact_units`. The gripper anchor is the USD angle **at the stated contact sample**, so a future measured nonzero contact-unit value does not get mistaken for the unit-zero angle. Encoder spans are retained. Joint limits are independent of all three anchors.
+
+The unresolved roll fit retains offset **0°**. The unresolved contact fit retains **−10.000003814697266° at 0 units**. Both statuses and evidence references are saved in `sim_joint_mapping_source`; the CAD contact proxy is separately labelled. These are retained assumptions, not newly verified physical zeros.
+
+Regenerated `sim_joint_mapping` with `scripts/update_sim_calibration.py` from the unchanged rpd_robot calibration inside the teleop image. No mapping numbers were hand edited. The generator preserves anchor/provenance fields, accepts explicit anchor overrides, and no longer derives contact from the USD jaw lower limit. `assets/real_setup.py` recomputes with all anchors and still rejects stale persisted mappings. Real rollout passes the same complete anchor dictionary into the shared function.
+
+Molmo's **−90° policy convention is retained separately**. The unresolved arm fit cannot establish a replacement or independently prove −90° on the physical arm. There is no extra 90° in the shared mapping. Mapping midpoints still give wrist `arm_zero_degrees = −0.0439453125°`; a synthetic +90° arm-zero regression moves that policy zero to 89.9560546875° without changing its encoder span or Molmo option.
+
+Validation: 43 host tests passed (21 subtests), including nonzero contact samples, roll-offset midpoint consistency, invalid anchors, generator provenance preservation and real-rollout entry points. A fresh teleop-image import passed the runtime stale-map check (`PART3_SHARED_SETUP_IMPORT_OK`).
+
+| Evidence | SHA-256 |
+|---|---|
+| `/tmp/so101-camera-gripper-recording/part3-tests.txt` | `c84b94f19321f17dc22bf833a32dd20279b48839c79679ba855e94f9c5ce6d2a` |
+| `/tmp/so101-camera-gripper-recording/part3-container-import.txt` | `233aacf17c929f913d25e81ee318eabf46fe5eba91bd61211ef6422af88be77b` |

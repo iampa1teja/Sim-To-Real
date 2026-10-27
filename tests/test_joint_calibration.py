@@ -11,7 +11,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "source"))
-from sim_to_real_so101.utils.joint_calibration import FOLLOWER_JOINTS, follower_mapping_from_calibration
+from sim_to_real_so101.utils.joint_calibration import (
+    FOLLOWER_JOINTS, follower_mapping_from_calibration, sim_mapping_parameters,
+)
 from sim_to_real_so101.utils.calibration_dataset import (
     degrees_to_units, units_to_degrees, relabel_dataset, snapshot,
 )
@@ -23,7 +25,7 @@ MAPPING = SETUP["sim_joint_mapping"]
 
 def test_persisted_mapping_equals_shared_derivation_from_follower_json_fixture():
     source = SETUP["sim_joint_mapping_source"]
-    derived = follower_mapping_from_calibration(FIXTURE, gripper_closed_degrees=source["gripper_closed_degrees"])
+    derived = follower_mapping_from_calibration(FIXTURE, **sim_mapping_parameters(source))
     assert MAPPING == derived
     assert source["follower_id"] == "rpd_robot"
     fixture = json.loads(FIXTURE.read_text())
@@ -33,7 +35,7 @@ def test_persisted_mapping_equals_shared_derivation_from_follower_json_fixture()
         assert source["joints"][name]["method"]
 
 
-def test_gripper_zero_is_usd_closing_stop_and_span_is_measured_encoder_travel():
+def test_retained_gripper_anchor_and_measured_encoder_span():
     assert MAPPING["gripper"]["joint_min"] == pytest.approx(-10.000003814697266)
     assert MAPPING["gripper"]["joint_max"] - MAPPING["gripper"]["joint_min"] == (3514 - 2039) * 360 / 4096
     assert units_to_degrees([0] * 6, MAPPING)[-1] == MAPPING["gripper"]["joint_min"]
@@ -41,9 +43,57 @@ def test_gripper_zero_is_usd_closing_stop_and_span_is_measured_encoder_travel():
     assert units_to_degrees([100] * 6, MAPPING)[-1] > 100
 
 
-def test_wrist_encoder_2048_still_has_zero_degrees_without_ninety_degree_shift():
+def test_wrist_encoder_2048_uses_the_explicit_arm_zero():
     units = 2048 / 4095 * 200 - 100
-    assert units_to_degrees([0, 0, 0, 0, units, 0], MAPPING)[4] == pytest.approx(0, abs=1e-12)
+    assert units_to_degrees([0, 0, 0, 0, units, 0], MAPPING)[4] == pytest.approx(
+        SETUP["sim_joint_mapping_source"]["wrist_roll_zero_offset_degrees"], abs=1e-12)
+
+
+def test_nonzero_contact_sample_and_roll_offset_share_one_derivation():
+    anchors = dict(gripper_closed_degrees=-13, gripper_contact_units=1.4237288,
+                   wrist_roll_zero_offset_degrees=90)
+    mapping = follower_mapping_from_calibration(FIXTURE, **anchors)
+    raw = np.array([0, 0, 0, 0, 2048 / 4095 * 200 - 100, anchors["gripper_contact_units"]])
+    degrees = units_to_degrees(raw, mapping)
+    assert degrees[4] == pytest.approx(90)
+    assert degrees[5] == pytest.approx(-13)
+    # Policy zero is the mapping midpoint; the model's -90 convention is not folded into it.
+    assert sum(mapping["wrist_roll"].values()) / 2 == pytest.approx(90 - 360 / 4096 / 2)
+    np.testing.assert_allclose(degrees_to_units(degrees, mapping), raw, atol=1e-12)
+
+
+@pytest.mark.parametrize("anchors", [
+    {"wrist_roll_zero_offset_degrees": float("nan")},
+    {"wrist_roll_zero_offset_degrees": True},
+    {"gripper_contact_units": -1}, {"gripper_contact_units": 101},
+    {"gripper_contact_units": 1},
+])
+def test_invalid_anchors_are_rejected(anchors):
+    with pytest.raises(ValueError):
+        follower_mapping_from_calibration(FIXTURE, **anchors)
+
+
+def test_regenerator_preserves_contact_anchor_independent_of_joint_limits(tmp_path, monkeypatch):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("update_sim_calibration", ROOT / "scripts/update_sim_calibration.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    asset_dir = tmp_path / "source/sim_to_real_so101/assets"
+    asset_dir.mkdir(parents=True)
+    setup = json.loads(json.dumps(SETUP))
+    source = setup["sim_joint_mapping_source"]
+    source.update(gripper_closed_degrees=-13, gripper_contact_units=1.4,
+                  wrist_roll_zero_offset_degrees=90, measurement_status="test provenance")
+    setup["runtime_joint_limits"] = {"gripper": {"joint_min": -25, "joint_max": 110}}
+    path = asset_dir / "real_setup.json"
+    path.write_text(json.dumps(setup))
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["update_sim_calibration.py", "--calibration", str(FIXTURE)])
+    module.main()
+    result = json.loads(path.read_text())
+    assert result["sim_joint_mapping"] == follower_mapping_from_calibration(FIXTURE, **sim_mapping_parameters(source))
+    assert result["sim_joint_mapping_source"]["gripper_closed_degrees"] == -13
+    assert result["sim_joint_mapping_source"]["measurement_status"] == "test provenance"
 
 
 def test_initial_pose_is_unchanged_and_representable_by_the_new_mapping():

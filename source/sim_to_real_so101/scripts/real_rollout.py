@@ -72,7 +72,7 @@ def validate(args):
         args.calibration_file = Path(args.calibration_file).expanduser()
     try:
         args.joint_mapping = rr.follower_mapping_from_calibration(
-            args.calibration_file, gripper_closed_degrees=rr.sim_gripper_closed_degrees())
+            args.calibration_file, **rr.sim_mapping_parameters())
     except ValueError as error:
         errors.append(str(error))
     if not (args.camera_gripper or args.camera_external):

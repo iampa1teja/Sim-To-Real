@@ -9,14 +9,24 @@ ZERO_COUNT = 2048
 SETUP_PATH = Path(__file__).resolve().parents[1] / "assets/real_setup.json"
 
 
-def follower_mapping_from_calibration(calibration, *, gripper_closed_degrees=None):
-    """Derive unclipped bounds; optionally express gripper angles in the USD jaw frame.
+def follower_mapping_from_calibration(calibration, *, gripper_closed_degrees=None,
+                                      gripper_contact_units=0.0, wrist_roll_zero_offset_degrees=0.0):
+    """Derive unclipped bounds with explicit arm-to-USD zero anchors.
 
-    Body zero is always encoder 2048, including the full-turn wrist. Gripper
-    unit zero is range_min; its measured span is retained when anchoring it to
-    the USD closing end-stop. Omitting the anchor returns motor encoder angles.
+    Body encoder zero is 2048. The wrist offset expresses this arm's middle
+    pose in the USD frame; policy convention offsets belong to the policy.
+    The gripper anchor is the angle at gripper_contact_units, independent of
+    any articulation limit. Omitting it returns motor encoder angles.
     Accept a calibration file or the same joint object embedded in provenance.
     """
+    for name, value in (("wrist_roll_zero_offset_degrees", wrist_roll_zero_offset_degrees),
+                        ("gripper_contact_units", gripper_contact_units)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if not 0 <= gripper_contact_units <= 100:
+        raise ValueError("gripper_contact_units must be in 0..100")
+    if gripper_closed_degrees is None and gripper_contact_units != 0:
+        raise ValueError("gripper_contact_units requires gripper_closed_degrees")
     label = "object"
     if isinstance(calibration, (str, Path)):
         label = str(calibration)
@@ -40,15 +50,32 @@ def follower_mapping_from_calibration(calibration, *, gripper_closed_degrees=Non
             raise ValueError(f"Follower calibration {label}: {name} range_max must be greater than range_min")
         mapping[name] = {"joint_min": (low - ZERO_COUNT) * 360 / ENCODER_COUNTS_PER_TURN,
                          "joint_max": (high - ZERO_COUNT) * 360 / ENCODER_COUNTS_PER_TURN}
+        if name == "wrist_roll":
+            mapping[name] = {key: value + wrist_roll_zero_offset_degrees
+                             for key, value in mapping[name].items()}
         if name == "gripper" and gripper_closed_degrees is not None:
             if (isinstance(gripper_closed_degrees, bool) or not isinstance(gripper_closed_degrees, (int, float))
                     or not math.isfinite(gripper_closed_degrees)):
                 raise ValueError("gripper_closed_degrees must be finite")
-            mapping[name] = {"joint_min": float(gripper_closed_degrees),
-                             "joint_max": float(gripper_closed_degrees) + (high - low) * 360 / ENCODER_COUNTS_PER_TURN}
+            span = (high - low) * 360 / ENCODER_COUNTS_PER_TURN
+            minimum = float(gripper_closed_degrees) - gripper_contact_units * span / 100
+            mapping[name] = {"joint_min": minimum, "joint_max": minimum + span}
     return mapping
 
 
+def sim_mapping_parameters(source=None):
+    """Persisted anchors shared by setup validation, regeneration and real rollout."""
+    if source is None:
+        source = json.loads(SETUP_PATH.read_text())["sim_joint_mapping_source"]
+    return {"gripper_closed_degrees": source["gripper_closed_degrees"],
+            "gripper_contact_units": source.get("gripper_contact_units", 0.0),
+            "wrist_roll_zero_offset_degrees": source.get("wrist_roll_zero_offset_degrees", 0.0)}
+
+
 def sim_gripper_closed_degrees():
-    """The audited USD closing end-stop, persisted alongside the source calibration."""
-    return json.loads(SETUP_PATH.read_text())["sim_joint_mapping_source"]["gripper_closed_degrees"]
+    """The retained/measured gripper anchor; this is not a joint limit."""
+    return sim_mapping_parameters()["gripper_closed_degrees"]
+
+
+def sim_wrist_roll_zero_offset_degrees():
+    return sim_mapping_parameters()["wrist_roll_zero_offset_degrees"]

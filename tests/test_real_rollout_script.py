@@ -156,7 +156,7 @@ class ScriptTest(unittest.TestCase):
         kwargs = constructor.call_args.kwargs
         self.assertEqual(kwargs["kind"], "follower")
         self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(
-            self.mapping_file, gripper_closed_degrees=script.rr.sim_gripper_closed_degrees()))
+            self.mapping_file, **script.rr.sim_mapping_parameters()))
         self.assertEqual(kwargs["joint_mapping"]["wrist_roll"], {"joint_min": -180.0, "joint_max": 179.912109375})
         self.assertEqual(interface.robot.sent, [])
 
@@ -187,11 +187,22 @@ class ScriptTest(unittest.TestCase):
                 script.validate(args)
                 expected_root = root or Path("~/.cache/huggingface/lerobot/calibration").expanduser()
                 load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json",
-                                             gripper_closed_degrees=script.rr.sim_gripper_closed_degrees())
+                                             **script.rr.sim_mapping_parameters())
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it",
                                                         "--follower_id", "other_robot"])
                 script.validate(args)
                 self.assertEqual(load.call_args.args[0], expected_root / "robots/so101_follower/other_robot.json")
+
+    def test_shared_roll_and_nonzero_gripper_contact_anchor_reach_real_mapping(self):
+        anchors = dict(gripper_closed_degrees=-13, gripper_contact_units=1.4,
+                       wrist_roll_zero_offset_degrees=90)
+        with patch.object(script.rr, "sim_mapping_parameters", return_value=anchors):
+            args = script.build_parser().parse_args([
+                "--policy", "demo", "--lang_instruction", "pick it", "--calibration_file", str(self.mapping_file)])
+            script.validate(args)
+        expected = script.rr.follower_mapping_from_calibration(self.mapping_file, **anchors)
+        self.assertEqual(args.joint_mapping, expected)
+        self.assertEqual(args.joint_mapping["wrist_roll"]["joint_min"], -90)
 
     def test_calibration_mismatch_on_the_arm_refuses_to_run(self):
         code, interface, policy, _ = self.run_script(["--no_prompt", "--enable-motion"], calibrated=False)
