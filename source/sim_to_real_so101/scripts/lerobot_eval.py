@@ -75,6 +75,8 @@ parser.add_argument(
 parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-MyRoom", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=1984, help="Environment seed")
 parser.add_argument("--num_episodes", type=int, default=10, help="Number of episodes to evaluate")
+parser.add_argument("--policy_timeout_ms", type=_positive_int, default=15000,
+                    help="Policy request timeout; increase for CPU inference (default 15000 ms).")
 parser.add_argument(
     "--rename_map",
     type=str,
@@ -391,6 +393,9 @@ def _evaluate():
         if not sep or not key:
             raise ValueError(f"Invalid --policy_option {item!r}: expected KEY=VALUE")
         policy_options[key] = value
+    policy_timeout = getattr(args_cli, "policy_timeout_ms", 15000)
+    if policy_timeout <= 0:
+        raise ValueError("policy_timeout_ms must be positive")
     policy = SimRemotePolicy(
         robot_iface=robot_iface,
         policy_name=args_cli.policy,
@@ -398,6 +403,7 @@ def _evaluate():
         api_token=args_cli.policy_api_token,
         host=args_cli.policy_host,
         port=args_cli.policy_port,
+        timeout_ms=policy_timeout,
         action_horizon=args_cli.action_horizon,
         action_repeat=action_repeat,
         lang_instruction=args_cli.lang_instruction,

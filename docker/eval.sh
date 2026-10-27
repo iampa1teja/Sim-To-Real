@@ -11,7 +11,7 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
 
   <config>.yaml      Evaluation settings (policy, checkpoint, dataset, episodes, ...). A bare file
                      name is looked up in configs/eval/.
-  --dry_run          Print the docker commands instead of running them.
+  --dry_run          Print the docker commands instead of running them (alias: --dry-run).
   --external_server  Use a policy server that is already running on the configured port.
   --server_only      Start the policy server and wait until interrupted; no evaluation.
   --gui, --rerun     Show the simulator window / enable Rerun (also settable under run: in the YAML).
@@ -37,7 +37,7 @@ while (($#)); do
     case "$1" in
         --external_server) external_server=true; shift ;;
         --server_only) server_only=true; shift ;;
-        --dry_run) dry_run=true; shift ;;
+        --dry_run|--dry-run) dry_run=true; shift ;;
         --gui) gui_flag=true; shift ;;
         --rerun) rerun_flag=true; shift ;;
         --save_videos) save_videos_flag=true; shift ;;
@@ -432,6 +432,9 @@ eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$
     --policy "$policy_name" "${client_options[@]}"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
     --num_episodes "$episodes" --checkpoint "$model" --config_fingerprint "$config_fingerprint")
+if [[ -n ${SO101_POLICY_TIMEOUT_MS:-} ]]; then
+    eval_cmd+=(--policy_timeout_ms "$SO101_POLICY_TIMEOUT_MS")
+fi
 "$resume" && eval_cmd+=(--resume)
 if "$smoke_test"; then
     eval_cmd+=(--smoke-test --smoke-selection "$smoke_selection")

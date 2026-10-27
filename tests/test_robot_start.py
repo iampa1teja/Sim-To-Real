@@ -68,10 +68,12 @@ def reference_inverse(radians, mapping):
 
 class ConversionTests(unittest.TestCase):
     def test_known_values(self):
-        rad = E.dataset_state_to_radians([0, 0, 0, 0, 0, 0])
-        np.testing.assert_allclose(np.degrees(rad), [0, 0, -5, 0, 0, -10], atol=1e-9)
-        rad = E.dataset_state_to_radians([100, -100, 100, 100, -100, 100])
-        np.testing.assert_allclose(np.degrees(rad), [110, -100, 90, 95, -160, 100], atol=1e-9)
+        mapping = {name: {"joint_min": -80, "joint_max": 80} for name in E.SO101_JOINTS}
+        mapping["gripper"] = {"joint_min": -5, "joint_max": 85}
+        rad = E.dataset_state_to_radians([0, 0, 0, 0, 0, 0], mapping)
+        np.testing.assert_allclose(np.degrees(rad), [0, 0, 0, 0, 0, -5], atol=1e-9)
+        rad = E.dataset_state_to_radians([100, -100, 100, 100, -100, 100], mapping)
+        np.testing.assert_allclose(np.degrees(rad), [80, -80, 80, 80, -80, 85], atol=1e-9)
 
     def test_calibrated_pan_mapping_is_used_and_clamped(self):
         if "shoulder_pan" not in MAPPING:
@@ -80,7 +82,7 @@ class ConversionTests(unittest.TestCase):
         pan = np.degrees(E.dataset_state_to_radians([0, 0, 0, 0, 0, 0], MAPPING)[0])
         self.assertAlmostEqual(pan, (low + high) / 2, places=6)
         self.assertAlmostEqual(np.degrees(E.dataset_state_to_radians([-100, 0, 0, 0, 0, 0], MAPPING)[0]),
-                               max(low, -110), places=6)
+                               max(low, E.SO101_USD_LIMITS_DEG["shoulder_pan"][0]), places=6)
 
     def test_inverse_of_the_recorder(self):
         rng = np.random.default_rng(0)

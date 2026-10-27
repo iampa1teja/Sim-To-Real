@@ -325,6 +325,17 @@ reads settings from YAML; its optional flags are `--dry_run`, `--external_server
 `--server_only`, `--gui`, `--rerun`, `--save_videos`, `--resume [RESULTS.json]`, `--smoke-test`,
 and `--help`.
 
+`--dry-run` is an alias for `--dry_run`, including through `./so101 eval`.
+For a slow external policy server, `SO101_POLICY_TIMEOUT_MS=120000` increases
+the request timeout to two minutes; the default remains 15 seconds. This changes
+only how long the client waits, not action timing or the simulation deadline.
+
+The October 27 calibration/recording changes introduce shared runtime limits
+and a new A2 dataset provenance. Earlier simulation evaluation results are
+**not comparable** with runs after these changes. See the
+[camera/gripper report](reports/2026-10-27-camera-gripper-recording/report.md)
+for the gates, retained assumptions and one-episode verification.
+
 When `eval.eval_set` is configured, the selected benchmark starts and repeats
 determine the episode count; `eval.episodes` is used for runs without a fixed
 benchmark. The SO-101 Molmo profile selects 150 starts across its four splits.

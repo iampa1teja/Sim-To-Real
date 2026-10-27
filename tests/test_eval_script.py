@@ -59,6 +59,24 @@ def test_defaults_start_the_policy_server_and_the_evaluator(tmp_path):
     assert "--save_videos" not in client and "--video_dir" not in client
 
 
+@pytest.mark.parametrize("flag", ["--dry_run", "--dry-run"])
+def test_dry_run_spellings_print_commands_without_starting_docker(tmp_path, flag):
+    config = tmp_path / "alias.yaml"
+    config.write_text(textwrap.dedent(BASE))
+    result = subprocess.run(["bash", str(SCRIPT), str(config), flag],
+                            capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == 0, result.stderr
+    assert "docker run" in result.stdout
+    assert "docker exec" in result.stdout
+
+
+def test_cpu_policy_timeout_override_is_forwarded(tmp_path, monkeypatch):
+    monkeypatch.setenv("SO101_POLICY_TIMEOUT_MS", "120000")
+    result = run(tmp_path, BASE)
+    assert result.returncode == 0, result.stderr
+    assert "--policy_timeout_ms 120000" in find(result, "docker exec -e POLICIES_DIR")
+
+
 def test_save_videos_cli_and_yaml_options_reach_evaluator(tmp_path):
     result = run(tmp_path, BASE, "--save_videos")
     assert result.returncode == 0, result.stderr

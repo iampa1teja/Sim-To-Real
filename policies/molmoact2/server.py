@@ -328,7 +328,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             raise ValueError(f"state must have shape ({NUM_JOINTS},), got {state.shape}")
         # Camera order does not matter to the model, but keep the request's order for reproducibility.
         images = [Image.fromarray(np.asarray(image, dtype=np.uint8)) for image in request["images"].values()]
-        with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.dtype_name == "bfloat16"):
+        with torch.inference_mode(), torch.autocast(torch.device(self.device).type, dtype=torch.bfloat16,
+                                                   enabled=self.dtype_name == "bfloat16"):
             out = self.model.predict_action(
                 processor=self.processor,
                 images=images,

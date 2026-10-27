@@ -241,3 +241,212 @@ Validation: **40 host tests and 40 container tests passed** (21 subtests in each
 |---|---|
 | `/tmp/so101-camera-gripper-recording/part6-tests.txt` | `6b22ffbb14a545d4fabd34af32c64be1ad2e39b108df543a384840e5a6f0a5c9` |
 | `/tmp/so101-camera-gripper-recording/part6-container-tests.txt` | `ac03cbf699b6877c3dad43299d40ad23b5aa97f20f4751747c13a798c65ba883` |
+
+## Part 7 — final verification
+
+**Earlier simulation evaluation results are NOT comparable with results after these mapping/limit/recording changes.** This one-episode check is a run verification, not a reliability estimate or a physical-arm validation.
+
+### Dry run and the one Molmo episode
+
+The final launch inspection passed:
+
+```bash
+./so101 eval configs/eval/pick_place_molmo_so101_smoke.yaml --dry-run --smoke-test
+```
+
+The requested hyphenated flag exposed an existing launcher mismatch (`Unknown option --dry-run`); added an alias while retaining `--dry_run`. Both spellings have regression tests.
+
+Ran exactly **one** Molmo smoke episode from the requested config. Its default protocol schedules one start per zone, so an external temporary copy selects only the original first scheduled start **id-000 / MC**, retaining its original pose, seed **2177438227**, all policy options, H30/R1 timing and 60/30-second milestone deadlines. The base YAML remains the source configuration, now using A2; the exact temporary selection and hashes are recorded below. No extra rollout episode was run.
+
+The existing unrelated GPU policy process occupied about 13.6 GiB; it was left running. The repo's own Molmo server used the requested checkpoint on **CPU**, with BF16 backbone, FP32 action modules and the same autocast profile. A probe exposed the server's hard-coded CUDA autocast on CPU (`expected m1 and m2 to have the same dtype, but got: float != c10::BFloat16`). Changed autocast to the selected device and added a real CPU BF16 regression. The corrected probe returned a finite **30×6 float32** action chunk in **29.94 s**. Increased only the request wait limit to 120 seconds via the new `--policy_timeout_ms` / `SO101_POLICY_TIMEOUT_MS` override; the default stays 15 seconds. Simulation action timing and milestone limits are unchanged.
+
+Actual launch:
+
+```bash
+SO101_POLICY_TIMEOUT_MS=120000 ./so101 eval \
+  /tmp/so101-camera-gripper-recording/one_episode_molmo.yaml \
+  --external_server --smoke-test
+```
+
+**Result: completed successfully, 1/1 task success, 374 control steps; 12.47 simulated seconds / 417.55 wall seconds.** Logs explicitly confirm reached, grasped/lifted, over-box and placed milestones, final `[RESULT] complete: 1/1 episodes; success 1/1`, and launcher exit 0. The teleop runtime imported and connected normally; no final smoke ImportError, ModuleNotFoundError or traceback occurred. The initial CPU dtype stack trace is preserved separately. There was no controller assistance, action smoothing or gripper override. No eval video/dataset was written in smoke mode.
+
+Final validation also caught the separate recorded-start conversion helper's old hard-coded clamp. `pick_place_eval.dataset_state_to_radians` now reads the same JSON runtime limits as the interface and PhysX. Updated the physical frame test fixture to load those limits rather than parse a literal class dictionary; physical Molmo anchor assertions remain intact. All production source/config/test bytes are frozen at runtime-tree SHA-256:
+
+`5d20926baa45ee3b83daf73724de003cfa3b6e46e0d0d780924cc679d36751b7`
+
+The final report commit contains exactly those runtime bytes. `final_runtime_tree.json` records every file hash, so the report commit's Git identity does not obscure which code the smoke actually executed.
+
+### Tests before and after
+
+| Environment | Before | After | New failures |
+|---|---|---|---:|
+| Host (plugin autoload disabled) | 761 passed / 5 failed / 33 skipped | 787 passed / 5 failed / 33 skipped | 0 |
+| Teleop container | 772 passed / 7 failed / 27 skipped | 798 passed / 7 failed / 27 skipped | 0 |
+
+The exact before/after failure sets match. Counts include failing unittest subtests as reported by pytest; both full runs also report 279 passing subtests. Host skips the codec rerecording integration file, which runs in the container. Existing environment failures:
+
+**host:**
+
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it`
+- `FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone`
+- `SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+- `SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+
+**container:**
+
+- `FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]`
+- `FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it`
+- `FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode`
+- `SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+- `SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+
+These failures remain attributable to the missing GR00T training package in these test environments, missing host Rerun, the container's bare child Python lacking NumPy, the read-only config-test bind and the container training-path test. They are not silently reclassified as passes. Full traces are in the before/after logs.
+
+### Joint distributions
+
+Each group contains 16,448 frames. Degrees use the historical mapping for old sim and the final shared mapping for A2/real. Method A preserves old-sim physical degrees; normalized values change. `realpaired` is absent because its camera dependency did not pass. Aggregate tables follow; per-frame bulk data remain outside git.
+
+![Joint distributions](joint_distributions.png)
+
+**action, units**
+
+| Dataset | Joint | Mean | Min | Max | p5 | p95 |
+|---|---|---:|---:|---:|---:|---:|
+| old_sim | shoulder_pan | 3.81202 | -94.68024 | 80.37625 | -72.03984 | 73.66286 |
+| old_sim | shoulder_lift | -30.94833 | -100.00001 | 89.43396 | -99.32914 | 45.37946 |
+| old_sim | elbow_flex | 38.89225 | -71.09724 | 99.73239 | -36.03925 | 98.66191 |
+| old_sim | wrist_flex | 59.07354 | -21.41016 | 99.57005 | 4.98711 | 77.30008 |
+| old_sim | wrist_roll | -3.38915 | -58.50576 | 23.83858 | -20.31283 | 8.16091 |
+| old_sim | gripper | 18.53913 | 0.07704 | 88.67488 | 1.30971 | 52.00308 |
+| calibrated_A2 | shoulder_pan | 3.81202 | -94.68024 | 80.37625 | -72.03984 | 73.66286 |
+| calibrated_A2 | shoulder_lift | -30.67120 | -93.64953 | 79.12302 | -93.03767 | 38.94328 |
+| calibrated_A2 | elbow_flex | 37.49939 | -69.02966 | 96.42540 | -35.07465 | 95.38860 |
+| calibrated_A2 | wrist_flex | 52.61089 | -21.20662 | 89.75321 | 3.00425 | 69.32779 |
+| calibrated_A2 | wrist_roll | -2.98889 | -51.99340 | 21.21944 | -18.03584 | 7.28033 |
+| calibrated_A2 | gripper | 15.73068 | 0.06537 | 75.24172 | 1.11130 | 44.12525 |
+| real | shoulder_pan | 3.80805 | -96.90151 | 80.37624 | -72.03984 | 73.66286 |
+| real | shoulder_lift | -30.94833 | -100.00000 | 89.43396 | -99.32914 | 45.37946 |
+| real | elbow_flex | 38.89226 | -71.09724 | 99.73238 | -36.03925 | 98.66191 |
+| real | wrist_flex | 59.07354 | -21.41015 | 99.57008 | 4.98710 | 77.30009 |
+| real | wrist_roll | -7.14374 | -65.17705 | 22.39316 | -23.95604 | 3.88278 |
+| real | gripper | 18.53913 | 0.07704 | 88.67488 | 1.30971 | 52.00308 |
+
+**action, degrees**
+
+| Dataset | Joint | Mean | Min | Max | p5 | p95 |
+|---|---|---:|---:|---:|---:|---:|
+| old_sim | shoulder_pan | 6.25741 | -110.00000 | 96.63162 | -83.27593 | 88.70732 |
+| old_sim | shoulder_lift | -30.94833 | -100.00001 | 89.43396 | -99.32914 | 45.37946 |
+| old_sim | elbow_flex | 31.94764 | -72.54237 | 89.74577 | -39.23729 | 88.72882 |
+| old_sim | wrist_flex | 56.11986 | -20.33965 | 94.59155 | 4.73775 | 73.43508 |
+| old_sim | wrist_roll | -5.42264 | -93.60921 | 38.14172 | -32.50053 | 13.05746 |
+| old_sim | gripper | 10.39304 | -9.91525 | 87.54237 | -8.55932 | 47.20339 |
+| calibrated_A2 | shoulder_pan | 6.25741 | -110.00000 | 96.63162 | -83.27593 | 88.70732 |
+| calibrated_A2 | shoulder_lift | -30.94833 | -100.00001 | 89.43396 | -99.32914 | 45.37946 |
+| calibrated_A2 | elbow_flex | 31.94764 | -72.54238 | 89.74577 | -39.23729 | 88.72881 |
+| calibrated_A2 | wrist_flex | 56.11986 | -20.33965 | 94.59155 | 4.73775 | 73.43508 |
+| calibrated_A2 | wrist_roll | -5.42264 | -93.60921 | 38.14172 | -32.50053 | 13.05746 |
+| calibrated_A2 | gripper | 10.39304 | -9.91525 | 87.54237 | -8.55932 | 47.20339 |
+| real | shoulder_pan | 6.25273 | -112.62193 | 96.63161 | -83.27593 | 88.70732 |
+| real | shoulder_lift | -31.25218 | -106.96289 | 100.73924 | -106.22734 | 52.43631 |
+| real | elbow_flex | 33.31385 | -74.57038 | 92.98946 | -40.18342 | 91.93948 |
+| real | wrist_flex | 62.81382 | -20.55046 | 104.75977 | 6.79157 | 81.69271 |
+| real | wrist_roll | -12.89955 | -117.33399 | 40.25391 | -43.15430 | 6.94336 |
+| real | gripper | 14.03388 | -9.90013 | 104.95693 | -8.30212 | 57.41610 |
+
+**observation.state, units**
+
+| Dataset | Joint | Mean | Min | Max | p5 | p95 |
+|---|---|---:|---:|---:|---:|---:|
+| old_sim | shoulder_pan | 3.83394 | -94.68012 | 80.48596 | -72.35806 | 73.70157 |
+| old_sim | shoulder_lift | -30.42615 | -99.66953 | 90.67242 | -99.33526 | 46.71514 |
+| old_sim | elbow_flex | 39.73241 | -70.46191 | 100.00233 | -35.31032 | 99.57008 |
+| old_sim | wrist_flex | 59.42030 | -20.64951 | 99.36929 | 4.20732 | 77.45518 |
+| old_sim | wrist_roll | -3.32165 | -60.69585 | 23.20993 | -20.12784 | 8.13216 |
+| old_sim | gripper | 20.42852 | 1.22932 | 88.41241 | 1.39382 | 51.65655 |
+| calibrated_A2 | shoulder_pan | 3.83394 | -94.68012 | 80.48596 | -72.35806 | 73.70157 |
+| calibrated_A2 | shoulder_lift | -30.19495 | -93.34811 | 80.25256 | -93.04324 | 40.16148 |
+| calibrated_A2 | elbow_flex | 38.31311 | -68.41432 | 96.68685 | -34.36866 | 96.26820 |
+| calibrated_A2 | wrist_flex | 52.92893 | -20.50897 | 89.56908 | 2.28905 | 69.47004 |
+| calibrated_A2 | wrist_roll | -2.92888 | -53.94062 | 20.66051 | -17.87136 | 7.25477 |
+| calibrated_A2 | gripper | 17.33386 | 1.04310 | 75.01902 | 1.18268 | 43.83122 |
+| real | shoulder_pan | 3.80615 | -96.27699 | 79.97021 | -72.15190 | 73.64111 |
+| real | shoulder_lift | -30.23239 | -99.75952 | 88.69740 | -99.35872 | 45.97194 |
+| real | elbow_flex | 39.82876 | -70.96774 | 99.10394 | -34.10842 | 98.56631 |
+| real | wrist_flex | 59.19855 | -20.06788 | 98.64234 | 4.36996 | 77.51379 |
+| real | wrist_roll | -7.16192 | -65.03053 | 22.00244 | -24.00488 | 3.63858 |
+| real | gripper | 19.68254 | 1.42373 | 88.27119 | 1.62712 | 51.38983 |
+
+**observation.state, degrees**
+
+| Dataset | Joint | Mean | Min | Max | p5 | p95 |
+|---|---|---:|---:|---:|---:|---:|
+| old_sim | shoulder_pan | 6.28328 | -109.99987 | 96.76112 | -83.65155 | 88.75301 |
+| old_sim | shoulder_lift | -30.42615 | -99.66953 | 90.67242 | -99.33526 | 46.71514 |
+| old_sim | elbow_flex | 32.74579 | -71.93881 | 90.00222 | -38.54481 | 89.59158 |
+| old_sim | wrist_flex | 56.44928 | -19.61703 | 94.40083 | 3.99695 | 73.58243 |
+| old_sim | wrist_roll | -5.31464 | -97.11337 | 37.13589 | -32.20455 | 13.01146 |
+| old_sim | gripper | 12.47138 | -8.64775 | 87.25366 | -8.46679 | 46.82221 |
+| calibrated_A2 | shoulder_pan | 6.28328 | -109.99987 | 96.76112 | -83.65155 | 88.75301 |
+| calibrated_A2 | shoulder_lift | -30.42615 | -99.66953 | 90.67243 | -99.33526 | 46.71514 |
+| calibrated_A2 | elbow_flex | 32.74579 | -71.93881 | 90.00222 | -38.54481 | 89.59158 |
+| calibrated_A2 | wrist_flex | 56.44928 | -19.61703 | 94.40083 | 3.99695 | 73.58242 |
+| calibrated_A2 | wrist_roll | -5.31464 | -97.11336 | 37.13589 | -32.20455 | 13.01146 |
+| calibrated_A2 | gripper | 12.47138 | -8.64775 | 87.25366 | -8.46679 | 46.82221 |
+| real | shoulder_pan | 6.25048 | -111.88477 | 96.15234 | -83.40821 | 88.68164 |
+| real | shoulder_lift | -30.46720 | -106.69922 | 99.93164 | -106.25977 | 53.08594 |
+| real | elbow_flex | 34.23243 | -74.44336 | 92.37305 | -38.28955 | 91.84570 |
+| real | wrist_flex | 62.94330 | -19.16016 | 103.79883 | 6.15234 | 81.91406 |
+| real | wrist_roll | -12.93225 | -117.07031 | 39.55078 | -43.24219 | 6.50391 |
+| real | gripper | 15.51618 | -8.15430 | 104.43359 | -7.89063 | 56.62109 |
+
+Camera overlay comparison: fixed-K held-out landmark median **5.135 → 2.796 px**; focal-free trial **3.018 px**. All miss the 2 px gate. Rendered front-bottom edge median displacement is **+6 px before / +4 px in the rejected focal-free trial**. The production camera remains unchanged, so production before/after camera errors are identical. Full signed per-edge offsets are in Part 1.
+
+### Gate audit and remaining unknowns
+
+| Part | Outcome | Consequence |
+|---|---|---|
+| 1 camera | Gate missed; old camera retained | Skip only 5a image rerender, 5b and 6 guide |
+| 2A roll | Unresolved; insufficient consistent edge evidence | Retain explicit 0° and recorder wrist re-zero fallback |
+| 2B contact | Unresolved; image registration does not establish true empty-pad contact | Retain old anchor; capture procedure supplied |
+| 3 shared mapping | Implemented, regenerated, fixture/runtime validation passed | Sim and real use the same explicit anchors |
+| 4 limits | Code + PhysX readback passed; sampled base clearance passed | No USD editing; no ±180° wrist widening |
+| 5A relabel | A2 verified, sources unchanged | 75 episodes / 16,448 frames; images preserved |
+| 5B paired set | Skipped by Part 1 | No detector accuracy or paired set claimed |
+| 6 recordings | Start sync, paired action logging and new-root guard tested | Other five joints sync while roll stays gated |
+| 7 verification | Dry run passed, one smoke succeeded; no new test failures | Final report and branch push |
+
+Unknowns remain the true room-camera calibration below 2 px, the physical roll zero, the true empty-contact angle, real-world recording timing and physical policy success. Sampled base clearance does not cover all trajectories. A successful sim smoke does not waive those measurement gates.
+
+Source hardware calibration, datasets and all USD assets remain byte-identical. `real_setup.json` is the intentionally modified **output configuration** (explicit anchors/provenance and runtime limits); its camera values were retained. Its before/after output hashes are:
+
+- Before: `c518cf0ac9509b83d51af944817e3d24162de20b843255e08165edee403790f5`
+- After: `a542948fb2c674b96d000d63a3cc4710e803d97ca0dc1869b5344f2e3da6e4b4`
+
+The work stayed on `calibration-fixes`; no main checkout, merge or push was performed. Local main's last update predates this task (October 26). Datasets/videos remain outside git. The report has **8 PNGs**, all ≤1280 px wide.
+
+Final evidence (bulk files outside the repository):
+
+| File | SHA-256 |
+|---|---|
+| `/tmp/so101-camera-gripper-recording/eval-requested-dry-run.txt` | `8d2989b039050c53fccf8ed378efb90c6d38f9bf6645dff6d53746292ae19495` |
+| `/tmp/so101-camera-gripper-recording/eval-dry-run.txt` | `6412bd95425ec43d10aad9ea620e58b695b0d25aae2a16fd3a8de3785f748d73` |
+| `/tmp/so101-camera-gripper-recording/one_episode_molmo.yaml` | `5f76372bc518adbe72c7986c728ea0fa9cb81ac799cce553580e5ab44743594a` |
+| `/tmp/so101-camera-gripper-recording/one_start_eval_set.json` | `7409bce4b226fafd2302bb4f82d15858b6ee42fc7fb0e64112245b5c6e171380` |
+| `/tmp/so101-camera-gripper-recording/one_episode_selection.json` | `49ec4cfaa030a9be3f5bce0ae289a91285780a91d7adfbc9a455dd46c36851b6` |
+| `/tmp/so101-camera-gripper-recording/molmo-smoke-console.txt` | `729697d1812780c2e283b08fe0d2e5a3d3458befe7894dd277b3df4c17a39c4c` |
+| `/tmp/so101-camera-gripper-recording/smoke_result.json` | `d0fc9ed66bf07710cfa2a5078f15f7260c0033bcfd986db8d060cd1479431aed` |
+| `/tmp/so101-camera-gripper-recording/cpu_probe_before_autocast.json` | `6ff6f2d2f7ba197d3eb8f79ba851195e048ec23806df8d9b9a143711640407d7` |
+| `/tmp/so101-camera-gripper-recording/cpu_probe.json` | `d4511aed03f760a7f70f163603b75b75d284be9136bb3c28f750ab554fbc688d` |
+| `/tmp/so101-camera-gripper-recording/molmo-cpu-server-log.txt` | `94a94235a354bf855ed2ecb7c5bbcbe5c33e7332ba841f7dffd3ac03e151d862` |
+| `/tmp/so101-camera-gripper-recording/tests_after_host.txt` | `3977f27098713072ab9ab9fcc23d0494063e944e0867cbd8a4aa81403497bfcb` |
+| `/tmp/so101-camera-gripper-recording/tests_after_container.txt` | `4edde59ed3c778f33764732337c08f121818dc214cdedbbc3ec566f335a25ab9` |
+| `/tmp/so101-camera-gripper-recording/test_comparison.json` | `82c1523053190ba40b4e330d82bfac8ac0ef507a8b3511001b953068b51bddbd` |
+| `/tmp/so101-camera-gripper-recording/joint_statistics.json` | `ba01b63f73750a02651333a1e2c2fadbb255c29b6cbe7dc83b7c3e76540bb9fe` |
+| `/tmp/so101-camera-gripper-recording/joint_statistics.csv` | `af5c5484560b3cc6d2d9dd98d93fa300214bd173aceeb9be44128219e64a3799` |
+| `/tmp/so101-camera-gripper-recording/final_runtime_tree.json` | `f7eddb2211ac626fcbb0f8c6cd161dcf6ecac2cdedb7100efc3c9c5954f6087f` |
+| `/tmp/so101-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
+| `/tmp/so101-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
