@@ -493,7 +493,7 @@ Removed `wrist_target`, its unresolved execution branch, and all `leader_wrist_s
 
 The version-3 contract records `wrist_rezero: false`, `roll_resolved: false`, all six synced joints and `wrist_roll_zero_offset_degrees: 0.0` as an **unmeasured constant**. `real_setup.json` is byte-for-byte unchanged; its status remains `unresolved`. Version-2 and legacy roots are rejected before serial preflight. The recording guide uses new v3 root examples. **No new dataset was recorded and no hardware was connected.**
 
-Regression checks execute the actual recorder read/store/drive code and production mapping/inverse methods with fake devices. They verify all-six-joint start sync, unchanged real commands, stored actions matching executed targets, and zero episode-specific roll gap for two different leader starts (+22 and −35 raw units). Host and container targeted tests: **41 passed, 21 subtests** each.
+Regression checks execute the actual recorder read/store/drive code and production mapping/inverse methods with fake devices. They verify all-six-joint start sync, unchanged real commands, stored actions matching executed targets, and zero episode-specific roll gap for two different leader starts (+22 and −35 raw units), within 1e-5 raw-unit float32 roundoff. Host and container targeted tests: **41 passed, 21 subtests** each.
 
 Real rollout and evaluation use the same constant through these source paths:
 
@@ -551,3 +551,107 @@ Task-2 evidence:
 | `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/recording_alignment_before.py` | `5a8e6bcb109beeb9bff67bc72666346c191c2c830dd3efce4efddb8240d742dd` |
 | `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/task2-tests-host.txt` | `4973fd96be00ebba21f6b293875f24c73679667a41a3028e18765689d98bd49b` |
 | `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/task2-tests-container.txt` | `e97bcacbc94745a0260e7f46ae726223479ad221355a181246c3f6884335ce84` |
+
+### Task 3 — Room camera: tape-measure check
+
+**Candidate only; nothing applied.** Reconstructed the **fixed-K, extrinsics-only** candidate, reproducing the original fit and held-out statistics. The archived `camera_fit.json` and `part1.json` seven-parameter `fit_parameters` describe the *focal-freed* trial, so those parameters were not mislabelled as the fixed-K pose. The six-parameter candidate was recovered from the saved fit-split static correspondences with the original soft-L1 objective and measured K; held-out points were not optimized.
+
+Parameter convention: `x_camera_ROS = Rodrigues(r) @ X_world + t`; camera position `C = -R.T @ t`, and OpenGL camera-to-world rotation `R.T @ diag(1,-1,-1)`.
+
+Positions use the same **USD world frame, metres, Z-up** as `real_setup.json`; they are not robot-base-relative coordinates. RPY uses the setup's extrinsic XYZ Euler convention in degrees, OpenGL camera-to-world (−Z forward, +Y up). Deltas are candidate minus current, with Euler differences wrapped to ±180°.
+
+| Quantity | Current | Fixed-K candidate | Delta |
+|---|---:|---:|---:|
+| X position (m) | 0.655680335 | 0.682086372 | +26.406 mm |
+| Y position (m) | 0.007151183 | 0.028126228 | +20.975 mm |
+| Z position (m) | 1.296065747 | 1.317767043 | +21.701 mm |
+| Roll (deg) | 37.895366 | 37.758840 | -0.136526° |
+| Pitch (deg) | 1.179901 | 0.064485 | -1.115416° |
+| Yaw (deg) | -176.324440 | -177.776003 | -1.451562° |
+
+Total translation: **40.102 mm**; full relative rotation: **1.834517°**. Measured intrinsics stay fx=606.0668335, fy=605.6687622, cx=330.6416016, cy=253.3269043 at 640×480.
+
+The tabletop is read directly from the unchanged scene USD using the runtime `table_plane` helper: `z = 0.001159210802*x + 0.018508261010*y + 0.804062374687` metres. This agrees with the archived benchmark plane within 0.0000001 m. No new physical dimensions were assumed.
+
+| Model-derived distance | Current (mm) | Candidate (mm) | Difference (mm) |
+|---|---:|---:|---:|
+| Lens height, perpendicular to tabletop | 491.0 | 512.3 | +21.3 |
+| Lens height vertically above table/extended plane | 491.1 | 512.4 | +21.3 |
+| Horizontal XY distance to CAD robot base origin | 616.2 | 635.9 | +19.8 |
+| Horizontal XY distance to nearest outer top-rim corner P | 605.5 | 616.4 | +10.9 |
+
+The CAD base-link origin is world `(0.697253406, -0.607635677, 0.763542831)` m; it is a model coordinate origin, not an assumed visible screw centre. The horizontal distances above mean world-XY distance, not diagonal length. Use the following visible box reference for the practical checks.
+
+**P** is the **outer top corner where the long front rim meets the short right rim, nearest the camera**. It is CAD box-local `(+0.067500003, -0.042500000, +0.045000002)` m, world `(0.873308971, -0.557850928, 0.840758227)` m. It is the nearest outer corner in 3D among all eight corners for both poses, and also the nearest top corner in plan view; it is marked in the saved sim image below. Its location comes from an actual mesh vertex, not guessed box dimensions.
+
+**Four tape-measure questions for you** (values below are model predictions, not real measurements):
+
+| Please measure | Reference points/procedure | Current (mm) | Candidate (mm) | Separation (mm) |
+|---|---|---:|---:|---:|
+| RGB lens height | RGB lens centre vertically to the tabletop plane; extend the table plane with a straightedge if the camera is beyond its edge. | 491.1 | 512.4 | 21.3 |
+| Lateral offset | Drop vertical plumb lines from the RGB lens centre and P. Measure the difference of their table marks in the direction parallel to the long rim, toward the robot. | 171.8 | 143.8 | 28.0 |
+| Fore-aft offset | Between the same plumb marks, measure the component parallel to the short rim, toward the camera (negative table-Y). | 580.7 | 599.5 | 18.8 |
+| Direct lens-to-corner length | Straight tape from the RGB lens centre to the same outer top-rim corner P; do not substitute the box centre or bottom corner. | 757.6 | 779.4 | 21.8 |
+
+The **lateral offset discriminates best** among these four: about **172 mm vs 144 mm**, a 28 mm separation. Lens height (491 vs 512 mm) and direct corner length (758 vs 779 mm) provide independent cross-checks. The two footprint components above use *vertical plumb* projection onto the slightly tilted table; they are not silently replaced by table-normal projections.
+
+Please report those four distances in mm and confirm that P is the stated outer corner. Can you identify the **RGB colour optical centre** used as the camera reference? If you measure from the front glass or housing instead, what reference point/known offset did you use? No lens-centre setback or housing dimension has been assumed. If using the base-origin distance, can you identify that CAD origin physically, rather than choosing an unverified mounting-screw centre? Tape lengths constrain camera position; they do not verify the candidate's orientation.
+
+![Room camera tape references](room_camera_tape_measure.png)
+
+Held-out landmark error is **5.135 → 2.796 px (5.1 → 2.8 px)** for fixed K; fit median is 2.753 px and both fit/held-out maxima are 10.574 px. The ≤2 px gate still fails. The prior rendered back-edge check got slightly worse, **−3.5 → −4.0 px**; those archived overlay numbers refer to the **focal-freed trial**, not a new render of this reconstructed fixed-K pose. A fixed-K candidate back-edge rerender and all real tape measurements remain unverified.
+
+The separate [room_camera_candidate.json](room_camera_candidate.json) contains position, OpenGL and ROS quaternions, six optimizer parameters, fixed intrinsics, fit statistics, reference geometry and distances, with `applied: false`. Its position/quaternion round-trip reproduces the optimizer transform to 1e-12 numerical tolerance. The source camera configuration is unchanged.
+
+Task-3 evidence:
+
+| File | SHA-256 |
+|---|---|
+| `docs/reports/2026-10-27-camera-gripper-recording/room_camera_candidate.json` | `388832c64bb84f0545fb67ad716527b1fa9cb46f867b4a6f3c5376aaed0ca558` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/table_plane_from_usd.json` | `cfe4dc9bb883bc1fcaaeef47701892ebf95cd4ac35ab1c2b7430bb0290c1d53c` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/reconstruct_candidate.py` | `8f979af9e13e17153dd635543055c6a6f8eb932a4a5c791d2c24071248a19d86` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/room_camera_reconstruction.json` | `388832c64bb84f0545fb67ad716527b1fa9cb46f867b4a6f3c5376aaed0ca558` |
+
+### Follow-up verification and limits
+
+| Test environment | Before | After | New failures |
+|---|---|---|---:|
+| Host (`PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`) | 787 passed / 5 failed / 33 skipped | 788 passed / 5 failed / 33 skipped | 0 |
+| Teleop container | 798 passed / 7 failed / 27 skipped | 799 passed / 7 failed / 27 skipped | 0 |
+
+Both suites report 279 passing subtests. Host excludes the rerecording codec integration file, which runs in the teleop container. Before and after failure sets are identical and match the prior report. Exact unchanged sets:
+
+**host:**
+
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it`
+- `FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone`
+- `SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+- `SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+
+**container:**
+
+- `FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]`
+- `FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged`
+- `FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it`
+- `FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode`
+- `SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+- `SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored`
+
+Reverified all **4,645** copied files against their manifest hashes and their retained original temporary files. All **1,022 protected input files** are byte-identical before/after: the v1 sim/real sources, A2, all eight USD files, all four hardware calibration files and the entire `real_setup.json`. No dataset was recorded or edited. No hardware was connected. No camera candidate was applied.
+
+Unverified items are live hardware recording/timing, the real constant wrist zero, the RGB optical-centre reference/setback, all requested real tape measurements and the reconstructed fixed-K pose's rendered back-edge error. Those measurements are questions above, not guessed dimensions or claims of calibration success.
+
+Follow-up evidence:
+
+| File | SHA-256 |
+|---|---|
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/tests_before_host.txt` | `82902b26ca716bf26ac143f466c616f89c37d027ab68ffdbf4683c026ea84231` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/tests_before_container.txt` | `12874c4fae6138395c88dea8e5f2f30dd4228586ab9ef48e553ccd47d6609afc` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/tests_after_host.txt` | `bb5a8a384d049688e9036c989f7e7770afaa2374407e51abd6757e621bd0fd33` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/tests_after_container.txt` | `a01760ebb545d51f7b15c97a164ae497083e333f4bd36d89d95a80f1b0c5015b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/test_comparison.json` | `618b3668bf28b52803e580f2d7e9a0845d986310910e0d737aa100c0bf9b4390` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/protected_inputs_before.json` | `90f4bb9ba39a965b5326c8831f6d97615cc893341a9b3a8c411542ebeaefa977` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/protected_inputs_after.json` | `90f4bb9ba39a965b5326c8831f6d97615cc893341a9b3a8c411542ebeaefa977` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/final_checks.json` | `68b50b59a4cb0eeff4d268c9644e3b0a1c659e4b011c69faf283ced0b7c8c0aa` |

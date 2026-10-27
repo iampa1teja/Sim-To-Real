@@ -1,0 +1,238 @@
+{
+  "applied": false,
+  "candidate_type": "fixed_K_extrinsics_only",
+  "frame": "USD world, metres, Z-up; env_0 origin has no translation",
+  "position": [
+    0.6820863716381542,
+    0.0281262283040421,
+    1.3177670430313082
+  ],
+  "quaternion": [
+    -0.01818070757000629,
+    -0.006811970185950918,
+    0.3235062472070535,
+    0.9460268320467703
+  ],
+  "quaternion_convention": "wxyz, OpenGL camera-to-world; camera looks along -Z with +Y up",
+  "quaternion_ros_wxyz": [
+    0.006811970185950918,
+    -0.01818070757000629,
+    0.9460268320467703,
+    -0.3235062472070535
+  ],
+  "euler_degrees": [
+    37.75883964681567,
+    0.06448459115989379,
+    -177.77600270674563
+  ],
+  "euler_convention": "extrinsic XYZ roll, pitch, yaw, degrees, OpenGL camera-to-world",
+  "intrinsics_K": [
+    [
+      606.0668334960938,
+      0.0,
+      330.6416015625
+    ],
+    [
+      0.0,
+      605.6687622070312,
+      253.326904296875
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "intrinsics_fixed": true,
+  "fit_parameters": [
+    0.05687000203038151,
+    -2.959210891662596,
+    1.0119408644940804,
+    0.6841467387774083,
+    0.8051562807460355,
+    1.042213743043162
+  ],
+  "fit_parameters_convention": "x_camera_ROS = Rodrigues(r[0:3]) @ X_world + t[3:6]; C_world = -R.T @ t; R_camera_OpenGL_to_world = R.T @ diag(1,-1,-1)",
+  "reconstruction": "The archived seven-parameter fit_parameters and camera fields describe the focal-freed trial. Reconstructed the six-parameter fixed-K fit from saved fit-split static correspondences using the original soft_l1 objective; held-out data were not optimized.",
+  "fit_stats": {
+    "fit": {
+      "median": 2.752988712366098,
+      "max": 10.574426138978485,
+      "mean": 3.2101911867002872,
+      "points": 104,
+      "episodes": [
+        2,
+        11,
+        18,
+        22,
+        26,
+        31,
+        50,
+        52,
+        59,
+        67,
+        74
+      ]
+    },
+    "held_out": {
+      "median": 2.795947607928809,
+      "max": 10.574426138978485,
+      "mean": 3.338475813783972,
+      "points": 97,
+      "episodes": [
+        10,
+        12,
+        21,
+        23,
+        30,
+        47,
+        51,
+        57,
+        61,
+        71
+      ]
+    }
+  },
+  "held_out_gate_px": 2.0,
+  "gate_pass": false,
+  "current": {
+    "position": [
+      0.6556803347125415,
+      0.007151182884697911,
+      1.2960657471564023
+    ],
+    "euler_degrees": [
+      37.89536558302176,
+      1.179900948119167,
+      -176.32444041612325
+    ],
+    "quaternion_wxyz": [
+      0.026988944739525844,
+      0.02014614584795988,
+      -0.32420812578327246,
+      -0.9453860697331102
+    ]
+  },
+  "delta": {
+    "position_candidate_minus_current_mm": [
+      26.406036925612717,
+      20.975045419344188,
+      21.70129587490588
+    ],
+    "position_norm_mm": 40.10208921129398,
+    "euler_candidate_minus_current_wrapped_degrees": [
+      -0.136525936206084,
+      -1.1154163569592868,
+      -1.4515622906223768
+    ],
+    "rotation_geodesic_degrees": 1.8345173317825494
+  },
+  "table_plane": {
+    "source_usd": "source/sim_to_real_so101/assets/usd/digital_twin_room.usda",
+    "frame": "USD world, metres, Z-up; Room parent is identity in env_0",
+    "plane_equation": "z = a*x + b*y + c",
+    "plane_coefficients": [
+      0.001159210802227873,
+      0.018508261010097837,
+      0.8040623746874856
+    ],
+    "meters_per_unit": 1.0
+  },
+  "base_origin_world": [
+    0.697253406047821,
+    -0.6076356768608093,
+    0.7635428309440613
+  ],
+  "box_reference": {
+    "description": "Outer top-rim corner nearest the camera in plan view; front-right top outer corner in the room-camera view",
+    "corner_local_box_metres": [
+      0.06750000268220901,
+      -0.042500000447034836,
+      0.04500000178813934
+    ],
+    "corner_world_metres": [
+      0.8733089706689644,
+      -0.5578509276954521,
+      0.8407582266865097
+    ],
+    "approximate_current_room_pixel": [
+      185.64742839009733,
+      106.30032768893705
+    ],
+    "corner_is_nearest_for_both_poses": true,
+    "table_long_rim_positive_world_unit": [
+      -0.9968001802802958,
+      -0.07989031193011246,
+      -0.0026341322820242646
+    ],
+    "table_short_rim_positive_world_unit": [
+      0.07992532318013308,
+      -0.9966318779260142,
+      -0.01835327262963667
+    ],
+    "all_top_outer_corners_world_metres": [
+      [
+        1.007877000360343,
+        -0.5470657352458193,
+        0.8411138348944165
+      ],
+      [
+        1.0146706528496907,
+        -0.631779445764683,
+        0.8395538066985202
+      ],
+      [
+        0.8733089706689644,
+        -0.5578509276954521,
+        0.8407582266865097
+      ],
+      [
+        0.880102623158312,
+        -0.6425646382143158,
+        0.8391981984906134
+      ]
+    ]
+  },
+  "distances_mm": {
+    "current": {
+      "vertical_height_above_table_plane_mm": 491.1109447827485,
+      "perpendicular_height_above_table_plane_mm": 491.02652015429095,
+      "horizontal_xy_distance_to_base_origin_mm": 616.1908820941692,
+      "horizontal_xy_distance_to_nearest_box_top_corner_mm": 605.4664384986812,
+      "straight_line_to_nearest_box_top_corner_mm": 757.5582791737669,
+      "table_normal_projection_long_rim_signed_offset_from_corner_mm": 170.59472846217895,
+      "table_normal_projection_short_rim_signed_offset_from_corner_mm": -588.8495366152329,
+      "vertical_plumb_foot_long_rim_signed_offset_from_corner_mm": 171.76718756700282,
+      "vertical_plumb_foot_short_rim_signed_offset_from_corner_mm": -580.6804474070798
+    },
+    "candidate": {
+      "vertical_height_above_table_plane_mm": 512.3934188790863,
+      "perpendicular_height_above_table_plane_mm": 512.3053356781872,
+      "horizontal_xy_distance_to_base_origin_mm": 635.942795376774,
+      "horizontal_xy_distance_to_nearest_box_top_corner_mm": 616.3889273286417,
+      "straight_line_to_nearest_box_top_corner_mm": 779.4053634688559,
+      "table_normal_projection_long_rim_signed_offset_from_corner_mm": 142.54031908891452,
+      "table_normal_projection_short_rim_signed_offset_from_corner_mm": -608.0417142855197,
+      "vertical_plumb_foot_long_rim_signed_offset_from_corner_mm": 143.76883904579688,
+      "vertical_plumb_foot_short_rim_signed_offset_from_corner_mm": -599.4820220280434
+    }
+  },
+  "distance_candidate_minus_current_mm": {
+    "vertical_height_above_table_plane_mm": 21.282474096337808,
+    "perpendicular_height_above_table_plane_mm": 21.2788155238963,
+    "horizontal_xy_distance_to_base_origin_mm": 19.751913282604846,
+    "horizontal_xy_distance_to_nearest_box_top_corner_mm": 10.922488829960457,
+    "straight_line_to_nearest_box_top_corner_mm": 21.847084295088962,
+    "table_normal_projection_long_rim_signed_offset_from_corner_mm": -28.054409373264434,
+    "table_normal_projection_short_rim_signed_offset_from_corner_mm": -19.19217767028681,
+    "vertical_plumb_foot_long_rim_signed_offset_from_corner_mm": -27.99834852120594,
+    "vertical_plumb_foot_short_rim_signed_offset_from_corner_mm": -18.801574620963606
+  },
+  "source_sha256": {
+    "outputs/calibration-evidence/2026-10-27-camera-gripper-recording/camera_fit.json": "0e71890d4d08cbf7d23c8ef7d70c0ef1e1edac386072dc7d49983d2da44f492e",
+    "docs/reports/2026-10-27-camera-gripper-recording/part1.json": "83ad2dd504a1dc9192c451cef68d02e5012d0c2fa7eccc8ecf8853243daa6024",
+    "outputs/calibration-evidence/2026-10-27-camera-gripper-recording/responses/first.npz": "1e58a6406f8d9cef93fea729018123fa10b760e2b8b115917d448bf32228ed05",
+    "outputs/calibration-evidence/2026-10-27-camera-gripper-recording/static_meshes_local.json": "af931bea32e2c13c092f2dd8dbe2c0dce085b754aabe159d0be1b7a8d76060ba",
+    "source/sim_to_real_so101/assets/usd/digital_twin_room.usda": "c4f9bc0b0d2f033e4de695b3980bbb71891a19b18a6229c2adb305657d59f35c"
+  }
+}
