@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # Host-side evaluation runner. Every setting comes from one YAML file:
-#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test] [--molmo-overhead-camera]
+#   ./docker/eval.sh pick_place.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test]
 # A bare file name is looked up under configs/eval/. See configs/eval/pick_place.yaml for the schema.
 set -euo pipefail
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
 usage() {
     cat <<'EOF'
-Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test] [--molmo-overhead-camera]
+Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_only] [--gui] [--rerun] [--save_videos] [--resume [RESULTS.json]] [--smoke-test]
 
   <config>.yaml      Evaluation settings (policy, checkpoint, dataset, episodes, ...). A bare file
                      name is looked up in configs/eval/.
-  --dry_run          Print the docker commands instead of running them.
+  --dry_run          Print the docker commands instead of running them (alias: --dry-run).
   --external_server  Use a policy server that is already running on the configured port.
   --server_only      Start the policy server and wait until interrupted; no evaluation.
   --gui, --rerun     Show the simulator window / enable Rerun (also settable under run: in the YAML).
@@ -21,8 +21,6 @@ Usage: ./docker/eval.sh <config>.yaml [--dry_run] [--external_server | --server_
   --smoke-test       Run five episodes, or one per zone when smoke_test.selection=one_per_zone.
                      Rerun is enabled; no reports, videos, CSVs or run logs are saved.
                      Optional smoke_test deadlines stop stalled attempts. Overrides output settings.
-  --molmo-overhead-camera  Add a camera behind/above the arm for Molmo pick-place inputs.
-                     Preserve the original room/wrist cameras and log all three in Rerun.
 
 Needs the teleop container (README) running, python3 with PyYAML on the host, and the policy-server
 image (./policy_servers/build.sh). READY_TIMEOUT (seconds, default 900) bounds the server start-up,
@@ -33,13 +31,13 @@ Set EVAL_VERBOSE=1 to print the complete output, including warnings.
 EOF
 }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false smoke_test=false molmo_overhead_camera_flag=false
+config='' external_server=false server_only=false dry_run=false gui_flag=false rerun_flag=false save_videos_flag=false smoke_test=false
 resume=false resume_path=''
 while (($#)); do
     case "$1" in
         --external_server) external_server=true; shift ;;
         --server_only) server_only=true; shift ;;
-        --dry_run) dry_run=true; shift ;;
+        --dry_run|--dry-run) dry_run=true; shift ;;
         --gui) gui_flag=true; shift ;;
         --rerun) rerun_flag=true; shift ;;
         --save_videos) save_videos_flag=true; shift ;;
@@ -47,7 +45,6 @@ while (($#)); do
             resume=true; shift
             if (($#)) && [[ $1 == *.json ]]; then resume_path=$1; shift; fi ;;
         --smoke-test) smoke_test=true; shift ;;
-        --molmo-overhead-camera) molmo_overhead_camera_flag=true; shift ;;
         --help|-h) usage; exit 0 ;;
         -*) fail "Unknown option $1; see --help." ;;
         *) [[ -z $config ]] || fail 'Give exactly one config file.'; config=$1; shift ;;
@@ -63,11 +60,10 @@ if [[ ! -f $config && $config != */* && -f configs/eval/$config ]]; then config=
 [[ -f $config ]] || fail "Config file not found: $config"
 
 # Variables defined by the helper: dr task policy_name model models_dir port server_image dataset
-# episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon action_repeat molmo_overhead_camera
+# episodes repeats start_mode random_fraction robot_start robot_usd render_warmup episode_length_s action_horizon action_repeat
 # eval_set splits lang lang_by_color rename_map results_json save_videos video_dir video_encoder seed_per_episode gui rerun
 # and the arrays policy_options (KEY=VALUE) and grasp_args.
 config_args=("$config")
-"$molmo_overhead_camera_flag" && config_args+=(--molmo-overhead-camera)
 config_vars=$(python3 "$repo_dir/docker/eval_config.py" "${config_args[@]}") || exit 1
 eval "$config_vars"
 if ! "$smoke_test" && [[ $smoke_selection != first_five || -n $smoke_reach_timeout_s ]]; then
@@ -436,6 +432,9 @@ eval_cmd=(docker exec -e "POLICIES_DIR=$teleop_policies" -e "SO101_EVAL_RUN_ID=$
     --policy "$policy_name" "${client_options[@]}"
     --policy_host localhost --policy_port "$port" --lang_instruction "$lang"
     --num_episodes "$episodes" --checkpoint "$model" --config_fingerprint "$config_fingerprint")
+if [[ -n ${SO101_POLICY_TIMEOUT_MS:-} ]]; then
+    eval_cmd+=(--policy_timeout_ms "$SO101_POLICY_TIMEOUT_MS")
+fi
 "$resume" && eval_cmd+=(--resume)
 if "$smoke_test"; then
     eval_cmd+=(--smoke-test --smoke-selection "$smoke_selection")
@@ -444,7 +443,6 @@ if "$smoke_test"; then
                    --smoke-progress-timeout-s "$smoke_progress_timeout_s")
     fi
 else eval_cmd+=(--results_json "$results"); fi
-"$molmo_overhead_camera" && eval_cmd+=(--molmo-overhead-camera)
 if [[ -n $eval_set ]]; then
     eval_cmd+=(--eval_set "$eval_set" --repeats "$repeats")
     [[ -z $splits ]] || eval_cmd+=(--splits "$splits")

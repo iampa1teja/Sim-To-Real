@@ -116,6 +116,15 @@ class ScriptTest(unittest.TestCase):
         self.assertEqual(script.build_parser().parse_args(argv).action_horizon, 30)
         self.assertEqual(script.build_parser().parse_args([*argv, "--action_horizon", "8"]).action_horizon, 8)
 
+    def test_molmo_convention_default_is_separate_and_can_be_overridden(self):
+        factory = Mock()
+        module = SimpleNamespace(SimRemotePolicy=factory)
+        for extra, expected in [([], "-90"), (["--policy_option", "wrist_roll_model_offset=-45"], "-45")]:
+            args = script.build_parser().parse_args(["--policy", "molmoact2", "--lang_instruction", "pick", *extra])
+            with patch.dict(sys.modules, {"sim_to_real_so101.utils.lerobot_interface": module}):
+                script.make_policy(args, object())
+            self.assertEqual(factory.call_args.kwargs["policy_options"]["wrist_roll_model_offset"], expected)
+
     def test_default_is_shadow_mode_and_never_moves_the_arm(self):
         code, interface, policy, text = self.run_script(["--no_prompt"])
         self.assertEqual(code, 0)
@@ -155,7 +164,8 @@ class ScriptTest(unittest.TestCase):
         constructor.assert_called_once()
         kwargs = constructor.call_args.kwargs
         self.assertEqual(kwargs["kind"], "follower")
-        self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(self.mapping_file))
+        self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(
+            self.mapping_file, **script.rr.sim_mapping_parameters()))
         self.assertEqual(kwargs["joint_mapping"]["wrist_roll"], {"joint_min": -180.0, "joint_max": 179.912109375})
         self.assertEqual(interface.robot.sent, [])
 
@@ -185,11 +195,23 @@ class ScriptTest(unittest.TestCase):
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it"])
                 script.validate(args)
                 expected_root = root or Path("~/.cache/huggingface/lerobot/calibration").expanduser()
-                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json")
+                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json",
+                                             **script.rr.sim_mapping_parameters())
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it",
                                                         "--follower_id", "other_robot"])
                 script.validate(args)
                 self.assertEqual(load.call_args.args[0], expected_root / "robots/so101_follower/other_robot.json")
+
+    def test_shared_roll_and_nonzero_gripper_contact_anchor_reach_real_mapping(self):
+        anchors = dict(gripper_closed_degrees=-13, gripper_contact_units=1.4,
+                       wrist_roll_zero_offset_degrees=90)
+        with patch.object(script.rr, "sim_mapping_parameters", return_value=anchors):
+            args = script.build_parser().parse_args([
+                "--policy", "demo", "--lang_instruction", "pick it", "--calibration_file", str(self.mapping_file)])
+            script.validate(args)
+        expected = script.rr.follower_mapping_from_calibration(self.mapping_file, **anchors)
+        self.assertEqual(args.joint_mapping, expected)
+        self.assertEqual(args.joint_mapping["wrist_roll"]["joint_min"], -90)
 
     def test_calibration_mismatch_on_the_arm_refuses_to_run(self):
         code, interface, policy, _ = self.run_script(["--no_prompt", "--enable-motion"], calibrated=False)

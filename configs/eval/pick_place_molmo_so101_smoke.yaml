@@ -11,6 +11,7 @@ policy:
   models_dir: /external_storage/molmoact2
   server_image: policy-server:latest
   options:
+    wrist_roll_model_offset: -90     # base USD wrist degrees -> original Molmo wrist frame
     norm_tag: so100_so101_molmoact2
     dtype: bfloat16
     action_dtype: float32
@@ -19,7 +20,7 @@ policy:
     pan_model_offset: 3.5352321757436442
     num_steps: 10
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A2
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   splits:
   - id
@@ -30,10 +31,9 @@ eval:
   start_mode: cycle
   random_fraction: 0.0
   robot_start: recorded
-  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd
   action_horizon: 30
   action_repeat: 1
-  molmo_overhead_camera: false
   episode_length_s: 210
   render_warmup: 0
   video_encoder: libx264

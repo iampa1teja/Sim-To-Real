@@ -122,6 +122,10 @@ parser.add_argument(
     help="One master teleoperation and recording loop rate.",
 )
 parser.add_argument("--seed", type=int, default=101)
+parser.add_argument("--no_calibration", action="store_true",
+                    help="Connect both arms with calibration disabled; never accept or run calibration.")
+parser.add_argument("--joint_angle_log", type=str, default=None,
+                    help="New JSONL path for passive follower/mapped/PhysX joint telemetry; requires a follower.")
 
 # MyRoom currently has no task RigidObject. This optional hook only acts on a
 # caller-supplied Isaac Lab scene entity and therefore invents no prim path.
@@ -154,6 +158,8 @@ if args_cli.image_writer_threads_per_camera < 0:
     parser.error("--image_writer_threads_per_camera cannot be negative.")
 if args_cli.enable_real_follower and os.path.realpath(args_cli.port) == os.path.realpath(args_cli.follower_port):
     parser.error("Leader and follower serial ports must be different.")
+if args_cli.joint_angle_log and not args_cli.enable_real_follower:
+    parser.error("--joint_angle_log requires --enable_real_follower.")
 
 
 validate_serial_ports(args_cli, parser)
@@ -244,6 +250,7 @@ def main():
     follower_iface = None
     recorder_group = None
     recording = False
+    joint_angle_log = None
 
     try:
         exit_cleanly_on_termination()
@@ -290,9 +297,14 @@ def main():
         if not sim_cameras:
             print("[WARNING]: No simulation cameras found.")
 
+        if args_cli.joint_angle_log:
+            from sim_to_real_so101.utils.joint_angle_check import JointAngleTelemetry
+            joint_angle_log = JointAngleTelemetry(args_cli.joint_angle_log)
+
         leader_iface = connect_interface(
             args_cli, env.unwrapped.device, sim_cameras, "leader",
             joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
+            calibrate=not args_cli.no_calibration,
         )
 
         recording_mode = bool(all(dataset_args))
@@ -300,7 +312,8 @@ def main():
         # only when a real dataset will actually consume them.
         real_cameras = real_camera_specs(args_cli) if recording_mode else {}
         if args_cli.enable_real_follower:
-            follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower")
+            follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower",
+                                               calibrate=not args_cli.no_calibration)
 
         if recording_mode:
             recorder_group = make_recorders(
@@ -336,6 +349,7 @@ def main():
         )
         wrist_roll_index = 4
         leader_wrist_start = None
+        previous_sim_target = None
         # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
         obs = None
 
@@ -502,6 +516,12 @@ def main():
 
             if follower_iface is not None:
                 try:
+                    if joint_angle_log is not None:
+                        # Observe the previous completed tick BEFORE sending its
+                        # next command. This tap never commands either arm.
+                        follower_angles = follower_iface.robot.get_observation()
+                        joint_angle_log.observe(follower_angles, leader_iface,
+                                                env.unwrapped.scene["robot"], previous_sim_target)
                     # Critical invariant: this is the original LeRobot
                     # action, not the mapped Isaac Sim tensor.
                     follower_iface.robot.send_action(leader_action)
@@ -514,6 +534,7 @@ def main():
             actions[:] = mapped_action
             try:
                 obs, _, _, _, _ = env.step(actions)
+                previous_sim_target = mapped_action.clone()
             except Exception as exc:
                 raise RuntimeError(
                     f"Isaac Sim action application failed: {exc}"
@@ -526,6 +547,8 @@ def main():
     except KeyboardInterrupt:
         print("[INFO]: Interrupted; shutting down cleanly.")
     finally:
+        if joint_angle_log is not None:
+            _cleanup("Joint telemetry close", joint_angle_log.close)
         if keyboard_control is not None:
             _cleanup("Keyboard cleanup", keyboard_control.cleanup)
         _cleanup("Follower disconnect", lambda: _disconnect(follower_iface, "physical follower"))

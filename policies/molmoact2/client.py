@@ -36,7 +36,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
     def __init__(self, cameras: tuple[str, ...], language: bool,
                  input_joint_units: str = "lerobot_degrees", arm_degrees_per_unit: str = "",
                  include_original_room: bool = False, arm_zero_degrees: str = "",
-                 pan_model_scale: Any = None, pan_model_offset: Any = None) -> None:
+                 pan_model_scale: Any = None, pan_model_offset: Any = None,
+                 wrist_roll_model_offset: Any = 0.0) -> None:
         if not isinstance(include_original_room, bool):
             raise ValueError("include_original_room must be true or false")
         self.cameras = tuple(cameras)
@@ -71,6 +72,17 @@ class MolmoAct2ClientPolicy(ClientPolicy):
         elif input_joint_units == "model":
             self.scale[:] = 1
             self.offset[:] = 0
+        if isinstance(wrist_roll_model_offset, (bool, np.bool_)):
+            raise ValueError("wrist_roll_model_offset must be finite degrees")
+        try:
+            wrist_offset = float(wrist_roll_model_offset)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError("wrist_roll_model_offset must be finite degrees") from error
+        if not np.isfinite(wrist_offset) or abs(wrist_offset) > np.finfo(np.float32).max:
+            raise ValueError("wrist_roll_model_offset must be finite degrees")
+        if wrist_offset and input_joint_units != "usd_normalized":
+            raise ValueError("wrist_roll_model_offset requires input_joint_units=usd_normalized")
+        self.offset[4] += wrist_offset
         pan_adaptation = None
         if pan_model_scale is not None or pan_model_offset is not None:
             if pan_model_scale is None or pan_model_offset is None:
@@ -124,7 +136,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
                    options.get("arm_degrees_per_unit", ""),
                    _include_original_room(options.get("include_original_room", False)),
                    options.get("arm_zero_degrees", ""),
-                   options.get("pan_model_scale"), options.get("pan_model_offset"))
+                   options.get("pan_model_scale"), options.get("pan_model_offset"),
+                   options.get("wrist_roll_model_offset", 0.0))
 
     def build_request(
         self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str

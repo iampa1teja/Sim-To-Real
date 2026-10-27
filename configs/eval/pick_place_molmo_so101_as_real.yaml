@@ -6,8 +6,9 @@
 # ./docker/eval.sh pick_place_molmo_so101_as_real.yaml --smoke-test
 # Same starts, seeds and progress deadlines as pick_place_molmo_so101_smoke.yaml,
 # so the two smoke results are directly comparable.
-# Not yet covered here: sim joint spans still use the USD limits for every joint
-# except pan, and simulated actuators are stronger and faster than STS3215 servos.
+# All six sim spans now follow follower calibration. This profile deliberately
+# retains midpoint-relative model degrees as an experiment. Sim actuators still
+# differ from the physical STS3215 servos.
 task: pick_place
 policy:
   name: molmoact2
@@ -22,7 +23,7 @@ policy:
     input_joint_units: lerobot_normalized   # scale only; no USD midpoint offsets
     num_steps: 10
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   splits:
   - id
@@ -36,7 +37,6 @@ eval:
   # robot_usd omitted: base SO-ARM101-USD.usd, as used to record the dataset
   action_horizon: 30
   action_repeat: 1
-  molmo_overhead_camera: false
   episode_length_s: 210
   render_warmup: 0
   video_encoder: libx264

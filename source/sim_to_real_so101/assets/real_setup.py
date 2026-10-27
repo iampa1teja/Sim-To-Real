@@ -4,8 +4,20 @@ from pathlib import Path
 
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
+from sim_to_real_so101.utils.joint_calibration import follower_mapping_from_calibration, sim_mapping_parameters
+
 ASSET_DIR = Path(__file__).resolve().parent
 SETUP = json.loads((ASSET_DIR / "real_setup.json").read_text())
+
+# Regenerate from the embedded follower ranges, using the same derivation as real_rollout.
+
+_mapping_source = SETUP.get("sim_joint_mapping_source", {})
+if "joints" in _mapping_source:
+    _derived_mapping = follower_mapping_from_calibration(
+        _mapping_source["joints"], **sim_mapping_parameters(_mapping_source))
+    if SETUP["sim_joint_mapping"] != _derived_mapping:
+        raise ValueError("Stale sim_joint_mapping; regenerate with scripts/update_sim_calibration.py")
+    SETUP["sim_joint_mapping"] = _derived_mapping
 DEFAULT_SETUP_USDZ = str(ASSET_DIR / "usd" / "digital_twin.usdz")
 
 

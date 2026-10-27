@@ -33,27 +33,8 @@ def test_complete_matching_released_trial_is_accepted():
     assert m.validate_result(report, expected, 30, options) is report
 
 
-def test_three_camera_variant_must_be_declared_explicitly():
-    report, expected, options = fixture()
-    report['policy_cameras'] = ['room','wrist','original_room']
-    with pytest.raises(ValueError, match='camera'):
-        m.validate_result(report, expected, 30, options)
-    report['resume_settings']['molmo_overhead_camera'] = True
-    assert m.validate_result(report, expected, 30, options, overhead=True) is report
 
 
-def test_two_external_views_are_validated_against_their_actual_declared_inputs():
-    report, expected, options = fixture()
-    report['policy_cameras'] = ['room', 'original_room']
-    report['resume_settings']['molmo_overhead_camera'] = True
-    with pytest.raises(ValueError, match='camera'):
-        m.validate_result(report, expected, 30, options, overhead=True)
-    assert m.validate_result(report, expected, 30, options, overhead=True,
-                             camera_inputs=('room', 'original_room')) is report
-    report['policy_cameras'] = ['room', 'wrist', 'original_room']
-    with pytest.raises(ValueError, match='camera'):
-        m.validate_result(report, expected, 30, options, overhead=True,
-                          camera_inputs=('room', 'original_room'))
 
 
 def test_camera_selection_changes_only_the_private_snapshot_and_its_digest():
@@ -63,13 +44,13 @@ def test_camera_selection_changes_only_the_private_snapshot_and_its_digest():
         args = SimpleNamespace(state_dir=Path(directory)/'control', wait_pid=None, control_repo=ROOT)
         control = m.Investigation(args)
         args = SimpleNamespace(state_dir=Path(directory)/'external', wait_pid=None, control_repo=ROOT)
-        external = m.Investigation(args, camera_inputs=('room', 'original_room'))
+        external = m.Investigation(args, camera_inputs=('room',))
         assert (control.snapshot/'policies/molmoact2/policy.toml').read_bytes() == original
         selected = tomllib.loads((external.snapshot/'policies/molmoact2/policy.toml').read_text())
-        assert selected['observation']['cameras'] == ['room', 'original_room']
+        assert selected['observation']['cameras'] == ['room']
         assert external.source_digest != control.source_digest
         state = json.loads((external.root/'state.json').read_text())
-        assert state['manifest_camera_inputs'] == ['room', 'original_room']
+        assert state['manifest_camera_inputs'] == ['room']
         assert state['source_digest'] == external.source_digest
     assert manifest.read_bytes() == original
 

@@ -173,7 +173,6 @@ class EvaluatorRolloutTests(unittest.TestCase):
         def make_environment(*args, **kwargs):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
             env.made_robot_usd = kwargs['cfg'].scene.robot.spawn.usd_path
-            env.made_overhead_camera = getattr(kwargs['cfg'].scene, 'camera_molmo_room', None)
             env.max_episode_length = math.ceil(env.made_episode_length_s / env.step_dt)
             params = kwargs['cfg'].events.spawn_cube.params
             if params.get('eval_set'):
@@ -347,55 +346,9 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertTrue(env.closed)
         self.assertIn('[RESULT] incomplete: 0/5 episodes; success 0/0 (n/a)', env.printed)
 
-    def test_molmo_overhead_camera_is_added_before_spawn_and_identified_in_report(self):
-        camera = object()
-        metadata = {'camera': 'molmo_room', 'position': [-.5, 0., .8]}
-        calls = []
 
-        def add_camera(cfg):
-            calls.append(cfg)
-            cfg.scene.camera_molmo_room = camera
-            return metadata
 
-        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
-                'sim_to_real_so101.utils.molmo_camera': SimpleNamespace(add_molmo_overhead_camera=add_camera)}):
-            path = Path(directory) / 'report.json'
-            env, cfg = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
-                                                        'molmo_overhead_camera': True,
-                                                        'rename_map': '{"realsense_rgb":"room","wrist_cam":"wrist"}'})
-            report = json.loads(path.read_text())
-        self.assertEqual(calls, [cfg])
-        self.assertIs(env.made_overhead_camera, camera)
-        self.assertEqual(env.interface_options['rename_map'],
-                         {'realsense_rgb': 'original_room', 'molmo_room': 'room', 'wrist_cam': 'wrist'})
-        self.assertEqual(report['molmo_overhead_camera'], metadata)
 
-    def test_default_rollout_never_imports_or_adds_molmo_camera(self):
-        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
-                'sim_to_real_so101.utils.molmo_camera': None}):
-            path = Path(directory) / 'report.json'
-            env, _ = self.evaluate(path)
-            report = json.loads(path.read_text())
-        self.assertIsNone(env.made_overhead_camera)
-        self.assertNotIn('molmo_overhead_camera', report)
-        self.assertIsNone(env.interface_options['rename_map'])
-
-    def test_disabling_molmo_camera_restores_original_room_mapping(self):
-        with tempfile.TemporaryDirectory() as directory, patch.dict(sys.modules, {
-                'sim_to_real_so101.utils.molmo_camera': None}):
-            path = Path(directory) / 'report.json'
-            env, _ = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
-                                   'molmo_overhead_camera': False,
-                                   'rename_map': '{"realsense_rgb":"original_room","molmo_room":"room","wrist_cam":"wrist"}'})
-        self.assertIsNone(env.made_overhead_camera)
-        self.assertEqual(env.interface_options['rename_map'], {'realsense_rgb': 'room', 'wrist_cam': 'wrist'})
-
-    def test_molmo_overhead_rejects_other_policy_or_task_before_environment_creation(self):
-        for changes in ({'policy': 'groot_n17'}, {'policy': 'molmoact2', 'task': 'Lerobot-So101-Teleop-MyRoom'}):
-            with self.subTest(changes=changes):
-                env, _ = self.evaluate(None, args_override={'molmo_overhead_camera': True, **changes},
-                                       expected_error='requires molmoact2 and a pick-place Eval task')
-                self.assertIsNone(env.made_episode_length_s)
 
     def test_autoreset_preserves_episode_metadata_and_exact_count(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -510,7 +463,7 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
     def test_robot_usd_override_is_applied_before_spawn_and_saved_in_report(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'report.json'
-            asset = ROOT / 'source/sim_to_real_so101/assets/usd/ARM_new.usd'
+            asset = ROOT / 'source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd'
             env, _ = self.evaluate(path, args_override={'robot_usd': asset})
             report = json.loads(path.read_text())
         self.assertEqual(env.made_robot_usd, str(asset.resolve()))
@@ -903,7 +856,6 @@ class EvaluatorCliTests(unittest.TestCase):
         self.assertIsNone(args.episode_length_s)
         self.assertEqual(args.action_horizon, 16)
         self.assertEqual(args.action_repeat, 1)
-        self.assertFalse(args.molmo_overhead_camera)
         self.assertEqual(args.random_fraction, 0.)
         self.assertEqual(args.robot_start, 'recorded')
         for horizon in ('1', '16'):
@@ -924,17 +876,6 @@ class EvaluatorCliTests(unittest.TestCase):
         self.assertEqual(error.exception.code, 2)
         self.assertEqual(self.Launcher.launches, 0)
 
-    def test_molmo_overhead_cli_accepts_only_molmo_pick_place(self):
-        for task in ('Lerobot-So101-Teleop-Pick-Place-Eval', 'Lerobot-So101-Teleop-Pick-Place-DR-Eval'):
-            args = self.parse_cli(['--policy', 'molmoact2', '--task', task, '--molmo-overhead-camera'])
-            self.assertTrue(args.molmo_overhead_camera)
-        for arguments in (['--molmo-overhead-camera'],
-                          ['--policy', 'molmoact2', '--molmo-overhead-camera'],
-                          ['--task', 'Lerobot-So101-Teleop-Pick-Place-Eval', '--molmo-overhead-camera']):
-            with self.subTest(arguments=arguments), self.assertRaises(SystemExit) as error:
-                self.parse_cli(arguments)
-            self.assertEqual(error.exception.code, 2)
-            self.assertEqual(self.Launcher.launches, 0)
 
     def test_repeat_cli_prefetch_uses_effective_physical_chunk_length(self):
         args = self.parse_cli(['--policy', 'molmoact2', '--action_repeat', '5', '--prefetch_steps', '149'])

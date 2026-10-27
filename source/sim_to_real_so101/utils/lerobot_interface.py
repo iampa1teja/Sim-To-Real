@@ -21,7 +21,8 @@ import numpy as np
 import torch
 import uuid
 
-from source.sim_to_real_so101.policy_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
+from sim_to_real_so101.policy_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
+from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
 
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig
 from lerobot.robots.so101_follower import SO101FollowerConfig
@@ -48,15 +49,8 @@ from sim_to_real_so101.utils.rerun_logging import log_rerun_data
 # and inherit from it for each robot type.
 class LeRobotSO101Interface:
 
-    # USD Robot has joint ranges that are not ranging from -100 to 100
-    SO101_USD_MAPPING = {
-        "shoulder_pan": {"joint_min": -110, "joint_max": 110},
-        "shoulder_lift": {"joint_min": -100, "joint_max": 100},
-        "elbow_flex": {"joint_min": -100, "joint_max": 90},
-        "wrist_flex": {"joint_min": -95, "joint_max": 95},
-        "wrist_roll": {"joint_min": -160, "joint_max": 160},
-        "gripper": {"joint_min": -10, "joint_max": 100},
-    }
+    # Runtime clamp is shared with PhysX. Physical encoder spans remain separate.
+    SO101_USD_MAPPING = runtime_joint_limits()
 
     # Joint order is the order of the joints in the USD articulation
     SO101_JOINT_ORDER = [
@@ -485,7 +479,7 @@ class SimRemotePolicy:
             raise ValueError("action_repeat must be a positive integer")
         self.grasp = None
         if grasp_config is not None and grasp_config.enabled:
-            from source.sim_to_real_so101.policy_client.grasp import GraspController
+            from sim_to_real_so101.policy_client.grasp import GraspController
             self.grasp = GraspController(grasp_config, robot_iface.SO101_JOINT_ORDER, control_dt)
             self.grasp.episode = -1  # first policy.reset starts episode zero
         self._seed_per_episode = seed_per_episode
@@ -641,7 +635,7 @@ class SimRemotePolicy:
             def query():
                 model_input = make_input()
                 if self._seed_per_episode:
-                    from source.sim_to_real_so101.policy_client.grasp import seed_query
+                    from sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
                 action_chunk = self._client.get_action(model_input)
                 self.inference_calls += 1
@@ -652,7 +646,7 @@ class SimRemotePolicy:
             if len(self._action_queue) == 0:
                 model_input = make_input()
                 if self._seed_per_episode:
-                    from source.sim_to_real_so101.policy_client.grasp import seed_query
+                    from sim_to_real_so101.policy_client.grasp import seed_query
                     seed_query(self._client, self._episode_seed)
                 action_chunk = self._client.get_action(model_input)
                 self.inference_calls += 1

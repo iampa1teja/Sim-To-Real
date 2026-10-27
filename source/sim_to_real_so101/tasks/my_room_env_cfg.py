@@ -24,6 +24,7 @@ from sim_to_real_so101.mdp import image, image_raw
 from sim_to_real_so101.utils.calibrated_camera import (
     CalibratedPinholeCameraCfg, CalibratedTiledCamera, apply_opencv_intrinsics,
 )
+from sim_to_real_so101.utils.joint_limits import apply_runtime_joint_limits
 from .so101_env_cfg import (
     EventCfg, LerobotSo101BaseSceneCfg, ObservationsCfg, SO101TeleopEnvCfg,
 )
@@ -174,6 +175,7 @@ def _set_real_robot_materials(env, env_ids):
 
 @configclass
 class MyRoomEventsCfg(EventCfg):
+    runtime_joint_limits = EventTerm(func=apply_runtime_joint_limits, mode="startup")
     configure_scene_updates = EventTerm(func=_configure_scene_updates, mode="startup")
     set_robot_visual_material = EventTerm(func=_set_real_robot_materials, mode='startup')
     reset_set_robot_visual_material = EventTerm(func=_set_real_robot_materials, mode='reset')

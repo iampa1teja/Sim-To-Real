@@ -118,3 +118,25 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
 - Upstream GR00T sources stay untouched. Wrappers patch behavior in-process and pin exact revisions.
 - `lerobot_push_dataset` is a known-broken console entry. Use the module workaround in `docs/05-training.md`.
 - Keep the SPDX/Apache headers in files that came from upstream NVIDIA or Isaac Lab.
+
+## Simulation calibration
+
+`assets/real_setup.json` records all six `rpd_robot` follower spans and their
+provenance. `utils/joint_calibration.py` is the shared derivation used by the
+sim setup and `real_rollout`; never edit the real calibration files. Regenerate
+with `scripts/update_sim_calibration.py` in the teleop image's pxr environment.
+The gripper unit-zero anchor is the audited USD closing end-stop, with the
+measured follower span. USD limits still clamp all six calibrated ranges.
+Keep the wrist encoder zero at 2048 and preserve the initial physical pose.
+
+Use only `assets/usd/SO-ARM101-USD.usd` for the controlled arm. Alternate arm USDs
+and the Molmo overhead-camera path were removed. The room and wrist cameras,
+scene assets and wrist mount remain. The original Molmo wrist frame uses the
+explicit `wrist_roll_model_offset: -90` option in the relevant eval profiles.
+Historical reports retain their original asset names and result metadata.
+
+Dataset calibration produces new roots only. Method A preserves images and
+physical trajectories while relabeling both joint columns and their statistics;
+Method B replays actions with physics and retains only benchmark successes.
+See `docs/reports/2026-10-27-calibration-fixes/report.md`. Benchmark start sets
+are mapping-independent, but before/after evaluation results cannot be compared.

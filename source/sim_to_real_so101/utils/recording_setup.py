@@ -97,7 +97,7 @@ def disconnect(interface, label: str) -> None:
         print(f"[ERROR]: Failed to disconnect {label}: {exc}")
 
 
-def connect_interface(args, device, cameras, kind, visualize=False, joint_mapping=None):
+def connect_interface(args, device, cameras, kind, visualize=False, joint_mapping=None, calibrate=True):
     """Connect a leader/follower, cleaning partial resources on failure."""
     from .lerobot_interface import LeRobotSO101Interface
 
@@ -113,7 +113,13 @@ def connect_interface(args, device, cameras, kind, visualize=False, joint_mappin
     )
     try:
         interface.init_device(visualize=visualize)
-        interface.connect()
+        if not calibrate:
+            def refuse_calibration(*unused_args, **unused_kwargs):
+                raise RuntimeError("Calibration is disabled for this session")
+            interface.robot.calibrate = refuse_calibration
+            interface.robot._save_calibration = refuse_calibration
+            interface.robot.bus.write_calibration = refuse_calibration
+        interface.connect(calibrate=calibrate)
     except BaseException:
         cleanup(f"Partial {kind} disconnect", interface.disconnect)
         raise

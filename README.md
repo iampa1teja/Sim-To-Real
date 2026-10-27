@@ -147,12 +147,11 @@ compared with all-BF16 storage. Action denormalization also uses FP32 to avoid
 rounding absolute joint targets to whole degrees. These preserve numerical
 precision; the five-episode smoke test checks the resulting execution and grasps.
 
-The SO-101 profile uses the original front camera as `room` and the gripper
-camera as `wrist`. Both `eval.molmo_overhead_camera` and
-`policy.options.include_original_room` are disabled. The existing camera poses
-and default environment remain unchanged. An added view behind and above the
-arm, aligned with the table edge, remains available as an optional comparison;
-see [Evaluation](docs/06-evaluation.md).
+The SO-101 profile uses the calibrated room camera as `room` and the gripper
+camera as `wrist`. It uses the canonical `SO-ARM101-USD.usd` arm and an explicit
+`wrist_roll_model_offset: -90` to express its wrist angle in the original Molmo
+frame. The optional overhead camera and alternate arm USDs have been removed;
+see [Evaluation](docs/06-evaluation.md) and the calibration report there.
 
 The profile also opts into experimental pan adaptation fitted from the local
 training demonstrations. It consistently rescales pan observations and actions

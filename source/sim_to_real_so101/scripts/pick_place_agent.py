@@ -4,6 +4,7 @@ import os
 import signal
 import sys
 import traceback
+from pathlib import Path
 from isaaclab.app import AppLauncher
 from sim_to_real_so101.utils.recording_setup import (
     cleanup as _cleanup,
@@ -13,6 +14,9 @@ from sim_to_real_so101.utils.recording_setup import (
     make_recorders,
     real_camera_specs,
     validate_serial_ports,
+)
+from sim_to_real_so101.utils.recording_alignment import (
+    recording_contract, validate_recording_root, mark_recording_root, synced_start_pose,
 )
 
 parser = argparse.ArgumentParser(description="SO-101 pick-and-place agent.")
@@ -97,6 +101,18 @@ if args_cli.enable_real_follower and (
 # ---------------------------------------------------------------------------
 # Serial port pre-flight
 # ---------------------------------------------------------------------------
+alignment_contract = recording_contract(follower_id=args_cli.follower_id, leader_id=args_cli.robot_id)
+recording_roots = []
+if all(dataset_args):
+    recording_roots.append(args_cli.repo_root)
+    if args_cli.enable_real_follower:
+        root = Path(args_cli.repo_root)
+        recording_roots.append(args_cli.real_repo_root or str(root.with_name(root.name + "-real")))
+    try:
+        for root in recording_roots:
+            validate_recording_root(root, alignment_contract)
+    except ValueError as exc:
+        parser.error(str(exc))
 validate_serial_ports(args_cli, parser)
 args_cli.enable_cameras = True
 app_launcher = AppLauncher(args_cli)
@@ -313,6 +329,8 @@ def main():
             )
             recorder_group.enable_background_encoding()
             recorder_group.init_datasets()
+            for root in recording_roots:
+                mark_recording_root(root, alignment_contract)
             validate_cube_trajectories(
                 args_cli.repo_root, recorder_group.recorders["sim"].episode_lengths(), args_cli.fps
             )
@@ -323,8 +341,7 @@ def main():
 
         # ── Per-tick state ────────────────────────────────────────────────
         actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-        wrist_roll_index = 4
-        leader_wrist_start = None
+        sync_episode_start = False
         # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
         obs = None
 
@@ -459,13 +476,13 @@ def main():
                 keyboard_control.set_recording(False)
                 if requests["reset"]:
                     env.reset()
-                    leader_wrist_start = None
                 episode_cube.hide()
                 obs = None
                 print("\n[INFO]: Setup ready; cube cleared. Start the next episode when ready.")
 
             # ── Countdown expired → start recording ───────────────────────
             if phase == "resetting" and time.perf_counter() >= reset_deadline:
+                sync_episode_start = True
                 phase = "recording"
                 gui_note = ""
                 if recording_mode and recorder_group is not None:
@@ -483,34 +500,37 @@ def main():
             except Exception as exc:
                 raise RuntimeError(f"Failed to read leader: {exc}") from exc
 
-            _, mapped_action = leader_iface.real_to_sim_obs_processor(leader_action)
-
-            # Wrist-roll re-zero
-            if obs is None:  # First tick, or scene edited outside env.step().
-                obs = env.unwrapped.observation_manager.compute()
-            if leader_wrist_start is None:
-                leader_wrist_start = mapped_action[wrist_roll_index].clone()
-                sim_wrist_start = obs["policy"]["joint_pos_obs"][0, wrist_roll_index].clone()
-            mapped_action[wrist_roll_index] = (
-                sim_wrist_start
-                + mapped_action[wrist_roll_index]
-                - leader_wrist_start
-            )
-            mapped_action[wrist_roll_index] = torch.clamp(
-                mapped_action[wrist_roll_index],
-                leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
-                leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
-            )
-
-            visual_obs = obs.get("visual")
-
-            # Read every tick: the GUI shows the real cameras even when not recording.
+            # Read the measured follower before creating the first simulated observation.
             follower_observation = None
             if follower_iface is not None:
                 try:
                     follower_observation = follower_iface.robot.get_observation()
                 except Exception as exc:
                     raise RuntimeError(f"Follower observation failed: {exc}") from exc
+            if sync_episode_start:
+                if follower_observation is not None:
+                    robot = env.unwrapped.scene["robot"]
+                    if env.unwrapped.num_envs != 1:
+                        raise ValueError("Follower start synchronization requires one simulation environment")
+                    raw_state = leader_iface.get_raw_actions_tensor(follower_observation)
+                    measured = leader_iface.get_mapped_actions_vectorized(raw_state)
+                    pose = synced_start_pose(measured)
+                    robot.write_joint_state_to_sim(pose.unsqueeze(0), torch.zeros_like(pose).unsqueeze(0))
+                    robot.set_joint_position_target(pose.unsqueeze(0))
+                    # Refresh both images without advancing physics; frame 0 is the measured start.
+                    for _ in range(2):
+                        env.unwrapped.sim.render()
+                    for sensor in env.unwrapped.scene.sensors.values():
+                        if hasattr(sensor.cfg, "data_types"):
+                            sensor.update(0.0, force_recompute=True)
+                    obs = env.unwrapped.observation_manager.compute()
+                sync_episode_start = False
+
+            _, mapped_action = leader_iface.real_to_sim_obs_processor(leader_action)
+            if obs is None:  # First tick, or scene edited outside env.step().
+                obs = env.unwrapped.observation_manager.compute()
+
+            visual_obs = obs.get("visual")
 
             if recording and recorder_group is not None:
                 if visual_obs is None:
@@ -527,7 +547,7 @@ def main():
                 sim_recorder = recorder_group.recorders["sim"]
                 frames = {
                     "sim": sim_recorder.make_sim_frame(
-                        leader_iface.get_raw_actions_from_radians(mapped_action), sim_observation, visual_buffers
+                        leader_iface.get_raw_actions_tensor(leader_action), sim_observation, visual_buffers
                     )
                 }
                 auxiliary = {

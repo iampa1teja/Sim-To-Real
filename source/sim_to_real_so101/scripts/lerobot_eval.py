@@ -75,6 +75,8 @@ parser.add_argument(
 parser.add_argument("--task", type=str, default="Lerobot-So101-Teleop-MyRoom", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=1984, help="Environment seed")
 parser.add_argument("--num_episodes", type=int, default=10, help="Number of episodes to evaluate")
+parser.add_argument("--policy_timeout_ms", type=_positive_int, default=15000,
+                    help="Policy request timeout; increase for CPU inference (default 15000 ms).")
 parser.add_argument(
     "--rename_map",
     type=str,
@@ -120,8 +122,6 @@ parser.add_argument(
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
 parser.add_argument("--smoke-test", action="store_true",
                     help="Run five episodes with Rerun, without saving evaluation reports, videos or CSVs")
-parser.add_argument("--molmo-overhead-camera", action="store_true",
-                    help="Add a behind/above-arm room view for Molmo pick-place, preserving the existing cameras")
 parser.add_argument("--save_videos", action="store_true", help="Save room/wrist MP4 videos per attempt")
 parser.add_argument("--video_dir", type=Path, default=None, help="Video output directory (default: beside results JSON)")
 parser.add_argument("--video_encoder", choices=("libx264", "h264_nvenc"), default="libx264",
@@ -152,16 +152,13 @@ parser.add_argument("--resume", action="store_true", help="Continue completed at
 parser.add_argument("--config_fingerprint", default=None, help=argparse.SUPPRESS)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
 
-from source.sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
+from sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
 add_grasp_arguments(parser)
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
-if args_cli.molmo_overhead_camera and (args_cli.policy != "molmoact2" or args_cli.task not in (
-        "Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")):
-    parser.error("molmo_overhead_camera requires molmoact2 and a pick-place Eval task")
 max_horizon = 30 if args_cli.policy == "molmoact2" else 16
 if args_cli.action_horizon is None:
     args_cli.action_horizon = max_horizon
@@ -299,11 +296,6 @@ def _evaluate():
     if not math.isfinite(episode_length_s) or episode_length_s <= 0:
         raise ValueError("episode_length_s must be finite and greater than 0")
     pick_place = args_cli.task in ("Lerobot-So101-Teleop-Pick-Place-Eval", "Lerobot-So101-Teleop-Pick-Place-DR-Eval")
-    use_molmo_overhead = getattr(args_cli, "molmo_overhead_camera", False)
-    if not isinstance(use_molmo_overhead, bool):
-        raise ValueError("molmo_overhead_camera must be true or false")
-    if use_molmo_overhead and (args_cli.policy != "molmoact2" or not pick_place):
-        raise ValueError("molmo_overhead_camera requires molmoact2 and a pick-place Eval task")
     if args_cli.num_episodes < 1 or not 0 <= args_cli.random_fraction <= 1:
         raise ValueError("num_episodes must be positive and random_fraction must be in [0, 1]")
     if pick_place:
@@ -329,11 +321,6 @@ def _evaluate():
     torch.cuda.manual_seed_all(args_cli.seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-    molmo_overhead_metadata = None
-    if use_molmo_overhead:
-        from sim_to_real_so101.utils.molmo_camera import add_molmo_overhead_camera
-        molmo_overhead_metadata = add_molmo_overhead_camera(env_cfg)
 
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg)
@@ -374,12 +361,6 @@ def _evaluate():
 
     # lerobot interface (provides sim↔real coordinate transforms)
     rename_map = json.loads(args_cli.rename_map) if args_cli.rename_map else None
-    if use_molmo_overhead:
-        rename_map = dict(rename_map or {}, realsense_rgb="original_room", molmo_room="room", wrist_cam="wrist")
-    elif (args_cli.policy == "molmoact2" and rename_map and rename_map.get("molmo_room") == "room"
-          and rename_map.get("realsense_rgb") == "original_room"):
-        rename_map = dict(rename_map, realsense_rgb="room")
-        rename_map.pop("molmo_room")
     robot_iface = LeRobotSO101Interface(
         device=env.unwrapped.device,
         port=None,
@@ -412,6 +393,9 @@ def _evaluate():
         if not sep or not key:
             raise ValueError(f"Invalid --policy_option {item!r}: expected KEY=VALUE")
         policy_options[key] = value
+    policy_timeout = getattr(args_cli, "policy_timeout_ms", 15000)
+    if policy_timeout <= 0:
+        raise ValueError("policy_timeout_ms must be positive")
     policy = SimRemotePolicy(
         robot_iface=robot_iface,
         policy_name=args_cli.policy,
@@ -419,6 +403,7 @@ def _evaluate():
         api_token=args_cli.policy_api_token,
         host=args_cli.policy_host,
         port=args_cli.policy_port,
+        timeout_ms=policy_timeout,
         action_horizon=args_cli.action_horizon,
         action_repeat=action_repeat,
         lang_instruction=args_cli.lang_instruction,
@@ -484,8 +469,6 @@ def _evaluate():
         report['action_repeat'] = action_repeat
         report['replan_interval_s'] = replan_interval_s
         report['robot_usd'] = env_cfg.scene.robot.spawn.usd_path
-        if molmo_overhead_metadata is not None:
-            report['molmo_overhead_camera'] = molmo_overhead_metadata
         if video_recorder is not None or (resume and saved_report.get("save_videos")):
             report["save_videos"] = True
             report["video_dir"] = str(video_dir)
@@ -521,7 +504,7 @@ def _evaluate():
             policy=args_cli.policy, policy_options=policy_options,
             cube_starts=args_cli.cube_starts, rename_map=rename_map,
             lang=args_cli.lang_instruction, lang_by_color=args_cli.lang_instruction_by_color,
-            render_warmup=render_warmup, molmo_overhead_camera=use_molmo_overhead,
+            render_warmup=render_warmup,
             smoothing={key: getattr(args_cli, key, default) for key, default in smoothing_defaults.items()
                        if key not in ("log_timing", "timing_csv")},
             grasp={key: value for key, value in asdict(grasp_config).items()

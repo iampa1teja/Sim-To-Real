@@ -60,10 +60,10 @@ def start_episode_ids(directory):
 # LeRobot joint order and the USD joint limits (degrees) used by LeRobotSO101Interface.
 SO101_JOINTS = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
 SO101_USD_JOINTS = ("Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "Jaw")
-SO101_USD_LIMITS_DEG = {
-    "shoulder_pan": (-110.0, 110.0), "shoulder_lift": (-100.0, 100.0), "elbow_flex": (-100.0, 90.0),
-    "wrist_flex": (-95.0, 95.0), "wrist_roll": (-160.0, 160.0), "gripper": (-10.0, 100.0),
-}
+from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
+
+SO101_USD_LIMITS_DEG = {name: (span["joint_min"], span["joint_max"])
+                       for name, span in runtime_joint_limits().items()}
 
 
 def dataset_state_to_radians(state, joint_mapping=None):
@@ -71,7 +71,7 @@ def dataset_state_to_radians(state, joint_mapping=None):
 
     Same maths as LeRobotSO101Interface.get_mapped_actions_vectorized: arm joints map
     -100..100 and the gripper 0..100 onto the calibrated mapping span (joint_mapping
-    overrides the USD span per joint), then clamp to the USD limits.
+    overrides the default span per joint), then clamp to the shared runtime limits.
     """
     state = np.asarray(state, dtype=float)
     if state.shape != (6,) or not np.isfinite(state).all():

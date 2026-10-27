@@ -463,15 +463,152 @@
     "shoulder_pan": {
       "joint_min": -116.279296875,
       "joint_max": 119.794921875
+    },
+    "shoulder_lift": {
+      "joint_min": -106.962890625,
+      "joint_max": 112.32421875
+    },
+    "elbow_flex": {
+      "joint_min": -102.919921875,
+      "joint_max": 93.251953125
+    },
+    "wrist_flex": {
+      "joint_min": -101.953125,
+      "joint_max": 105.205078125
+    },
+    "wrist_roll": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "gripper": {
+      "joint_min": -10.000003814697266,
+      "joint_max": 119.63866806030273
     }
   },
   "sim_joint_mapping_source": {
     "follower_id": "rpd_robot",
-    "joint": "shoulder_pan",
-    "range_min": 725,
-    "range_max": 3411,
+    "calibration_sha256": "86c6eee0eb97435082d5d6b820dafc3c4ad774b424ad84105c32cad96365be03",
     "encoder_counts_per_turn": 4096,
     "zero_count": 2048,
-    "note": "Simulation-only conversion of normalized follower commands to radians. Pan bounds derived from the connected follower calibration and its half-turn home. Verified with first encoded pick/place episode (index 0); cube lands in unchanged box. Other joints retain their existing mapping. USD joint limits remain enforced."
+    "gripper_closed_degrees": -10.000003814697266,
+    "gripper_closed_source": "Retained legacy -10.000003814697266 degrees at unit 0; empty-pad contact has not been established independently of the former USD lower limit. See Part 2B.",
+    "note": "Unclipped encoder spans, with explicit USD-vs-arm roll zero and gripper contact anchor. Anchor values and their verification status are independent of runtime articulation limits. Molmo's wrist_roll_model_offset remains a separate policy convention.",
+    "joints": {
+      "shoulder_pan": {
+        "id": 1,
+        "drive_mode": 0,
+        "homing_offset": -1078,
+        "range_min": 725,
+        "range_max": 3411,
+        "method": "(count - 2048) * 360 / 4096"
+      },
+      "shoulder_lift": {
+        "id": 2,
+        "drive_mode": 0,
+        "homing_offset": 1811,
+        "range_min": 831,
+        "range_max": 3326,
+        "method": "(count - 2048) * 360 / 4096"
+      },
+      "elbow_flex": {
+        "id": 3,
+        "drive_mode": 0,
+        "homing_offset": 1458,
+        "range_min": 877,
+        "range_max": 3109,
+        "method": "(count - 2048) * 360 / 4096"
+      },
+      "wrist_flex": {
+        "id": 4,
+        "drive_mode": 0,
+        "homing_offset": 1152,
+        "range_min": 888,
+        "range_max": 3245,
+        "method": "(count - 2048) * 360 / 4096"
+      },
+      "wrist_roll": {
+        "id": 5,
+        "drive_mode": 0,
+        "homing_offset": 1578,
+        "range_min": 0,
+        "range_max": 4095,
+        "method": "(count - 2048) * 360 / 4096 + wrist_roll_zero_offset_degrees"
+      },
+      "gripper": {
+        "id": 6,
+        "drive_mode": 0,
+        "homing_offset": -458,
+        "range_min": 2039,
+        "range_max": 3514,
+        "method": "closed_degrees + ((count - range_min) / (range_max - range_min) * 100 - contact_units) * (range_max - range_min) * 360 / 4096 / 100"
+      }
+    },
+    "wrist_roll_zero_offset_degrees": 0.0,
+    "wrist_roll_fit_status": "unresolved",
+    "wrist_roll_fit_source": "docs/reports/2026-10-27-camera-gripper-recording/report.md, Part 2A; insufficient cross-episode edge consistency; retain prior zero",
+    "gripper_contact_units": 0.0,
+    "gripper_contact_fit_status": "unresolved",
+    "gripper_contact_proxy_degrees": -12.930982587
+  },
+  "runtime_joint_limits": {
+    "shoulder_pan": {
+      "joint_min": -112.88476679176092,
+      "joint_max": 110.0
+    },
+    "shoulder_lift": {
+      "joint_min": -107.69922143220901,
+      "joint_max": 100.93164121173322
+    },
+    "elbow_flex": {
+      "joint_min": -100.0,
+      "joint_max": 93.37304708957672
+    },
+    "wrist_flex": {
+      "joint_min": -95.0,
+      "joint_max": 104.79882776625453
+    },
+    "wrist_roll": {
+      "joint_min": -160.0,
+      "joint_max": 160.0
+    },
+    "gripper": {
+      "joint_min": -15.000003814697266,
+      "joint_max": 105.43359043821692
+    }
+  },
+  "runtime_joint_limits_source": {
+    "dataset": "datasets/pick_place_v1-real",
+    "frames": 16448,
+    "source_hash_manifest": "/tmp/so101-camera-gripper-recording/source_hashes_before.json",
+    "source_hash_manifest_sha256": "3097b681816a0852f44adbd2776452e395b1867915a4871358b090d4be5346e8",
+    "observed_degrees": {
+      "shoulder_pan": {
+        "min": -111.88476679176092,
+        "max": 96.15234246253968
+      },
+      "shoulder_lift": {
+        "min": -106.69922143220901,
+        "max": 99.93164121173322
+      },
+      "elbow_flex": {
+        "min": -74.44336034059523,
+        "max": 92.37304708957672
+      },
+      "wrist_flex": {
+        "min": -19.160155872814357,
+        "max": 103.79882776625453
+      },
+      "wrist_roll": {
+        "min": -117.07031281851232,
+        "max": 39.550780177116394
+      },
+      "gripper": {
+        "min": -8.154300676600542,
+        "max": 104.43359043821692
+      }
+    },
+    "margin_degrees": 1.0,
+    "jaw_below_anchor_margin_degrees": 5.0,
+    "method": "Union of original USD bounds and observed follower angle extrema + 1 deg; jaw lower extends 5 deg below retained anchor. Roll already covered, so keep +/-160; never +/-180. Runtime PhysX and interface clamp only; immutable USD unchanged."
   }
 }

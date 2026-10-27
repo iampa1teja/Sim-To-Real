@@ -71,7 +71,8 @@ def validate(args):
     else:
         args.calibration_file = Path(args.calibration_file).expanduser()
     try:
-        args.joint_mapping = rr.follower_mapping_from_calibration(args.calibration_file)
+        args.joint_mapping = rr.follower_mapping_from_calibration(
+            args.calibration_file, **rr.sim_mapping_parameters())
     except ValueError as error:
         errors.append(str(error))
     if not (args.camera_gripper or args.camera_external):
@@ -118,6 +119,10 @@ def make_policy(args, interface):
     from sim_to_real_so101.utils.lerobot_interface import SimRemotePolicy
 
     options = dict(option.split("=", 1) for option in args.policy_option)
+    if args.policy == "molmoact2":
+        # States now use the same base-USD angles as the simulator. Keep the
+        # model convention here, separate from the physical arm zero.
+        options.setdefault("wrist_roll_model_offset", "-90")
     return SimRemotePolicy(interface, host=args.policy_host, port=args.policy_port, action_horizon=args.action_horizon,
                            lang_instruction=args.lang_instruction, control_dt=1 / args.fps, policy_name=args.policy,
                            policy_options=options)
@@ -162,7 +167,11 @@ def main(argv=None, *, interface_factory=make_interface, policy_factory=make_pol
               "motion": args.enable_motion, "fps": args.fps, "episode_seconds": args.episode_seconds,
               "max_relative_target": args.max_relative_target, "max_start_error": args.max_start_error,
               "started": started.isoformat(timespec="seconds")}
-    settings = rr.RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error)
+    expected_roll = rr.sim_start_roll_units(args.joint_mapping)
+    header["sim_start_roll_units"] = expected_roll
+    header["mapping_parameters"] = rr.sim_mapping_parameters()
+    settings = rr.RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error,
+                                  expected_start_roll=expected_roll)
     interface = interface_factory(args)
     policy, episodes, failed = None, [], False
     try:

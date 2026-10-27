@@ -12,20 +12,21 @@ policy:
   # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
   server_image: policy-server:latest
   options:
+    wrist_roll_model_offset: -90     # base USD wrist degrees -> original Molmo wrist frame
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     num_steps: 10                     # flow-matching solver steps
 
 # Uses the same benchmark starts as pick_place.yaml with a different wrist frame.
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   splits: [id, ood, yaw, train]
   repeats: 1
   start_mode: cycle
   random_fraction: 0.0
   robot_start: recorded
-  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd
   action_horizon: 8                   # at most the model's chunk length
   episode_length_s: 30                    # 900 steps (the task default is 15 s = 450 steps)
   render_warmup: 2

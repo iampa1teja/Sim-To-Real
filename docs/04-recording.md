@@ -23,8 +23,8 @@ teleoperation can run without dataset recording.
 
 ```bash
 pick_place_agent --task Lerobot-So101-Teleop-Pick-Place \
-  --repo_id '<hf_user>/pick_place_v1' \
-  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1 \
+  --repo_id '<hf_user>/pick_place_v3_start_synced' \
+  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v3_start_synced \
   --task_name 'Pick up the blue cube and place it in the white box'
 ```
 
@@ -34,8 +34,8 @@ the first command; use a new root when changing the configuration):
 ```bash
 pick_place_agent --enable_real_follower \
   --real_gripper_camera "$CAMERA_GRIPPER" --real_external_camera "$CAMERA_EXTERNAL" \
-  --repo_id '<hf_user>/pick_place_paired_v1' \
-  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_paired_v1 \
+  --repo_id '<hf_user>/pick_place_paired_v3_start_synced' \
+  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_paired_v3_start_synced \
   --task_name 'Pick up the blue cube and place it in the white box'
 ```
 
@@ -44,6 +44,25 @@ arguments override them. Physical camera keys are `gripper` and `external`,
 whereas simulation keys are `wrist_cam` and `realsense_rgb`. They are not silently
 interchangeable in GR00T preparation. Real camera feeds are opened through the
 follower; supplying camera arguments without enabling it does not open real panes.
+
+`pick_place_agent` now requires a new recording root for the current alignment
+contract. It writes `meta/recording_alignment.json` after dataset creation and
+only resumes roots with the same calibration, arm IDs and alignment version.
+Existing v1/A/A2 datasets and version-2 recording roots stay available for
+training/evaluation; recording into them is refused before opening hardware.
+
+At each episode start, the simulator is posed from the measured follower state
+and both camera images are refreshed before frame 0. All six joints synchronize,
+including wrist roll. Every target comes directly from the production mapping
+of the unchanged leader action, and both datasets store that same raw action.
+There is no episode-specific wrist re-zero. The version-3 marker records
+`wrist_rezero: false`, `roll_resolved: false`, and the unmeasured shared roll-zero
+constant, currently 0°. The physical zero remains unresolved; it does not add a
+different offset for each episode. These are future recording instructions;
+the follow-up did not record a new hardware dataset.
+
+The room-camera gate did not pass, so there is currently no calibrated cube
+placement overlay. See the [camera/gripper audit](reports/2026-10-27-camera-gripper-recording/report.md).
 
 ## All recorder flags
 
@@ -84,8 +103,39 @@ override the listed fallback. Both parsers also accept standard `--help`.
 | `--control_input` | `terminal` | `terminal` or `keyboard` |
 | `--spawn_port` | 6001 | Local spawn listener; 0 disables it |
 | `--spawn_authkey` | built-in `so101-spawn` | Shared spawn-service header value, not secure network authentication |
+| `--no_calibration` | false | Connect both arms with calibration disabled and reject calibration calls/writes; normal teleoperation still enables follower torque |
+| `--joint_angle_log` | `None` | New JSONL file for follower units, production-mapped degrees, actual PhysX degrees and tracking differences; requires a real follower |
 | `--sim_reset_object_name` | `None` | Existing scene entity to place near gripper on reset |
 | `--sim_reset_object_offset` | `0 0 0` | Three world-frame metre offsets |
+
+For a joint-angle comparison, the operator starts `lerobot_agent` with
+`--enable_real_follower --no_calibration --joint_angle_log <new-output-path>`.
+The log observes the existing control loop and does not issue additional motor
+commands. With no dataset arguments, it does not open physical image devices or
+write datasets. The generic agent retains its existing wrist re-zero behavior;
+the all-six-joint start-sync fix above applies to `pick_place_agent`.
+
+Inspect the resulting log on the host with NumPy installed:
+
+```bash
+python scripts/joint_angle_check.py --log <joint-log.jsonl> --watch
+python scripts/joint_angle_check.py --log <joint-log.jsonl> --output <summary.json>
+```
+
+For a separate simulation-only read-back check, run the following inside an
+Isaac environment. It uses the production recorder mapping and runtime limits,
+sets a separate sim arm, reads actual PhysX joint positions, and takes no physics
+steps during the checks. It does not connect either physical arm.
+
+```bash
+python scripts/joint_angle_check.py --log <joint-log.jsonl> \
+  --physx-check --output <readback.json>
+```
+
+Encoder tracking differences cannot establish physical joint-zero offsets.
+Independent physical readings and a supplied pan reference are needed before a
+joint can receive a physical offset candidate. See the
+[joint-angle check report](reports/2026-10-27-joint-angle-check/report.md).
 
 ### Inherited Isaac launcher options
 

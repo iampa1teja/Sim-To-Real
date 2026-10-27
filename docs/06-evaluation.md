@@ -2,6 +2,37 @@
 
 [Guide hub](../README.md) · Previous: [Training](05-training.md) · [Troubleshooting](troubleshooting.md)
 
+## Calibration revision (2026-10-27)
+
+All six simulation joint spans now derive from the unchanged `rpd_robot`
+follower calibration through `utils/joint_calibration.py`, shared with
+`real_rollout`. `assets/real_setup.json` records each joint's encoder bounds and
+method. The gripper uses its measured span with unit 0 at the USD jaw closing
+end-stop (−10.000004°). Encoder 2048 remains wrist-roll zero. Every calibrated
+range exceeds a USD limit; those limits still clamp targets. The investigation
+found no evidence for a 19° gripper offset.
+
+The only arm asset is `assets/usd/SO-ARM101-USD.usd`. Molmo profiles that previously
+selected the alternate wrist frame now set `policy.options.wrist_roll_model_offset: -90`.
+This expresses model wrist degrees as canonical USD wrist degrees minus 90;
+the inverse adds 90 to actions. Canonical ±160° wrist limits still apply, so
+model targets above 70° reach the upper stop. The follower calibration zero and
+initial physical joint pose receive no additional rotation. The room RGB/depth
+and wrist cameras remain; the optional Molmo overhead camera was removed.
+
+**Evaluation sets do not depend on the command mapping, but results from before
+and after this calibration revision cannot be compared directly.** Keep old
+results as historical records and rerun comparison checkpoints under the same
+mapping, camera inputs and policy frame options. Frozen benchmark arm starts use the `scene.joint_mapping` saved in each eval
+set, preserving their physical poses without changing the sets. Non-benchmark
+recorded starts use `datasets/pick_place_v1_calibrated_A`, whose units match
+the new mapping.
+
+The [calibration report](reports/2026-10-27-calibration-fixes/report.md) contains
+the Step 0 audit, source hashes, both dataset methods, real/sim joint statistics,
+histograms, and the failing tests before and after. The raw datasets, real
+calibration files, model weights and completed evaluation results are retained.
+
 ## Data flow and counting
 
 ```mermaid
@@ -55,7 +86,7 @@ bounds, set `policy.options.action_range_diagnostics: true`. The server's
 maxima and out-of-range counts before clipping. This option defaults to false;
 enabling it preserves the returned actions, checkpoint statistics and clipping.
 
-For the installed checkpoint **without pan adaptation**, unchanged `ARM_new.usd`
+For the installed checkpoint **without pan adaptation**, the former alternate wrist asset (now reproduced with the Molmo frame option)
 benchmark layout and CAD-aligned simulator conversion described below, an offline
 check of the actual joint anchors and jaw collision surfaces found a remaining action-range
 constraint. A grasp-centre placement inside the walls needs pan approximately
@@ -292,7 +323,18 @@ To compare checkpoints, copy the YAML, change `policy.checkpoint`, and run the c
 file. Keep the dataset, benchmark, seed and other settings identical. The launcher
 reads settings from YAML; its optional flags are `--dry_run`, `--external_server`,
 `--server_only`, `--gui`, `--rerun`, `--save_videos`, `--resume [RESULTS.json]`, `--smoke-test`,
-`--molmo-overhead-camera`, and `--help`.
+and `--help`.
+
+`--dry-run` is an alias for `--dry_run`, including through `./so101 eval`.
+For a slow external policy server, `SO101_POLICY_TIMEOUT_MS=120000` increases
+the request timeout to two minutes; the default remains 15 seconds. This changes
+only how long the client waits, not action timing or the simulation deadline.
+
+The October 27 calibration/recording changes introduce shared runtime limits
+and a new A2 dataset provenance. Earlier simulation evaluation results are
+**not comparable** with runs after these changes. See the
+[camera/gripper report](reports/2026-10-27-camera-gripper-recording/report.md)
+for the gates, retained assumptions and one-episode verification.
 
 When `eval.eval_set` is configured, the selected benchmark starts and repeats
 determine the episode count; `eval.episodes` is used for runs without a fixed
@@ -399,7 +441,6 @@ YAML keys (old `eval_pick_place.sh` flag in parentheses):
 | `eval.episode_length_s` | Task default (15 s); finite positive seconds |
 | `eval.action_horizon` | MolmoAct2: 30, integer in 1-30; other policies: 16, integer in 1-16 |
 | `eval.action_repeat` | 1; positive integer control steps per target. SO-101 Molmo profile: 1 (one-second query interval with horizon 30 at 30 Hz) |
-| `eval.molmo_overhead_camera` | Generic default false; true in the SO-101 full profile. Adds a camera behind/above the arm as `room`, retaining the original front and wrist sensors |
 | `eval.eval_set`, `eval.splits`, `eval.repeats` | Fixed benchmark JSON, list of `id/ood/yaw/train`, repeats; splits and repeats need `eval_set` |
 | `eval.lang`, `eval.lang_by_color` | Instruction, per-colour map (blue, plus red for DR) |
 | `eval.rename_map` | `realsense_rgb: room`, `wrist_cam: wrist` (`--rename_map`) |
@@ -500,47 +541,18 @@ finalize the current attempt's files; forced process termination can interrupt
 MP4 finalization. Frames are captured before environment stepping so automatic
 resets do not add the next attempt's initial pose to the preceding video.
 
-Both Molmo configs select `assets/usd/ARM_new.usd`, which layers
-over `SO-ARM101-USD.usd` and restores the original wrist-roll joint frame and the
-matching gripper/jaw zero-pose transforms. The existing USD and other policy
-configs retain their calibration. The wrist camera follows the gripper; the
-base pose, joint command mapping and benchmark starts are unchanged. Results
-record `robot_usd` so runs with different wrist frames can be identified.
-The camera and replacement mount use gripper-local coordinates. Original camera
-extrinsics and jaw geometry are preserved; the user has checked the simulated
-camera views against the real setup.
-
-The SO-101 full profile uses three cameras. `molmo_room` (top) maps to `room`,
-`wrist_cam` maps to `wrist`, and `realsense_rgb` (front) maps to `original_room`.
-Both `eval.molmo_overhead_camera` and `policy.options.include_original_room`
-are `true`. Each model query receives all three RGB images; results record
-`policy_cameras: [room, wrist, original_room]`. The separate nine-zone baseline
-smoke config retains the original front/wrist pair, with both options `false`.
-
-For other Molmo configs, `--molmo-overhead-camera` adds a separate
-view behind and above the arm, with image roll aligned to the table's front
-edge. It leaves both original cameras in place. The new `molmo_room` sensor
-then supplies `room`, the wrist remains `wrist`, and the original front view
-remains available as `original_room` in Rerun and videos. To send that original
-front image as a third model input, after `room` and `wrist`, set
-`policy.options.include_original_room: true` in the YAML. Both options are
-already enabled in the SO-101 full profile; to view that run in Rerun:
-
-```bash
-./docker/eval.sh pick_place_molmo_so101.yaml --rerun
-```
-
-The added camera is restricted to Molmo pick-place tasks and changes only the
-requested evaluation configuration instance. Default scenes and other policy
-profiles retain their existing cameras. Enabled runs record the added camera's
-pose and settings under `molmo_overhead_camera` in their results. Disabling both
-options restores the original front/wrist input pair.
+The Molmo base, SO-101, and smoke profiles select the canonical
+`assets/usd/SO-ARM101-USD.usd` and set `wrist_roll_model_offset: -90` in their
+policy options. The deleted alternate layer changed five wrist/gripper
+properties. Its body transforms are reproduced by adding 90° to the canonical
+wrist coordinate (100 audited poses; maximum matrix difference 5.1e−7).
+Both RGB streams use `realsense_rgb: room` and `wrist_cam: wrist`.
 
 Molmo also needs a joint-unit conversion in both directions. Simulation selects
 `input_joint_units=usd_normalized` and reconstructs each actual USD arm angle
 as `normalized * (maximum - minimum) / 200 + (maximum + minimum) / 2`, using
-`sim_joint_mapping`. Matching the canonical arm CAD to `ARM_new.usd` establishes
-the model angles as `[pan, 90 - lift, 90 + elbow, wrist_flex, wrist_roll]` in
+`sim_joint_mapping`. The configured original Molmo frame gives
+the model angles as `[pan, 90 - lift, 90 + elbow, wrist_flex, wrist_roll - 90]` in
 degrees. This uses the signs and offsets from the
 [official SO-100/101 frame correction](https://huggingface.co/docs/lerobot/main/en/molmoact2#joint-frame-transform-so-100101-zero-shot),
 applied to the reconstructed USD angles. The gripper stays in 0–100 units.
@@ -1082,10 +1094,7 @@ RAM-backed state under a required `--state-dir /dev/shm/NAME`. An optional
 `--wait-pid PID` waits for an existing evaluation launcher without signalling it.
 The runner also waits for the policy port and sufficient GPU memory, freezes
 client/server source in RAM, and runs the baseline, FP32-compute, shorter-chunk,
-more-flow-step and native-frame comparisons. A separate camera-input comparison
-adds the existing Molmo-only overhead sensor and feeds all three images to the
-model; it does not run a vision-based controller or alter the original cameras.
-If those candidates do not improve the screening score, it also tests a fixed,
+more-flow-step and native-frame comparisons. If those candidates do not improve the screening score, it also tests a fixed,
 more explicit instruction describing the same task. It verifies the baseline and the
 leading candidate with two additional matched seeds. Existing reports and
 videos are never used as output paths. Its `planned_trials_complete` status
@@ -1101,14 +1110,10 @@ before the readiness port opens, including a startup exit 139 observed before
 any H10 follow-up episode ran. That infrastructure failure has no policy score.
 Episode summaries are retained even when tqdm appends them to a progress line.
 
-Programmatic follow-ups can construct `Investigation(args,
-camera_inputs=('room', 'original_room'))` to compare the added overhead view
-and the original front view, excluding the wrist from model input. Pass
-`overhead=True` to that instance's trial so both external sensors are available.
-This edits only the new RAM snapshot's manifest before hashing it; the normal
-manifest, original camera poses and task stay unchanged. Trial records and
-validation use the actual selected camera names rather than relabelling a
-three-image result as a two-image comparison.
+Programmatic follow-ups can select the retained room or wrist sensors with
+`Investigation(args, camera_inputs=('room',))` (or `('wrist',)`). This edits only
+the private snapshot's manifest before hashing it. The normal camera poses and
+task stay unchanged; trial validation uses the declared sensor names.
 
 To inspect the initial pose in Isaac without loading a policy, run:
 
@@ -1155,7 +1160,6 @@ paths need their own persistence. The console prints the exact output path.
 | `random_fraction` | Actual probability of random cube starts used by this run |
 | `episode_length_s`, `action_horizon`, `action_repeat`, `step_dt` | Configured episode seconds, predicted targets per query, control steps per target and simulation seconds per control step |
 | `replan_interval_s` | Nominal simulation seconds per query: `action_horizon * action_repeat * step_dt` |
-| `molmo_overhead_camera` | Added camera pose/settings when the optional Molmo view is enabled; absent otherwise |
 | `policy_cameras` | Actual Molmo image inputs in request order, also printed once at connection |
 | `episodes` | Per-attempt rows, including `success_step`, `elapsed_sim_s`, `time_to_success_s`, `wall_time_s`, `wall_time_to_success_s`, and optional `videos` paths |
 | `overall` | `episodes`, `successes`, `success_rate`, `successes_within_15s`, `success_rate_within_15s`, `median_time_to_success_s` |
@@ -1278,7 +1282,7 @@ lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 \
 ```
 
 The direct parser additionally accepts `--disable_fabric`, `--rerun`, `--action_repeat`,
-`--smoke-test`, `--molmo-overhead-camera`,
+`--smoke-test`,
 `--start_mode` (cycle), `--random_fraction` (0.0), `--robot_start` (recorded), `--lang_instruction_by_color`
 (JSON), and the inherited [Isaac launcher flags](04-recording.md#inherited-isaac-launcher-options).
 Its defaults differ from the host runner: MyRoom task, 10 episodes, seed 1984,

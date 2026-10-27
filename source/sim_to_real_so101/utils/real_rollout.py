@@ -9,42 +9,19 @@ Stopping never releases torque: the arm holds its last goal. Cutting power or `-
 """
 from dataclasses import dataclass
 import json
-from pathlib import Path
+import math
 import time
 
 import numpy as np
 
+from sim_to_real_so101.utils.joint_calibration import (
+    FOLLOWER_JOINTS, follower_mapping_from_calibration, sim_gripper_closed_degrees,
+    SETUP_PATH, sim_mapping_parameters, sim_wrist_roll_zero_offset_degrees,
+)
+
 BODY_RANGE = (-100.0, 100.0)
 GRIPPER_RANGE = (0.0, 100.0)
 OUTCOMES = ("success", "failure", "unlabeled")
-FOLLOWER_JOINTS = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
-
-
-def follower_mapping_from_calibration(path):
-    """Convert follower encoder bounds to degrees with the calibrated half-turn zero (2048)."""
-    path = Path(path)
-    try:
-        calibration = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as error:
-        raise ValueError(f"Cannot read follower calibration file {path}: {error}. Run lerobot-calibrate first.") from error
-    if not isinstance(calibration, dict):
-        raise ValueError(f"Follower calibration {path} must contain a joint object")
-    mapping = {}
-    for name in FOLLOWER_JOINTS:
-        if name not in calibration:
-            raise ValueError(f"Follower calibration {path} is missing joint {name}")
-        joint = calibration[name]
-        if not isinstance(joint, dict):
-            raise ValueError(f"Follower calibration {path}: {name} must contain range_min and range_max")
-        low, high = joint.get("range_min"), joint.get("range_max")
-        if any(isinstance(value, bool) or not isinstance(value, (int, float)) or not np.isfinite(value)
-               for value in (low, high)):
-            raise ValueError(f"Follower calibration {path}: {name} range_min and range_max must be finite numbers")
-        if high <= low:
-            raise ValueError(f"Follower calibration {path}: {name} range_max must be greater than range_min")
-        mapping[name] = {"joint_min": (low - 2048) * 360 / 4096,
-                         "joint_max": (high - 2048) * 360 / 4096}
-    return mapping
 
 
 @dataclass(frozen=True)
@@ -53,6 +30,7 @@ class RolloutSettings:
     episode_seconds: float = 30.0
     enable_motion: bool = False
     max_start_error: float = 20.0  # largest allowed gap, in raw units, between the pose and the first target
+    expected_start_roll: float | None = None  # shared sim-start pose expressed in this follower's units
 
 
 @dataclass
@@ -65,6 +43,13 @@ class EpisodeResult:
 
 def joint_range(name):
     return GRIPPER_RANGE if name.startswith("gripper") else BODY_RANGE
+
+
+def sim_start_roll_units(mapping, setup=None):
+    setup = json.loads(SETUP_PATH.read_text()) if setup is None else setup
+    degrees = math.degrees(setup["robot"]["joint_positions"]["Wrist_Roll"])
+    bounds = mapping["wrist_roll"]
+    return (degrees - bounds["joint_min"]) / (bounds["joint_max"] - bounds["joint_min"]) * 200 - 100
 
 
 def clamp_action(action, joint_order):
@@ -101,6 +86,15 @@ def run_episode(robot, policy, joint_order, cameras, settings, *, should_stop=la
         except Exception as error:
             status, detail = "robot_error", f"observation failed: {error!r}"
             break
+        if step == 0 and settings.expected_start_roll is not None:
+            measured_roll = float(state[joint_order.index("wrist_roll.pos")])
+            roll_gap = abs(measured_roll - settings.expected_start_roll)
+            if roll_gap > settings.max_start_error:
+                status = "start_too_far"
+                detail = (f"wrist roll is {roll_gap:.1f} raw units from the mapped sim start "
+                          f"({measured_roll:.3f} measured, {settings.expected_start_roll:.3f} expected; "
+                          f"limit {settings.max_start_error})")
+                break
         try:
             target = clamp_action(policy.get_raw_action(state, images), joint_order)
         except Exception as error:

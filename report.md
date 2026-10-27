@@ -1,3 +1,5 @@
+> Historical results from before the 2026-10-27 calibration revision. Alternate arm assets and the overhead-camera feature named below have since been removed. Current setup and dataset results are in [the calibration report](docs/reports/2026-10-27-calibration-fixes/report.md).
+
 # Sim vs. real SO-101 calibration audit
 
 Date: 2026-10-26. Read-only audit: no files edited, no calibration changed, no motion, no torque commanded.

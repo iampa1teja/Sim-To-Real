@@ -13,7 +13,7 @@ policy:
     input_joint_units: lerobot_normalized   # scale only; no USD midpoint offsets
     num_steps: 10
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   splits:
   - id
@@ -27,7 +27,6 @@ eval:
   # robot_usd omitted: base SO-ARM101-USD.usd, as used to record the dataset
   action_horizon: 30
   action_repeat: 1
-  molmo_overhead_camera: false
   episode_length_s: 210
   render_warmup: 0
   video_encoder: libx264

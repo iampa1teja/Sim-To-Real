@@ -174,7 +174,8 @@ def no_gpu_torch(monkeypatch):
     if importlib.util.find_spec("torch") is None:
         from contextlib import nullcontext
         monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(
-            inference_mode=nullcontext, autocast=lambda *a, **k: nullcontext(), bfloat16="bf16"))
+            inference_mode=nullcontext, autocast=lambda *a, **k: nullcontext(), bfloat16="bf16",
+            device=lambda value: SimpleNamespace(type=value.split(":")[0])))
     pytest.importorskip("PIL")
 
 
@@ -666,3 +667,22 @@ def test_fp32_expert_compute_matches_reference_inside_outer_autocast(server):
 def test_invalid_action_compute_precision_fails_before_model_load(server, options):
     with pytest.raises(ValueError, match='action_compute_dtype'):
         server.MolmoAct2ServerPolicy().load('checkpoint', 'cuda', options)
+
+
+def test_cpu_bfloat16_inference_autocasts_float32_model_inputs(server):
+    torch = pytest.importorskip("torch")
+    projection = torch.nn.Linear(6, 6, bias=False).to(dtype=torch.bfloat16)
+
+    class Model:
+        def predict_action(self, **kwargs):
+            values = torch.from_numpy(kwargs["state"]).reshape(1, 6)
+            actions = projection(values).repeat(30, 1)
+            return SimpleNamespace(actions=actions)
+
+    policy = server.MolmoAct2ServerPolicy()
+    policy.device = "cpu"
+    policy.model = Model()
+    result = policy.infer(request())
+    assert result["actions"].shape == (30, 6)
+    assert result["actions"].dtype == np.float32
+    assert np.isfinite(result["actions"]).all()
