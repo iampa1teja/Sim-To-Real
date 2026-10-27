@@ -150,7 +150,7 @@ parser.add_argument("--resume", action="store_true", help="Continue completed at
 parser.add_argument("--config_fingerprint", default=None, help=argparse.SUPPRESS)
 parser.add_argument("--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown")))
 
-from source.sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
+from sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
 add_grasp_arguments(parser)
 
 # append AppLauncher cli args

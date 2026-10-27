@@ -2,12 +2,14 @@
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "source"))
 spec = importlib.util.spec_from_file_location("real_rollout", ROOT / "source/sim_to_real_so101/utils/real_rollout.py")
 rr = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rr)

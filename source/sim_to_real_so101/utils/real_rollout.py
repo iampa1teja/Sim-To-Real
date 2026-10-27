@@ -13,7 +13,7 @@ import time
 
 import numpy as np
 
-from source.sim_to_real_so101.utils.joint_calibration import (
+from sim_to_real_so101.utils.joint_calibration import (
     FOLLOWER_JOINTS, follower_mapping_from_calibration, sim_gripper_closed_degrees,
 )
 
