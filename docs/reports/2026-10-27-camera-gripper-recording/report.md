@@ -52,13 +52,13 @@ Bulk data stay outside git. SHA-256 below fixes the exact evidence used:
 
 | File | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/source_hashes_before.json` | `3097b681816a0852f44adbd2776452e395b1867915a4871358b090d4be5346e8` |
-| `/tmp/so101-camera-gripper-recording/real_setup_before.json` | `c518cf0ac9509b83d51af944817e3d24162de20b843255e08165edee403790f5` |
-| `/tmp/so101-camera-gripper-recording/camera_fit.json` | `0e71890d4d08cbf7d23c8ef7d70c0ef1e1edac386072dc7d49983d2da44f492e` |
-| `/tmp/so101-camera-gripper-recording/camera_edges_bulk.json` | `671a7ce526c68e744e406c3a25424d2ec882e17c56b0bdfcdd84f4507c76875e` |
-| `/tmp/so101-camera-gripper-recording/joint_check.json` | `578aee78bbba6a8ea5e4df697c36cddc874ba7c1879f21754aa6f714418f9048` |
-| `/tmp/so101-camera-gripper-recording/tests_before_host.txt` | `b15c01bdc1dcf075ead4d299ad7a7c469f6e0ab9cea67314b004c2172757372b` |
-| `/tmp/so101-camera-gripper-recording/tests_before_container.txt` | `4f6750fffc4dcf705fae011b3f641e3759cbe0f7dafe468746216f336948c7c2` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/source_hashes_before.json` | `3097b681816a0852f44adbd2776452e395b1867915a4871358b090d4be5346e8` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/real_setup_before.json` | `c518cf0ac9509b83d51af944817e3d24162de20b843255e08165edee403790f5` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/camera_fit.json` | `0e71890d4d08cbf7d23c8ef7d70c0ef1e1edac386072dc7d49983d2da44f492e` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/camera_edges_bulk.json` | `671a7ce526c68e744e406c3a25424d2ec882e17c56b0bdfcdd84f4507c76875e` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/joint_check.json` | `578aee78bbba6a8ea5e4df697c36cddc874ba7c1879f21754aa6f714418f9048` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/tests_before_host.txt` | `b15c01bdc1dcf075ead4d299ad7a7c469f6e0ab9cea67314b004c2172757372b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/tests_before_container.txt` | `4f6750fffc4dcf705fae011b3f641e3759cbe0f7dafe468746216f336948c7c2` |
 
 ## Baseline tests
 
@@ -105,10 +105,10 @@ Additional bulk evidence:
 
 | File | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/wrist_selection.json` | `8898c7bbd21361de25cb184b3bfb7b647a6503a763ea6fb623595d2bcc7e3a2f` |
-| `/tmp/so101-camera-gripper-recording/roll_fit.json` | `8dcb61e2aa50b0e795e96dd3588d6cb65173e44cc55af19a9abdf2345f00363b` |
-| `/tmp/so101-camera-gripper-recording/gripper_measurements.json` | `790c0402b631458c1f0a86961a880732eb0d366a9602852c7b37248c3d20c714` |
-| `/tmp/so101-camera-gripper-recording/gripper_fit.json` | `34b37adcbf954b40ffeee1e25ae6c422ca84c32edacde8064c211b7155af68c2` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/wrist_selection.json` | `8898c7bbd21361de25cb184b3bfb7b647a6503a763ea6fb623595d2bcc7e3a2f` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/roll_fit.json` | `8dcb61e2aa50b0e795e96dd3588d6cb65173e44cc55af19a9abdf2345f00363b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/gripper_measurements.json` | `790c0402b631458c1f0a86961a880732eb0d366a9602852c7b37248c3d20c714` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/gripper_fit.json` | `34b37adcbf954b40ffeee1e25ae6c422ca84c32edacde8064c211b7155af68c2` |
 
 ## Part 3 — one shared mapping derivation
 
@@ -124,8 +124,8 @@ Validation: 43 host tests passed (21 subtests), including nonzero contact sample
 
 | Evidence | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/part3-tests.txt` | `c84b94f19321f17dc22bf833a32dd20279b48839c79679ba855e94f9c5ce6d2a` |
-| `/tmp/so101-camera-gripper-recording/part3-container-import.txt` | `233aacf17c929f913d25e81ee318eabf46fe5eba91bd61211ef6422af88be77b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part3-tests.txt` | `c84b94f19321f17dc22bf833a32dd20279b48839c79679ba855e94f9c5ce6d2a` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part3-container-import.txt` | `233aacf17c929f913d25e81ee318eabf46fe5eba91bd61211ef6422af88be77b` |
 
 ## Part 4 — runtime limits
 
@@ -150,11 +150,11 @@ Tests cover observed-extrema coverage, the restricted wrist range, jaw anchor/li
 
 | Evidence | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/runtime_limits_verified.json` | `00bbbdc89f065afee75f8345e5961f41d503c6f895eb94ab5ca168c214956ee4` |
-| `/tmp/so101-camera-gripper-recording/base_clearance.json` | `57343e18cabc4d78074e0a79c7f2227aecf33c1bc95ed365a58e0dae35a43b3c` |
-| `/tmp/so101-camera-gripper-recording/part4-host-tests.txt` | `743f4053f98d4adcfe4425e7dd10d69ebe01468bb9b733050b1f10788958a6ff` |
-| `/tmp/so101-camera-gripper-recording/part4-container-tests.txt` | `55e284b3e2ee5a5e787bf92b1976d50301bef8baa065234f4926010651e2ed2c` |
-| `/tmp/so101-camera-gripper-recording/collision_meshes.npz` | `60ffd4bedc951fd3d7cceec2dd41dc1fd830814803ca2864a8dbeb1dc371ddb8` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/runtime_limits_verified.json` | `00bbbdc89f065afee75f8345e5961f41d503c6f895eb94ab5ca168c214956ee4` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/base_clearance.json` | `57343e18cabc4d78074e0a79c7f2227aecf33c1bc95ed365a58e0dae35a43b3c` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part4-host-tests.txt` | `743f4053f98d4adcfe4425e7dd10d69ebe01468bb9b733050b1f10788958a6ff` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part4-container-tests.txt` | `55e284b3e2ee5a5e787bf92b1976d50301bef8baa065234f4926010651e2ed2c` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/collision_meshes.npz` | `60ffd4bedc951fd3d7cceec2dd41dc1fd830814803ca2864a8dbeb1dc371ddb8` |
 
 ## Part 5 — calibrated_A2, sources unchanged
 
@@ -184,11 +184,11 @@ Evidence and all per-file hashes:
 
 | File | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/a2_relabel_manifest.json` | `b92b8198ab1e56821c6a87134749fae3dcfdc4c0ae11cfdccc902608c8171de4` |
-| `/tmp/so101-camera-gripper-recording/a2_lerobot_reader.json` | `58f011880fe01e3cec0dc415842e108be5dd722d2c56e3bef840a585c06fc2fc` |
-| `/tmp/so101-camera-gripper-recording/a2_video_decode.json` | `5547b9de620f31cef1471a928493f0b331e496e04dd8de3f1eb66c6623eced0c` |
-| `/tmp/so101-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
-| `/tmp/so101-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/a2_relabel_manifest.json` | `b92b8198ab1e56821c6a87134749fae3dcfdc4c0ae11cfdccc902608c8171de4` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/a2_lerobot_reader.json` | `58f011880fe01e3cec0dc415842e108be5dd722d2c56e3bef840a585c06fc2fc` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/a2_video_decode.json` | `5547b9de620f31cef1471a928493f0b331e496e04dd8de3f1eb66c6623eced0c` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
 
 ## Part 6 — future recording alignment
 
@@ -239,8 +239,8 @@ Validation: **40 host tests and 40 container tests passed** (21 subtests in each
 
 | Evidence | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/part6-tests.txt` | `6b22ffbb14a545d4fabd34af32c64be1ad2e39b108df543a384840e5a6f0a5c9` |
-| `/tmp/so101-camera-gripper-recording/part6-container-tests.txt` | `ac03cbf699b6877c3dad43299d40ad23b5aa97f20f4751747c13a798c65ba883` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part6-tests.txt` | `6b22ffbb14a545d4fabd34af32c64be1ad2e39b108df543a384840e5a6f0a5c9` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/part6-container-tests.txt` | `ac03cbf699b6877c3dad43299d40ad23b5aa97f20f4751747c13a798c65ba883` |
 
 ## Part 7 — final verification
 
@@ -260,11 +260,11 @@ Ran exactly **one** Molmo smoke episode from the requested config. Its default p
 
 The existing unrelated GPU policy process occupied about 13.6 GiB; it was left running. The repo's own Molmo server used the requested checkpoint on **CPU**, with BF16 backbone, FP32 action modules and the same autocast profile. A probe exposed the server's hard-coded CUDA autocast on CPU (`expected m1 and m2 to have the same dtype, but got: float != c10::BFloat16`). Changed autocast to the selected device and added a real CPU BF16 regression. The corrected probe returned a finite **30×6 float32** action chunk in **29.94 s**. Increased only the request wait limit to 120 seconds via the new `--policy_timeout_ms` / `SO101_POLICY_TIMEOUT_MS` override; the default stays 15 seconds. Simulation action timing and milestone limits are unchanged.
 
-Actual launch:
+Equivalent launch using the archived configuration (the original run used the retained temporary copy):
 
 ```bash
 SO101_POLICY_TIMEOUT_MS=120000 ./so101 eval \
-  /tmp/so101-camera-gripper-recording/one_episode_molmo.yaml \
+  outputs/calibration-evidence/2026-10-27-camera-gripper-recording/one_episode_molmo.yaml \
   --external_server --smoke-test
 ```
 
@@ -432,21 +432,31 @@ Final evidence (bulk files outside the repository):
 
 | File | SHA-256 |
 |---|---|
-| `/tmp/so101-camera-gripper-recording/eval-requested-dry-run.txt` | `8d2989b039050c53fccf8ed378efb90c6d38f9bf6645dff6d53746292ae19495` |
-| `/tmp/so101-camera-gripper-recording/eval-dry-run.txt` | `6412bd95425ec43d10aad9ea620e58b695b0d25aae2a16fd3a8de3785f748d73` |
-| `/tmp/so101-camera-gripper-recording/one_episode_molmo.yaml` | `5f76372bc518adbe72c7986c728ea0fa9cb81ac799cce553580e5ab44743594a` |
-| `/tmp/so101-camera-gripper-recording/one_start_eval_set.json` | `7409bce4b226fafd2302bb4f82d15858b6ee42fc7fb0e64112245b5c6e171380` |
-| `/tmp/so101-camera-gripper-recording/one_episode_selection.json` | `49ec4cfaa030a9be3f5bce0ae289a91285780a91d7adfbc9a455dd46c36851b6` |
-| `/tmp/so101-camera-gripper-recording/molmo-smoke-console.txt` | `729697d1812780c2e283b08fe0d2e5a3d3458befe7894dd277b3df4c17a39c4c` |
-| `/tmp/so101-camera-gripper-recording/smoke_result.json` | `d0fc9ed66bf07710cfa2a5078f15f7260c0033bcfd986db8d060cd1479431aed` |
-| `/tmp/so101-camera-gripper-recording/cpu_probe_before_autocast.json` | `6ff6f2d2f7ba197d3eb8f79ba851195e048ec23806df8d9b9a143711640407d7` |
-| `/tmp/so101-camera-gripper-recording/cpu_probe.json` | `d4511aed03f760a7f70f163603b75b75d284be9136bb3c28f750ab554fbc688d` |
-| `/tmp/so101-camera-gripper-recording/molmo-cpu-server-log.txt` | `94a94235a354bf855ed2ecb7c5bbcbe5c33e7332ba841f7dffd3ac03e151d862` |
-| `/tmp/so101-camera-gripper-recording/tests_after_host.txt` | `3977f27098713072ab9ab9fcc23d0494063e944e0867cbd8a4aa81403497bfcb` |
-| `/tmp/so101-camera-gripper-recording/tests_after_container.txt` | `4edde59ed3c778f33764732337c08f121818dc214cdedbbc3ec566f335a25ab9` |
-| `/tmp/so101-camera-gripper-recording/test_comparison.json` | `82c1523053190ba40b4e330d82bfac8ac0ef507a8b3511001b953068b51bddbd` |
-| `/tmp/so101-camera-gripper-recording/joint_statistics.json` | `ba01b63f73750a02651333a1e2c2fadbb255c29b6cbe7dc83b7c3e76540bb9fe` |
-| `/tmp/so101-camera-gripper-recording/joint_statistics.csv` | `af5c5484560b3cc6d2d9dd98d93fa300214bd173aceeb9be44128219e64a3799` |
-| `/tmp/so101-camera-gripper-recording/final_runtime_tree.json` | `f7eddb2211ac626fcbb0f8c6cd161dcf6ecac2cdedb7100efc3c9c5954f6087f` |
-| `/tmp/so101-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
-| `/tmp/so101-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/eval-requested-dry-run.txt` | `8d2989b039050c53fccf8ed378efb90c6d38f9bf6645dff6d53746292ae19495` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/eval-dry-run.txt` | `6412bd95425ec43d10aad9ea620e58b695b0d25aae2a16fd3a8de3785f748d73` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/one_episode_molmo.yaml` | `5f76372bc518adbe72c7986c728ea0fa9cb81ac799cce553580e5ab44743594a` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/one_start_eval_set.json` | `7409bce4b226fafd2302bb4f82d15858b6ee42fc7fb0e64112245b5c6e171380` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/one_episode_selection.json` | `49ec4cfaa030a9be3f5bce0ae289a91285780a91d7adfbc9a455dd46c36851b6` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/molmo-smoke-console.txt` | `729697d1812780c2e283b08fe0d2e5a3d3458befe7894dd277b3df4c17a39c4c` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/smoke_result.json` | `d0fc9ed66bf07710cfa2a5078f15f7260c0033bcfd986db8d060cd1479431aed` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/cpu_probe_before_autocast.json` | `6ff6f2d2f7ba197d3eb8f79ba851195e048ec23806df8d9b9a143711640407d7` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/cpu_probe.json` | `d4511aed03f760a7f70f163603b75b75d284be9136bb3c28f750ab554fbc688d` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/molmo-cpu-server-log.txt` | `94a94235a354bf855ed2ecb7c5bbcbe5c33e7332ba841f7dffd3ac03e151d862` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/tests_after_host.txt` | `3977f27098713072ab9ab9fcc23d0494063e944e0867cbd8a4aa81403497bfcb` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/tests_after_container.txt` | `4edde59ed3c778f33764732337c08f121818dc214cdedbbc3ec566f335a25ab9` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/test_comparison.json` | `82c1523053190ba40b4e330d82bfac8ac0ef507a8b3511001b953068b51bddbd` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/joint_statistics.json` | `ba01b63f73750a02651333a1e2c2fadbb255c29b6cbe7dc83b7c3e76540bb9fe` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/joint_statistics.csv` | `af5c5484560b3cc6d2d9dd98d93fa300214bd173aceeb9be44128219e64a3799` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/final_runtime_tree.json` | `f7eddb2211ac626fcbb0f8c6cd161dcf6ecac2cdedb7100efc3c9c5954f6087f` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
+
+## Follow-up
+
+### Task 1 — persistent evidence archive
+
+Copied the entire evidence tree to `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/`, which is ignored by git. Every source file was checked against its copied SHA-256; every SHA reference in the original report also matches. The original temporary tree was retained. Copied evidence bytes, including internal historical paths and configuration contents, were not edited. Only this report's displayed evidence paths were relocated.
+
+Archive: **4,645 files / 4,776,389,895 bytes**, including **41 unique report evidence files (43 references)**. The per-file source/copy checks are in `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/copy_manifest.json`.
+
+Copy manifest SHA-256: `f017aaa5e9d7e1cdb0a621307da0ce7ed972eb53883f84904116bc32a6ccd9c5`. Source and destination equality was checked for all 4,645 files; all 43 original report hash references match. New baseline tests also reproduce the previous report's exact failure sets (host 5, container 7); logs are preserved in `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/`.
