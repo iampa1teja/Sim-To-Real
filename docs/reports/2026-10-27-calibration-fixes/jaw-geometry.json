@@ -1,0 +1,29 @@
+{
+  "closing_end_stop_degrees": -10.000003814697266,
+  "authored_state_degrees": 0.0,
+  "drive_target_degrees": 0.0,
+  "closed_attribute_exists": false,
+  "method": "Existing CAD diagnostic contact points; closing end-stop is lowerLimit, not inferred pad contact",
+  "samples": [
+    {
+      "jaw_degrees": -19,
+      "diagnostic_pad_gap_mm": -6.970753014500715
+    },
+    {
+      "jaw_degrees": -10.000003814697266,
+      "diagnostic_pad_gap_mm": 3.4842248411261054
+    },
+    {
+      "jaw_degrees": 0,
+      "diagnostic_pad_gap_mm": 15.800034384773468
+    },
+    {
+      "jaw_degrees": 19,
+      "diagnostic_pad_gap_mm": 39.91106365865405
+    },
+    {
+      "jaw_degrees": 100.00003814697266,
+      "diagnostic_pad_gap_mm": 101.14205604950786
+    }
+  ]
+}

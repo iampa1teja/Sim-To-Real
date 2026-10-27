@@ -1,0 +1,59 @@
+{
+  "roll": {
+    "posed_frames": 55,
+    "posed_episodes": 55,
+    "candidate_count": 630,
+    "matched_frames": 11,
+    "matched_episodes": 11,
+    "gate_pass": false,
+    "offset_median_degrees": -4.187861212673667,
+    "offset_std_degrees": 3.921232489740699,
+    "offset_p5_p95_degrees": [
+      -9.492460021950185,
+      1.1688514451531626
+    ],
+    "offset_range_degrees": [
+      -12.780210545246858,
+      1.28934266634191
+    ]
+  },
+  "roll_status": "unresolved",
+  "applied_roll_offset_degrees": 0.0,
+  "roll_extremes_in_quiet_in_limit_selection_degrees": [
+    -116.98241619206965,
+    23.642578858416528
+  ],
+  "gripper_status": "unresolved; retained legacy anchor",
+  "gripper_frames": [
+    {
+      "episode": 23,
+      "frame": 187,
+      "state_units": 1.4237288236618042,
+      "gripper_window_excursion_degrees": 0.3515625392901711,
+      "fixed_jaw_iou": 0.9512528107934468,
+      "real_moving_edge_angle": 52.992651286943996
+    },
+    {
+      "episode": 18,
+      "frame": 21,
+      "state_units": 44.949153900146484,
+      "gripper_window_excursion_degrees": 0.0,
+      "fixed_jaw_iou": 0.9400344449663379,
+      "real_moving_edge_angle": 88.76633358398755
+    },
+    {
+      "episode": 30,
+      "frame": 28,
+      "state_units": 88.27118682861328,
+      "gripper_window_excursion_degrees": 0.08788827806711197,
+      "fixed_jaw_iou": 0.9419786959328599,
+      "real_moving_edge_angle": null
+    }
+  ],
+  "gripper_candidate_anchor_degrees": [
+    -23.345703138096724,
+    -41.271486135199666
+  ],
+  "gripper_contact_proxy_degrees": -12.930982587,
+  "gripper_applied_change": false
+}

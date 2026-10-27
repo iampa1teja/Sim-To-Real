@@ -1,0 +1,178 @@
+{
+  "smoke": {
+    "launch_exit_code": 0,
+    "complete": true,
+    "episodes": 1,
+    "successes": 1,
+    "steps": 374,
+    "time_to_success_sim_seconds": 12.47,
+    "time_to_success_wall_seconds": 417.55,
+    "inference_device": "cpu",
+    "checkpoint": "molmoact2_so101",
+    "precision": {
+      "backbone": "bfloat16",
+      "action_modules": "float32",
+      "action_compute": "autocast"
+    },
+    "policy_request_timeout_ms": 120000,
+    "start": {
+      "id": "id-000",
+      "split": "id",
+      "x": 0.016739612978388496,
+      "y": -0.16665262852322227,
+      "yaw": 0.04722323845430165,
+      "zone": "MC",
+      "arm_start_state": [
+        -2.8208775329589844,
+        -99.19216049194335,
+        99.21356323242188,
+        75.83621520996094,
+        -1.6205511474609375,
+        2.5824860668182374
+      ],
+      "rel_yaw": -0.05288711562013404,
+      "source_start_id": "train-024",
+      "repeat": 0,
+      "policy_seed": 2177438227
+    },
+    "final_smoke_import_errors": [],
+    "runtime_tree_sha256": "5d20926baa45ee3b83daf73724de003cfa3b6e46e0d0d780924cc679d36751b7",
+    "config_selection": {
+      "base_config": "/home/rpuser1/Sim-to-Real-SO-101-Workshop/configs/eval/pick_place_molmo_so101_smoke.yaml",
+      "base_config_sha256": "48aace6bf9457fa41e381bad6490134bb26cbffd4fc8780ae04678881f61397c",
+      "base_eval_set": "/home/rpuser1/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json",
+      "base_eval_set_sha256": "42c5054fa93a548dd85bf57cb1bf62331076a3384401927ed2261bf33bcdd259",
+      "selected_start": {
+        "id": "id-000",
+        "split": "id",
+        "x": 0.016739612978388496,
+        "y": -0.16665262852322227,
+        "yaw": 0.04722323845430165,
+        "zone": "MC",
+        "arm_start_state": [
+          -2.8208775329589844,
+          -99.19216049194335,
+          99.21356323242188,
+          75.83621520996094,
+          -1.6205511474609375,
+          2.5824860668182374
+        ],
+        "rel_yaw": -0.05288711562013404,
+        "source_start_id": "train-024",
+        "repeat": 0,
+        "policy_seed": 2177438227
+      },
+      "overrides": {
+        "eval_set": "/tmp/so101-camera-gripper-recording/one_start_eval_set.json",
+        "splits": [
+          "id"
+        ],
+        "policy_request_timeout_ms": 120000,
+        "inference_device": "cpu"
+      },
+      "all_policy_options_unchanged": true,
+      "selected_original_seed_unchanged": true
+    }
+  },
+  "tests": {
+    "host": {
+      "failure_sets_identical": true,
+      "before_failures": [
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored"
+      ],
+      "after_failures": [
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored"
+      ],
+      "introduced_failures": [],
+      "before_summary": "5 failed, 761 passed, 33 skipped, 2 warnings, 279 subtests passed in 26.21s",
+      "after_summary": "5 failed, 787 passed, 33 skipped, 2 warnings, 279 subtests passed in 25.68s"
+    },
+    "container": {
+      "failure_sets_identical": true,
+      "before_failures": [
+        "FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]",
+        "FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored"
+      ],
+      "after_failures": [
+        "FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]",
+        "FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored"
+      ],
+      "introduced_failures": [],
+      "before_summary": "7 failed, 772 passed, 27 skipped, 7 warnings, 279 subtests passed in 235.22s (0:03:55)",
+      "after_summary": "7 failed, 798 passed, 27 skipped, 5 warnings, 279 subtests passed in 91.91s (0:01:31)"
+    }
+  },
+  "source_hashes_match": true,
+  "runtime_tree_sha256": "5d20926baa45ee3b83daf73724de003cfa3b6e46e0d0d780924cc679d36751b7",
+  "report_pngs": [
+    {
+      "file": "joint_distributions.png",
+      "width": 1240,
+      "height": 650
+    },
+    {
+      "file": "roll_spread_room_check.png",
+      "width": 1240,
+      "height": 430
+    },
+    {
+      "file": "joint_limit_extremes.png",
+      "width": 1278,
+      "height": 730
+    },
+    {
+      "file": "joint_offset_iou.png",
+      "width": 1240,
+      "height": 700
+    },
+    {
+      "file": "room_camera_contact_sheet.png",
+      "width": 1278,
+      "height": 2752
+    },
+    {
+      "file": "roll_contact_sheet.png",
+      "width": 1278,
+      "height": 2752
+    },
+    {
+      "file": "gripper_angle_diagnostic.png",
+      "width": 1240,
+      "height": 430
+    },
+    {
+      "file": "gripper_registration_contact_sheet.png",
+      "width": 1280,
+      "height": 1065
+    }
+  ],
+  "known_unresolved": [
+    "room-camera held-out gate",
+    "arm-to-USD roll zero",
+    "empty gripper contact anchor"
+  ],
+  "skipped_by_dependency": [
+    "5a camera image rerender",
+    "5b realpaired dataset including cube detector/FK measurement",
+    "6 live cube placement guide"
+  ],
+  "earlier_sim_evaluations_comparable": false
+}

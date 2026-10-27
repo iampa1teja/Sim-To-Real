@@ -1,0 +1,18 @@
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting tests/test_rerecording.py __________________
+ImportError while importing test module '/home/rpuser1/Sim-to-Real-SO-101-Workshop/tests/test_rerecording.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_rerecording.py:15: in <module>
+    from sim_to_real_so101.utils.lerobot_recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
+source/sim_to_real_so101/utils/lerobot_recorder.py:23: in <module>
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset
+E   ModuleNotFoundError: No module named 'lerobot'
+=========================== short test summary info ============================
+ERROR tests/test_rerecording.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+2 skipped, 1 error in 1.35s

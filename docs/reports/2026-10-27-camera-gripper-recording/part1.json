@@ -1,0 +1,266 @@
+{
+  "gate_pass": false,
+  "static_landmarks_only": true,
+  "omitted_vertex": "dark right side upper silhouette point cannot be reliably located in RGB",
+  "before": {
+    "fit": {
+      "median": 5.904078119129481,
+      "max": 17.064655102110994,
+      "mean": 6.041678469133365,
+      "points": 104,
+      "episodes": [
+        2,
+        11,
+        18,
+        22,
+        26,
+        31,
+        50,
+        52,
+        59,
+        67,
+        74
+      ]
+    },
+    "held_out": {
+      "median": 5.134975800579202,
+      "max": 17.064655102110994,
+      "mean": 5.891804025472167,
+      "points": 97,
+      "episodes": [
+        10,
+        12,
+        21,
+        23,
+        30,
+        47,
+        51,
+        57,
+        61,
+        71
+      ]
+    }
+  },
+  "extrinsics_only": {
+    "fit": {
+      "median": 2.752988712366098,
+      "max": 10.574426138978485,
+      "mean": 3.2101911867002872,
+      "points": 104,
+      "episodes": [
+        2,
+        11,
+        18,
+        22,
+        26,
+        31,
+        50,
+        52,
+        59,
+        67,
+        74
+      ]
+    },
+    "held_out": {
+      "median": 2.795947607928809,
+      "max": 10.574426138978485,
+      "mean": 3.338475813783972,
+      "points": 97,
+      "episodes": [
+        10,
+        12,
+        21,
+        23,
+        30,
+        47,
+        51,
+        57,
+        61,
+        71
+      ]
+    }
+  },
+  "focal_freed": true,
+  "after": {
+    "fit": {
+      "median": 2.7273883323060684,
+      "max": 9.26863337436083,
+      "mean": 2.9648134870732084,
+      "points": 104,
+      "episodes": [
+        2,
+        11,
+        18,
+        22,
+        26,
+        31,
+        50,
+        52,
+        59,
+        67,
+        74
+      ]
+    },
+    "held_out": {
+      "median": 3.0177538461909075,
+      "max": 9.304368669773504,
+      "mean": 3.1158366241019495,
+      "points": 97,
+      "episodes": [
+        10,
+        12,
+        21,
+        23,
+        30,
+        47,
+        51,
+        57,
+        61,
+        71
+      ]
+    }
+  },
+  "camera": {
+    "position": [
+      0.705185476707222,
+      -0.13079126122776152,
+      1.2043068823252903
+    ],
+    "quaternion_ros": [
+      -0.0045021712967041536,
+      -0.010644887906990195,
+      0.9613517642624424,
+      -0.27508035583180446
+    ],
+    "euler_degrees": [
+      31.928314590883065,
+      -0.8315479283351065,
+      -178.96908211340045
+    ],
+    "intrinsics": {
+      "source": "Connected RealSense color stream, 640x480, 2026-09-24",
+      "fx": 440.779474947823,
+      "fy": 440.4899661938583,
+      "cx": 330.6416015625,
+      "cy": 253.326904296875,
+      "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+      "coeffs": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "model": "distortion.inverse_brown_conrady",
+      "extrinsics_source": "2026-10-02: data-solved (visual_matching/work/ext_cam2/native/r1a): 6-DoF pose with SDK factory intrinsics locked; objective = edge-snapped real arm masks (112 frames, 14 eps, real-state FK + separate joint-offset nuisance params) + IMU pitch/roll prior (sigma 0.3 deg) + wall-base line vs SouthWall_0 base; box excluded. Previous: Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
+    }
+  },
+  "fit_parameters": [
+    0.03353809209095896,
+    -3.0288627069964096,
+    0.8666761347709998,
+    0.6851663417309576,
+    0.7639876046493206,
+    0.9547868879962753,
+    -0.31844557271632584
+  ],
+  "edges": {
+    "front_bottom_real_minus_sim_px": {
+      "before": 6.0,
+      "candidate": 4.0
+    },
+    "back_edge_median_real_minus_sim_px": {
+      "before": -3.5,
+      "candidate": -4.0
+    },
+    "box_back_rim": {
+      "before": 2.369494187110462,
+      "candidate": -0.3123466173563659
+    },
+    "box_front_bottom": {
+      "before": -5.5038680125643165,
+      "candidate": -2.678163327290277
+    },
+    "box_left_vertical": {
+      "before": 6.029703578461284,
+      "candidate": -1.480933101125734
+    },
+    "box_left_top_depth": {
+      "before": 8.160303501871683,
+      "candidate": 0.10085907348706219
+    },
+    "base_lower_span": {
+      "before": 1.060835358835047,
+      "candidate": -0.4012798086504322
+    }
+  },
+  "landmarks": "5 outer box corners (dark side vertex omitted), up to 4 static base-foot corners, 2 back wall/visible brown boundary line samples; line tangential displacement unconstrained",
+  "distortion": {
+    "model": "inverse_brown_conrady with all five coefficients zero",
+    "supported": true,
+    "zero_vs_full_distortion_max_px": 0.0
+  },
+  "applied": false,
+  "joint_flags": [
+    {
+      "episode": 2,
+      "frame": 142,
+      "offsets_degrees": [
+        -10.0,
+        -10.0,
+        -10.0,
+        -10.0
+      ],
+      "initial_iou": 0.29537067011977985,
+      "final_iou": 0.43533715641684795
+    },
+    {
+      "episode": 10,
+      "frame": 182,
+      "offsets_degrees": [
+        1.0,
+        -1.0,
+        0.0,
+        -2.0
+      ],
+      "initial_iou": 0.617498213860443,
+      "final_iou": 0.6360041935000749
+    },
+    {
+      "episode": 11,
+      "frame": 115,
+      "offsets_degrees": [
+        2.0,
+        0.0,
+        -3.0,
+        -2.0
+      ],
+      "initial_iou": 0.5827088283677573,
+      "final_iou": 0.6209108007276539
+    },
+    {
+      "episode": 26,
+      "frame": 77,
+      "offsets_degrees": [
+        5.0,
+        -2.0,
+        1.0,
+        -2.0
+      ],
+      "initial_iou": 0.4209193008134658,
+      "final_iou": 0.6387308046927161
+    },
+    {
+      "episode": 32,
+      "frame": 44,
+      "offsets_degrees": [
+        6.0,
+        -4.0,
+        0.0,
+        0.0
+      ],
+      "initial_iou": 0.5574842428123631,
+      "final_iou": 0.7153918084907425
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "dataset": "datasets/pick_place_v1_calibrated_A2",
+  "source": "datasets/pick_place_v1",
+  "episodes": 75,
+  "frames": 16448,
+  "max_physical_angle_error_degrees": 4.883110520381706e-06,
+  "image_rerendered": false,
+  "image_rerender_skip_reason": "Part 1 held-out camera gate missed",
+  "paired_dataset_created": false,
+  "paired_skip_reason": "Part 1 gate; no cube detector or held-frame FK dataset claimed",
+  "official_reader": {
+    "frames": 16448,
+    "episodes": 75,
+    "reader": "LeRobotDataset, video_backend=pyav",
+    "checks": [
+      {
+        "index": 0,
+        "observation.images.realsense_rgb": [
+          3,
+          480,
+          640
+        ],
+        "observation.images.wrist_cam": [
+          3,
+          480,
+          640
+        ]
+      },
+      {
+        "index": 8224,
+        "observation.images.realsense_rgb": [
+          3,
+          480,
+          640
+        ],
+        "observation.images.wrist_cam": [
+          3,
+          480,
+          640
+        ]
+      },
+      {
+        "index": 16447,
+        "observation.images.realsense_rgb": [
+          3,
+          480,
+          640
+        ],
+        "observation.images.wrist_cam": [
+          3,
+          480,
+          640
+        ]
+      }
+    ]
+  },
+  "all_videos_decoded": true,
+  "decoded_frames_by_camera": {
+    "observation.images.realsense_rgb": 16448,
+    "observation.images.wrist_cam": 16448
+  },
+  "source_hashes_match": true,
+  "source_hash_summary": {
+    "pick_place_v1": {
+      "files": 379,
+      "before_sha256": "361878a6d44e6c2a6aea2d33ea89b0624fe848e2a37f9d0b9deaf53ba5bda1b3",
+      "after_sha256": "361878a6d44e6c2a6aea2d33ea89b0624fe848e2a37f9d0b9deaf53ba5bda1b3"
+    },
+    "pick_place_v1-real": {
+      "files": 249,
+      "before_sha256": "7e8dfde4b3bc5a0d2647fe59063ef163a67ccacc3ff7751c346b43bf27e6fc05",
+      "after_sha256": "7e8dfde4b3bc5a0d2647fe59063ef163a67ccacc3ff7751c346b43bf27e6fc05"
+    }
+  }
+}

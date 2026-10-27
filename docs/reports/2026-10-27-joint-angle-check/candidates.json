@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "applied": false,
+  "coordinate_convention": "Additive correction to the current mapped USD joint angle, degrees",
+  "physical_comparison_verified": false,
+  "operator_capture_pending": true,
+  "calibration_sha256_before": "86c6eee0eb97435082d5d6b820dafc3c4ad774b424ad84105c32cad96365be03",
+  "calibration_sha256_after": "86c6eee0eb97435082d5d6b820dafc3c4ad774b424ad84105c32cad96365be03",
+  "setup_sha256": "a542948fb2c674b96d000d63a3cc4710e803d97ca0dc1869b5344f2e3da6e4b4",
+  "consistency_gate": "Spread (max-min) <= 1 degree over at least 5 distinct accepted physical poses; saturated joints excluded",
+  "spread_definition": "Range of per-pose physical offsets, not encoder tracking standard deviation",
+  "joints": {
+    "shoulder_pan": {
+      "offset_degrees": null,
+      "spread_degrees": null,
+      "std_degrees": null,
+      "accepted_physical_poses": 0,
+      "status": "NOT MEASURED",
+      "reason": "No independent base-forward reference"
+    },
+    "shoulder_lift": {
+      "offset_degrees": null,
+      "spread_degrees": null,
+      "std_degrees": null,
+      "accepted_physical_poses": 0,
+      "status": "UNRESOLVED",
+      "reason": "No independent physical angle readings; encoder/sim tracking errors are not zero-offset measurements"
+    },
+    "elbow_flex": {
+      "offset_degrees": null,
+      "spread_degrees": null,
+      "std_degrees": null,
+      "accepted_physical_poses": 0,
+      "status": "UNRESOLVED",
+      "reason": "No independent physical angle readings; encoder/sim tracking errors are not zero-offset measurements"
+    },
+    "wrist_flex": {
+      "offset_degrees": null,
+      "spread_degrees": null,
+      "std_degrees": null,
+      "accepted_physical_poses": 0,
+      "status": "UNRESOLVED",
+      "reason": "No independent physical angle readings; encoder/sim tracking errors are not zero-offset measurements"
+    },
+    "wrist_roll": {
+      "offset_degrees": null,
+      "spread_degrees": null,
+      "std_degrees": null,
+      "accepted_physical_poses": 0,
+      "status": "UNRESOLVED",
+      "reason": "No independent physical angle readings; encoder/sim tracking errors are not zero-offset measurements"
+    }
+  },
+  "gripper": "OUT OF SCOPE",
+  "software_readback": {
+    "passed": true,
+    "states": 468,
+    "max_abs_difference_degrees": 0.0,
+    "physics_steps_during_checks": 0
+  },
+  "stopped_capture": {
+    "usable_for_physical_offsets": false,
+    "frames": 468,
+    "duration_seconds": 24.791403745,
+    "reasons": [
+      "Port-role provenance was questioned; no independently verified replacement capture exists",
+      "No physical base tilt, link inclinometer readings or pan reference were supplied",
+      "Stable windows repeat one saturated pose; no five-pose physical check",
+      "Roll axis is never horizontal in the stored states"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/connection_preflight.json",
+      "sha256": "9f270f18a1c21ff352bc1a4c5573e8b30b86f51aa93247283ce330cd57e3ba7e"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/port_identification.json",
+      "sha256": "058034e1d38b2ca29aefb70be7f11dee01283ba042e2cfcfc41a7ded3d81e6ce"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/operator_decisions.json",
+      "sha256": "aa09bea08f2038ef3ff9a7fbadbe25006a47ccc7bef4ba93ab5e3976fa60b624"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/teleop.jsonl",
+      "sha256": "bad771f5a06f71c321548fc0d5ba99b22da4dce71e82a56840fa4e9929ce847b"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/stopped_teleop_summary.json",
+      "sha256": "0329202b1ff12600a3a3fc55c1881e271684109c060d7ed99f7e9df6befecb23"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/physx_zero_step.json",
+      "sha256": "7ffa2adec5b3b4769429be2aa55e150f68ec75fde63a6b256106ac794e443cc1"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/physx-runtime.log",
+      "sha256": "a3043b75484fbd83e5ccee601dd6330d4f457ff7f068b9795e930cea514ebafa"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/host_pytest.log",
+      "sha256": "eb5cb3ec77f630013c9f6d267a3bc44f7c6dac8b849c57d36fc9a759c7072c46"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/container_pytest.log",
+      "sha256": "13e02c46762de925847c67de45184e90dcdbdec3ee4ef2eaeab9cb02641bcc53"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/test_comparison.json",
+      "sha256": "c3dc84392d60f6c0d44f1ff63dadcb02961a7aefdba6a91adeb34d5fe4dcfe69"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/protected_before.json",
+      "sha256": "b3247f62258748bf7c74d1e4cb0bf30a819e39f81770ac5920c4aaa2ece4738a"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/protected_after.json",
+      "sha256": "b3247f62258748bf7c74d1e4cb0bf30a819e39f81770ac5920c4aaa2ece4738a"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/original_inputs_recheck.json",
+      "sha256": "0be412e1a71522a860d007d583e60334876f5d69ef3088c2814ffcc181a91ff9"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/surface_geometry.json",
+      "sha256": "80a2f766f149899185184cac90356db4861389549bb1377e03e37be887e32db2"
+    },
+    {
+      "path": "outputs/calibration-evidence/2026-10-27-joint-angle-check/inspect_surfaces.py",
+      "sha256": "d544b00e95fb5f7e0cbe1d9a797e6bff849d738972bf5f2368f8e088282e4156"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "recording_contract": {
+    "version": 2,
+    "follower_id": "rpd_robot",
+    "leader_id": "rpd_teleop",
+    "calibration_sha256": "ad965257ab5f9dcca88efaebc6414d89d5b8336a71ab7e66efed0d0716b84b7b",
+    "start_sync": "follower_state",
+    "roll_resolved": false,
+    "wrist_rezero": true,
+    "recorded_action": "unshifted_leader",
+    "note": "When roll is unresolved, the executed sim wrist target retains re-zero; logged actions stay paired."
+  },
+  "roll_unresolved_fallback_retained": true,
+  "synced_joints": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "gripper"
+  ],
+  "logged_action": "unshifted leader, equal in sim and real",
+  "executed_sim_roll": "re-zero fallback until verified physical roll fit",
+  "new_recording_root_examples": [
+    "datasets/pick_place_v2_start_synced",
+    "datasets/pick_place_paired_v2_start_synced"
+  ],
+  "cube_placement_guide": "skipped: Part 1 gate",
+  "sim_start_roll_degrees": -1.8680528709837914,
+  "sim_start_roll_raw_units": -1.0136405588861237,
+  "hardware_recording_tested": false
+}

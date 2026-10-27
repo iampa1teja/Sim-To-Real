@@ -1,0 +1,90 @@
+{
+  "runtime_verification": {
+    "startup": {
+      "physx_limits_degrees": [
+        [
+          -112.88475799560547,
+          110.0
+        ],
+        [
+          -107.69921875,
+          100.93163299560547
+        ],
+        [
+          -100.0,
+          93.37303924560547
+        ],
+        [
+          -94.99999237060547,
+          104.79882049560547
+        ],
+        [
+          -159.99998474121094,
+          159.99998474121094
+        ],
+        [
+          -15.00000286102295,
+          105.43358612060547
+        ]
+      ],
+      "code_limits_min_degrees": [
+        -112.884765625,
+        -107.69921875,
+        -100.0,
+        -95.0,
+        -160.0,
+        -15.000003814697266
+      ],
+      "code_limits_max_degrees": [
+        110.0,
+        100.931640625,
+        93.373046875,
+        104.798828125,
+        160.0,
+        105.43359375
+      ],
+      "joint_names": [
+        "Rotation",
+        "Pitch",
+        "Elbow",
+        "Wrist_Pitch",
+        "Wrist_Roll",
+        "Jaw"
+      ]
+    },
+    "expected_limits_degrees": [
+      [
+        -112.88476679176092,
+        110.0
+      ],
+      [
+        -107.69922143220901,
+        100.93164121173322
+      ],
+      [
+        -100.0,
+        93.37304708957672
+      ],
+      [
+        -95.0,
+        104.79882776625453
+      ],
+      [
+        -160.0,
+        160.0
+      ],
+      [
+        -15.000003814697266,
+        105.43359043821692
+      ]
+    ],
+    "tested_recorded_extrema": 12,
+    "max_mapping_clamp_error_degrees": 2.1349266177139725e-05
+  },
+  "base_clearance_method": "Conservative convex hulls of each authored collision mesh, FCL, current Isaac body FK; upper_arm and all distal links against static base; adjacent shoulder/base articulation excluded. Hull overlaps are flags, not proof of exact triangle interpenetration.",
+  "tested_poses": 15,
+  "observed_extrema": 12,
+  "base_intersections": 0,
+  "minimum_clearance_m": 0.005229036504551012,
+  "usd_edited": false
+}

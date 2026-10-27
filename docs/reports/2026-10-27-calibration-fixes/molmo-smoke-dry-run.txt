@@ -1,0 +1,22 @@
+# Config configs/eval/pick_place_molmo_so101_smoke.yaml: policy=molmoact2 checkpoint=molmoact2_so101 port=5556
+# Evaluation: random_fraction=0.0, episode_length_s=210, action_horizon=30, robot_start=recorded
+# Preflight (checks printed, not executed)
++ docker info
++ docker inspect -f \{\{.State.Running\}\} teleop
++ docker image inspect policy-server:latest
+# Check checkpoint files under /external_storage/molmoact2/molmoact2_so101
++ docker exec teleop test -d /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A/pick_place_meta
++ docker exec teleop test -d /workspace/Sim-to-Real-SO-101-Workshop/policies
++ docker exec teleop test -f /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
++ docker exec teleop test -f /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd
+Smoke test: one original example per zone with Rerun; no evaluation artifacts will be saved.
++ python3 /home/rpuser1/Sim-to-Real-SO-101-Workshop/docker/rerun_viewer.py --container teleop --port 9876
+# Verify host port 5556 is free; wait up to 900 seconds for server readiness
++ docker run -d --rm --name policy-eval-server-20261027T044216419559074-52200 --network host --gpus all -v /home/rpuser1/Sim-to-Real-SO-101-Workshop/policies:/policies -v policy-cache:/opt/cache -v /home/rpuser1/.cache/huggingface:/root/.cache/huggingface -v /external_storage/molmoact2:/workspace/models policy-server:latest --policy molmoact2 --checkpoint /workspace/models/molmoact2_so101 --port 5556 --option wrist_roll_model_offset=-90 --option norm_tag=so100_so101_molmoact2 --option dtype=bfloat16 --option action_dtype=float32 --option include_original_room=False --option pan_model_scale=0.49016972984379564 --option pan_model_offset=3.5352321757436442 --option num_steps=10
++ docker logs --follow policy-eval-server-20261027T044216419559074-52200
++ docker inspect -f \{\{.State.Running\}\} policy-eval-server-20261027T044216419559074-52200
+# On failure/timeout: + docker logs policy-eval-server-20261027T044216419559074-52200
++ docker exec teleop /workspace/isaaclab/_isaac_sim/python.sh -c import\ tqdm
++ docker exec -e POLICIES_DIR=/workspace/Sim-to-Real-SO-101-Workshop/policies -e SO101_EVAL_RUN_ID=20261027T044216419559074-52200 -e PYTHONUNBUFFERED=1 -e RERUN_CONNECT_URL=rerun+http://127.0.0.1:9876/proxy teleop /workspace/isaaclab/_isaac_sim/python.sh -m sim_to_real_so101.scripts.lerobot_eval --task Lerobot-So101-Teleop-Pick-Place-Eval --num_envs 1 --cube_starts /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A/pick_place_meta --start_mode cycle --random_fraction 0.0 --robot_start recorded --rename_map \{\"realsense_rgb\":\ \"room\"\,\ \"wrist_cam\":\ \"wrist\"\} --action_horizon 30 --action_repeat 1 --policy molmoact2 --policy_option wrist_roll_model_offset=-90 --policy_option norm_tag=so100_so101_molmoact2 --policy_option dtype=bfloat16 --policy_option action_dtype=float32 --policy_option include_original_room=False --policy_option pan_model_scale=0.49016972984379564 --policy_option pan_model_offset=3.5352321757436442 --policy_option num_steps=10 --policy_host localhost --policy_port 5556 --lang_instruction Pick\ up\ the\ blue\ cube\ and\ place\ it\ in\ the\ white\ box --num_episodes 5 --checkpoint molmoact2_so101 --config_fingerprint b76c119861002cb88892b385688a2cbd26bf1e79cb75359d2f09bc87e4544c09 --smoke-test --smoke-selection one_per_zone --smoke-reach-timeout-s 60 --smoke-progress-timeout-s 30 --eval_set /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json --repeats 1 --splits id\,ood\,yaw\,train --episode_length_s 210 --robot_usd /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd --headless --rerun
++ docker stop policy-eval-server-20261027T044216419559074-52200
++ docker rm -f policy-eval-server-20261027T044216419559074-52200

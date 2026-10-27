@@ -1,0 +1,396 @@
+............................................................... [  7%]
+........................................................................ [ 16%]
+......s.......s...................................s..s................F........................... [ 29%]
+.................................................................... [ 37%]
+...................F...s................................................ [ 46%]
+...................s......s.. [ 50%]
+...............sss...........................s.....s...FF.......................F....................................................................................s [ 70%]
+ssssssssss......................................... [ 77%]
+.................................................................. [ 85%]
+........................................................................ [ 94%]
+.........................sss.................. [100%]
+=================================== FAILURES ===================================
+_ test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit] _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_existing_entrypoints_rout3')
+script = 'policies/groot_n17/train/train_dit.sh', workflow = 'dit'
+
+    @pytest.mark.parametrize('script,workflow', [
+        ('policies/groot_n17/train/train_pick_place.sh', 'train'),
+        ('policies/groot_n17/train/train_pick_place_sim_100k.sh', 'sim'),
+        ('policies/groot_n17/train/train_pick_place_failures_ft.sh', 'failures'),
+        ('policies/groot_n17/train/train_dit.sh', 'dit'),
+    ])
+    def test_existing_entrypoints_route_to_docker_without_starting_training(tmp_path, script, workflow):
+        env = {**os.environ, **fixture_env(tmp_path)}
+        env.pop('SO101_TRAIN_IN_CONTAINER', None)
+        env['DRY_RUN'] = '1'
+        result = subprocess.run(['bash', str(ROOT / script)], env=env, text=True, capture_output=True)
+>       assert result.returncode == 0, result.stderr
+E       AssertionError: usage: train.py [-h] [--dry_run]
+E                         [{train,sim,failures,dit,prepare,verify,check,python}]
+E         train.py: error: No usable parent for a training mount; create its storage directory first
+E
+E       assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['bash', '/repo/policies/groot_n17/train/train_dit.sh'], returncode=2, stdout='', stderr='usage:...e,verify,check,python}]\ntrain.py: error: No usable parent for a training mount; create its storage directory first\n').returncode
+
+tests/test_docker_training.py:111: AssertionError
+______________ test_bare_config_name_is_looked_up_in_configs_eval ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_bare_config_name_is_looke0')
+
+    def test_bare_config_name_is_looked_up_in_configs_eval(tmp_path):
+        name = "zz_temp_case.yaml"
+        path = ROOT / "configs/eval" / name
+>       path.write_text(textwrap.dedent(BASE))
+
+tests/test_eval_script.py:482:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/isaac-sim/kit/python/lib/python3.11/pathlib.py:1078: in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/repo/configs/eval/zz_temp_case.yaml'), mode = 'w'
+buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       OSError: [Errno 30] Read-only file system: '/repo/configs/eval/zz_temp_case.yaml'
+
+/isaac-sim/kit/python/lib/python3.11/pathlib.py:1044: OSError
+_ WrapperTests.test_official_flags_and_selected_config_are_forwarded_unchanged _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_official_flags_and_selected_config_are_forwarded_unchanged>
+
+    def test_official_flags_and_selected_config_are_forwarded_unchanged(self):
+        flags = ["--base-model-path", "model root", "--dataset-path", "prepared data",
+                 "--embodiment-tag", "NEW_EMBODIMENT", "--no-tune-diffusion-model",
+                 "--global-batch-size", "32", "--max-steps", "30"]
+        prior_argv, prior_path, prior_cwd = sys.argv[:], sys.path[:], Path.cwd()
+        with patch.dict(os.environ, {"GROOT_SKIP_HF_MODEL_WEIGHTS": "1",
+                                     "GROOT_HF_LOCAL_FIRST": "1", "PYTEST_CURRENT_TEST": "test"}):
+>           self.invoke(flags)
+
+tests/test_launch_pick_place_n17.py:144:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:291: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-ug1ojobq/gr00t/experiment/launch_finetune.py:8: in <module>
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/isaac-sim/kit/python/lib/python3.11/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/isaac-sim/kit/python/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'gr00t.data', import_ = <function _gcd_import at 0x72699b467e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1135: ModuleNotFoundError
+____ WrapperTests.test_runpy_entry_adds_project_helper_path_and_restores_it ____
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_runpy_entry_adds_project_helper_path_and_restores_it>
+
+    def test_runpy_entry_adds_project_helper_path_and_restores_it(self):
+        project = REPO / "policies/groot_n17/train/launch_pick_place_n17.py"
+        flags = ["--model-profile", "unchanged fixture flag"]
+        without_scripts = [path for path in sys.path if path != str(project.parent)]
+        with patch.dict(sys.modules, self.modules), \
+                patch("subprocess.check_output", return_value=launcher.PIN + "\n"), \
+                patch.object(sys, "path", without_scripts[:]), \
+                patch.object(sys, "argv", [str(project), "--groot", str(self.groot), *flags]):
+>           runpy.run_path(str(project), run_name="__main__")
+
+tests/test_launch_pick_place_n17.py:163:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<frozen runpy>:291: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:161: in <module>
+    main()
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:291: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-nde0x22e/gr00t/experiment/launch_finetune.py:8: in <module>
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/isaac-sim/kit/python/lib/python3.11/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/isaac-sim/kit/python/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'gr00t.data', import_ = <function _gcd_import at 0x72699b467e20>
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1135: ModuleNotFoundError
+_ WrapperTests.test_training_exception_and_system_exit_are_preserved_and_patch_restored (error='RuntimeError') _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_training_exception_and_system_exit_are_preserved_and_patch_restored>
+
+    def test_training_exception_and_system_exit_are_preserved_and_patch_restored(self):
+        for error in (RuntimeError("load failed"), SystemExit(7)):
+            with self.subTest(error=type(error).__name__):
+                self.original_run.side_effect = error
+                with self.assertRaises(type(error)) as caught:
+>                   self.invoke()
+
+tests/test_launch_pick_place_n17.py:182:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:291: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-j6qu17k_/gr00t/experiment/launch_finetune.py:8: in <module>
+    fixture_experiment.result = run(fixture_experiment.config)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/isaac-sim/kit/python/lib/python3.11/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/isaac-sim/kit/python/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1135: ModuleNotFoundError
+_ WrapperTests.test_training_exception_and_system_exit_are_preserved_and_patch_restored (error='SystemExit') _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_training_exception_and_system_exit_are_preserved_and_patch_restored>
+
+    def test_training_exception_and_system_exit_are_preserved_and_patch_restored(self):
+        for error in (RuntimeError("load failed"), SystemExit(7)):
+            with self.subTest(error=type(error).__name__):
+                self.original_run.side_effect = error
+                with self.assertRaises(type(error)) as caught:
+>                   self.invoke()
+
+tests/test_launch_pick_place_n17.py:182:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:291: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-j6qu17k_/gr00t/experiment/launch_finetune.py:8: in <module>
+    fixture_experiment.result = run(fixture_experiment.config)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/isaac-sim/kit/python/lib/python3.11/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/isaac-sim/kit/python/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1135: ModuleNotFoundError
+_ EvaluatorRolloutTests.test_process_exit_without_finally_retains_completed_episode _
+
+self = <test_lerobot_eval_rollout.EvaluatorRolloutTests testMethod=test_process_exit_without_finally_retains_completed_episode>
+
+        def test_process_exit_without_finally_retains_completed_episode(self):
+            with tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'report.json'
+                code = '''
+    import os, sys
+    from pathlib import Path
+    from unittest.mock import patch
+    from test_lerobot_eval_rollout import EvaluatorRolloutTests
+    from sim_to_real_so101.utils.eval_resume import write_report
+    def exit_after_first_episode(path, report):
+        write_report(path, report)
+        if len(report['episodes']) == 1:
+            os._exit(73)  # Bypass evaluator finally/cleanup, as a killed process would.
+    with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_after_first_episode):
+        EvaluatorRolloutTests().evaluate(Path(sys.argv[1]))
+    '''
+                result = subprocess.run([sys.executable, '-c', code, str(path)], cwd=ROOT,
+                                        env={**os.environ, 'PYTHONPATH': str(ROOT / 'tests')},
+                                        capture_output=True, text=True)
+>               self.assertEqual(result.returncode, 73, result.stderr)
+E               AssertionError: 1 != 73 : Traceback (most recent call last):
+E                 File "<string>", line 5, in <module>
+E                 File "/repo/tests/test_lerobot_eval_rollout.py", line 20, in <module>
+E                   import numpy as np
+E               ModuleNotFoundError: No module named 'numpy'
+
+tests/test_lerobot_eval_rollout.py:457: AssertionError
+=============================== warnings summary ===============================
+tests/policies/test_molmoact2.py::test_infer_returns_float32_chunk_and_passes_model_arguments
+tests/policies/test_molmoact2.py::test_third_view_survives_plugin_adapter_and_reaches_model
+  /isaac-sim/exts/omni.isaac.ml_archive/pip_prebundle/torch/amp/autocast_mode.py:266: UserWarning: User provided device_type of 'cuda', but CUDA is not available. Disabling
+    warnings.warn(
+
+tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone
+tests/test_replay_math.py::JointRoundTripTests::test_limits_exactly
+  /isaac-sim/kit/python/lib/python3.11/site-packages/rerun_sdk/rerun/datatypes/angle.py:19: DeprecationWarning: numpy 1 detected. Rerun has only been tested with numpy 2.
+    from .._numpy_compatibility import asarray
+
+tests/test_replay_math.py::JointRoundTripTests::test_limits_exactly
+  /isaac-sim/kit/python/lib/python3.11/site-packages/transformers/utils/hub.py:110: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+    warnings.warn(
+
+tests/test_rerecording.py::ReplacementTest::test_replace_middle_and_append
+tests/test_rerecording.py::ReplacementTest::test_replace_middle_and_append
+  /isaac-sim/exts/omni.isaac.ml_archive/pip_prebundle/torchvision/io/_video_deprecation_warning.py:5: UserWarning: The video decoding and encoding capabilities of torchvision are deprecated from version 0.22 and will be removed in version 0.24. We recommend that you migrate to TorchCodec, where we'll consolidate the future decoding/encoding capabilities of PyTorch: https://github.com/pytorch/torchcodec
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]
+FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it
+SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored
+SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored
+FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode
+7 failed, 772 passed, 27 skipped, 7 warnings, 279 subtests passed in 240.61s (0:04:00)
+There was an error running python

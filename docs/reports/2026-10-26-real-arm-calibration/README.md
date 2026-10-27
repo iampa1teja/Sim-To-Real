@@ -1,0 +1,1 @@
+These are frozen pre-revision experiments. Their saved configs, original asset names, camera fields, results and manifests are retained as historical evidence. Use the original Git revision to reproduce them. Current code uses one canonical arm USD and room/wrist cameras; see [the calibration report](../2026-10-27-calibration-fixes/report.md).

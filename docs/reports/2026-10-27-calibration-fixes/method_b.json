@@ -1,0 +1,759 @@
+{
+  "method": "B: original units, new mapping, physics action replay",
+  "expected_source_episodes": 75,
+  "source": "datasets/pick_place_v1",
+  "destination": "datasets/pick_place_v1_calibrated_B",
+  "old_mapping": {
+    "shoulder_pan": {
+      "joint_min": -116.279296875,
+      "joint_max": 119.794921875
+    },
+    "shoulder_lift": {
+      "joint_min": -100,
+      "joint_max": 100
+    },
+    "elbow_flex": {
+      "joint_min": -100,
+      "joint_max": 90
+    },
+    "wrist_flex": {
+      "joint_min": -95,
+      "joint_max": 95
+    },
+    "wrist_roll": {
+      "joint_min": -160,
+      "joint_max": 160
+    },
+    "gripper": {
+      "joint_min": -10,
+      "joint_max": 100
+    }
+  },
+  "new_mapping": {
+    "shoulder_pan": {
+      "joint_min": -116.279296875,
+      "joint_max": 119.794921875
+    },
+    "shoulder_lift": {
+      "joint_min": -106.962890625,
+      "joint_max": 112.32421875
+    },
+    "elbow_flex": {
+      "joint_min": -102.919921875,
+      "joint_max": 93.251953125
+    },
+    "wrist_flex": {
+      "joint_min": -101.953125,
+      "joint_max": 105.205078125
+    },
+    "wrist_roll": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "gripper": {
+      "joint_min": -10.000003814697266,
+      "joint_max": 119.63866806030273
+    }
+  },
+  "initial_positions": "Recorded physical joint and cube positions; velocities zero",
+  "success_criterion": {
+    "object_name": "blue_cube",
+    "container_name": "white_box",
+    "container_size": [
+      0.135,
+      0.085,
+      0.045
+    ],
+    "container_floor_z": 0.0018,
+    "container_inner_half_size": [
+      0.065625,
+      0.04064896
+    ],
+    "min_lift": 0.01,
+    "warmup_steps": 30,
+    "force_threshold": 2,
+    "confirm_steps": 25
+  },
+  "control_fps": 30,
+  "seed": 1984,
+  "episodes": [
+    {
+      "source_episode": 0,
+      "success": false,
+      "destination_episode": null,
+      "frames": 203,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 32.34755051293778
+    },
+    {
+      "source_episode": 1,
+      "success": false,
+      "destination_episode": null,
+      "frames": 262,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 27.599366926484993
+    },
+    {
+      "source_episode": 2,
+      "success": false,
+      "destination_episode": null,
+      "frames": 334,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 35.97633781141176
+    },
+    {
+      "source_episode": 3,
+      "success": false,
+      "destination_episode": null,
+      "frames": 408,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 25.68968189304257
+    },
+    {
+      "source_episode": 4,
+      "success": false,
+      "destination_episode": null,
+      "frames": 292,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 13.640339418774332
+    },
+    {
+      "source_episode": 5,
+      "success": false,
+      "destination_episode": null,
+      "frames": 310,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 30.81994796921316
+    },
+    {
+      "source_episode": 6,
+      "success": false,
+      "destination_episode": null,
+      "frames": 236,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 30.315302857481356
+    },
+    {
+      "source_episode": 7,
+      "success": true,
+      "destination_episode": 0,
+      "frames": 346,
+      "first_success_frame": 301,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 20.589755517165177
+    },
+    {
+      "source_episode": 8,
+      "success": false,
+      "destination_episode": null,
+      "frames": 269,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 45.82853051931831
+    },
+    {
+      "source_episode": 9,
+      "success": false,
+      "destination_episode": null,
+      "frames": 279,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 49.89290630192068
+    },
+    {
+      "source_episode": 10,
+      "success": false,
+      "destination_episode": null,
+      "frames": 360,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 43.26428284450418
+    },
+    {
+      "source_episode": 11,
+      "success": false,
+      "destination_episode": null,
+      "frames": 283,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 25.30517980881129
+    },
+    {
+      "source_episode": 12,
+      "success": true,
+      "destination_episode": 1,
+      "frames": 264,
+      "first_success_frame": 194,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 34.771051894620044
+    },
+    {
+      "source_episode": 13,
+      "success": true,
+      "destination_episode": 2,
+      "frames": 252,
+      "first_success_frame": 181,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 42.460659862233406
+    },
+    {
+      "source_episode": 14,
+      "success": false,
+      "destination_episode": null,
+      "frames": 242,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 45.84735793576545
+    },
+    {
+      "source_episode": 15,
+      "success": false,
+      "destination_episode": null,
+      "frames": 295,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 26.93172447285271
+    },
+    {
+      "source_episode": 16,
+      "success": true,
+      "destination_episode": 3,
+      "frames": 231,
+      "first_success_frame": 174,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 17.89447578576623
+    },
+    {
+      "source_episode": 17,
+      "success": true,
+      "destination_episode": 4,
+      "frames": 262,
+      "first_success_frame": 215,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 21.25155645150981
+    },
+    {
+      "source_episode": 18,
+      "success": false,
+      "destination_episode": null,
+      "frames": 330,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 45.29573136782771
+    },
+    {
+      "source_episode": 19,
+      "success": false,
+      "destination_episode": null,
+      "frames": 279,
+      "first_success_frame": null,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 41.344186895219366
+    },
+    {
+      "source_episode": 20,
+      "success": false,
+      "destination_episode": null,
+      "frames": 231,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 58.74931207035274
+    },
+    {
+      "source_episode": 21,
+      "success": true,
+      "destination_episode": 5,
+      "frames": 293,
+      "first_success_frame": 241,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 38.24435335173327
+    },
+    {
+      "source_episode": 22,
+      "success": false,
+      "destination_episode": null,
+      "frames": 268,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 40.83065570737737
+    },
+    {
+      "source_episode": 23,
+      "success": false,
+      "destination_episode": null,
+      "frames": 244,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 49.85769667674927
+    },
+    {
+      "source_episode": 24,
+      "success": false,
+      "destination_episode": null,
+      "frames": 280,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 34.83684369180019
+    },
+    {
+      "source_episode": 25,
+      "success": false,
+      "destination_episode": null,
+      "frames": 219,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 46.43324473257997
+    },
+    {
+      "source_episode": 26,
+      "success": false,
+      "destination_episode": null,
+      "frames": 217,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 27.312196745473685
+    },
+    {
+      "source_episode": 27,
+      "success": false,
+      "destination_episode": null,
+      "frames": 283,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 26.061601061275397
+    },
+    {
+      "source_episode": 28,
+      "success": false,
+      "destination_episode": null,
+      "frames": 210,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 65.23174898896346
+    },
+    {
+      "source_episode": 29,
+      "success": false,
+      "destination_episode": null,
+      "frames": 192,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 48.307141282318824
+    },
+    {
+      "source_episode": 30,
+      "success": false,
+      "destination_episode": null,
+      "frames": 196,
+      "first_success_frame": null,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 72.65339839015347
+    },
+    {
+      "source_episode": 31,
+      "success": false,
+      "destination_episode": null,
+      "frames": 131,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 39.95539428599692
+    },
+    {
+      "source_episode": 32,
+      "success": false,
+      "destination_episode": null,
+      "frames": 129,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 34.77900906500311
+    },
+    {
+      "source_episode": 33,
+      "success": false,
+      "destination_episode": null,
+      "frames": 137,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 40.042188914874856
+    },
+    {
+      "source_episode": 34,
+      "success": false,
+      "destination_episode": null,
+      "frames": 80,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 35.54883285616607
+    },
+    {
+      "source_episode": 35,
+      "success": true,
+      "destination_episode": 6,
+      "frames": 144,
+      "first_success_frame": 117,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 29.30306540739088
+    },
+    {
+      "source_episode": 36,
+      "success": true,
+      "destination_episode": 7,
+      "frames": 137,
+      "first_success_frame": 108,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 35.84076538657617
+    },
+    {
+      "source_episode": 37,
+      "success": false,
+      "destination_episode": null,
+      "frames": 132,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 33.44314700675368
+    },
+    {
+      "source_episode": 38,
+      "success": false,
+      "destination_episode": null,
+      "frames": 155,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 30.650972504241633
+    },
+    {
+      "source_episode": 39,
+      "success": true,
+      "destination_episode": 8,
+      "frames": 153,
+      "first_success_frame": 131,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 30.437430054935767
+    },
+    {
+      "source_episode": 40,
+      "success": false,
+      "destination_episode": null,
+      "frames": 133,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 20.370812095773125
+    },
+    {
+      "source_episode": 41,
+      "success": false,
+      "destination_episode": null,
+      "frames": 142,
+      "first_success_frame": null,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 22.175547857523718
+    },
+    {
+      "source_episode": 42,
+      "success": true,
+      "destination_episode": 9,
+      "frames": 139,
+      "first_success_frame": 104,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 34.24686902676741
+    },
+    {
+      "source_episode": 43,
+      "success": true,
+      "destination_episode": 10,
+      "frames": 125,
+      "first_success_frame": 101,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 26.192197693300628
+    },
+    {
+      "source_episode": 44,
+      "success": true,
+      "destination_episode": 11,
+      "frames": 154,
+      "first_success_frame": 129,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 22.747437889181594
+    },
+    {
+      "source_episode": 45,
+      "success": true,
+      "destination_episode": 12,
+      "frames": 153,
+      "first_success_frame": 135,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 19.32431441680587
+    },
+    {
+      "source_episode": 46,
+      "success": true,
+      "destination_episode": 13,
+      "frames": 188,
+      "first_success_frame": 148,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 16.400387272751573
+    },
+    {
+      "source_episode": 47,
+      "success": true,
+      "destination_episode": 14,
+      "frames": 169,
+      "first_success_frame": 137,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 25.174422667340565
+    },
+    {
+      "source_episode": 48,
+      "success": false,
+      "destination_episode": null,
+      "frames": 168,
+      "first_success_frame": null,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 34.93305373644899
+    },
+    {
+      "source_episode": 49,
+      "success": true,
+      "destination_episode": 15,
+      "frames": 132,
+      "first_success_frame": 101,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 18.48127612038224
+    },
+    {
+      "source_episode": 50,
+      "success": false,
+      "destination_episode": null,
+      "frames": 269,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 34.70713839946165
+    },
+    {
+      "source_episode": 51,
+      "success": false,
+      "destination_episode": null,
+      "frames": 197,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 30.266552382280388
+    },
+    {
+      "source_episode": 52,
+      "success": true,
+      "destination_episode": 16,
+      "frames": 252,
+      "first_success_frame": 203,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 45.576117463445904
+    },
+    {
+      "source_episode": 53,
+      "success": false,
+      "destination_episode": null,
+      "frames": 232,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 52.89154034756928
+    },
+    {
+      "source_episode": 54,
+      "success": false,
+      "destination_episode": null,
+      "frames": 233,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 40.74583500316957
+    },
+    {
+      "source_episode": 55,
+      "success": false,
+      "destination_episode": null,
+      "frames": 209,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 51.65152974903722
+    },
+    {
+      "source_episode": 56,
+      "success": false,
+      "destination_episode": null,
+      "frames": 297,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 49.38781381279824
+    },
+    {
+      "source_episode": 57,
+      "success": false,
+      "destination_episode": null,
+      "frames": 204,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 38.49996976632641
+    },
+    {
+      "source_episode": 58,
+      "success": true,
+      "destination_episode": 17,
+      "frames": 196,
+      "first_success_frame": 166,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 29.907704488571675
+    },
+    {
+      "source_episode": 59,
+      "success": false,
+      "destination_episode": null,
+      "frames": 265,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 47.30431924799921
+    },
+    {
+      "source_episode": 60,
+      "success": false,
+      "destination_episode": null,
+      "frames": 172,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 27.781432449000853
+    },
+    {
+      "source_episode": 61,
+      "success": false,
+      "destination_episode": null,
+      "frames": 174,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 41.009285644740714
+    },
+    {
+      "source_episode": 62,
+      "success": true,
+      "destination_episode": 18,
+      "frames": 196,
+      "first_success_frame": 172,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 24.714421379571252
+    },
+    {
+      "source_episode": 63,
+      "success": false,
+      "destination_episode": null,
+      "frames": 184,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 30.501087418000285
+    },
+    {
+      "source_episode": 64,
+      "success": false,
+      "destination_episode": null,
+      "frames": 188,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 22.20900212407844
+    },
+    {
+      "source_episode": 65,
+      "success": false,
+      "destination_episode": null,
+      "frames": 193,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 20.550493882268654
+    },
+    {
+      "source_episode": 66,
+      "success": false,
+      "destination_episode": null,
+      "frames": 194,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 26.698430824014462
+    },
+    {
+      "source_episode": 67,
+      "success": true,
+      "destination_episode": 19,
+      "frames": 192,
+      "first_success_frame": 162,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 22.353554540125298
+    },
+    {
+      "source_episode": 68,
+      "success": true,
+      "destination_episode": 20,
+      "frames": 186,
+      "first_success_frame": 167,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 29.49128493034892
+    },
+    {
+      "source_episode": 69,
+      "success": false,
+      "destination_episode": null,
+      "frames": 160,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 26.013325284221747
+    },
+    {
+      "source_episode": 70,
+      "success": false,
+      "destination_episode": null,
+      "frames": 209,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 52.14670480348481
+    },
+    {
+      "source_episode": 71,
+      "success": true,
+      "destination_episode": 21,
+      "frames": 240,
+      "first_success_frame": 209,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 32.49977152387527
+    },
+    {
+      "source_episode": 72,
+      "success": false,
+      "destination_episode": null,
+      "frames": 154,
+      "first_success_frame": null,
+      "ever_grasped": true,
+      "maximum_tracking_error_degrees": 9.47723410549307
+    },
+    {
+      "source_episode": 73,
+      "success": false,
+      "destination_episode": null,
+      "frames": 393,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 26.80610704873242
+    },
+    {
+      "source_episode": 74,
+      "success": false,
+      "destination_episode": null,
+      "frames": 188,
+      "first_success_frame": null,
+      "ever_grasped": false,
+      "maximum_tracking_error_degrees": 27.701403122495815
+    }
+  ],
+  "complete": true,
+  "successes": 22,
+  "source_unchanged": true
+}
