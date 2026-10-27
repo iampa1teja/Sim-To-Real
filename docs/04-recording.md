@@ -103,8 +103,39 @@ override the listed fallback. Both parsers also accept standard `--help`.
 | `--control_input` | `terminal` | `terminal` or `keyboard` |
 | `--spawn_port` | 6001 | Local spawn listener; 0 disables it |
 | `--spawn_authkey` | built-in `so101-spawn` | Shared spawn-service header value, not secure network authentication |
+| `--no_calibration` | false | Connect both arms with calibration disabled and reject calibration calls/writes; normal teleoperation still enables follower torque |
+| `--joint_angle_log` | `None` | New JSONL file for follower units, production-mapped degrees, actual PhysX degrees and tracking differences; requires a real follower |
 | `--sim_reset_object_name` | `None` | Existing scene entity to place near gripper on reset |
 | `--sim_reset_object_offset` | `0 0 0` | Three world-frame metre offsets |
+
+For a joint-angle comparison, the operator starts `lerobot_agent` with
+`--enable_real_follower --no_calibration --joint_angle_log <new-output-path>`.
+The log observes the existing control loop and does not issue additional motor
+commands. With no dataset arguments, it does not open physical image devices or
+write datasets. The generic agent retains its existing wrist re-zero behavior;
+the all-six-joint start-sync fix above applies to `pick_place_agent`.
+
+Inspect the resulting log on the host with NumPy installed:
+
+```bash
+python scripts/joint_angle_check.py --log <joint-log.jsonl> --watch
+python scripts/joint_angle_check.py --log <joint-log.jsonl> --output <summary.json>
+```
+
+For a separate simulation-only read-back check, run the following inside an
+Isaac environment. It uses the production recorder mapping and runtime limits,
+sets a separate sim arm, reads actual PhysX joint positions, and takes no physics
+steps during the checks. It does not connect either physical arm.
+
+```bash
+python scripts/joint_angle_check.py --log <joint-log.jsonl> \
+  --physx-check --output <readback.json>
+```
+
+Encoder tracking differences cannot establish physical joint-zero offsets.
+Independent physical readings and a supplied pan reference are needed before a
+joint can receive a physical offset candidate. See the
+[joint-angle check report](reports/2026-10-27-joint-angle-check/report.md).
 
 ### Inherited Isaac launcher options
 
