@@ -1,5 +1,7 @@
 # Camera, gripper and recording audit — 2026-10-27
 
+**Current follow-up:** recording contract v3 synchronizes all six joints and has no per-episode wrist re-zero. The original Parts 1–7 below describe the earlier implementation and run; the Follow-up section supersedes their recorder fallback instructions.
+
 Work is on `calibration-fixes`; source datasets and USD assets are protected. Calibration gates concern numerical alignment, not whether a recorded video succeeded.
 
 ## Part 1 — static room-camera fit: gate not met
@@ -460,3 +462,92 @@ Copied the entire evidence tree to `outputs/calibration-evidence/2026-10-27-came
 Archive: **4,645 files / 4,776,389,895 bytes**, including **41 unique report evidence files (43 references)**. The per-file source/copy checks are in `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/copy_manifest.json`.
 
 Copy manifest SHA-256: `f017aaa5e9d7e1cdb0a621307da0ce7ed972eb53883f84904116bc32a6ccd9c5`. Source and destination equality was checked for all 4,645 files; all 43 original report hash references match. New baseline tests also reproduce the previous report's exact failure sets (host 5, container 7); logs are preserved in `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/`.
+
+### Task 2 — remove the episode-specific wrist offset
+
+Confirmed the defect before editing. At commit `fd2b675`, `utils/recording_alignment.py:51` defined:
+
+```python
+def wrist_target(mapped_roll, sim_start, leader_start, *, roll_resolved):
+    return mapped_roll if roll_resolved else sim_start + mapped_roll - leader_start
+```
+
+`scripts/pick_place_agent.py:538` called it in the unresolved branch:
+
+```python
+if not roll_resolved:
+    if leader_wrist_start is None:
+        leader_wrist_start = mapped_action[wrist_roll_index].clone()
+        sim_wrist_start = obs["policy"]["joint_pos_obs"][0, wrist_roll_index].clone()
+    mapped_action[wrist_roll_index] = torch.clamp(
+        wrist_target(mapped_action[wrist_roll_index], sim_wrist_start, leader_wrist_start,
+                     roll_resolved=roll_resolved),
+        leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
+        leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
+    )
+```
+
+But the stored sim action at line 566 was `leader_iface.get_raw_actions_tensor(leader_action)`, and the real frame at lines 576–577 received `leader_action`. Therefore the executed roll carried the episode-specific constant while the stored action did not. The archived before-source files above preserve the exact quoted version.
+
+Removed `wrist_target`, its unresolved execution branch, and all `leader_wrist_start` / `sim_wrist_start` handling from the pick-place recorder. At episode start **all six measured follower joints** pass through the production mapping and initialize the sim with zero velocity. Every subsequent target is directly the production mapping of the unchanged leader action, including roll. Both recorded action vectors and the real command use the same raw leader values. Raw dataset units and target radians are compared through the mapping; runtime limit clamping remains in that production mapping. No per-episode roll bias remains.
+
+The version-3 contract records `wrist_rezero: false`, `roll_resolved: false`, all six synced joints and `wrist_roll_zero_offset_degrees: 0.0` as an **unmeasured constant**. `real_setup.json` is byte-for-byte unchanged; its status remains `unresolved`. Version-2 and legacy roots are rejected before serial preflight. The recording guide uses new v3 root examples. **No new dataset was recorded and no hardware was connected.**
+
+Regression checks execute the actual recorder read/store/drive code and production mapping/inverse methods with fake devices. They verify all-six-joint start sync, unchanged real commands, stored actions matching executed targets, and zero episode-specific roll gap for two different leader starts (+22 and −35 raw units). Host and container targeted tests: **41 passed, 21 subtests** each.
+
+Real rollout and evaluation use the same constant through these source paths:
+
+`source/sim_to_real_so101/scripts/real_rollout.py:74`
+
+```python
+args.joint_mapping = rr.follower_mapping_from_calibration(
+    args.calibration_file, **rr.sim_mapping_parameters())
+```
+
+`source/sim_to_real_so101/utils/real_rollout.py:50`
+
+```python
+degrees = math.degrees(setup["robot"]["joint_positions"]["Wrist_Roll"])
+bounds = mapping["wrist_roll"]
+return (degrees - bounds["joint_min"]) / (bounds["joint_max"] - bounds["joint_min"]) * 200 - 100
+```
+
+`source/sim_to_real_so101/scripts/real_rollout.py:170`
+
+```python
+expected_roll = rr.sim_start_roll_units(args.joint_mapping)
+header["sim_start_roll_units"] = expected_roll
+header["mapping_parameters"] = rr.sim_mapping_parameters()
+settings = rr.RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error,
+                              expected_start_roll=expected_roll)
+```
+
+`source/sim_to_real_so101/scripts/lerobot_eval.py:372`
+
+```python
+joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
+```
+
+`source/sim_to_real_so101/tasks/my_room_env_cfg.py:186`
+
+```python
+sim_joint_mapping: dict = SETUP.get("sim_joint_mapping", {})
+```
+
+`source/sim_to_real_so101/assets/real_setup.py:16`
+
+```python
+_derived_mapping = follower_mapping_from_calibration(
+    _mapping_source["joints"], **sim_mapping_parameters(_mapping_source))
+```
+
+`sim_mapping_parameters` passes the persisted `wrist_roll_zero_offset_degrees` to that one derivation. The real start-roll reference is the configured sim roll inverted through this mapping; evaluation's live interface uses the same regenerated mapping. Frozen benchmark starts may decode historical units with their saved mapping to preserve the old physical start pose; they do not introduce a per-episode roll zero. Molmo's separate −90° model convention is unchanged. The physical roll zero and live timing remain unverified.
+
+Task-2 evidence:
+
+| File | SHA-256 |
+|---|---|
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/pick_place_agent_before.py` | `aafed59fb52be7aefa19844bdaea1a42700e838c3e717866db28073eabee055b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/recording_alignment_before.py` | `5a8e6bcb109beeb9bff67bc72666346c191c2c830dd3efce4efddb8240d742dd` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/task2-tests-host.txt` | `4973fd96be00ebba21f6b293875f24c73679667a41a3028e18765689d98bd49b` |
+| `outputs/calibration-evidence/2026-10-27-camera-gripper-recording/follow-up/task2-tests-container.txt` | `e97bcacbc94745a0260e7f46ae726223479ad221355a181246c3f6884335ce84` |

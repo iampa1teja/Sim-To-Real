@@ -23,8 +23,8 @@ teleoperation can run without dataset recording.
 
 ```bash
 pick_place_agent --task Lerobot-So101-Teleop-Pick-Place \
-  --repo_id '<hf_user>/pick_place_v2_start_synced' \
-  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v2_start_synced \
+  --repo_id '<hf_user>/pick_place_v3_start_synced' \
+  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v3_start_synced \
   --task_name 'Pick up the blue cube and place it in the white box'
 ```
 
@@ -34,8 +34,8 @@ the first command; use a new root when changing the configuration):
 ```bash
 pick_place_agent --enable_real_follower \
   --real_gripper_camera "$CAMERA_GRIPPER" --real_external_camera "$CAMERA_EXTERNAL" \
-  --repo_id '<hf_user>/pick_place_paired_v2_start_synced' \
-  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_paired_v2_start_synced \
+  --repo_id '<hf_user>/pick_place_paired_v3_start_synced' \
+  --repo_root /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_paired_v3_start_synced \
   --task_name 'Pick up the blue cube and place it in the white box'
 ```
 
@@ -48,17 +48,18 @@ follower; supplying camera arguments without enabling it does not open real pane
 `pick_place_agent` now requires a new recording root for the current alignment
 contract. It writes `meta/recording_alignment.json` after dataset creation and
 only resumes roots with the same calibration, arm IDs and alignment version.
-Existing v1/A/A2 datasets stay available for training/evaluation; recording into
-them is refused before opening hardware.
+Existing v1/A/A2 datasets and version-2 recording roots stay available for
+training/evaluation; recording into them is refused before opening hardware.
 
 At each episode start, the simulator is posed from the measured follower state
-and both camera images are refreshed before frame 0. The wrist roll fit is
-currently unresolved, so that joint keeps the existing sim start and the
-sim-only wrist re-zero fallback. The other five joints synchronize to the
-follower. Both datasets record the identical, unshifted leader action; when
-the fallback is active, the executed sim wrist target can differ from that
-nominal action, as the marker records. A verified roll fit will switch to full
-six-joint start sync and direct leader targets in a new root.
+and both camera images are refreshed before frame 0. All six joints synchronize,
+including wrist roll. Every target comes directly from the production mapping
+of the unchanged leader action, and both datasets store that same raw action.
+There is no episode-specific wrist re-zero. The version-3 marker records
+`wrist_rezero: false`, `roll_resolved: false`, and the unmeasured shared roll-zero
+constant, currently 0°. The physical zero remains unresolved; it does not add a
+different offset for each episode. These are future recording instructions;
+the follow-up did not record a new hardware dataset.
 
 The room-camera gate did not pass, so there is currently no calibrated cube
 placement overlay. See the [camera/gripper audit](reports/2026-10-27-camera-gripper-recording/report.md).

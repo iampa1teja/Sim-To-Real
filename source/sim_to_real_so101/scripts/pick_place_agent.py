@@ -16,7 +16,7 @@ from sim_to_real_so101.utils.recording_setup import (
     validate_serial_ports,
 )
 from sim_to_real_so101.utils.recording_alignment import (
-    recording_contract, validate_recording_root, mark_recording_root, synced_start_pose, wrist_target,
+    recording_contract, validate_recording_root, mark_recording_root, synced_start_pose,
 )
 
 parser = argparse.ArgumentParser(description="SO-101 pick-and-place agent.")
@@ -341,9 +341,6 @@ def main():
 
         # ── Per-tick state ────────────────────────────────────────────────
         actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-        wrist_roll_index = 4
-        leader_wrist_start = None
-        roll_resolved = alignment_contract["roll_resolved"]
         sync_episode_start = False
         # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
         obs = None
@@ -479,7 +476,6 @@ def main():
                 keyboard_control.set_recording(False)
                 if requests["reset"]:
                     env.reset()
-                    leader_wrist_start = None
                 episode_cube.hide()
                 obs = None
                 print("\n[INFO]: Setup ready; cube cleared. Start the next episode when ready.")
@@ -487,7 +483,6 @@ def main():
             # ── Countdown expired → start recording ───────────────────────
             if phase == "resetting" and time.perf_counter() >= reset_deadline:
                 sync_episode_start = True
-                leader_wrist_start = None
                 phase = "recording"
                 gui_note = ""
                 if recording_mode and recorder_group is not None:
@@ -519,7 +514,7 @@ def main():
                         raise ValueError("Follower start synchronization requires one simulation environment")
                     raw_state = leader_iface.get_raw_actions_tensor(follower_observation)
                     measured = leader_iface.get_mapped_actions_vectorized(raw_state)
-                    pose = synced_start_pose(measured, robot.data.joint_pos[0], roll_resolved=roll_resolved)
+                    pose = synced_start_pose(measured)
                     robot.write_joint_state_to_sim(pose.unsqueeze(0), torch.zeros_like(pose).unsqueeze(0))
                     robot.set_joint_position_target(pose.unsqueeze(0))
                     # Refresh both images without advancing physics; frame 0 is the measured start.
@@ -534,17 +529,6 @@ def main():
             _, mapped_action = leader_iface.real_to_sim_obs_processor(leader_action)
             if obs is None:  # First tick, or scene edited outside env.step().
                 obs = env.unwrapped.observation_manager.compute()
-            # Retain the legacy execution fallback until a cross-episode roll fit is verified.
-            if not roll_resolved:
-                if leader_wrist_start is None:
-                    leader_wrist_start = mapped_action[wrist_roll_index].clone()
-                    sim_wrist_start = obs["policy"]["joint_pos_obs"][0, wrist_roll_index].clone()
-                mapped_action[wrist_roll_index] = torch.clamp(
-                    wrist_target(mapped_action[wrist_roll_index], sim_wrist_start, leader_wrist_start,
-                                 roll_resolved=roll_resolved),
-                    leader_iface.joint_mins[wrist_roll_index] * torch.pi / 180,
-                    leader_iface.joint_maxs[wrist_roll_index] * torch.pi / 180,
-                )
 
             visual_obs = obs.get("visual")
 
