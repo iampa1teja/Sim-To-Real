@@ -1,0 +1,10 @@
+{
+  "camera_prims": [],
+  "prototype_count": 14,
+  "arm_sha256": "1b4132acb64952fd952a0afa2eb4e6c805bac1df9dc80e01feda9ba3a28f277d",
+  "canonical_arm_unchanged": true,
+  "remaining_usd_files": [
+    "source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd",
+    "source/sim_to_real_so101/assets/usd/lightbox-simple.usd"
+  ]
+}

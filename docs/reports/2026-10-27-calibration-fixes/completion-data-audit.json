@@ -1,0 +1,10 @@
+{
+  "source_unchanged": true,
+  "real_unchanged": true,
+  "method_a_preserved_files": 228,
+  "method_a_max_physical_angle_error_degrees": 4.883110520381706e-06,
+  "method_b_episodes": 22,
+  "method_b_frames": 4404,
+  "method_b_actions_match_original_sequences": true,
+  "method_b_states_finite": true
+}

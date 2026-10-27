@@ -11,10 +11,11 @@ policy:
   # port: 5556                        # default: default_port from policies/molmoact2/policy.toml
   server_image: policy-server:latest
   options:
+    wrist_roll_model_offset: -90     # base USD wrist degrees -> original Molmo wrist frame
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json
     dtype: bfloat16                   # bfloat16 (<16 GB) or float32 (~26 GB)
     action_dtype: float32             # retain original expert precision with a BF16 backbone
-    include_original_room: true       # top (room), wrist, and original front images
+    include_original_room: false      # calibrated room and wrist cameras
     # Experimental pan adaptation fitted from the 75 local training demos.
     # Rescales both state and action; weights and checkpoint statistics stay original.
     # Omit both options to evaluate the released policy with its native pan range.
@@ -24,7 +25,7 @@ policy:
 
 # Uses the fixed benchmark starts and the corrected wrist frame for Molmo.
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A
   eval_set: /workspace/Sim-to-Real-SO-101-Workshop/eval_sets/pick_place_v1_seed1984.json
   episodes: 150                      # fixed benchmark below also determines all 150 attempts
   splits: [id, ood, yaw, train]
@@ -32,19 +33,17 @@ eval:
   start_mode: cycle
   random_fraction: 0.0
   robot_start: recorded
-  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd
+  robot_usd: /workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd
   action_horizon: 30                  # execute the released SO-101 checkpoint's full action chunk
   action_repeat: 1                    # 30 Hz simulation control; query every simulated second
-  molmo_overhead_camera: true         # add top camera; keep both original cameras in place
   episode_length_s: 180               # 3 min simulated time per try = 5400 control steps
   render_warmup: 0                    # update Rerun cameras continuously between policy queries
-  save_videos: true                   # save all three streams for every attempt
+  save_videos: true                   # save both streams for every attempt
   video_encoder: libx264              # background CPU encoding; h264_nvenc optionally uses NVIDIA video hardware
   lang: Pick up the blue cube and place it in the white box
   rename_map:
-    realsense_rgb: original_room      # front
+    realsense_rgb: room
     wrist_cam: wrist
-    molmo_room: room                  # top
 
 run:
   gui: false

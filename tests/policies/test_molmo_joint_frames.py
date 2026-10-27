@@ -1,7 +1,7 @@
 """Physical joint-frame anchors for the Molmo simulation adapter, CPU only.
 
 These anchors are independent of the adapter's affine implementation. They
-come from a shared-CAD-mesh alignment of ARM_new.usd to the official SO-101
+come from a shared-CAD-mesh alignment of the original Molmo wrist frame to the official SO-101
 URDFs, matching base_motor_holder, rotation_pitch, upper_arm, under_arm,
 wrist_roll_pitch, wrist_roll_follower and moving_jaw visual frames. The fitted
 pan zero agrees within 0.001 degrees after aligning the physical base mesh;
@@ -42,10 +42,10 @@ JOINT_ORDER = ["shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos",
 # lift coordinate runs opposite to the old LeRobot motor convention, which is
 # why that motor's correction has a sign flip. Gripper values remain percent.
 PHYSICAL_ANCHORS = [
-    pytest.param([0, 0, 0, 0, 0], [0, 90, 90, 0, 0], id="canonical-neutral"),
-    pytest.param([0, 90, -90, 0, 0], [0, 0, 0, 0, 0], id="horizontal-old-zero"),
-    pytest.param([30, -20, -30, 15, -20], [30, 110, 60, 15, -20], id="signed-bent-pose"),
-    pytest.param([-35, 50, 50, -25, 80], [-35, 40, 140, -25, 80], id="opposite-quadrant"),
+    pytest.param([0, 0, 0, 0, 90], [0, 90, 90, 0, 0], id="canonical-neutral"),
+    pytest.param([0, 90, -90, 0, 90], [0, 0, 0, 0, 0], id="horizontal-old-zero"),
+    pytest.param([30, -20, -30, 15, 70], [30, 110, 60, 15, -20], id="signed-bent-pose"),
+    pytest.param([-35, 50, 50, -25, 140], [-35, 40, 140, -25, 50], id="opposite-quadrant"),
 ]
 
 
@@ -91,10 +91,15 @@ def client_for_interface(iface, **overrides):
     midpoint = (iface.mapping_joint_maxs + iface.mapping_joint_mins) / 2
     options = dict(input_joint_units="usd_normalized",
                    arm_degrees_per_unit=",".join(str(value) for value in span[:5] / 200),
-                   arm_zero_degrees=",".join(str(value) for value in midpoint[:5]))
+                   arm_zero_degrees=",".join(str(value) for value in midpoint[:5]),
+                   wrist_roll_model_offset=-90)
     options.update(overrides)
     manifest = load_manifest(ROOT / "policies/molmoact2")
     return load_client_policy("molmoact2", manifest, options)
+
+
+def gripper_angle(interface):
+    return interface.mapping_joint_mins[-1] + .37 * (interface.mapping_joint_maxs[-1] - interface.mapping_joint_mins[-1])
 
 
 def images():
@@ -103,9 +108,8 @@ def images():
 
 @pytest.mark.parametrize("usd_degrees,model_degrees", PHYSICAL_ANCHORS)
 def test_actual_sim_observations_match_physical_frame_anchors(interface, usd_degrees, model_degrees):
-    # A 37% gripper command corresponds to 30.7 USD degrees in the unchanged
-    # simulator jaw mapping; its policy representation must remain 37%.
-    physical_radians = np.deg2rad([*usd_degrees, 30.7])
+    # The policy keeps percent gripper commands while the USD span follows calibration.
+    physical_radians = np.deg2rad([*usd_degrees, gripper_angle(interface)])
     normalized = interface.get_raw_actions_from_radians(physical_radians)
     built = client_for_interface(interface).build_request(normalized, images(), "task")
     np.testing.assert_allclose(built["state"], [*model_degrees, 37], rtol=0, atol=2e-5)
@@ -116,7 +120,7 @@ def test_model_targets_drive_actual_sim_to_physical_frame_anchors(interface, usd
     decoded = client_for_interface(interface).parse_response(
         {"actions": [[*model_degrees, 37]]}, JOINT_ORDER)[0]
     actual = interface.get_mapped_actions_vectorized(decoded)
-    np.testing.assert_allclose(np.rad2deg(actual), [*usd_degrees, 30.7], rtol=0, atol=2e-5)
+    np.testing.assert_allclose(np.rad2deg(actual), [*usd_degrees, gripper_angle(interface)], rtol=0, atol=2e-5)
 
 
 def test_asymmetric_sim_ranges_do_not_redefine_model_zero(interface):
@@ -125,7 +129,7 @@ def test_asymmetric_sim_ranges_do_not_redefine_model_zero(interface):
     # build/parse transform, which a roundtrip-only test cannot detect.
     interface.mapping_joint_mins[:5] = [-140, -120, -80, -100, -175]
     interface.mapping_joint_maxs[:5] = [80, 80, 120, 90, 145]
-    normalized = interface.get_raw_actions_from_radians(np.deg2rad([0, 0, 0, 0, 0, 30.7]))
+    normalized = interface.get_raw_actions_from_radians(np.deg2rad([0, 0, 0, 0, 90, gripper_angle(interface)]))
     built = client_for_interface(interface).build_request(normalized, images(), "task")
     np.testing.assert_allclose(built["state"], [0, 90, 90, 0, 0, 37], rtol=0, atol=2e-5)
 
@@ -137,7 +141,7 @@ def test_clipped_native_pan_target_is_not_shifted_by_normalized_midpoint(interfa
     decoded = client_for_interface(interface).parse_response(
         {"actions": [[q99_pan, 90, 90, 0, 0, 0]]}, JOINT_ORDER)[0]
     physical = np.rad2deg(interface.get_mapped_actions_vectorized(decoded))
-    np.testing.assert_allclose(physical[:5], [q99_pan, 0, 0, 0, 0], rtol=0, atol=2e-5)
+    np.testing.assert_allclose(physical[:5], [q99_pan, 0, 0, 0, 90], rtol=0, atol=2e-5)
 
 
 def test_physical_usd_limits_still_clamp_large_model_targets(interface):
@@ -162,7 +166,7 @@ def test_sim_normalized_units_require_five_finite_nonzero_scales(interface, scal
 def test_all_zero_midpoints_are_valid(interface):
     client = client_for_interface(interface, arm_zero_degrees="0,0,0,0,0")
     built = client.build_request(np.zeros(6), images(), "task")
-    np.testing.assert_array_equal(built["state"], [0, 90, 90, 0, 0, 0])
+    np.testing.assert_array_equal(built["state"], [0, 90, 90, 0, -90, 0])
 
 
 def test_omitting_sim_zero_reference_is_rejected():
@@ -178,6 +182,19 @@ def test_omitting_sim_zero_reference_is_rejected():
 def test_real_normalized_client_keeps_midpoint_relative_degrees(interface):
     # The new simulation reconstruction must not change public real-client
     # modes, whose DEGREES zero is already the encoder calibration midpoint.
-    client = client_for_interface(interface, input_joint_units="lerobot_normalized")
+    client = client_for_interface(interface, input_joint_units="lerobot_normalized", wrist_roll_model_offset=0)
     built = client.build_request(np.zeros(6), images(), "task")
     np.testing.assert_array_equal(built["state"], [0, 90, 90, 0, 0, 0])
+
+
+@pytest.mark.parametrize("value", ["bad", "nan", "inf", True])
+def test_wrist_frame_offset_rejects_invalid_values(interface, value):
+    with pytest.raises(ValueError, match="wrist_roll_model_offset"):
+        client_for_interface(interface, wrist_roll_model_offset=value)
+
+
+def test_original_molmo_frame_still_obeys_canonical_wrist_limit(interface):
+    decoded = client_for_interface(interface).parse_response(
+        {"actions": [[0, 90, 90, 0, 100, 37]]}, JOINT_ORDER)[0]
+    physical = np.rad2deg(interface.get_mapped_actions_vectorized(decoded))
+    assert physical[4] == pytest.approx(160, abs=2e-5)

@@ -1,0 +1,56 @@
+{
+  "host": {
+    "before": {
+      "failures": [
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start",
+        "FAILED tests/test_pick_place_benchmark.py::StatisticsTests::test_mcnemar_exact"
+      ],
+      "summary": "7 failed, 748 passed, 40 skipped, 2 warnings, 284 subtests passed in 28.16s"
+    },
+    "after": {
+      "failures": [
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start",
+        "FAILED tests/test_pick_place_benchmark.py::StatisticsTests::test_mcnemar_exact"
+      ],
+      "summary": "7 failed, 741 passed, 36 skipped, 2 warnings, 279 subtests passed in 25.06s"
+    },
+    "same_failure_set": true
+  },
+  "container": {
+    "before": {
+      "failures": [
+        "FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]",
+        "FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode"
+      ],
+      "summary": "7 failed, 779 passed, 31 skipped, 7 warnings, 284 subtests passed in 209.21s (0:03:29)"
+    },
+    "after": {
+      "failures": [
+        "FAILED tests/test_docker_training.py::test_existing_entrypoints_route_to_docker_without_starting_training[policies/groot_n17/train/train_dit.sh-dit]",
+        "FAILED tests/test_eval_script.py::test_bare_config_name_is_looked_up_in_configs_eval",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged",
+        "FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it",
+        "SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored",
+        "FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_process_exit_without_finally_retains_completed_episode"
+      ],
+      "summary": "7 failed, 772 passed, 27 skipped, 7 warnings, 279 subtests passed in 240.61s (0:04:00)"
+    },
+    "same_failure_set": true
+  }
+}

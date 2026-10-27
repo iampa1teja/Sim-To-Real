@@ -1,0 +1,543 @@
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /workspace/isaaclab/apps/isaaclab.python.headless.rendering.kit
+[Info] [carb] Logging to file: /isaac-sim/kit/logs/Kit/Isaac-Sim/5.1/kit_20261027_041756.log
+2026-10-27T04:17:57Z [735ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:57Z [735ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:57Z [749ms] [Warning] [omni.platforminfo.plugin] failed to open the default display.  Can't verify X Server version.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 580.173.02    | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 4090          | Yes: 0 |     | 24564   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2684      | 0aa900f2.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 24.04.2 LTS (Noble Numbat) ubuntu, Version: 24.04.2, Kernel: 6.8.0-142-generic
+| Processor: Intel(R) Core(TM) i9-14900K
+| Bare Metal Cores: 24 | Bare Metal Logical Cores: 48
+| Available Cores:  32
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 63040 | Free Memory: 59797
+| Total Page/Swap (MB): 2047 | Free Page/Swap: 0
+|---------------------------------------------------------------------------------------------|
+2026-10-27T04:17:58Z [1,340ms] [Warning] [gpu.foundation.plugin] CPU performance profile is set to powersave. This profile sets the CPU to the lowest frequency reducing performance.
+2026-10-27T04:17:58Z [1,348ms] [Warning] [gpu.foundation.plugin] IOMMU is enabled.
+2026-10-27T04:17:59Z [2,264ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,264ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,358ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,358ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,364ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,364ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,376ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,376ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,378ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,378ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,379ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-10-27T04:17:59Z [2,379ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-10-27T04:17:59Z [2,674ms] [Warning] [omni.log] Source: omni.hydra was already registered.
+2026-10-27T04:18:00Z [3,410ms] [Warning] [carb] Acquiring non optional plugin interface which is not listed as dependency: [omni::physx::IPhysxBenchmarks v1.0] (plugin: <default plugin>), by client: omni.physics.physx.plugin. Add it to CARB_PLUGIN_IMPL_DEPS() macro of a client.
+2026-10-27T04:18:00Z [3,417ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+2026-10-27T04:18:04Z [7,246ms] [Warning] [pxr.Semantics] pxr.Semantics is deprecated - please use Semantics instead
+2026-10-27T04:18:04Z [7,565ms] [Warning] [omni.graph.core.plugin] Found duplicate of category 'Replicator' - was 'Annotators', adding 'Fabric Reader'
+2026-10-27T04:18:04Z [7,565ms] [Warning] [omni.graph.core.plugin] Category 'Replicator' not accepted on node type 'omni.replicator.core.FabricReader' in extension 'omni.replicator.core'
+2026-10-27T04:18:04Z [7,568ms] [Warning] [omni.replicator.core.scripts.extension] No material configuration file, adding configuration to material settings directly.
+2026-10-27T04:18:26Z [29,770ms] [Warning] [omni.fabric.plugin] Warning: attribute viewportHandle not found for bucket id 7
+
+[INFO]: Parsing configuration from: sim_to_real_so101.tasks.pick_place_env_cfg:PickPlaceEnvCfg
+
+[36m======================================================================================[0m
+[36m[1m[INFO][IsaacLab]: Logging to file: /tmp/isaaclab/logs/isaaclab_2026-10-27_04-19-01.log[0m
+[36m======================================================================================[0m
+
+[33m04:19:02 [simulation_context.py] WARNING: The `enable_external_forces_every_iteration` parameter in the PhysxCfg is set to False. If you are experiencing noisy velocities, consider enabling this flag. You may need to slightly increase the number of velocity iterations (setting it to 1 or 2 rather than 0), together with this flag, to improve the accuracy of velocity updates.[0m
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : 1984
+	Physics step-size     : 0.008333333333333333
+	Rendering step-size   : 0.03333333333333333
+	Environment step-size : 0.03333333333333333
+[INFO]: Time taken for scene creation : 0.443380 seconds
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 1
+	Environment spacing   : 4.0
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : []
+	Replicate physics     : True
+[INFO]: Starting the simulation. This may take a few seconds. Please wait...
+2026-10-27T04:19:06Z [69,427ms] [Warning] [omni.fabric.plugin] getAttributeCount called on non-existent path /World/envs/env_0/Robot/wrist/visuals/wrist_roll_pitch_so101_v2
+2026-10-27T04:19:06Z [69,427ms] [Warning] [omni.fabric.plugin] getTypes called on non-existent path /World/envs/env_0/Robot/wrist/visuals/wrist_roll_pitch_so101_v2
+[INFO]: Time taken for simulation start : 8.199144 seconds
+[INFO] Command Manager:  <CommandManager> contains 0 active terms.
++------------------------+
+|  Active Command Terms  |
++--------+-------+-------+
+| Index  | Name  |  Type |
++--------+-------+-------+
++--------+-------+-------+
+
+[INFO] Event Manager:  <EventManager> contains 2 active terms.
++-----------------------------------------+
+|   Active Event Terms in Mode: 'reset'   |
++-------+---------------------------------+
+| Index | Name                            |
++-------+---------------------------------+
+|   0   | reset_robot_position            |
+|   1   | reset_set_robot_visual_material |
+|   2   | reset_tracking                  |
++-------+---------------------------------+
++----------------------------------------+
+| Active Event Terms in Mode: 'startup'  |
++--------+-------------------------------+
+| Index  | Name                          |
++--------+-------------------------------+
+|   0    | configure_scene_updates       |
+|   1    | set_robot_visual_material     |
++--------+-------------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.
++---------------------+
+| Active Recorder Terms |
++-----------+---------+
+|   Index   | Name    |
++-----------+---------+
++-----------+---------+
+
+[INFO] Action Manager:  <ActionManager> contains 1 active terms.
++-------------------------------------+
+|    Active Action Terms (shape: 6)   |
++-------+-----------------+-----------+
+| Index | Name            | Dimension |
++-------+-----------------+-----------+
+|   0   | joint_positions |         6 |
++-------+-----------------+-----------+
+
+[INFO] Observation Manager: <ObservationManager> contains 3 groups.
++---------------------------------------------+
+| Active Observation Terms in Group: 'policy' |
++----------+-----------------------+----------+
+|  Index   | Name                  |  Shape   |
++----------+-----------------------+----------+
+|    0     | joint_pos_obs         |   (6,)   |
+|    1     | joint_pos_rel         |   (6,)   |
+|    2     | ee_frame_state        |   (7,)   |
++----------+-----------------------+----------+
++-------------------------------------------------------+
+|      Active Observation Terms in Group: 'visual'      |
++-------+-------------------------------+---------------+
+| Index | Name                          |     Shape     |
++-------+-------------------------------+---------------+
+|   0   | rgb_realsense_rgb             | (480, 640, 3) |
+|   1   | depth_realsense_rgb           | (480, 640, 1) |
+|   2   | instance_id_seg_realsense_rgb | (480, 640, 4) |
+|   3   | rgb_wrist_cam                 | (480, 640, 3) |
+|   4   | depth_wrist_cam               | (480, 640, 1) |
+|   5   | instance_id_seg_wrist_cam     | (480, 640, 4) |
++-------+-------------------------------+---------------+
++------------------------------------------------+
+| Active Observation Terms in Group: 'subtask_terms' |
++-----------+------------------------+-----------+
+|   Index   | Name                   |   Shape   |
++-----------+------------------------+-----------+
+|     0     | cube_grasped           |    (1,)   |
+|     1     | cube_placed            |    (1,)   |
++-----------+------------------------+-----------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 0 active terms.
++----------------------------+
+|  Active Termination Terms  |
++--------+-------+-----------+
+| Index  | Name  |  Time Out |
++--------+-------+-----------+
++--------+-------+-----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 0 active terms.
++-----------------------+
+|  Active Reward Terms  |
++-------+------+--------+
+| Index | Name | Weight |
++-------+------+--------+
++-------+------+--------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++----------------------+
+| Active Curriculum Terms |
++-----------+----------+
+|   Index   | Name     |
++-----------+----------+
++-----------+----------+
+
+[INFO]: Completed setting up the environment...
+2026-10-27T04:19:11Z [74,612ms] [Warning] [omni.fabric.plugin] Warning: attribute primvars:st:indices not found for path /World/envs/env_0/Room/Room/Visual/Furniture/Tabletop
+
+2026-10-27T04:19:11Z [74,616ms] [Warning] [omni.fabric.plugin] removePaths called with a non-existent path /__Prototype_14121168238276259709
+
+[INFO]: New dataset initialized - datasets/pick_place_v1_calibrated_B
+[REPLAY_FRAME] episode=0 frame=0/203
+2026-10-27T04:19:14Z [77,974ms] [Warning] [carb] Client gpu.foundation.plugin has acquired [gpu::unstable::IMemoryBudgetManagerFactory v0.1] 100 times. Consider accessing this interface with carb::getCachedInterface() (Performance warning)
+[REPLAY_FRAME] episode=0 frame=100/203
+[REPLAY_FRAME] episode=0 frame=200/203
+[REPLAY_EPISODE] {"source_episode": 0, "success": false, "destination_episode": null, "frames": 203, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 32.34755051293778}
+[REPLAY_FRAME] episode=1 frame=0/262
+[REPLAY_FRAME] episode=1 frame=100/262
+[REPLAY_FRAME] episode=1 frame=200/262
+[REPLAY_EPISODE] {"source_episode": 1, "success": false, "destination_episode": null, "frames": 262, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 27.599366926484993}
+[REPLAY_FRAME] episode=2 frame=0/334
+[REPLAY_FRAME] episode=2 frame=100/334
+[REPLAY_FRAME] episode=2 frame=200/334
+[REPLAY_FRAME] episode=2 frame=300/334
+[REPLAY_EPISODE] {"source_episode": 2, "success": false, "destination_episode": null, "frames": 334, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 35.97633781141176}
+[REPLAY_FRAME] episode=3 frame=0/408
+[REPLAY_FRAME] episode=3 frame=100/408
+[REPLAY_FRAME] episode=3 frame=200/408
+[REPLAY_FRAME] episode=3 frame=300/408
+[REPLAY_FRAME] episode=3 frame=400/408
+[REPLAY_EPISODE] {"source_episode": 3, "success": false, "destination_episode": null, "frames": 408, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 25.68968189304257}
+[REPLAY_FRAME] episode=4 frame=0/292
+[REPLAY_FRAME] episode=4 frame=100/292
+[REPLAY_FRAME] episode=4 frame=200/292
+[REPLAY_EPISODE] {"source_episode": 4, "success": false, "destination_episode": null, "frames": 292, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 13.640339418774332}
+[REPLAY_FRAME] episode=5 frame=0/310
+[REPLAY_FRAME] episode=5 frame=100/310
+[REPLAY_FRAME] episode=5 frame=200/310
+[REPLAY_FRAME] episode=5 frame=300/310
+[REPLAY_EPISODE] {"source_episode": 5, "success": false, "destination_episode": null, "frames": 310, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 30.81994796921316}
+[REPLAY_FRAME] episode=6 frame=0/236
+[REPLAY_FRAME] episode=6 frame=100/236
+[REPLAY_FRAME] episode=6 frame=200/236
+[REPLAY_EPISODE] {"source_episode": 6, "success": false, "destination_episode": null, "frames": 236, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 30.315302857481356}
+[REPLAY_FRAME] episode=7 frame=0/346
+[REPLAY_FRAME] episode=7 frame=100/346
+[REPLAY_FRAME] episode=7 frame=200/346
+[REPLAY_FRAME] episode=7 frame=300/346
+
+Map:   0%|          | 0/346 [00:00<?, ? examples/s]
+Map:  78%|███████▊  | 270/346 [00:00<00:00, 2673.23 examples/s]
+Map: 100%|██████████| 346/346 [00:00<00:00, 2595.81 examples/s]
+[INFO]: Saved episode 0 to datasets/pick_place_v1_calibrated_B (1 total).
+[REPLAY_EPISODE] {"source_episode": 7, "success": true, "destination_episode": 0, "frames": 346, "first_success_frame": 301, "ever_grasped": true, "maximum_tracking_error_degrees": 20.589755517165177}
+[REPLAY_FRAME] episode=8 frame=0/269
+[REPLAY_FRAME] episode=8 frame=100/269
+[REPLAY_FRAME] episode=8 frame=200/269
+[REPLAY_EPISODE] {"source_episode": 8, "success": false, "destination_episode": null, "frames": 269, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 45.82853051931831}
+[REPLAY_FRAME] episode=9 frame=0/279
+[REPLAY_FRAME] episode=9 frame=100/279
+[REPLAY_FRAME] episode=9 frame=200/279
+[REPLAY_EPISODE] {"source_episode": 9, "success": false, "destination_episode": null, "frames": 279, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 49.89290630192068}
+[REPLAY_FRAME] episode=10 frame=0/360
+[REPLAY_FRAME] episode=10 frame=100/360
+[REPLAY_FRAME] episode=10 frame=200/360
+[REPLAY_FRAME] episode=10 frame=300/360
+[REPLAY_EPISODE] {"source_episode": 10, "success": false, "destination_episode": null, "frames": 360, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 43.26428284450418}
+[REPLAY_FRAME] episode=11 frame=0/283
+[REPLAY_FRAME] episode=11 frame=100/283
+[REPLAY_FRAME] episode=11 frame=200/283
+[REPLAY_EPISODE] {"source_episode": 11, "success": false, "destination_episode": null, "frames": 283, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 25.30517980881129}
+[REPLAY_FRAME] episode=12 frame=0/264
+[REPLAY_FRAME] episode=12 frame=100/264
+[REPLAY_FRAME] episode=12 frame=200/264
+
+Map:   0%|          | 0/264 [00:00<?, ? examples/s]
+Map: 100%|██████████| 264/264 [00:00<00:00, 2601.50 examples/s]
+[INFO]: Saved episode 1 to datasets/pick_place_v1_calibrated_B (2 total).
+[REPLAY_EPISODE] {"source_episode": 12, "success": true, "destination_episode": 1, "frames": 264, "first_success_frame": 194, "ever_grasped": true, "maximum_tracking_error_degrees": 34.771051894620044}
+[REPLAY_FRAME] episode=13 frame=0/252
+[REPLAY_FRAME] episode=13 frame=100/252
+[REPLAY_FRAME] episode=13 frame=200/252
+
+Map:   0%|          | 0/252 [00:00<?, ? examples/s]
+Map: 100%|██████████| 252/252 [00:00<00:00, 2581.58 examples/s]
+[INFO]: Saved episode 2 to datasets/pick_place_v1_calibrated_B (3 total).
+[REPLAY_EPISODE] {"source_episode": 13, "success": true, "destination_episode": 2, "frames": 252, "first_success_frame": 181, "ever_grasped": true, "maximum_tracking_error_degrees": 42.460659862233406}
+[REPLAY_FRAME] episode=14 frame=0/242
+[REPLAY_FRAME] episode=14 frame=100/242
+[REPLAY_FRAME] episode=14 frame=200/242
+[REPLAY_EPISODE] {"source_episode": 14, "success": false, "destination_episode": null, "frames": 242, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 45.84735793576545}
+[REPLAY_FRAME] episode=15 frame=0/295
+[REPLAY_FRAME] episode=15 frame=100/295
+[REPLAY_FRAME] episode=15 frame=200/295
+[REPLAY_EPISODE] {"source_episode": 15, "success": false, "destination_episode": null, "frames": 295, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 26.93172447285271}
+[REPLAY_FRAME] episode=16 frame=0/231
+[REPLAY_FRAME] episode=16 frame=100/231
+[REPLAY_FRAME] episode=16 frame=200/231
+
+Map:   0%|          | 0/231 [00:00<?, ? examples/s]
+Map: 100%|██████████| 231/231 [00:00<00:00, 2580.83 examples/s]
+[INFO]: Saved episode 3 to datasets/pick_place_v1_calibrated_B (4 total).
+[REPLAY_EPISODE] {"source_episode": 16, "success": true, "destination_episode": 3, "frames": 231, "first_success_frame": 174, "ever_grasped": true, "maximum_tracking_error_degrees": 17.89447578576623}
+[REPLAY_FRAME] episode=17 frame=0/262
+[REPLAY_FRAME] episode=17 frame=100/262
+[REPLAY_FRAME] episode=17 frame=200/262
+
+Map:   0%|          | 0/262 [00:00<?, ? examples/s]
+Map: 100%|██████████| 262/262 [00:00<00:00, 2619.01 examples/s]
+Map: 100%|██████████| 262/262 [00:00<00:00, 2572.95 examples/s]
+[INFO]: Saved episode 4 to datasets/pick_place_v1_calibrated_B (5 total).
+[REPLAY_EPISODE] {"source_episode": 17, "success": true, "destination_episode": 4, "frames": 262, "first_success_frame": 215, "ever_grasped": true, "maximum_tracking_error_degrees": 21.25155645150981}
+[REPLAY_FRAME] episode=18 frame=0/330
+[REPLAY_FRAME] episode=18 frame=100/330
+[REPLAY_FRAME] episode=18 frame=200/330
+[REPLAY_FRAME] episode=18 frame=300/330
+[REPLAY_EPISODE] {"source_episode": 18, "success": false, "destination_episode": null, "frames": 330, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 45.29573136782771}
+[REPLAY_FRAME] episode=19 frame=0/279
+[REPLAY_FRAME] episode=19 frame=100/279
+[REPLAY_FRAME] episode=19 frame=200/279
+[REPLAY_EPISODE] {"source_episode": 19, "success": false, "destination_episode": null, "frames": 279, "first_success_frame": null, "ever_grasped": true, "maximum_tracking_error_degrees": 41.344186895219366}
+[REPLAY_FRAME] episode=20 frame=0/231
+[REPLAY_FRAME] episode=20 frame=100/231
+[REPLAY_FRAME] episode=20 frame=200/231
+[REPLAY_EPISODE] {"source_episode": 20, "success": false, "destination_episode": null, "frames": 231, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 58.74931207035274}
+[REPLAY_FRAME] episode=21 frame=0/293
+[REPLAY_FRAME] episode=21 frame=100/293
+[REPLAY_FRAME] episode=21 frame=200/293
+
+Map:   0%|          | 0/293 [00:00<?, ? examples/s]
+Map:  91%|█████████▏| 268/293 [00:00<00:00, 2654.54 examples/s]
+Map: 100%|██████████| 293/293 [00:00<00:00, 2571.35 examples/s]
+[INFO]: Saved episode 5 to datasets/pick_place_v1_calibrated_B (6 total).
+[REPLAY_EPISODE] {"source_episode": 21, "success": true, "destination_episode": 5, "frames": 293, "first_success_frame": 241, "ever_grasped": true, "maximum_tracking_error_degrees": 38.24435335173327}
+[REPLAY_FRAME] episode=22 frame=0/268
+[REPLAY_FRAME] episode=22 frame=100/268
+[REPLAY_FRAME] episode=22 frame=200/268
+[REPLAY_EPISODE] {"source_episode": 22, "success": false, "destination_episode": null, "frames": 268, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 40.83065570737737}
+[REPLAY_FRAME] episode=23 frame=0/244
+[REPLAY_FRAME] episode=23 frame=100/244
+[REPLAY_FRAME] episode=23 frame=200/244
+[REPLAY_EPISODE] {"source_episode": 23, "success": false, "destination_episode": null, "frames": 244, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 49.85769667674927}
+[REPLAY_FRAME] episode=24 frame=0/280
+[REPLAY_FRAME] episode=24 frame=100/280
+[REPLAY_FRAME] episode=24 frame=200/280
+[REPLAY_EPISODE] {"source_episode": 24, "success": false, "destination_episode": null, "frames": 280, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 34.83684369180019}
+[REPLAY_FRAME] episode=25 frame=0/219
+[REPLAY_FRAME] episode=25 frame=100/219
+[REPLAY_FRAME] episode=25 frame=200/219
+[REPLAY_EPISODE] {"source_episode": 25, "success": false, "destination_episode": null, "frames": 219, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 46.43324473257997}
+[REPLAY_FRAME] episode=26 frame=0/217
+[REPLAY_FRAME] episode=26 frame=100/217
+[REPLAY_FRAME] episode=26 frame=200/217
+[REPLAY_EPISODE] {"source_episode": 26, "success": false, "destination_episode": null, "frames": 217, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 27.312196745473685}
+[REPLAY_FRAME] episode=27 frame=0/283
+[REPLAY_FRAME] episode=27 frame=100/283
+[REPLAY_FRAME] episode=27 frame=200/283
+[REPLAY_EPISODE] {"source_episode": 27, "success": false, "destination_episode": null, "frames": 283, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 26.061601061275397}
+[REPLAY_FRAME] episode=28 frame=0/210
+[REPLAY_FRAME] episode=28 frame=100/210
+[REPLAY_FRAME] episode=28 frame=200/210
+[REPLAY_EPISODE] {"source_episode": 28, "success": false, "destination_episode": null, "frames": 210, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 65.23174898896346}
+[REPLAY_FRAME] episode=29 frame=0/192
+[REPLAY_FRAME] episode=29 frame=100/192
+[REPLAY_EPISODE] {"source_episode": 29, "success": false, "destination_episode": null, "frames": 192, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 48.307141282318824}
+[REPLAY_FRAME] episode=30 frame=0/196
+[REPLAY_FRAME] episode=30 frame=100/196
+[REPLAY_EPISODE] {"source_episode": 30, "success": false, "destination_episode": null, "frames": 196, "first_success_frame": null, "ever_grasped": true, "maximum_tracking_error_degrees": 72.65339839015347}
+[REPLAY_FRAME] episode=31 frame=0/131
+[REPLAY_FRAME] episode=31 frame=100/131
+[REPLAY_EPISODE] {"source_episode": 31, "success": false, "destination_episode": null, "frames": 131, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 39.95539428599692}
+[REPLAY_FRAME] episode=32 frame=0/129
+[REPLAY_FRAME] episode=32 frame=100/129
+[REPLAY_EPISODE] {"source_episode": 32, "success": false, "destination_episode": null, "frames": 129, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 34.77900906500311}
+[REPLAY_FRAME] episode=33 frame=0/137
+[REPLAY_FRAME] episode=33 frame=100/137
+[REPLAY_EPISODE] {"source_episode": 33, "success": false, "destination_episode": null, "frames": 137, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 40.042188914874856}
+[REPLAY_FRAME] episode=34 frame=0/80
+[REPLAY_EPISODE] {"source_episode": 34, "success": false, "destination_episode": null, "frames": 80, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 35.54883285616607}
+[REPLAY_FRAME] episode=35 frame=0/144
+[REPLAY_FRAME] episode=35 frame=100/144
+
+Map:   0%|          | 0/144 [00:00<?, ? examples/s]
+Map: 100%|██████████| 144/144 [00:00<00:00, 2509.74 examples/s]
+[INFO]: Saved episode 6 to datasets/pick_place_v1_calibrated_B (7 total).
+[REPLAY_EPISODE] {"source_episode": 35, "success": true, "destination_episode": 6, "frames": 144, "first_success_frame": 117, "ever_grasped": true, "maximum_tracking_error_degrees": 29.30306540739088}
+[REPLAY_FRAME] episode=36 frame=0/137
+[REPLAY_FRAME] episode=36 frame=100/137
+
+Map:   0%|          | 0/137 [00:00<?, ? examples/s]
+Map: 100%|██████████| 137/137 [00:00<00:00, 2509.21 examples/s]
+[INFO]: Saved episode 7 to datasets/pick_place_v1_calibrated_B (8 total).
+[REPLAY_EPISODE] {"source_episode": 36, "success": true, "destination_episode": 7, "frames": 137, "first_success_frame": 108, "ever_grasped": true, "maximum_tracking_error_degrees": 35.84076538657617}
+[REPLAY_FRAME] episode=37 frame=0/132
+[REPLAY_FRAME] episode=37 frame=100/132
+[REPLAY_EPISODE] {"source_episode": 37, "success": false, "destination_episode": null, "frames": 132, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 33.44314700675368}
+[REPLAY_FRAME] episode=38 frame=0/155
+[REPLAY_FRAME] episode=38 frame=100/155
+[REPLAY_EPISODE] {"source_episode": 38, "success": false, "destination_episode": null, "frames": 155, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 30.650972504241633}
+[REPLAY_FRAME] episode=39 frame=0/153
+[REPLAY_FRAME] episode=39 frame=100/153
+
+Map:   0%|          | 0/153 [00:00<?, ? examples/s]
+Map: 100%|██████████| 153/153 [00:00<00:00, 2552.37 examples/s]
+[INFO]: Saved episode 8 to datasets/pick_place_v1_calibrated_B (9 total).
+[REPLAY_EPISODE] {"source_episode": 39, "success": true, "destination_episode": 8, "frames": 153, "first_success_frame": 131, "ever_grasped": true, "maximum_tracking_error_degrees": 30.437430054935767}
+[REPLAY_FRAME] episode=40 frame=0/133
+[REPLAY_FRAME] episode=40 frame=100/133
+[REPLAY_EPISODE] {"source_episode": 40, "success": false, "destination_episode": null, "frames": 133, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 20.370812095773125}
+[REPLAY_FRAME] episode=41 frame=0/142
+[REPLAY_FRAME] episode=41 frame=100/142
+[REPLAY_EPISODE] {"source_episode": 41, "success": false, "destination_episode": null, "frames": 142, "first_success_frame": null, "ever_grasped": true, "maximum_tracking_error_degrees": 22.175547857523718}
+[REPLAY_FRAME] episode=42 frame=0/139
+[REPLAY_FRAME] episode=42 frame=100/139
+
+Map:   0%|          | 0/139 [00:00<?, ? examples/s]
+Map: 100%|██████████| 139/139 [00:00<00:00, 2509.67 examples/s]
+[INFO]: Saved episode 9 to datasets/pick_place_v1_calibrated_B (10 total).
+[REPLAY_EPISODE] {"source_episode": 42, "success": true, "destination_episode": 9, "frames": 139, "first_success_frame": 104, "ever_grasped": true, "maximum_tracking_error_degrees": 34.24686902676741}
+[REPLAY_FRAME] episode=43 frame=0/125
+[REPLAY_FRAME] episode=43 frame=100/125
+
+Map:   0%|          | 0/125 [00:00<?, ? examples/s]
+Map: 100%|██████████| 125/125 [00:00<00:00, 2518.11 examples/s]
+[INFO]: Saved episode 10 to datasets/pick_place_v1_calibrated_B (11 total).
+[REPLAY_EPISODE] {"source_episode": 43, "success": true, "destination_episode": 10, "frames": 125, "first_success_frame": 101, "ever_grasped": true, "maximum_tracking_error_degrees": 26.192197693300628}
+[REPLAY_FRAME] episode=44 frame=0/154
+[REPLAY_FRAME] episode=44 frame=100/154
+
+Map:   0%|          | 0/154 [00:00<?, ? examples/s]
+Map: 100%|██████████| 154/154 [00:00<00:00, 2431.22 examples/s]
+[INFO]: Saved episode 11 to datasets/pick_place_v1_calibrated_B (12 total).
+[REPLAY_EPISODE] {"source_episode": 44, "success": true, "destination_episode": 11, "frames": 154, "first_success_frame": 129, "ever_grasped": true, "maximum_tracking_error_degrees": 22.747437889181594}
+[REPLAY_FRAME] episode=45 frame=0/153
+[REPLAY_FRAME] episode=45 frame=100/153
+
+Map:   0%|          | 0/153 [00:00<?, ? examples/s]
+Map: 100%|██████████| 153/153 [00:00<00:00, 2482.66 examples/s]
+[INFO]: Saved episode 12 to datasets/pick_place_v1_calibrated_B (13 total).
+[REPLAY_EPISODE] {"source_episode": 45, "success": true, "destination_episode": 12, "frames": 153, "first_success_frame": 135, "ever_grasped": true, "maximum_tracking_error_degrees": 19.32431441680587}
+[REPLAY_FRAME] episode=46 frame=0/188
+[REPLAY_FRAME] episode=46 frame=100/188
+
+Map:   0%|          | 0/188 [00:00<?, ? examples/s]
+Map: 100%|██████████| 188/188 [00:00<00:00, 2548.01 examples/s]
+[INFO]: Saved episode 13 to datasets/pick_place_v1_calibrated_B (14 total).
+[REPLAY_EPISODE] {"source_episode": 46, "success": true, "destination_episode": 13, "frames": 188, "first_success_frame": 148, "ever_grasped": true, "maximum_tracking_error_degrees": 16.400387272751573}
+[REPLAY_FRAME] episode=47 frame=0/169
+[REPLAY_FRAME] episode=47 frame=100/169
+
+Map:   0%|          | 0/169 [00:00<?, ? examples/s]
+Map: 100%|██████████| 169/169 [00:00<00:00, 2534.77 examples/s]
+[INFO]: Saved episode 14 to datasets/pick_place_v1_calibrated_B (15 total).
+[REPLAY_EPISODE] {"source_episode": 47, "success": true, "destination_episode": 14, "frames": 169, "first_success_frame": 137, "ever_grasped": true, "maximum_tracking_error_degrees": 25.174422667340565}
+[REPLAY_FRAME] episode=48 frame=0/168
+[REPLAY_FRAME] episode=48 frame=100/168
+[REPLAY_EPISODE] {"source_episode": 48, "success": false, "destination_episode": null, "frames": 168, "first_success_frame": null, "ever_grasped": true, "maximum_tracking_error_degrees": 34.93305373644899}
+[REPLAY_FRAME] episode=49 frame=0/132
+[REPLAY_FRAME] episode=49 frame=100/132
+
+Map:   0%|          | 0/132 [00:00<?, ? examples/s]
+Map: 100%|██████████| 132/132 [00:00<00:00, 2377.97 examples/s]
+[INFO]: Saved episode 15 to datasets/pick_place_v1_calibrated_B (16 total).
+[REPLAY_EPISODE] {"source_episode": 49, "success": true, "destination_episode": 15, "frames": 132, "first_success_frame": 101, "ever_grasped": true, "maximum_tracking_error_degrees": 18.48127612038224}
+[REPLAY_FRAME] episode=50 frame=0/269
+[REPLAY_FRAME] episode=50 frame=100/269
+[REPLAY_FRAME] episode=50 frame=200/269
+[REPLAY_EPISODE] {"source_episode": 50, "success": false, "destination_episode": null, "frames": 269, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 34.70713839946165}
+[REPLAY_FRAME] episode=51 frame=0/197
+[REPLAY_FRAME] episode=51 frame=100/197
+[REPLAY_EPISODE] {"source_episode": 51, "success": false, "destination_episode": null, "frames": 197, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 30.266552382280388}
+[REPLAY_FRAME] episode=52 frame=0/252
+[REPLAY_FRAME] episode=52 frame=100/252
+[REPLAY_FRAME] episode=52 frame=200/252
+
+Map:   0%|          | 0/252 [00:00<?, ? examples/s]
+Map:  98%|█████████▊| 246/252 [00:00<00:00, 2436.30 examples/s]
+Map: 100%|██████████| 252/252 [00:00<00:00, 2354.63 examples/s]
+[INFO]: Saved episode 16 to datasets/pick_place_v1_calibrated_B (17 total).
+[REPLAY_EPISODE] {"source_episode": 52, "success": true, "destination_episode": 16, "frames": 252, "first_success_frame": 203, "ever_grasped": true, "maximum_tracking_error_degrees": 45.576117463445904}
+[REPLAY_FRAME] episode=53 frame=0/232
+[REPLAY_FRAME] episode=53 frame=100/232
+[REPLAY_FRAME] episode=53 frame=200/232
+[REPLAY_EPISODE] {"source_episode": 53, "success": false, "destination_episode": null, "frames": 232, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 52.89154034756928}
+[REPLAY_FRAME] episode=54 frame=0/233
+[REPLAY_FRAME] episode=54 frame=100/233
+[REPLAY_FRAME] episode=54 frame=200/233
+[REPLAY_EPISODE] {"source_episode": 54, "success": false, "destination_episode": null, "frames": 233, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 40.74583500316957}
+[REPLAY_FRAME] episode=55 frame=0/209
+[REPLAY_FRAME] episode=55 frame=100/209
+[REPLAY_FRAME] episode=55 frame=200/209
+[REPLAY_EPISODE] {"source_episode": 55, "success": false, "destination_episode": null, "frames": 209, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 51.65152974903722}
+[REPLAY_FRAME] episode=56 frame=0/297
+[REPLAY_FRAME] episode=56 frame=100/297
+[REPLAY_FRAME] episode=56 frame=200/297
+[REPLAY_EPISODE] {"source_episode": 56, "success": false, "destination_episode": null, "frames": 297, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 49.38781381279824}
+[REPLAY_FRAME] episode=57 frame=0/204
+[REPLAY_FRAME] episode=57 frame=100/204
+[REPLAY_FRAME] episode=57 frame=200/204
+[REPLAY_EPISODE] {"source_episode": 57, "success": false, "destination_episode": null, "frames": 204, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 38.49996976632641}
+[REPLAY_FRAME] episode=58 frame=0/196
+[REPLAY_FRAME] episode=58 frame=100/196
+
+Map:   0%|          | 0/196 [00:00<?, ? examples/s]
+Map: 100%|██████████| 196/196 [00:00<00:00, 2313.66 examples/s]
+[INFO]: Saved episode 17 to datasets/pick_place_v1_calibrated_B (18 total).
+[REPLAY_EPISODE] {"source_episode": 58, "success": true, "destination_episode": 17, "frames": 196, "first_success_frame": 166, "ever_grasped": true, "maximum_tracking_error_degrees": 29.907704488571675}
+[REPLAY_FRAME] episode=59 frame=0/265
+[REPLAY_FRAME] episode=59 frame=100/265
+[REPLAY_FRAME] episode=59 frame=200/265
+[REPLAY_EPISODE] {"source_episode": 59, "success": false, "destination_episode": null, "frames": 265, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 47.30431924799921}
+[REPLAY_FRAME] episode=60 frame=0/172
+[REPLAY_FRAME] episode=60 frame=100/172
+[REPLAY_EPISODE] {"source_episode": 60, "success": false, "destination_episode": null, "frames": 172, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 27.781432449000853}
+[REPLAY_FRAME] episode=61 frame=0/174
+[REPLAY_FRAME] episode=61 frame=100/174
+[REPLAY_EPISODE] {"source_episode": 61, "success": false, "destination_episode": null, "frames": 174, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 41.009285644740714}
+[REPLAY_FRAME] episode=62 frame=0/196
+[REPLAY_FRAME] episode=62 frame=100/196
+
+Map:   0%|          | 0/196 [00:00<?, ? examples/s]
+Map: 100%|██████████| 196/196 [00:00<00:00, 2328.15 examples/s]
+[INFO]: Saved episode 18 to datasets/pick_place_v1_calibrated_B (19 total).
+[REPLAY_EPISODE] {"source_episode": 62, "success": true, "destination_episode": 18, "frames": 196, "first_success_frame": 172, "ever_grasped": true, "maximum_tracking_error_degrees": 24.714421379571252}
+[REPLAY_FRAME] episode=63 frame=0/184
+[REPLAY_FRAME] episode=63 frame=100/184
+[REPLAY_EPISODE] {"source_episode": 63, "success": false, "destination_episode": null, "frames": 184, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 30.501087418000285}
+[REPLAY_FRAME] episode=64 frame=0/188
+[REPLAY_FRAME] episode=64 frame=100/188
+[REPLAY_EPISODE] {"source_episode": 64, "success": false, "destination_episode": null, "frames": 188, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 22.20900212407844}
+[REPLAY_FRAME] episode=65 frame=0/193
+[REPLAY_FRAME] episode=65 frame=100/193
+[REPLAY_EPISODE] {"source_episode": 65, "success": false, "destination_episode": null, "frames": 193, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 20.550493882268654}
+[REPLAY_FRAME] episode=66 frame=0/194
+[REPLAY_FRAME] episode=66 frame=100/194
+[REPLAY_EPISODE] {"source_episode": 66, "success": false, "destination_episode": null, "frames": 194, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 26.698430824014462}
+[REPLAY_FRAME] episode=67 frame=0/192
+[REPLAY_FRAME] episode=67 frame=100/192
+
+Map:   0%|          | 0/192 [00:00<?, ? examples/s]
+Map: 100%|██████████| 192/192 [00:00<00:00, 2175.83 examples/s]
+[INFO]: Saved episode 19 to datasets/pick_place_v1_calibrated_B (20 total).
+[REPLAY_EPISODE] {"source_episode": 67, "success": true, "destination_episode": 19, "frames": 192, "first_success_frame": 162, "ever_grasped": true, "maximum_tracking_error_degrees": 22.353554540125298}
+[REPLAY_FRAME] episode=68 frame=0/186
+[REPLAY_FRAME] episode=68 frame=100/186
+
+Map:   0%|          | 0/186 [00:00<?, ? examples/s]
+Map: 100%|██████████| 186/186 [00:00<00:00, 2406.38 examples/s]
+[INFO]: Saved episode 20 to datasets/pick_place_v1_calibrated_B (21 total).
+[REPLAY_EPISODE] {"source_episode": 68, "success": true, "destination_episode": 20, "frames": 186, "first_success_frame": 167, "ever_grasped": true, "maximum_tracking_error_degrees": 29.49128493034892}
+[REPLAY_FRAME] episode=69 frame=0/160
+[REPLAY_FRAME] episode=69 frame=100/160
+[REPLAY_EPISODE] {"source_episode": 69, "success": false, "destination_episode": null, "frames": 160, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 26.013325284221747}
+[REPLAY_FRAME] episode=70 frame=0/209
+[REPLAY_FRAME] episode=70 frame=100/209
+[REPLAY_FRAME] episode=70 frame=200/209
+[REPLAY_EPISODE] {"source_episode": 70, "success": false, "destination_episode": null, "frames": 209, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 52.14670480348481}
+[REPLAY_FRAME] episode=71 frame=0/240
+[REPLAY_FRAME] episode=71 frame=100/240
+[REPLAY_FRAME] episode=71 frame=200/240
+
+Map:   0%|          | 0/240 [00:00<?, ? examples/s]
+Map: 100%|██████████| 240/240 [00:00<00:00, 2460.04 examples/s]
+[INFO]: Saved episode 21 to datasets/pick_place_v1_calibrated_B (22 total).
+[REPLAY_EPISODE] {"source_episode": 71, "success": true, "destination_episode": 21, "frames": 240, "first_success_frame": 209, "ever_grasped": true, "maximum_tracking_error_degrees": 32.49977152387527}
+[REPLAY_FRAME] episode=72 frame=0/154
+[REPLAY_FRAME] episode=72 frame=100/154
+[REPLAY_EPISODE] {"source_episode": 72, "success": false, "destination_episode": null, "frames": 154, "first_success_frame": null, "ever_grasped": true, "maximum_tracking_error_degrees": 9.47723410549307}
+[REPLAY_FRAME] episode=73 frame=0/393
+[REPLAY_FRAME] episode=73 frame=100/393
+[REPLAY_FRAME] episode=73 frame=200/393
+[REPLAY_FRAME] episode=73 frame=300/393
+[REPLAY_EPISODE] {"source_episode": 73, "success": false, "destination_episode": null, "frames": 393, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 26.80610704873242}
+[REPLAY_FRAME] episode=74 frame=0/188
+[REPLAY_FRAME] episode=74 frame=100/188
+[REPLAY_EPISODE] {"source_episode": 74, "success": false, "destination_episode": null, "frames": 188, "first_success_frame": null, "ever_grasped": false, "maximum_tracking_error_degrees": 27.701403122495815}

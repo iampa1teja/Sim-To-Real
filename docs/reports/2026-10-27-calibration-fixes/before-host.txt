@@ -1,0 +1,372 @@
+............................................................... [  7%]
+........................................................................ [ 17%]
+..ssss.......................................s..s..................................................................................................................... [ 38%]
+.............................s...................................................ss.....s................ [ 51%]
+.sss...........................ss...FF........F..........................F.....ss.........s [ 62%]
+sss.........................................F..................... [ 71%]
+sssssssssss...................................ss... [ 77%]
+............................................s..................... [ 85%]
+........................................................................ [ 95%]
+..................sss..................    [100%]
+=================================== FAILURES ===================================
+_ WrapperTests.test_official_flags_and_selected_config_are_forwarded_unchanged _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_official_flags_and_selected_config_are_forwarded_unchanged>
+
+    def test_official_flags_and_selected_config_are_forwarded_unchanged(self):
+        flags = ["--base-model-path", "model root", "--dataset-path", "prepared data",
+                 "--embodiment-tag", "NEW_EMBODIMENT", "--no-tune-diffusion-model",
+                 "--global-batch-size", "32", "--max-steps", "30"]
+        prior_argv, prior_path, prior_cwd = sys.argv[:], sys.path[:], Path.cwd()
+        with patch.dict(os.environ, {"GROOT_SKIP_HF_MODEL_WEIGHTS": "1",
+                                     "GROOT_HF_LOCAL_FIRST": "1", "PYTEST_CURRENT_TEST": "test"}):
+>           self.invoke(flags)
+
+tests/test_launch_pick_place_n17.py:144:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:286: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-zzbefrj5/gr00t/experiment/launch_finetune.py:8: in <module>
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/usr/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'gr00t.data', import_ = <function _gcd_import at 0x7402f9b980e0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1319: ModuleNotFoundError
+____ WrapperTests.test_runpy_entry_adds_project_helper_path_and_restores_it ____
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_runpy_entry_adds_project_helper_path_and_restores_it>
+
+    def test_runpy_entry_adds_project_helper_path_and_restores_it(self):
+        project = REPO / "policies/groot_n17/train/launch_pick_place_n17.py"
+        flags = ["--model-profile", "unchanged fixture flag"]
+        without_scripts = [path for path in sys.path if path != str(project.parent)]
+        with patch.dict(sys.modules, self.modules), \
+                patch("subprocess.check_output", return_value=launcher.PIN + "\n"), \
+                patch.object(sys, "path", without_scripts[:]), \
+                patch.object(sys, "argv", [str(project), "--groot", str(self.groot), *flags]):
+>           runpy.run_path(str(project), run_name="__main__")
+
+tests/test_launch_pick_place_n17.py:163:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<frozen runpy>:286: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:161: in <module>
+    main()
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:286: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-o_hrrpfx/gr00t/experiment/launch_finetune.py:8: in <module>
+    ???
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/usr/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'gr00t.data', import_ = <function _gcd_import at 0x7402f9b980e0>
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1319: ModuleNotFoundError
+_ WrapperTests.test_training_exception_and_system_exit_are_preserved_and_patch_restored (error='RuntimeError') _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_training_exception_and_system_exit_are_preserved_and_patch_restored>
+
+    def test_training_exception_and_system_exit_are_preserved_and_patch_restored(self):
+        for error in (RuntimeError("load failed"), SystemExit(7)):
+            with self.subTest(error=type(error).__name__):
+                self.original_run.side_effect = error
+                with self.assertRaises(type(error)) as caught:
+>                   self.invoke()
+
+tests/test_launch_pick_place_n17.py:182:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:286: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-1zldyaor/gr00t/experiment/launch_finetune.py:8: in <module>
+    fixture_experiment.result = run(fixture_experiment.config)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/usr/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1319: ModuleNotFoundError
+_ WrapperTests.test_training_exception_and_system_exit_are_preserved_and_patch_restored (error='SystemExit') _
+
+self = <test_launch_pick_place_n17.WrapperTests testMethod=test_training_exception_and_system_exit_are_preserved_and_patch_restored>
+
+    def test_training_exception_and_system_exit_are_preserved_and_patch_restored(self):
+        for error in (RuntimeError("load failed"), SystemExit(7)):
+            with self.subTest(error=type(error).__name__):
+                self.original_run.side_effect = error
+                with self.assertRaises(type(error)) as caught:
+>                   self.invoke()
+
+tests/test_launch_pick_place_n17.py:182:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_launch_pick_place_n17.py:134: in invoke
+    launcher.main(["--groot", str(self.groot), *forwarded])
+policies/groot_n17/train/launch_pick_place_n17.py:151: in main
+    runpy.run_path(str(launcher), run_name="__main__")
+<frozen runpy>:286: in run_path
+    ???
+<frozen runpy>:98: in _run_module_code
+    ???
+<frozen runpy>:88: in _run_code
+    ???
+/tmp/n17-launcher-test-1zldyaor/gr00t/experiment/launch_finetune.py:8: in <module>
+    fixture_experiment.result = run(fixture_experiment.config)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:141: in run_selected
+    with (
+/usr/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+policies/groot_n17/train/launch_pick_place_n17.py:24: in selected_action_statistics
+    factory = importlib.import_module("gr00t.data.dataset.factory")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1310: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1387: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'gr00t.data'; 'gr00t' is not a package
+
+<frozen importlib._bootstrap>:1319: ModuleNotFoundError
+_ EvaluatorRolloutTests.test_benchmark_progress_updates_stages_and_retains_terminal_milestone _
+
+self = <test_lerobot_eval_rollout.EvaluatorRolloutTests testMethod=test_benchmark_progress_updates_stages_and_retains_terminal_milestone>
+
+    def test_benchmark_progress_updates_stages_and_retains_terminal_milestone(self):
+        original_step=FakeEnvironment.step
+        def step_with_milestones(env,actions):
+            trace=env._benchmark_trace
+            trace.stages['reached']=True
+            if env.episode_step>=1:
+                trace.stages['grasped']=True
+                trace.stages['lifted']=True
+                trace.holding=env.episode_step==1
+            return original_step(env,actions)
+        with tempfile.TemporaryDirectory() as directory, patch.object(FakeEnvironment,'step',step_with_milestones):
+            path=Path(directory)/'report.json'
+>           env,_=self.evaluate(path,args_override={'eval_set':ROOT/'eval_sets/pick_place_v1_seed1984.json',
+                                                   'splits':None,'repeats':1,'smoke_test':True},
+                                outcomes=[(4,False,True)]*6)
+
+tests/test_lerobot_eval_rollout.py:612:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_lerobot_eval_rollout.py:240: in evaluate
+    invoke()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ModuleNotFoundError: No module named 'rerun'
+
+lerobot_eval.py:780: ModuleNotFoundError
+_ EvaluatorRolloutTests.test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start _
+
+self = <test_lerobot_eval_rollout.EvaluatorRolloutTests testMethod=test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start>
+
+    def test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start(self):
+        from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts, eval_set_digest
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            selection = json.loads((ROOT / 'eval_sets/pick_place_v1_seed1984.json').read_text())
+            selection['starts'] = selection['starts'][:3]
+            selection['eval_set_id'] = eval_set_digest(selection)
+            selected = root / 'selection.json'
+            selected.write_text(json.dumps(selection))
+            path = root / 'report.json'
+            options = dict(eval_set=selected, splits=None, repeats=1, save_videos=True)
+>           first, _ = self.evaluate(path, stop_after=1, args_override=options)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_lerobot_eval_rollout.py:439:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_lerobot_eval_rollout.py:243: in evaluate
+    invoke()
+lerobot_eval.py:565: in _evaluate
+    ???
+source/sim_to_real_so101/utils/eval_video.py:139: in __init__
+    self._encoder = _VideoEncoder(output_dir, fps, rename_map, encoder)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def __init__(self, output_dir: Path, fps: float, rename_map: dict[str, str] | None, encoder: str):
+        if not math.isfinite(fps) or fps <= 0:
+            raise ValueError("Video fps must be finite and positive")
+        if encoder not in ("libx264", "h264_nvenc"):
+            raise ValueError("Video encoder must be libx264 or h264_nvenc")
+>       import av
+E       ModuleNotFoundError: No module named 'av'
+
+source/sim_to_real_so101/utils/eval_video.py:22: ModuleNotFoundError
+______________________ StatisticsTests.test_mcnemar_exact ______________________
+
+self = <test_pick_place_benchmark.StatisticsTests testMethod=test_mcnemar_exact>
+
+    def test_mcnemar_exact(self):
+        self.assertEqual(b.mcnemar([True]*6,[False]*6)['p_value'],.03125)
+        self.assertEqual(b.mcnemar([True,False],[False,True])['p_value'],1.)
+        self.assertEqual(b.mcnemar([True],[True])['p_value'],1.)
+>       from scipy.stats import binomtest
+E       ModuleNotFoundError: No module named 'scipy'
+
+tests/test_pick_place_benchmark.py:171: ModuleNotFoundError
+=============================== warnings summary ===============================
+tests/policies/test_molmoact2.py::test_infer_returns_float32_chunk_and_passes_model_arguments
+tests/policies/test_molmoact2.py::test_third_view_survives_plugin_adapter_and_reaches_model
+  /home/rpuser1/Sim-to-Real-SO-101-Workshop/policies/molmoact2/server.py:331: UserWarning: CUDA is not available or torch_xla is imported. Disabling autocast.
+    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.dtype_name == "bfloat16"):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_official_flags_and_selected_config_are_forwarded_unchanged
+FAILED tests/test_launch_pick_place_n17.py::WrapperTests::test_runpy_entry_adds_project_helper_path_and_restores_it
+SUBFAILED(error='RuntimeError') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored
+SUBFAILED(error='SystemExit') tests/test_launch_pick_place_n17.py::WrapperTests::test_training_exception_and_system_exit_are_preserved_and_patch_restored
+FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_benchmark_progress_updates_stages_and_retains_terminal_milestone
+FAILED tests/test_lerobot_eval_rollout.py::EvaluatorRolloutTests::test_resume_retains_completed_attempt_and_videos_and_retries_interrupted_start
+FAILED tests/test_pick_place_benchmark.py::StatisticsTests::test_mcnemar_exact
+7 failed, 748 passed, 40 skipped, 2 warnings, 284 subtests passed in 28.16s

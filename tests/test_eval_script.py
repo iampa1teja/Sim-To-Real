@@ -289,50 +289,12 @@ def test_molmo_horizon_above_chunk_length_is_rejected_before_launch(tmp_path):
     assert not commands(result)
 
 
-@pytest.mark.parametrize("setting, flag, enabled", [(None, False, False), (False, False, False),
-                                                   (True, False, True), (False, True, True)])
-def test_molmo_overhead_camera_is_opt_in_and_routes_only_the_new_room_view(tmp_path, setting, flag, enabled):
-    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1)
-    if setting is not None:
-        config += f"  molmo_overhead_camera: {str(setting).lower()}\n"
-    result = run(tmp_path, config, *(["--molmo-overhead-camera"] if flag else []))
-    assert result.returncode == 0, result.stderr
-    client = shlex.split(find(result, "docker exec -e POLICIES_DIR"))
-    assert ("--molmo-overhead-camera" in client) is enabled
-    rename = json.loads(client[client.index("--rename_map") + 1])
-    assert rename == ({"realsense_rgb": "original_room", "molmo_room": "room", "wrist_cam": "wrist"}
-                      if enabled else {"realsense_rgb": "room", "wrist_cam": "wrist"})
 
 
-@pytest.mark.parametrize("flag", [False, True])
-def test_overhead_camera_rejects_other_policies_before_launch(tmp_path, flag):
-    result = run(tmp_path, BASE + ("" if flag else "  molmo_overhead_camera: true\n"),
-                 *(["--molmo-overhead-camera"] if flag else []))
-    assert result.returncode != 0
-    assert "requires molmoact2" in result.stderr
-    assert commands(result) == []
 
 
-@pytest.mark.parametrize("value", ['"true"', '1', '0', 'null'])
-def test_overhead_camera_rejects_non_boolean_yaml_values(tmp_path, value):
-    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1)
-    result = run(tmp_path, config + f"  molmo_overhead_camera: {value}\n")
-    assert result.returncode != 0
-    assert "molmo_overhead_camera must be true or false" in result.stderr
 
 
-def test_disabling_overhead_camera_restores_the_original_room_policy_input(tmp_path):
-    config = BASE.replace("policy:\n", "policy:\n  name: molmoact2\n", 1) + """  molmo_overhead_camera: false
-  rename_map:
-    realsense_rgb: original_room
-    molmo_room: room
-    wrist_cam: wrist
-"""
-    result = run(tmp_path, config)
-    assert result.returncode == 0, result.stderr
-    client = shlex.split(find(result, "docker exec -e POLICIES_DIR"))
-    assert "--molmo-overhead-camera" not in client
-    assert json.loads(client[client.index("--rename_map") + 1]) == {"realsense_rgb": "room", "wrist_cam": "wrist"}
 
 
 def test_action_repeat_reaches_the_evaluator(tmp_path):
@@ -535,37 +497,37 @@ def test_shipped_pick_place_config_is_valid():
     ("pick_place_molmo_base.yaml", "molmoact2_base"),
     ("pick_place_molmo_so101.yaml", "molmoact2_so101"),
 ])
-def test_molmo_config_selects_original_wrist_asset(config_name, checkpoint):
+def test_molmo_config_selects_canonical_asset_and_explicit_wrist_frame(config_name, checkpoint):
     result = subprocess.run(["bash", str(SCRIPT), config_name, "--dry_run"],
                             capture_output=True, text=True, cwd=ROOT)
     assert result.returncode == 0, result.stderr
-    asset = "/workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/ARM_new.usd"
+    asset = "/workspace/Sim-to-Real-SO-101-Workshop/source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd"
     client = find(result, "docker exec -e POLICIES_DIR")
     assert f"--checkpoint /workspace/models/{checkpoint}" in find(result, "docker run")
     assert f"--robot_usd {asset}" in client
     assert f"docker exec teleop test -f {asset}" in [line.rstrip() for line in commands(result)]
     if checkpoint == "molmoact2_so101":
         assert "--option action_dtype=float32" in find(result, "docker run")
-        assert "--option include_original_room=True" in find(result, "docker run")
-        assert "--policy_option include_original_room=True" in client
+        assert "--option include_original_room=False" in find(result, "docker run")
+        assert "--policy_option include_original_room=False" in client
         assert "--action_horizon 30" in client
         assert "--action_repeat 1" in client
         assert "--video_encoder libx264" in client
         assert "--render_warmup" not in client
-        assert "--molmo-overhead-camera" in client
+        assert "--policy_option wrist_roll_model_offset=-90" in client
         assert "--num_episodes 150" in client
         assert "--episode_length_s 180" in client
         assert "--save_videos" in client
         client_args = shlex.split(client)
         assert "--rerun" not in client_args
         assert json.loads(client_args[client_args.index("--rename_map") + 1]) == {
-            "realsense_rgb": "original_room", "wrist_cam": "wrist", "molmo_room": "room",
+            "realsense_rgb": "room", "wrist_cam": "wrist",
         }
     else:
         assert "--molmo-overhead-camera" not in client
 
 
-def test_original_wrist_asset_composes_with_consistent_joint_anchors():
+def test_canonical_arm_composes_with_consistent_joint_anchors():
     pytest.importorskip("pxr.Usd")
     from pxr import Gf, Usd, UsdGeom, UsdPhysics
 
@@ -573,13 +535,13 @@ def test_original_wrist_asset_composes_with_consistent_joint_anchors():
     source = Usd.Stage.Open(str(assets / "SO-ARM101-USD.usd"))
     stage = Usd.Stage.CreateInMemory()
     robot = stage.DefinePrim("/Robot")
-    robot.GetReferences().AddReference(str(assets / "ARM_new.usd"))
+    robot.GetReferences().AddReference(str(assets / "SO-ARM101-USD.usd"))
     assert stage.GetPrimAtPath("/Robot/gripper/visuals").IsValid()
     assert stage.GetPrimAtPath("/Robot/jaw/collisions").IsValid()
     previous = source.GetPrimAtPath("/so101_new_calib/gripper").GetAttribute("xformOp:orient").Get()
     restored = stage.GetPrimAtPath("/Robot/gripper").GetAttribute("xformOp:orient").Get()
     angle = (Gf.Rotation(previous) * Gf.Rotation(restored).GetInverse()).GetAngle()
-    assert abs((angle + 180) % 360 - 180) == pytest.approx(90, abs=.001)
+    assert abs((angle + 180) % 360 - 180) == pytest.approx(0, abs=.001)
     cache = UsdGeom.XformCache()
     joints = [UsdPhysics.Joint(prim) for prim in stage.Traverse() if prim.IsA(UsdPhysics.RevoluteJoint)]
     assert len(joints) == 6

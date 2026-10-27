@@ -338,8 +338,13 @@ def reset_cube_from_recorded_starts(
         if eval_set:
             env._benchmark_start = dict(sampler.current)
         if reset_robot:
+            start_mapping = getattr(env.cfg, "sim_joint_mapping", None)
+            if eval_set:
+                # Frozen benchmark arm units belong to their saved mapping.
+                # Preserve the physical start when the active command mapping changes.
+                start_mapping = sampler.data.get("scene", {}).get("joint_mapping", start_mapping)
             joint_starts.append(dataset_state_to_radians(
-                sampler.robot_state(start), getattr(env.cfg, "sim_joint_mapping", None)))
+                sampler.robot_state(start), start_mapping))
     if reset_robot:
         joint_ids, _ = robot.find_joints(list(SO101_USD_JOINTS), preserve_order=True)
         joint_pos = torch.as_tensor(np.array(joint_starts), device=env.device, dtype=robot.data.joint_pos.dtype)

@@ -275,6 +275,21 @@ class ResetTermTests(unittest.TestCase):
         robot.write_joint_state_to_sim.assert_not_called()
         robot.set_joint_position_target.assert_not_called()
 
+    def test_frozen_benchmark_preserves_arm_pose_using_its_saved_mapping(self):
+        CURRENT.stage = FakeStage()
+        env, robot = self.make_env()
+        benchmark = Path(__file__).resolve().parents[1] / "eval_sets/pick_place_v1_seed1984.json"
+        R.reset_cube_from_recorded_starts(
+            env, torch.tensor([0]), SimpleNamespace(name="blue_cube"), str(self.meta),
+            eval_set=str(benchmark), mode="cycle", seed=0, reset_robot=True)
+        sampler = env._pick_place_starts
+        state = sampler.robot_state(0)
+        expected = E.dataset_state_to_radians(state, sampler.data["scene"]["joint_mapping"])
+        actual = robot.write_joint_state_to_sim.call_args.args[0].numpy()[0]
+        np.testing.assert_allclose(actual, expected, atol=1e-6)
+        self.assertFalse(np.allclose(actual, E.dataset_state_to_radians(state, MAPPING)))
+        self.assertEqual(self.loads, [])
+
 
 if __name__ == "__main__":
     unittest.main()

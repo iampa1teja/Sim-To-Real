@@ -74,10 +74,10 @@ def test_trace_preserves_closest_closing_event_and_resets_previous_command():
     assert trace.summary()['closest_closing'] is None
 
 
-def test_arm_new_cad_tip_offsets_use_sibling_body_transforms():
+def test_canonical_arm_cad_tip_offsets_use_sibling_body_transforms():
     pytest.importorskip('pxr')
     from pxr import Usd, UsdGeom
-    stage = Usd.Stage.Open(str(ROOT / 'source/sim_to_real_so101/assets/usd/ARM_new.usd'))
+    stage = Usd.Stage.Open(str(ROOT / 'source/sim_to_real_so101/assets/usd/SO-ARM101-USD.usd'))
     root = '/so101_new_calib'
     fixed_tip, moving_tip = _tip_offsets(stage, root, .01)
     cache = UsdGeom.XformCache()

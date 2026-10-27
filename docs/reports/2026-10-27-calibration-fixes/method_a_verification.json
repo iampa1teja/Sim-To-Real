@@ -1,0 +1,45 @@
+{
+  "episodes": 75,
+  "frames": 16448,
+  "reader": "Pinned LeRobot in teleop-docker:latest",
+  "sample_frames": [
+    {
+      "index": 0,
+      "state_shape": [
+        6
+      ],
+      "cameras": {
+        "observation.images.realsense_rgb": [
+          3,
+          480,
+          640
+        ],
+        "observation.images.wrist_cam": [
+          3,
+          480,
+          640
+        ]
+      }
+    },
+    {
+      "index": 16447,
+      "state_shape": [
+        6
+      ],
+      "cameras": {
+        "observation.images.realsense_rgb": [
+          3,
+          480,
+          640
+        ],
+        "observation.images.wrist_cam": [
+          3,
+          480,
+          640
+        ]
+      }
+    }
+  ],
+  "source_unchanged": true,
+  "real_unchanged": true
+}

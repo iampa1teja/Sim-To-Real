@@ -155,7 +155,8 @@ class ScriptTest(unittest.TestCase):
         constructor.assert_called_once()
         kwargs = constructor.call_args.kwargs
         self.assertEqual(kwargs["kind"], "follower")
-        self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(self.mapping_file))
+        self.assertEqual(kwargs["joint_mapping"], script.rr.follower_mapping_from_calibration(
+            self.mapping_file, gripper_closed_degrees=script.rr.sim_gripper_closed_degrees()))
         self.assertEqual(kwargs["joint_mapping"]["wrist_roll"], {"joint_min": -180.0, "joint_max": 179.912109375})
         self.assertEqual(interface.robot.sent, [])
 
@@ -185,7 +186,8 @@ class ScriptTest(unittest.TestCase):
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it"])
                 script.validate(args)
                 expected_root = root or Path("~/.cache/huggingface/lerobot/calibration").expanduser()
-                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json")
+                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json",
+                                             gripper_closed_degrees=script.rr.sim_gripper_closed_degrees())
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it",
                                                         "--follower_id", "other_robot"])
                 script.validate(args)

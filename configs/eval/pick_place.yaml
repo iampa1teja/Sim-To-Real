@@ -14,7 +14,7 @@ policy:
     embodiment_tag: NEW_EMBODIMENT                   # must match the training checkpoint
 
 eval:
-  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1   # path inside teleop
+  dataset: /workspace/Sim-to-Real-SO-101-Workshop/datasets/pick_place_v1_calibrated_A   # path inside teleop
   episodes: 20
   start_mode: cycle         # cycle | random
   random_fraction: 0.0      # 0.25 opts into random starts

@@ -38,7 +38,7 @@ def test_default_console_hides_warnings_and_routine_output_but_preserves_errors(
         "2026-10-19T14:28:43Z [627ms] [Warning] [new.plugin] unexpected warning",
         "| WARNING: a surprising warning formatted as a table |",
         "UserWarning: camera calibration changed", "[Error] CUDA out of memory",
-        "[INFO]: Robot USD: /assets/ARM_new.usd", "New diagnostic with unknown format",
+        "[INFO]: Robot USD: /assets/SO-ARM101-USD.usd", "New diagnostic with unknown format",
         "Success rate: 0.00% (0/1)", "Results JSON: /outputs/result.json",
     ):
         output.emit(line)
@@ -46,7 +46,7 @@ def test_default_console_hides_warnings_and_routine_output_but_preserves_errors(
     assert "Event Manager" not in text and "spawn_cube" not in text and "Audited" not in text
     for hidden in ("unexpected warning", "surprising warning", "UserWarning"):
         assert hidden not in text
-    for required in ("CUDA out of memory", "ARM_new.usd", "unknown format", "Success rate", "Results JSON"):
+    for required in ("CUDA out of memory", "SO-ARM101-USD.usd", "unknown format", "Success rate", "Results JSON"):
         assert required in text
 
 

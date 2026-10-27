@@ -105,10 +105,5 @@ SO101_CFG = ArticulationCfg(
 
 
 
-S0101_NO_CAMERA_CFG = SO101_CFG.copy()
-S0101_NO_CAMERA_CFG.spawn.usd_path = f"{here}/usd/SO-ARM101-USD-NO-CAMERA.usd"
-# S0101_NO_CAMERA_CFG.spawn.rigid_props.solver_position_iteration_count = 64
-# S0101_NO_CAMERA_CFG.spawn.rigid_props.max_depenetration_velocity = 0.03
-
 S0101_CONTACT_GRASP_CFG = SO101_CFG.copy()
 S0101_CONTACT_GRASP_CFG.spawn.activate_contact_sensors = True
