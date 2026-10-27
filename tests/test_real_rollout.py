@@ -232,5 +232,28 @@ class ReportTest(unittest.TestCase):
         self.assertEqual((data["schema"], data["policy"], data["summary"]["successes"]), ("so101_real_rollout_v1", "demo", 1))
 
 
+class SimStartRollTest(unittest.TestCase):
+    def test_roll_start_guard_refuses_before_inference_or_motion(self):
+        robot, policy = FakeRobot(pose=(0, 0, 0, 0, 35, 10)), FakePolicy()
+        result, _, _ = run(robot, policy, expected_start_roll=-1, max_start_error=20)
+        self.assertEqual(result.status, "start_too_far")
+        self.assertIn("mapped sim start", result.detail)
+        self.assertEqual(policy.calls, [])
+        self.assertEqual(robot.sent, [])
+
+    def test_sim_start_roll_moves_with_shared_physical_zero(self):
+        setup = json.loads((ROOT / "source/sim_to_real_so101/assets/real_setup.json").read_text())
+        source = setup["sim_joint_mapping_source"]
+        zero = rr.follower_mapping_from_calibration(source["joints"], wrist_roll_zero_offset_degrees=0)
+        shifted = rr.follower_mapping_from_calibration(source["joints"], wrist_roll_zero_offset_degrees=90)
+        normal = rr.sim_start_roll_units(zero, setup)
+        offset = rr.sim_start_roll_units(shifted, setup)
+        self.assertAlmostEqual(normal - offset, 90 / ((4095 * 360 / 4096) / 200))
+        for mapping, raw in [(zero, normal), (shifted, offset)]:
+            pair = mapping["wrist_roll"]
+            degrees = pair["joint_min"] + (raw + 100) / 200 * (pair["joint_max"] - pair["joint_min"])
+            self.assertAlmostEqual(np.deg2rad(degrees), setup["robot"]["joint_positions"]["Wrist_Roll"])
+
+
 if __name__ == "__main__":
     unittest.main()

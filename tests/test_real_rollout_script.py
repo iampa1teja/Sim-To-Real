@@ -116,6 +116,15 @@ class ScriptTest(unittest.TestCase):
         self.assertEqual(script.build_parser().parse_args(argv).action_horizon, 30)
         self.assertEqual(script.build_parser().parse_args([*argv, "--action_horizon", "8"]).action_horizon, 8)
 
+    def test_molmo_convention_default_is_separate_and_can_be_overridden(self):
+        factory = Mock()
+        module = SimpleNamespace(SimRemotePolicy=factory)
+        for extra, expected in [([], "-90"), (["--policy_option", "wrist_roll_model_offset=-45"], "-45")]:
+            args = script.build_parser().parse_args(["--policy", "molmoact2", "--lang_instruction", "pick", *extra])
+            with patch.dict(sys.modules, {"sim_to_real_so101.utils.lerobot_interface": module}):
+                script.make_policy(args, object())
+            self.assertEqual(factory.call_args.kwargs["policy_options"]["wrist_roll_model_offset"], expected)
+
     def test_default_is_shadow_mode_and_never_moves_the_arm(self):
         code, interface, policy, text = self.run_script(["--no_prompt"])
         self.assertEqual(code, 0)

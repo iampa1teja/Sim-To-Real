@@ -189,3 +189,55 @@ Evidence and all per-file hashes:
 | `/tmp/so101-camera-gripper-recording/a2_video_decode.json` | `5547b9de620f31cef1471a928493f0b331e496e04dd8de3f1eb66c6623eced0c` |
 | `/tmp/so101-camera-gripper-recording/source_hashes_after.json` | `b5a3459eb6269e8f71fe91632b277b3bbc5d089f023fdb3b3088a75bc0a7b398` |
 | `/tmp/so101-camera-gripper-recording/source_hash_verification.json` | `32d0f09e76b6bd6c5d61687f0bb25e31e5ca28501abdf9956d7acdb15179ddfa` |
+
+## Part 6 — future recording alignment
+
+At each episode start, read the real follower once, map its measured state with the production mapping/clamp, write the sim joint state and zero velocity, set its hold target, and refresh both images without stepping physics. Because Part 2A is unresolved, sync **pan/lift/elbow/flex/gripper** and preserve the current sim roll. Reset the leader wrist reference at each episode start and keep the sim-only wrist execution re-zero. When `wrist_roll_fit_status` becomes `verified`, the same path syncs all six joints and uses direct mapped leader targets.
+
+Both dataset `action` fields now store the **same unchanged leader action**. During the unresolved fallback the executed simulated roll target can still differ from that nominal action; this exception is explicit in `meta/recording_alignment.json`. Removal of that execution fallback remains gated by a consistent physical roll fit. The leader dictionary sent to the real follower is never modified.
+
+Recording roots must carry the exact new version-2 contract, including calibration/limits fingerprint and arm IDs. Nonempty legacy roots or changed contracts are refused **before opening serial hardware**. Markers are written only after successful dataset initialization. The guide now uses `pick_place_v2_start_synced` / `pick_place_paired_v2_start_synced`; derived real roots append `-real`. No new physical recording was attempted here. The live cube placement guide is skipped solely because Part 1 failed its gate.
+
+Real rollout now checks the observed wrist against the configured **sim start roll through the shared mapping**, before inference/motion. It retains the separate all-joint first-policy-target/current-pose check. For this retained mapping, sim start roll is **-1.868052871°**, or **-1.013640559 raw units**. A future physical roll-zero offset shifts this raw reference consistently. This numerical check does not resolve the unknown physical roll zero. Molmo real rollout now defaults its separate model option to −90°, matching the sim smoke config; an explicit policy option still overrides it.
+
+Relevant source lines (quoted from the implementation):
+
+`source/sim_to_real_so101/utils/real_rollout.py:50`
+
+```python
+degrees = math.degrees(setup["robot"]["joint_positions"]["Wrist_Roll"])
+bounds = mapping["wrist_roll"]
+return (degrees - bounds["joint_min"]) / (bounds["joint_max"] - bounds["joint_min"]) * 200 - 100
+```
+
+`source/sim_to_real_so101/utils/real_rollout.py:89`
+
+```python
+if step == 0 and settings.expected_start_roll is not None:
+    measured_roll = float(state[joint_order.index("wrist_roll.pos")])
+    roll_gap = abs(measured_roll - settings.expected_start_roll)
+    if roll_gap > settings.max_start_error:
+        status = "start_too_far"
+        detail = (f"wrist roll is {roll_gap:.1f} raw units from the mapped sim start "
+                  f"({measured_roll:.3f} measured, {settings.expected_start_roll:.3f} expected; "
+                  f"limit {settings.max_start_error})")
+        break
+```
+
+`source/sim_to_real_so101/scripts/real_rollout.py:170`
+
+```python
+expected_roll = rr.sim_start_roll_units(args.joint_mapping)
+header["sim_start_roll_units"] = expected_roll
+header["mapping_parameters"] = rr.sim_mapping_parameters()
+settings = rr.RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error,
+                              expected_start_roll=expected_roll)
+```
+
+
+Validation: **40 host tests and 40 container tests passed** (21 subtests in each). The regression executes the actual recorder control-tick source with fake devices for resolved/unresolved roll, checks measured start pose and zero velocities, asserts image refresh precedes frame 0, proves action equality while the fallback target differs, and checks legacy/changed roots cannot resume. Rollout tests verify a mismatched wrist stops before inference/motion and a synthetic shared-zero change moves the start reference. Live hardware timing and pad contact remain unverified.
+
+| Evidence | SHA-256 |
+|---|---|
+| `/tmp/so101-camera-gripper-recording/part6-tests.txt` | `6b22ffbb14a545d4fabd34af32c64be1ad2e39b108df543a384840e5a6f0a5c9` |
+| `/tmp/so101-camera-gripper-recording/part6-container-tests.txt` | `ac03cbf699b6877c3dad43299d40ad23b5aa97f20f4751747c13a798c65ba883` |
