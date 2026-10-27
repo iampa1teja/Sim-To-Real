@@ -279,6 +279,7 @@ docker/env
 !/tests/test_joint_calibration.py
 !/tests/test_joint_limits.py
 !/tests/test_recording_alignment.py
+!/tests/test_joint_angle_check.py
 !/tests/fixtures/
 !/tests/test_molmo_target_reach_audit.py
 !/tests/test_molmo_capability_startup.py
