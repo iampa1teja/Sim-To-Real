@@ -110,6 +110,7 @@ def connect_interface(args, device, cameras, kind, visualize=False, joint_mappin
         fps=args.fps,
         kind=kind,
         joint_mapping=joint_mapping,
+        calibration_selection=getattr(args, "calibration_selection", None),
     )
     try:
         interface.init_device(visualize=visualize)
@@ -120,6 +121,8 @@ def connect_interface(args, device, cameras, kind, visualize=False, joint_mappin
             interface.robot._save_calibration = refuse_calibration
             interface.robot.bus.write_calibration = refuse_calibration
         interface.connect(calibrate=calibrate)
+        if not calibrate and not interface.robot.is_calibrated:
+            raise RuntimeError(f"{kind} motor calibration does not match the selected file; refusing to calibrate")
     except BaseException:
         cleanup(f"Partial {kind} disconnect", interface.disconnect)
         raise

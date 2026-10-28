@@ -87,6 +87,8 @@ override the listed fallback. Both parsers also accept standard `--help`.
 | `--real_camera_fourcc` | `CAMERA_FOURCC` or `None` | Optional capture codec |
 | `--fps` | `CONTROL_FPS` or 30 | Master control/recording rate; positive and must divide physics rate |
 | `--seed` | 101 | Simulation seed |
+| `--calibration_check_log` / `--joint_angle_log` | `None` | Passive per-tick comparison with automatic summaries; requires a real follower and disables calibration; [run sheet](09-calibration-check.md) |
+| `--no_calibration` | false | Reject calibration during this session |
 
 | `pick_place_agent` only | Default | Meaning |
 | --- | --- | --- |
@@ -103,8 +105,6 @@ override the listed fallback. Both parsers also accept standard `--help`.
 | `--control_input` | `terminal` | `terminal` or `keyboard` |
 | `--spawn_port` | 6001 | Local spawn listener; 0 disables it |
 | `--spawn_authkey` | built-in `so101-spawn` | Shared spawn-service header value, not secure network authentication |
-| `--no_calibration` | false | Connect both arms with calibration disabled and reject calibration calls/writes; normal teleoperation still enables follower torque |
-| `--joint_angle_log` | `None` | New JSONL file for follower units, production-mapped degrees, actual PhysX degrees and tracking differences; requires a real follower |
 | `--sim_reset_object_name` | `None` | Existing scene entity to place near gripper on reset |
 | `--sim_reset_object_offset` | `0 0 0` | Three world-frame metre offsets |
 

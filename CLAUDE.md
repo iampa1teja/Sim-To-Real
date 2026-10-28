@@ -121,6 +121,8 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
 
 ## Simulation calibration
 
+For passive sim/real angle logs, environment-selected calibration files and operator-started torque-off reference poses, see [docs/09-calibration-check.md](docs/09-calibration-check.md); never start hardware checks automatically.
+
 `assets/real_setup.json` records all six `rpd_robot` follower spans and their
 provenance. `utils/joint_calibration.py` is the shared derivation used by the
 sim setup and `real_rollout`; never edit the real calibration files. Regenerate

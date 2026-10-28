@@ -42,13 +42,13 @@ SURFACES = {
 
 
 def rotation_xyzw(quaternion):
-    x,y,z,w = np.asarray(quaternion, dtype=float)
-    scale = x*x + y*y + z*z + w*w
+    x, y, z, w = np.asarray(quaternion, dtype=float)
+    scale = x * x + y * y + z * z + w * w
     if not np.isfinite(scale) or scale < 1e-12:
         raise ValueError('Invalid PhysX quaternion')
-    return np.array([[1-2*(y*y+z*z)/scale, 2*(x*y-z*w)/scale, 2*(x*z+y*w)/scale],
-                     [2*(x*y+z*w)/scale, 1-2*(x*x+z*z)/scale, 2*(y*z-x*w)/scale],
-                     [2*(x*z-y*w)/scale, 2*(y*z+x*w)/scale, 1-2*(x*x+y*y)/scale]])
+    return np.array([[1 - 2 * (y * y + z * z) / scale, 2 * (x * y - z * w) / scale, 2 * (x * z + y * w) / scale],
+                     [2 * (x * y + z * w) / scale, 1 - 2 * (x * x + z * z) / scale, 2 * (y * z - x * w) / scale],
+                     [2 * (x * z - y * w) / scale, 2 * (y * z + x * w) / scale, 1 - 2 * (x * x + y * y) / scale]])
 
 
 def expected_tilts(link_rotations):
@@ -67,7 +67,7 @@ def expected_tilts(link_rotations):
                             phone_face_normal_world=(rotation @ surface['normal_local']).tolist())
         if name == 'housing':
             transverse = rotation @ np.asarray(surface['transverse_local'])
-            result[name]['transverse_world_tilt_degrees'] = float(np.rad2deg(np.arctan2(transverse[2],np.linalg.norm(transverse[:2]))))
+            result[name]['transverse_world_tilt_degrees'] = float(np.rad2deg(np.arctan2(transverse[2], np.linalg.norm(transverse[:2]))))
             result[name]['roll_axis_horizontal'] = bool(abs(result[name]['world_pitch_degrees']) <= 5.)
     return result
 
@@ -80,6 +80,7 @@ def check_in_physx(log_path, output_path):
     if log_path.resolve() == output_path.resolve():
         raise ValueError('PhysX output must not replace the raw capture')
     rows = [json.loads(line) for line in log_path.read_text().splitlines() if line.strip()]
+    rows = [row for row in rows if row.get('type') != 'provenance']
     if not rows:
         raise ValueError('No follower states to check')
     states = [finite_vector(row['follower_units']) for row in rows]
@@ -101,31 +102,31 @@ def check_in_physx(log_path, output_path):
         robot = Articulation(cfg)
         sim.reset()
         print('[joint check] Separate PhysX arm initialized', flush=True)
-        apply_runtime_joint_limits(SimpleNamespace(scene={'robot':robot}, device='cpu', num_envs=1))
+        apply_runtime_joint_limits(SimpleNamespace(scene={'robot': robot}, device='cpu', num_envs=1))
         interface = LeRobotSO101Interface('cpu', '', '', {}, 30,
                                           joint_mapping=SETUP['sim_joint_mapping'])
         joint_ids = [robot.joint_names.index(name) for name in USD_JOINTS]
         bounds = runtime_joint_limits()
-        limits = [[bounds[name]['joint_min'],bounds[name]['joint_max']] for name in FOLLOWER_JOINTS]
-        backend_limits = np.rad2deg(robot.root_physx_view.get_dof_limits()[0,joint_ids].cpu().numpy())
+        limits = [[bounds[name]['joint_min'], bounds[name]['joint_max']] for name in FOLLOWER_JOINTS]
+        backend_limits = np.rad2deg(robot.root_physx_view.get_dof_limits()[0, joint_ids].cpu().numpy())
         np.testing.assert_allclose(backend_limits, limits, atol=5e-5, rtol=0)
         before_time = float(sim.current_time)
         checks = []
-        for index,state in enumerate(states):
+        for index, state in enumerate(states):
             observation = dict(zip(interface.SO101_JOINT_ORDER, state))
             raw = interface.get_raw_actions_tensor(observation)
             mapped = synced_start_pose(interface.get_mapped_actions_vectorized(raw))
-            robot.write_joint_state_to_sim(mapped[None,:],torch.zeros_like(mapped)[None,:],joint_ids=joint_ids)
+            robot.write_joint_state_to_sim(mapped[None, :], torch.zeros_like(mapped)[None, :], joint_ids=joint_ids)
             # Refresh kinematics only. There is deliberately no sim.step(),
             # env.step(), render(), target setter or real motor command here.
             sim.physics_sim_view.update_articulations_kinematic()
-            actual = robot.root_physx_view.get_dof_positions()[0,joint_ids].clone()
+            actual = robot.root_physx_view.get_dof_positions()[0, joint_ids].clone()
             check = compare_readback(state, np.rad2deg(mapped.cpu().numpy()),
                                      np.rad2deg(actual.cpu().numpy()), limits)
             poses = robot.root_physx_view.get_link_transforms()[0].cpu().numpy()
-            rotations = {name: rotation_xyzw(poses[robot.body_names.index(name),3:7])
-                         for name in ('upper_arm','lower_arm','gripper')}
-            check.update(source_frame=rows[index].get('frame',index), expected_surface_tilts=expected_tilts(rotations))
+            rotations = {name: rotation_xyzw(poses[robot.body_names.index(name), 3:7])
+                         for name in ('upper_arm', 'lower_arm', 'gripper')}
+            check.update(source_frame=rows[index].get('frame', index), expected_surface_tilts=expected_tilts(rotations))
             checks.append(check)
         after_time = float(sim.current_time)
         if after_time != before_time:
@@ -138,8 +139,8 @@ def check_in_physx(log_path, output_path):
                       max_abs_difference_degrees=max(row['max_abs_difference_degrees'] for row in checks),
                       joint_order=list(FOLLOWER_JOINTS), runtime_limits_degrees=limits,
                       physx_runtime_limits_degrees=backend_limits.tolist(), surfaces=SURFACES, checks=checks)
-        output_path.write_text(json.dumps(result, indent=2, allow_nan=False)+'\n')
-        print(json.dumps({key:value for key,value in result.items() if key not in ('checks','surfaces')},indent=2), flush=True)
+        output_path.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
+        print(json.dumps({key: value for key, value in result.items() if key not in ('checks', 'surfaces')}, indent=2), flush=True)
         return result
     except BaseException:
         # Kit shutdown can itself block after a backend exception. Preserve the

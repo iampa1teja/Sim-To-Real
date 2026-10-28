@@ -207,6 +207,7 @@ and viewer troubleshooting.
 | [04 Recording](docs/04-recording.md) | Recorder flags, GUI, storage, coverage and failed demos |
 | [05 Training](docs/05-training.md) | Filtered preparation, verification and GR00T fine-tuning |
 | [06 Evaluation](docs/06-evaluation.md) | Recorded starts, DR, results and simulation diagnostics |
+| [09 Calibration check](docs/09-calibration-check.md) | Sim/real gaps, calibration file selection, torque-off reference poses and exact operator commands |
 | [Troubleshooting](docs/troubleshooting.md) | Symptoms, recovery and known implementation gaps |
 
 ## Repository layout
