@@ -15,6 +15,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "source"))
+from sim_to_real_so101.utils import joint_calibration
 spec = importlib.util.spec_from_file_location("real_rollout_script", ROOT / "source/sim_to_real_so101/scripts/real_rollout.py")
 script = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(script)
@@ -188,7 +189,8 @@ class ScriptTest(unittest.TestCase):
     def test_default_mapping_path_uses_calibration_root_and_follower_id(self):
         for root in (self.dir, None):
             with self.subTest(root=root), patch.dict(os.environ, {}, clear=True), patch.object(
-                    script.rr, "follower_mapping_from_calibration", return_value={}) as load:
+                    joint_calibration, "follower_mapping_from_calibration", return_value={}) as load, patch.object(
+                    joint_calibration, "file_sha256", return_value="synthetic"):
                 if root is not None:
                     os.environ["HF_LEROBOT_CALIBRATION"] = str(root)
                 os.environ["ROBOT_ID"] = "rpd_robot"
@@ -205,7 +207,7 @@ class ScriptTest(unittest.TestCase):
     def test_shared_roll_and_nonzero_gripper_contact_anchor_reach_real_mapping(self):
         anchors = dict(gripper_closed_degrees=-13, gripper_contact_units=1.4,
                        wrist_roll_zero_offset_degrees=90)
-        with patch.object(script.rr, "sim_mapping_parameters", return_value=anchors):
+        with patch.object(joint_calibration, "sim_mapping_parameters", return_value=anchors):
             args = script.build_parser().parse_args([
                 "--policy", "demo", "--lang_instruction", "pick it", "--calibration_file", str(self.mapping_file)])
             script.validate(args)

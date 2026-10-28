@@ -4,20 +4,13 @@ from pathlib import Path
 
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
-from sim_to_real_so101.utils.joint_calibration import follower_mapping_from_calibration, sim_mapping_parameters
+from sim_to_real_so101.utils.joint_calibration import resolve_calibration
 
 ASSET_DIR = Path(__file__).resolve().parent
 SETUP = json.loads((ASSET_DIR / "real_setup.json").read_text())
 
-# Regenerate from the embedded follower ranges, using the same derivation as real_rollout.
-
-_mapping_source = SETUP.get("sim_joint_mapping_source", {})
-if "joints" in _mapping_source:
-    _derived_mapping = follower_mapping_from_calibration(
-        _mapping_source["joints"], **sim_mapping_parameters(_mapping_source))
-    if SETUP["sim_joint_mapping"] != _derived_mapping:
-        raise ValueError("Stale sim_joint_mapping; regenerate with scripts/update_sim_calibration.py")
-    SETUP["sim_joint_mapping"] = _derived_mapping
+CALIBRATION_SELECTION = resolve_calibration(setup=SETUP)
+SETUP["sim_joint_mapping"] = CALIBRATION_SELECTION.mapping
 DEFAULT_SETUP_USDZ = str(ASSET_DIR / "usd" / "digital_twin.usdz")
 
 
@@ -190,7 +183,8 @@ def apply_robot_appearance(stage, robot_root, arm_color=None):
         ('material_sts3215', look['motor_charcoal'], look['motor_roughness']),
     ):
         prim = stage.GetPrimAtPath(f'{robot_root}/Looks/{material_name}/Shader')
-        if not prim.IsValid(): continue
+        if not prim.IsValid():
+            continue
         shader = UsdShade.Shader(prim)
         is_preview = shader.GetIdAttr().Get() == 'UsdPreviewSurface'
         shader.CreateInput('diffuseColor' if is_preview else 'diffuse_color_constant', Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*color))
@@ -198,7 +192,8 @@ def apply_robot_appearance(stage, robot_root, arm_color=None):
     # Make just the camera mount editable; keep lens/PCB/motor materials intact.
     for suffix in ('/gripper/visuals', '/gripper/visuals/camera_mount'):
         prim = stage.GetPrimAtPath(robot_root + suffix)
-        if prim.IsValid() and prim.IsInstance(): prim.SetInstanceable(False)
+        if prim.IsValid() and prim.IsInstance():
+            prim.SetInstanceable(False)
     mount = stage.GetPrimAtPath(robot_root + '/gripper/visuals/camera_mount/mount')
     if mount.IsValid() and not mount.IsInstanceProxy():
         material = UsdShade.Material.Define(stage, robot_root + '/Looks/WristMountYellow')
@@ -289,56 +284,60 @@ def apply_table_photo_projection(stage, room_root):
         triangles, uv_triangles = [], []
         cursor = 0
         for count in counts:
-            face = indices[cursor:cursor+count]
-            uv_face = original_uv[cursor:cursor+count]
-            for j in range(1, count-1):
-                tri = points[face[[0,j,j+1]]]
-                uv = uv_face[[0,j,j+1]]
-                length = max(np.linalg.norm(tri[a]-tri[b]) for a,b in ((0,1),(1,2),(2,0)))
-                divisions = max(1, int(np.ceil(length/.015)))
-                def vertex(i,k):
-                    w=np.array([1-(i+k)/divisions,i/divisions,k/divisions])
-                    return w@tri,w@uv
+            face = indices[cursor:cursor + count]
+            uv_face = original_uv[cursor:cursor + count]
+            for j in range(1, count - 1):
+                tri = points[face[[0, j, j + 1]]]
+                uv = uv_face[[0, j, j + 1]]
+                length = max(np.linalg.norm(tri[a] - tri[b]) for a, b in ((0, 1), (1, 2), (2, 0)))
+                divisions = max(1, int(np.ceil(length / .015)))
+
+                def vertex(i, k):
+                    w = np.array([1 - (i + k) / divisions, i / divisions, k / divisions])
+                    return w @ tri, w @ uv
                 for i in range(divisions):
-                    for k in range(divisions-i):
-                        cells=[((i,k),(i+1,k),(i,k+1))]
-                        if k<divisions-i-1:
-                            cells.append(((i+1,k),(i+1,k+1),(i,k+1)))
+                    for k in range(divisions - i):
+                        cells = [((i, k), (i + 1, k), (i, k + 1))]
+                        if k < divisions - i - 1:
+                            cells.append(((i + 1, k), (i + 1, k + 1), (i, k + 1)))
                         for cell in cells:
-                            vals=[vertex(*index) for index in cell]
-                            triangles.append([v[0] for v in vals]);uv_triangles.append([v[1] for v in vals])
+                            vals = [vertex(*index) for index in cell]
+                            triangles.append([v[0] for v in vals])
+                            uv_triangles.append([v[1] for v in vals])
             cursor += count
-        triangles=np.asarray(triangles);new_points=triangles.reshape(-1,3)
+        triangles = np.asarray(triangles)
+        new_points = triangles.reshape(-1, 3)
         # Convert local points to the room frame; environment clone offsets do
         # not change the photographic material's world-space registration.
-        transform,_=UsdGeom.XformCache().ComputeRelativeTransform(prim,stage.GetPrimAtPath(room_root))
-        matrix=np.asarray(transform)
-        world=np.c_[new_points,np.ones(len(new_points))]@matrix
-        x,y,z=photo['euler_degrees']
-        rotation=(Gf.Rotation(Gf.Vec3d(1,0,0),x)*Gf.Rotation(Gf.Vec3d(0,1,0),y)*Gf.Rotation(Gf.Vec3d(0,0,1),z))
-        camera=(world[:,:3]-photo['position'])@np.asarray(Gf.Matrix3d(rotation)).T
-        depth=-camera[:,2]
-        safe_depth=np.where(abs(depth)<1e-5,1e-5,depth)
-        photo_uv=np.c_[(photo['fx']*camera[:,0]/safe_depth+photo['cx']+.5)/photo['width'],
-                       1-(-photo['fy']*camera[:,1]/safe_depth+photo['cy']+.5)/photo['height']]
+        transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(prim, stage.GetPrimAtPath(room_root))
+        matrix = np.asarray(transform)
+        world = np.c_[new_points, np.ones(len(new_points))] @ matrix
+        x, y, z = photo['euler_degrees']
+        rotation = (Gf.Rotation(Gf.Vec3d(1, 0, 0), x) * Gf.Rotation(Gf.Vec3d(0, 1, 0), y) * Gf.Rotation(Gf.Vec3d(0, 0, 1), z))
+        camera = (world[:, :3] - photo['position']) @ np.asarray(Gf.Matrix3d(rotation)).T
+        depth = -camera[:, 2]
+        safe_depth = np.where(abs(depth) < 1e-5, 1e-5, depth)
+        photo_uv = np.c_[(photo['fx'] * camera[:, 0] / safe_depth + photo['cx'] + .5) / photo['width'],
+                         1 - (-photo['fy'] * camera[:, 1] / safe_depth + photo['cy'] + .5) / photo['height']]
         mesh.GetPointsAttr().Set(Vt.Vec3fArray.FromNumpy(new_points.astype(np.float32)))
-        mesh.GetFaceVertexCountsAttr().Set([3]*len(triangles))
-        mesh.GetFaceVertexIndicesAttr().Set(np.arange(len(new_points),dtype=np.int32))
-        normals=np.cross(triangles[:,1]-triangles[:,0],triangles[:,2]-triangles[:,0])
-        normals/=np.maximum(np.linalg.norm(normals,axis=1,keepdims=True),1e-12)
-        mesh.GetNormalsAttr().Set(Vt.Vec3fArray.FromNumpy(np.repeat(normals,3,axis=0).astype(np.float32)))
+        mesh.GetFaceVertexCountsAttr().Set([3] * len(triangles))
+        mesh.GetFaceVertexIndicesAttr().Set(np.arange(len(new_points), dtype=np.int32))
+        normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
+        normals /= np.maximum(np.linalg.norm(normals, axis=1, keepdims=True), 1e-12)
+        mesh.GetNormalsAttr().Set(Vt.Vec3fArray.FromNumpy(np.repeat(normals, 3, axis=0).astype(np.float32)))
         mesh.SetNormalsInterpolation(UsdGeom.Tokens.faceVarying)
-        pva=UsdGeom.PrimvarsAPI(prim)
-        st=pva.GetPrimvar('st');st.Set(Vt.Vec2fArray.FromNumpy(np.asarray(uv_triangles).reshape(-1,2).astype(np.float32)))
+        pva = UsdGeom.PrimvarsAPI(prim)
+        st = pva.GetPrimvar('st')
+        st.Set(Vt.Vec2fArray.FromNumpy(np.asarray(uv_triangles).reshape(-1, 2).astype(np.float32)))
         st.SetInterpolation(UsdGeom.Tokens.faceVarying)
-        uv=pva.CreatePrimvar('photo_st',Sdf.ValueTypeNames.TexCoord2fArray,UsdGeom.Tokens.faceVarying)
+        uv = pva.CreatePrimvar('photo_st', Sdf.ValueTypeNames.TexCoord2fArray, UsdGeom.Tokens.faceVarying)
         uv.Set(Vt.Vec2fArray.FromNumpy(photo_uv.astype(np.float32)))
-        prim.SetCustomDataByKey('photoProjection',signature)
+        prim.SetCustomDataByKey('photoProjection', signature)
     # A single wood material covers the entire tabletop. Mirror wrapping
     # continues the same grain beyond the reference camera's footprint.
     for child in prim.GetChildren():
         if child.IsA(UsdGeom.Subset):
             child.SetActive(False)
     UsdShade.MaterialBindingAPI.Apply(prim).Bind(
-        UsdShade.Material(stage.GetPrimAtPath(room_root+'/Materials/RealWalnut')),
+        UsdShade.Material(stage.GetPrimAtPath(room_root + '/Materials/RealWalnut')),
         bindingStrength=UsdShade.Tokens.weakerThanDescendants)

@@ -153,6 +153,7 @@ def test_guard_refuses_every_non_safety_write(method, args):
 def test_unstable_pose_rejects_even_out_of_scope_gripper():
     robot = FakeRobot()
     robot.bus.torque = dict.fromkeys(FOLLOWER_JOINTS, 0)
+
     def observation():
         robot.count += 1
         result = dict.fromkeys(ORDER, 0.)
@@ -223,23 +224,37 @@ def test_installed_lerobot_connect_with_fake_motors_does_not_enable_torque(tmp_p
 
 def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path):
     torch = pytest.importorskip('torch')
+    import ast
     import json
     from sim_to_real_so101.utils.joint_angle_check import JointAngleTelemetry, summarize_teleop
     from sim_to_real_so101.utils.joint_limits import USD_JOINTS
-    from sim_to_real_so101.utils.lerobot_interface import LeRobotSO101Interface
+    from sim_to_real_so101.utils.joint_calibration import resolve_calibration
+    from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
+    # Execute production mapping methods without importing hardware dependencies.
+    path = Path(__file__).resolve().parents[1] / 'source/sim_to_real_so101/utils/lerobot_interface.py'
+    tree = ast.parse(path.read_text())
+    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'LeRobotSO101Interface')
+    cls.body = [node for node in cls.body if isinstance(node, ast.Assign)
+                or isinstance(node, ast.FunctionDef) and node.name in {
+                    '__init__', 'get_raw_actions_tensor', 'get_mapped_actions_vectorized'}]
+    module = ast.fix_missing_locations(ast.Module(body=[cls], type_ignores=[]))
+    scope = dict(torch=torch, runtime_joint_limits=runtime_joint_limits, resolve_calibration=resolve_calibration)
+    exec(compile(module, str(path), 'exec'), scope)
+    LeRobotSO101Interface = scope['LeRobotSO101Interface']
     setup = json.loads((Path(__file__).resolve().parents[1] / 'source/sim_to_real_so101/assets/real_setup.json').read_text())
     iface = LeRobotSO101Interface('cpu', '', '', {}, 30, joint_mapping=setup['sim_joint_mapping'])
     observation = dict(zip(ORDER, [10., 20., 30., 40., 99., 8.]))
     expected = iface.get_mapped_actions_vectorized(iface.get_raw_actions_tensor(observation))
     actual = expected.clone()
     actual[2] += np.deg2rad(2.)
+
     def forbid(*args, **kwargs):
         raise AssertionError('Observer tried to control a robot')
     iface.robot = SimpleNamespace(send_action=forbid, connect=forbid, calibrate=forbid)
     # Deliberately disagree with both the target and the cached state.
     sim = SimpleNamespace(joint_names=list(USD_JOINTS),
                           root_physx_view=SimpleNamespace(get_dof_positions=lambda: actual.unsqueeze(0)),
-                          data=SimpleNamespace(joint_pos=torch.ones(1,6)*100),
+                          data=SimpleNamespace(joint_pos=torch.ones(1, 6) * 100),
                           write_joint_state_to_sim=forbid, set_joint_position_target=forbid)
     log = tmp_path / 'teleop.jsonl'
     trace = JointAngleTelemetry(log)
@@ -259,27 +274,27 @@ def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path):
 
 def test_surface_tilts_use_longitudinal_link_axes_and_flag_vertical_roll_axis():
     from sim_to_real_so101.utils.joint_angle_check_physx import expected_tilts, rotation_xyzw
-    identity = rotation_xyzw([0.,0.,0.,1.])
-    result = expected_tilts(dict.fromkeys(('upper_arm','lower_arm','gripper'), identity))
+    identity = rotation_xyzw([0., 0., 0., 1.])
+    result = expected_tilts(dict.fromkeys(('upper_arm', 'lower_arm', 'gripper'), identity))
     assert result['upper_arm']['world_pitch_degrees'] == 0
     assert result['forearm']['world_pitch_degrees'] == 0
     assert result['housing']['world_pitch_degrees'] == -90
     assert result['housing']['roll_axis_horizontal'] is False
     theta = np.deg2rad(45.)
-    rotated = rotation_xyzw([0.,np.sin(theta/2),0.,np.cos(theta/2)])
-    result = expected_tilts(dict.fromkeys(('upper_arm','lower_arm','gripper'), rotated))
+    rotated = rotation_xyzw([0., np.sin(theta / 2), 0., np.cos(theta / 2)])
+    result = expected_tilts(dict.fromkeys(('upper_arm', 'lower_arm', 'gripper'), rotated))
     assert result['upper_arm']['world_pitch_degrees'] == pytest.approx(45.)
     assert result['forearm']['world_pitch_degrees'] == pytest.approx(45.)
     assert result['housing']['world_pitch_degrees'] == pytest.approx(-45.)
     theta = np.deg2rad(90.)
-    horizontal = rotation_xyzw([0.,np.sin(theta/2),0.,np.cos(theta/2)])
-    result = expected_tilts(dict.fromkeys(('upper_arm','lower_arm','gripper'), horizontal))
+    horizontal = rotation_xyzw([0., np.sin(theta / 2), 0., np.cos(theta / 2)])
+    result = expected_tilts(dict.fromkeys(('upper_arm', 'lower_arm', 'gripper'), horizontal))
     assert result['housing']['roll_axis_horizontal'] is True
 
 
 def test_invalid_physx_quaternion_refuses_geometry_prediction():
     from sim_to_real_so101.utils.joint_angle_check_physx import rotation_xyzw
-    for quaternion in ([0.,0.,0.,0.], [0.,0.,np.nan,1.]):
+    for quaternion in ([0., 0., 0., 0.], [0., 0., np.nan, 1.]):
         with pytest.raises(ValueError):
             rotation_xyzw(quaternion)
 
@@ -288,11 +303,11 @@ def test_summary_does_not_promote_constant_tracking_error_to_physical_offset(tmp
     import json
     from sim_to_real_so101.utils.joint_angle_check import summarize_teleop
     log = tmp_path / 'teleop.jsonl'
-    rows = [dict(follower_units=[0.]*6, sim_physx_degrees=[12.]*6,
-                 mapped_follower_degrees=[0.]*6,
-                 read_started_unix_ns=i*1_000_000, read_finished_unix_ns=i*1_000_000+100)
+    rows = [dict(follower_units=[0.] * 6, sim_physx_degrees=[12.] * 6,
+                 mapped_follower_degrees=[0.] * 6,
+                 read_started_unix_ns=i * 1_000_000, read_finished_unix_ns=i * 1_000_000 + 100)
             for i in range(180)]
-    log.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    log.write_text(''.join(json.dumps(row) + '\n' for row in rows))
     summary = summarize_teleop(log)
     assert len([row for row in summary['stable_windows'] if row['accepted']]) == 6
     assert summary['joints']['wrist_roll']['median_sim_minus_follower_degrees'] == 12
@@ -305,7 +320,6 @@ def test_physx_only_path_contains_no_hardware_connection_or_physics_step():
     from sim_to_real_so101.utils import joint_angle_check_physx as module
     tree = ast.parse(Path(module.__file__).read_text())
     names = {node.func.attr for node in ast.walk(tree)
-             if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute)}
-    assert not names & {'connect','init_device','send_action','enable_torque','calibrate','step','render'}
-    assert {'get_dof_positions','write_joint_state_to_sim','update_articulations_kinematic'} <= names
-
+             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
+    assert not names & {'connect', 'init_device', 'send_action', 'enable_torque', 'calibrate', 'step', 'render'}
+    assert {'get_dof_positions', 'write_joint_state_to_sim', 'update_articulations_kinematic'} <= names

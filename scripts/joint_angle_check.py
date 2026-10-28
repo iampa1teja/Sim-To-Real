@@ -35,7 +35,7 @@ def main():
             while True:
                 if args.log.is_file():
                     with args.log.open('rb') as stream:
-                        stream.seek(max(0, args.log.stat().st_size-16384))
+                        stream.seek(max(0, args.log.stat().st_size - 16384))
                         lines = stream.read().splitlines()
                     # A concurrently written final line may be incomplete.
                     for line in reversed(lines):
@@ -43,10 +43,12 @@ def main():
                             row = json.loads(line)
                         except (json.JSONDecodeError, UnicodeDecodeError):
                             continue
+                        if row.get('type') == 'provenance':
+                            continue
                         if row['frame'] != last_frame:
                             last_frame = row['frame']
                             print(f'Frame {last_frame}; degrees: mapped follower / actual PhysX / difference', flush=True)
-                            for i,name in enumerate(BODY_JOINTS):
+                            for i, name in enumerate(BODY_JOINTS):
                                 print(f"{name:16s} {row['mapped_follower_degrees'][i]:9.3f} "
                                       f"{row['sim_physx_degrees'][i]:9.3f} "
                                       f"{row['sim_minus_mapped_follower_degrees'][i]:+9.3f}", flush=True)

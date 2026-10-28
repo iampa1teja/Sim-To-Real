@@ -23,6 +23,7 @@ import uuid
 
 from sim_to_real_so101.policy_client.smoothing import SmoothingConfig, SimulationSmoother, TimingLog
 from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
+from sim_to_real_so101.utils.joint_calibration import resolve_calibration
 
 from lerobot.teleoperators.so101_leader import SO101LeaderConfig
 from lerobot.robots.so101_follower import SO101FollowerConfig
@@ -73,6 +74,7 @@ class LeRobotSO101Interface:
         rename_map: dict = None,
         joint_mapping: dict | None = None,
         follower_options: dict | None = None,
+        calibration_selection=None,
     ):
 
         self.port = port
@@ -83,6 +85,9 @@ class LeRobotSO101Interface:
         self.kind = kind
         self.rename_map = rename_map
         self.follower_options = dict(follower_options or {})
+        self.calibration_selection = calibration_selection or resolve_calibration()
+        if joint_mapping is None and self.calibration_selection.follower_path is not None:
+            joint_mapping = self.calibration_selection.mapping
 
         self.joint_names = [joint.split(".")[0] for joint in self.SO101_JOINT_ORDER]
         self.joint_mins = torch.tensor(
@@ -143,16 +148,22 @@ class LeRobotSO101Interface:
         return cameras
 
     def make_cfg(self):
+        path = getattr(self.calibration_selection, f"{self.kind}_path", None)
+        # LeRobot names its file <config.id>.json. Use the selected filename for
+        # that lookup, retaining the caller's logical ID on this interface.
+        calibration = {} if path is None else {"calibration_dir": path.parent, "id": path.stem}
         if self.kind == "leader":
-            return SO101LeaderConfig(port=self.port, id=self.id)
+            return SO101LeaderConfig(port=self.port, **({"id": self.id} | calibration))
         if self.kind == "follower":
             cameras = self.make_cameras_cfg()
-            return SO101FollowerConfig(port=self.port, id=self.id, cameras=cameras, **self.follower_options)
+            return SO101FollowerConfig(port=self.port, cameras=cameras,
+                                       **({"id": self.id} | self.follower_options | calibration))
         raise ValueError(f"Unsupported SO-101 interface kind: {self.kind!r}")
 
     def init_device(self, visualize: bool = False):
         self.cfg = self.make_cfg()
         self.robot = make_robot_from_config(self.cfg)
+        self.calibration_selection.verify_loaded(self.robot, self.kind)
 
         random_session_name = f"eval_{uuid.uuid4().hex[:8]}"
         if visualize:
@@ -167,6 +178,7 @@ class LeRobotSO101Interface:
         print(f"[INFO]: Initialized LeRobot device at {self.port} with id {self.id}")
 
     def connect(self, calibrate: bool = True):
+        self.calibration_selection.verify_loaded(self.robot, self.kind)
         self.robot.connect(calibrate=calibrate)
 
     @property
@@ -468,7 +480,7 @@ class SimRemotePolicy:
         grasp_config=None,
         seed_per_episode: bool = False,
         episode_seed: int = 1984,
-        control_dt: float = 1/30,
+        control_dt: float = 1 / 30,
         policy_name: str = "groot_n17",
         policy_options: dict | None = None,
         api_token: str | None = None,
