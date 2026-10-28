@@ -7,13 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A fork of NVIDIA's SO-101 sim-to-real workshop. It adds a photo-matched **MyRoom** digital twin and a
 cube pick-and-place task to the original vial-to-rack workflow. Isaac Lab handles simulation, LeRobot
 handles teleop and datasets, and GR00T (N1.6 legacy, N1.7 current) handles training and policy serving.
-The `docs/01..06-*.md` guides are the maintained reference for every workflow; `README.md` is the hub
+The `docs/01..08-*.md` guides are the maintained reference for every workflow; `README.md` is the hub
 and command index.
 
 Training and preparation use `./docker/train.sh`; simulation policy rollouts use
-`./docker/eval.sh`. The host GR00T checkout, host real-arm environment and physical
-rollout client were removed to reclaim space. See `AGENTS.md` and the maintained
-training/evaluation guides. Model weights and recorded datasets remain in storage.
+`./docker/eval.sh`. The host GR00T checkout and host real-arm environment were removed to
+reclaim space (see `AGENTS.md`). The old host rollout client went with them; its replacement,
+`real_rollout` (`./so101 rollout`, `docs/08-real-arm-rollout.md`), runs in the teleop container
+and has not yet been run on hardware. Model weights and recorded datasets remain in storage.
 
 ## Execution environments (important)
 
@@ -90,7 +91,13 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
 - **Policy client**: `policy_client/` is an Isaac-free plugin client with ZMQ/msgpack
   transport, joint transforms and plugin discovery. `smoothing.py` covers blending,
   EMA and temporal ensembling; `grasp.py` holds optional gripper latching and diagnostics.
-  Simulation evaluation uses it through `utils/lerobot_interface.SimRemotePolicy`.
+  Simulation evaluation and `real_rollout` both use it through `utils/lerobot_interface.SimRemotePolicy`.
+- **Policy plugins**: each folder in `policies/<name>/` (`groot_n17`, `molmoact2`, `hold_position`) is one
+  servable policy. `policy.toml` declares cameras, horizon, runtime env and optional `[train.commands]`.
+  `client.py` runs beside the robot/sim and must not import torch. `server.py` runs in the policy's own
+  venv inside the serve image (`policy_servers/`). New policies start from `new_policy <name>` (copies
+  `_template/`) and must pass `tests/policies/test_conformance.py -k <name>`. Folders starting with `_`
+  and manifests with `enabled = false` are skipped. See `policies/README.md` and `docs/07-policy-plugins.md`.
 - **Evaluation**: `docker/eval.sh <config>.yaml` is the host-side orchestrator. It starts the GR00T server
   container (or uses `--external_server`/`--server_only`), runs `lerobot_eval` in the teleop container
   and writes results JSON. Fixed start sets live in `eval_sets/*.json`, built with
@@ -105,8 +112,9 @@ Lint: `flake8` with the repo `.flake8` (max line 120, Google docstrings; E402/E5
   `action_head.model` trainable. `so_arm_n17_config.py` defines the embodiment modality config with
   `room`/`wrist` cameras and absolute joint actions.
 
-- **Platform CLI**: `./so101` (`cli/so101_cli/`) is the front door for prepare/train/verify/serve/eval and the
-  remote helpers. `plan.py` holds pure planners returning exact commands; GR00T and MolmoAct2 train through
+- **Platform CLI**: `./so101` (`cli/so101_cli/`) is the front door for prepare/train/verify/serve/eval,
+  `record` (`pick_place_agent`), `rollout` (`real_rollout`) and the remote helpers (`sync`, `tunnel`,
+  `--host`/`--remote-root`). `plan.py` holds pure planners returning exact commands; GR00T and MolmoAct2 train through
   the wrappers `docker/train.py` and `docker/molmo_train.sh` until the shared train image exists.
 
 ## Conventions and gotchas
