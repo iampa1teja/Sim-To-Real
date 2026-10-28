@@ -17,6 +17,7 @@ import numpy as np
 
 from .joint_calibration import FOLLOWER_JOINTS, resolve_calibration
 from .calibration_check import CalibrationGapLogger, units_to_degrees
+from .joint_angle_display import JointAngleTable
 
 ORDER = tuple(name + '.pos' for name in FOLLOWER_JOINTS)
 BODY_JOINTS = FOLLOWER_JOINTS[:5]
@@ -260,6 +261,7 @@ class JointAngleTelemetry:
         self.path, self.stream = self.logger.path, self.logger.stream
         self.frames = 0
         self.last_print = 0.
+        self.table = JointAngleTable(FOLLOWER_JOINTS)
 
     def observe(self, follower_observation, mapping_interface, sim_robot, previous_target=None, *, previous_command=None):
         from .joint_limits import USD_JOINTS
@@ -295,14 +297,15 @@ class JointAngleTelemetry:
         now = time.monotonic()
         if now - self.last_print >= 1:
             self.last_print = now
-            print('[joint angles] ' + ' | '.join(
-                f'{name}: real={real_degrees[i]:+.2f} sim={actual_degrees[i]:+.2f} '
-                f'gap={actual_degrees[i] - real_degrees[i]:+.2f} deg'
-                for i, name in enumerate(BODY_JOINTS)), flush=True)
+            self.table.update(row)
         return row
 
     def close(self):
-        return self.logger.close()
+        try:
+            self.table.close()
+        finally:
+            self.logger.close()
+        return self.logger.summary
 
 
 def summarize_teleop(path):
