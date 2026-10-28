@@ -91,6 +91,13 @@ setenv HF_LEROBOT_CALIBRATION /root/.cache/huggingface/lerobot/calibration
    python3 scripts/calibration_check.py watch --log outputs/calibration-check/paired-01.jsonl
    ```
 
+   Teleop and both log watchers show one fixed terminal table with Real, Sim,
+   Sim-real and flag columns. Only changed values update, once per second;
+   ordinary messages and terminal commands remain above the table. The gripper
+   has its own separated row. Flags are `S` (still), `M` (moving), `L` (at a
+   limit), and `B` (a suspected gap above 180°). Redirected output uses plain
+   text tables. Stopping restores normal terminal scrolling.
+
    Ctrl-C there stops only the file watcher. After stopping teleop:
 
    ```bash
@@ -194,6 +201,9 @@ gap/verdict assessment after the operator run.
 | Focused host suites | 120 passed, 1 skipped; 30 subtests passed |
 | Flake8, all 18 changed Python files | Passed with the repository configuration |
 | Protected setup JSON, calibration fixture, real follower/leader files | Original hashes retained |
+
+The in-place table follow-up has 59 passing focused checks plus virtual-terminal
+checks for cell updates, terminal input, resizing and scroll restoration.
 
 The full suite used the existing teleop image's pinned dependencies in a
 disposable CPU container: no GPU requests, serial devices, or network access.

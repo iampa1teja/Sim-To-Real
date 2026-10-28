@@ -15,6 +15,7 @@ from sim_to_real_so101.utils.calibration_check import (
     LIMITATION, Thresholds, pose_measurement, reference_poses, summarize,
 )
 from sim_to_real_so101.utils.joint_calibration import FOLLOWER_JOINTS, resolve_calibration
+from sim_to_real_so101.utils.joint_angle_display import JointAngleTable
 
 
 def build_parser():
@@ -27,7 +28,7 @@ def build_parser():
     report.add_argument("--warn-deg", type=float, default=3.)
     report.add_argument("--static-velocity-deg-s", type=float, default=1.)
     report.add_argument("--static-window-s", type=float, default=.25)
-    watch = modes.add_parser("watch", help="Read the live file; Ctrl-C stops this observer only")
+    watch = modes.add_parser("watch", help="Show a fixed live table; Ctrl-C stops this observer only")
     watch.add_argument("--log", type=Path, required=True)
     poses = modes.add_parser("poses", help="Operator-started reference-pose session (requires Isaac/LeRobot)")
     poses.add_argument("--log", type=Path, required=True, help="NEW pose evidence JSONL; never overwritten")
@@ -52,28 +53,26 @@ def latest_frame(path):
             row = json.loads(line)
         except (ValueError, UnicodeDecodeError):
             continue
-        if row.get("type") == "frame":
+        if row.get("type") == "frame" or "sim_physx_degrees" in row:
             return row
     return None
 
 
 def watch_log(path):
     last = None
+    table = JointAngleTable(FOLLOWER_JOINTS)
     try:
         while True:
             row = latest_frame(path)
-            if row is not None and (row["frame"], row["timestamp_unix_ns"]) != last:
-                last = row["frame"], row["timestamp_unix_ns"]
-                print(f"Frame {row['frame']}; joint: real / sim / gap (degrees)", flush=True)
-                order = row.get("joint_order", FOLLOWER_JOINTS)
-                for i, name in enumerate(order):
-                    if name != "gripper":
-                        flag = " BRANCH?" if row["suspected_branch_error"][i] else ""
-                        print(f"{name:16s}: {row['real_deg'][i]:+9.3f} / {row['sim_deg'][i]:+9.3f} / "
-                              f"{row['sim_minus_real_deg'][i]:+9.3f}{flag}", flush=True)
+            identity = None if row is None else (row["frame"], row.get("timestamp_unix_ns", row.get("read_finished_unix_ns")))
+            if row is not None and identity != last:
+                last = identity
+                table.update(row)
             time.sleep(1)
     except KeyboardInterrupt:
         return
+    finally:
+        table.close()
 
 
 class PoseRenderer:

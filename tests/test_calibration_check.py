@@ -1,6 +1,7 @@
 """Synthetic angle checks and guarded operator sessions; no hardware is opened."""
 import ast
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -397,3 +398,77 @@ def test_telemetry_keeps_unclipped_angles_and_previous_command_and_reads_physx(t
     np.testing.assert_allclose(row["sim_deg"], clipped)
     assert row["sim_target_deg"] == [0.] * 6
     assert row["real_deg"][0] > row["mapped_follower_degrees"][0]
+
+
+def test_live_table_keeps_labels_and_updates_only_changed_cells(monkeypatch):
+    from sim_to_real_so101.utils.joint_angle_display import JointAngleTable
+
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setenv("TERM", "xterm")
+    stream = Terminal()
+    table = JointAngleTable(FOLLOWER_JOINTS, stream=stream, terminal_size=lambda: (80, 24))
+    row = dict(real_deg=[0.] * 6, sim_deg=[0.] * 6, sim_minus_real_deg=[0.] * 6,
+               static=[True] * 6, at_limit=[False] * 6, suspected_branch_error=[False] * 6)
+    try:
+        table.update(row)
+        initial = stream.getvalue()
+        assert "Real" in initial and "Sim-real" in initial
+        assert all(initial.count(name) == 1 for name in FOLLOWER_JOINTS)
+        stream.seek(0)
+        stream.truncate()
+        row["real_deg"][0] = 1.5
+        row["sim_minus_real_deg"][0] = -1.5
+        table.update(row)
+        update = stream.getvalue()
+        assert "+1.50" in update and "-1.50" in update
+        assert all(name not in update for name in FOLLOWER_JOINTS)
+        assert "Real" not in update and "\n" not in update
+        assert update.startswith("\0337") and update.endswith("\0338")
+        stream.seek(0)
+        stream.truncate()
+        table.update(row)
+        assert stream.getvalue() == ""
+    finally:
+        table.close()
+    assert "\033[r" in stream.getvalue()
+
+
+def test_live_table_plain_output_and_legacy_values():
+    from sim_to_real_so101.utils.joint_angle_display import JointAngleTable
+
+    stream = io.StringIO()
+    table = JointAngleTable(FOLLOWER_JOINTS, stream=stream)
+    row = dict(mapped_follower_degrees=[0.] * 6, sim_physx_degrees=[370.] * 6,
+               sim_minus_mapped_follower_degrees=[370.] * 6, at_runtime_limit=[True] * 6)
+    table.update(row)
+    table.close()
+    output = stream.getvalue()
+    assert "\033" not in output and "+370.00" in output and "? L B" in output
+    assert all(output.count(name) == 1 for name in FOLLOWER_JOINTS)
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_watcher_prints_joint_table_and_stops_cleanly(tmp_path, monkeypatch, capsys, legacy):
+    cli = load_cli()
+    row = dict(frame=0, read_finished_unix_ns=100, joint_order=list(FOLLOWER_JOINTS))
+    if legacy:
+        row.update(mapped_follower_degrees=[0.] * 6, sim_physx_degrees=[.5] * 6,
+                   sim_minus_mapped_follower_degrees=[.5] * 6, at_runtime_limit=[False] * 6)
+    else:
+        row.update(type="frame", timestamp_unix_ns=100, real_deg=[0.] * 6,
+                   sim_deg=[.5] * 6, sim_minus_real_deg=[.5] * 6, static=[True] * 6,
+                   at_limit=[False] * 6, suspected_branch_error=[False] * 6)
+    path = tmp_path / "watch.jsonl"
+    path.write_text(json.dumps(row) + "\n")
+
+    def stop(seconds):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli.time, "sleep", stop)
+    cli.watch_log(path)
+    output = capsys.readouterr().out
+    assert "Sim-real" in output and "+0.50" in output
+    assert all(output.count(name) == 1 for name in FOLLOWER_JOINTS)
