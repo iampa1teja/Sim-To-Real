@@ -1,228 +1,232 @@
 # 09 — Sim-vs-real calibration check
 
-[Guide hub](../README.md) · [Recording](04-recording.md)
+[Guide hub](../README.md) · [Recording](04-recording.md) · [Real rollout](08-real-arm-rollout.md)
 
-The passive logger compares the previous completed teleop tick before the next
-command or sim reset. It records follower-mapped leader commands, unclipped
-encoder-derived real angles, actual PhysX read-back, and the clamped sim target.
-The logger adds no commands to either arm. **Ordinary teleoperation moves both
-arms.** Only the operator starts a live session.
+One operator session produces an independent pose calibration verdict and a
+separate tracking diagnosis. Only the operator starts hardware sessions. The
+preview, summaries and combined report need no hardware. The lock command only
+updates simulation calibration and writes an audit record; it never edits
+LeRobot calibration files, motor settings or datasets.
 
-Encoder-based checks cannot detect a zero-pose error made during calibration:
-real angles use the same encoder calibration as the sim. Matching a rendered
-pose, an inclinometer, or an independent camera reference is needed for that.
+## Session command sheet
 
-## Operator run sheet
-
-Use a teleop container started with the writable repository, calibration, GPU,
-display and device mounts in [Setup](01-setup.md). A read-only analysis container
-with no device/display mounts cannot run this procedure. From the host:
+Start the writable, GPU/display/device-mounted teleop container using
+[Setup](01-setup.md), then enter it from the host:
 
 ```bash
 docker exec -it teleop bash
 ```
 
-All following commands run **inside that interactive teleop shell**, from the
-repository root. Confirm the physical port roles; these are the operator's
-specified ports, not automatic USB identification:
+All commands below run inside that shell. These port roles are the operator's
+existing assignments; confirm them against the physical connections. Use Isaac's
+Python wrapper for these commands (plain host Python cannot render Isaac).
 
 ```bash
 cd /workspace/Sim-to-Real-SO-101-Workshop
-setenv TELEOP_PORT /dev/ttyACM0
-setenv ROBOT_PORT /dev/ttyACM1
-setenv TELEOP_ID rpd_teleop
-setenv ROBOT_ID rpd_robot
-setenv HF_LEROBOT_CALIBRATION /root/.cache/huggingface/lerobot/calibration
+export TELEOP_PORT=/dev/ttyACM0 ROBOT_PORT=/dev/ttyACM1
+export TELEOP_ID=rpd_teleop ROBOT_ID=rpd_robot
+export HF_LEROBOT_CALIBRATION=/root/.cache/huggingface/lerobot/calibration
+export CALIB_RUN=outputs/calibration-check/$(date +%Y%m%d-%H%M%S)
+mkdir -p "$CALIB_RUN"
 ```
 
-1. **Operator calibration, only if a new calibration is intended.** These
-   commands modify calibration files; the implementation and verification work
-   never executes them. Existing calibrated arms can proceed to step 2.
-   Calibration must finish and exit before teleoperation starts.
+1. **Replaced servo only:** run motor setup before calibration, following the
+   driver's prompts to connect individual motors. This command configures motor
+   IDs/baud rates; do not run it for an unchanged calibrated arm.
 
    ```bash
-   lerobot-calibrate --teleop.type=so101_leader --teleop.port="$TELEOP_PORT" --teleop.id="$TELEOP_ID"
+   lerobot-setup-motors --robot.type=so101_follower --robot.port="$ROBOT_PORT"
+   # Only if a leader servo was replaced:
+   lerobot-setup-motors --teleop.type=so101_leader --teleop.port="$TELEOP_PORT"
+   ```
+
+2. **If recalibration is intended:** calibrate follower, then leader, and let
+   each command finish. Support the arm and follow the driver's zero/range
+   prompts. These are operator commands that write motor/calibration settings.
+   Unchanged arms can retain their existing files.
+
+   ```bash
    lerobot-calibrate --robot.type=so101_follower --robot.port="$ROBOT_PORT" --robot.id="$ROBOT_ID"
+   lerobot-calibrate --teleop.type=so101_leader --teleop.port="$TELEOP_PORT" --teleop.id="$TELEOP_ID"
    ```
 
-2. Select the **files visible inside the container**. `setenv` persists these
-   variables to `docker/env`; the `export` equivalents work for one shell.
+3. Explicitly select the follower mapping being checked for this shell. This
+   is required after recalibration until the new mapping is locked. IDs still
+   determine which files hardware clients load; their mappings must agree.
 
    ```bash
-   setenv SO101_FOLLOWER_CALIBRATION "$HF_LEROBOT_CALIBRATION/robots/so101_follower/$ROBOT_ID.json"
-   setenv SO101_LEADER_CALIBRATION "$HF_LEROBOT_CALIBRATION/teleoperators/so101_leader/$TELEOP_ID.json"
+   export SO101_FOLLOWER_CALIBRATION="$HF_LEROBOT_CALIBRATION/robots/so101_follower/$ROBOT_ID.json"
+   export SO101_LEADER_CALIBRATION="$HF_LEROBOT_CALIBRATION/teleoperators/so101_leader/$TELEOP_ID.json"
+   /workspace/isaaclab/_isaac_sim/python.sh scripts/calibration_check.py poses \
+     --preview --output "$CALIB_RUN/preview"
    ```
 
-   At startup, check both printed absolute paths and SHA-256 values. The sim,
-   LeRobot and log header must identify the same files. A changed file or a
-   different loaded `calibration_fpath` causes a failure before connection.
+   Inspect `preview/contact-sheet.png` from the room camera and `preview.json`.
+   The reference view preserves the room camera position/orientation and widens
+   its field of view by scaling focal lengths to 35%, so the full arm is visible.
+   Every pose must say OK. `--headless` renders without a display. Preview never
+   imports LeRobot or opens serial devices. It checks the versioned TOML's joint
+   coverage and margins, table clearance and nonadjacent-link clearance from
+   collision hulls carried by PhysX link transforms. Mechanically connected
+   adjacent links and the operator-approved wrist/jaw mechanical interface
+   are exempt from self-clearance (recorded explicitly in the TOML/evidence); the base/shoulder mounting assembly is exempt from
+   the table-plane check, as approved by the operator. Its fixed shoulder
+   clearance of 18.6 mm is still recorded. The plane comes from the upper
+   surface of the actual room tabletop mesh, using the measured table normal. The required clearance is at least 2 cm. The hand
+   support check bounds moving weight, gripper reach and height; it is a
+   geometric plausibility check, not an ergonomic or physical clearance guarantee.
 
-3. Start **one** of these sessions. Choose a new log filename for every run;
-   existing JSONL files are never overwritten. The examples create no dataset.
+4. Stop all other arm clients. Support the follower before releasing torque,
+   then match each displayed pose and press Enter to capture 30 encoder samples:
+
+   ```bash
+   /workspace/isaaclab/_isaac_sim/python.sh scripts/calibration_check.py poses \
+     --supported --follower-port "$ROBOT_PORT" --follower-id "$ROBOT_ID" \
+     --log "$CALIB_RUN/poses.jsonl"
+   ```
+
+   Torque remains off. The guard permits only `Torque_Enable=0` and `Lock=0`;
+   it blocks calibration, configuration, motion and torque-enable writes.
+   Ctrl-C, closing the window, or `q` + Enter stops and finalizes the evidence.
+   The log header contains the pose TOML hash, mapping, limits, calibration
+   identities, Git commit/dirty state and thresholds. Existing logs are refused.
+   Motion with sample std >0.3 normalized units rejects the capture; saturated
+   joints and repeated joint targets do not count toward the verdict.
+
+5. Exit the pose session. Start ordinary teleoperation for about **two minutes**,
+   sweeping slowly and holding at least five distinct angles per joint for at
+   least one second. Teleoperation moves both arms; keep hands clear.
 
    ```bash
    pick_place_agent --enable_real_follower --no_calibration \
-     --control_input terminal \
-     --calibration_check_log outputs/calibration-check/paired-01.jsonl
+     --follower_id "$ROBOT_ID" --robot_id "$TELEOP_ID" --control_input terminal \
+     --calibration_check_log "$CALIB_RUN/gap.jsonl"
    ```
 
-   Or, to inspect the generic teleop's existing wrist-start re-zero behavior:
+   Stop with Ctrl-C in the teleop terminal. The passive logger adds no commands.
+   It observes the previous completed tick before a new command or reset, and
+   retains the original gap JSONL schema. A separate terminal may watch with
+   `python scripts/calibration_check.py watch --log <gap.jsonl>`.
+
+6. Produce the combined report:
 
    ```bash
-   lerobot_agent --enable_real_follower --no_calibration --spawn_port 0 \
-     --calibration_check_log outputs/calibration-check/generic-01.jsonl
+   /workspace/isaaclab/_isaac_sim/python.sh scripts/calibration_check.py report \
+     --poses "$CALIB_RUN/poses.jsonl" --gap "$CALIB_RUN/gap.jsonl" \
+     --output "$CALIB_RUN/report"
+   cat "$CALIB_RUN/report/report.md"
    ```
 
-   Both logging flags automatically disable calibration and reject an
-   uncalibrated device. `--joint_angle_log` remains an alias-compatible way to
-   obtain the telemetry, including its original JSONL frame fields.
-
-   Sweep each joint slowly for about two minutes; hold still at about five
-   distinct poses per joint, away from limits. Hold for at least one second
-   so the default 0.25-second stillness window has time to settle. Keep hands
-   clear during ordinary teleop. **Stop with Ctrl-C in the teleop terminal**;
-   Ctrl-C, SIGTERM, normal exit and Python exceptions run the summary finalizer.
-   Physical emergency stopping uses the arm's power switch. Do not send SIGKILL
-   if you need the automatic finalizer; offline summarization remains available.
-
-4. Read the reports. A second shell can watch while teleop runs:
+7. If the independent pose result is **LOCKABLE**, lock it as the default:
 
    ```bash
-   python3 scripts/calibration_check.py watch --log outputs/calibration-check/paired-01.jsonl
+   /workspace/isaaclab/_isaac_sim/python.sh scripts/calibration_check.py lock \
+     --report "$CALIB_RUN/report/report.json"
+   unset SO101_FOLLOWER_CALIBRATION SO101_LEADER_CALIBRATION
    ```
 
-   Teleop and both log watchers show one fixed terminal table with Real, Sim,
-   Sim-real and flag columns. Only changed values update, once per second;
-   ordinary messages and terminal commands remain above the table. The gripper
-   has its own separated row. Flags are `S` (still), `M` (moving), `L` (at a
-   limit), and `B` (a suspected gap above 180°). Redirected output uses plain
-   text tables. Stopping restores normal terminal scrolling.
+   Lock refuses a non-LOCKABLE report, changed follower bytes, or a changed
+   `real_setup.json`. It calls `scripts/update_sim_calibration.py` with the
+   report's follower file and ID, then writes
+   `docs/reports/calibration-locks/<YYYYMMDD>-<follower_id>.json`. That audit records
+   calibration/setup hashes, report hash, pose-set hash and current Git identity.
+   It prints the exact `git add`, `git commit` and `git tag calib-<YYYYMMDD>`
+   commands for you to review and run. It does not execute them. An existing
+   same-day lock record is never overwritten.
 
-   Ctrl-C there stops only the file watcher. After stopping teleop:
+## Decision rules
 
-   ```bash
-   cat outputs/calibration-check/paired-01.jsonl.summary.md
-   python3 scripts/calibration_check.py summarize \
-     --log outputs/calibration-check/paired-01.jsonl \
-     --static-velocity-deg-s 1 --static-window-s 0.25 --pass-deg 1 --warn-deg 3
-   ```
+For each body joint, the pose summary reports median **real − target**, spread
+(max minus min), accepted distinct joint targets, verdict and reason:
 
-   This reproduces `<log>.summary.json` and `<log>.summary.md`. `--output PATH`
-   additionally writes the JSON report there and cannot replace the raw log.
+| Verdict | Absolute median | Spread | Accepted poses |
+| --- | --- | --- | --- |
+| PASS | ≤1° | ≤1° | ≥5 |
+| WARN | ≤2° | ≤1° | ≥5 |
+| FAIL | Any other result | Any other result | Fewer than 5 is labelled INSUFFICIENT |
 
-5. Stop teleop, support the follower, and perform the independent pose check:
+Overall LOCKABLE requires every body joint to be PASS or WARN. Gripper results
+are separate and never block. Both `poses` and `report` accept
+`--pose-pass-deg`, `--pose-warn-deg`, `--pose-spread-deg`, and `--pose-min-poses`.
+Report inherits recorded thresholds unless explicitly overridden, and records
+all values used. Visual matching accuracy depends on the operator/reference;
+encoder agreement alone cannot establish the physical zero pose.
 
-   ```bash
-   python3 scripts/calibration_check.py poses --supported \
-     --follower-port "$ROBOT_PORT" --follower-id "$ROBOT_ID" \
-     --log outputs/calibration-check/poses-01.jsonl
-   ```
+Tracking is labelled **NOT a calibration verdict**. On still frames, the report
+shows mean ± population std and correlation with real joint angle for sim −
+real, real − commanded, and sim − sim target. It includes still frames at limits
+in those statistics and distributions, and reports the fraction at limits.
+Real-tracking and sim-tracking PASS/WARN/FAIL verdicts use mean absolute gap on
+still, unsaturated frames (default 1°/3°). NO_DATA never means PASS. Stillness
+requires both real and sim velocities below 1°/s throughout a 0.25-second window.
+Differences are linear and never wrapped; >180° gaps remain visible.
 
-   The sim displays all-zero and five named poses spanning the interior of
-   each joint range. Match the supported, torque-off real arm to the rendered
-   pose, then press Enter. A closed sim window, Ctrl-C, or `q` + Enter stops
-   sampling and disconnects with torque still off. The guarded session permits
-   only torque-off register writes (including `Lock=0` used by the driver);
-   it forbids configuration, motion, torque-enable and calibration writes.
+The recommended actions are deterministic:
 
-   Each capture contains 30 samples. Any joint std above 0.3 normalized units
-   rejects that pose. The CLI prints candidate offsets and saves
-   `<log>.candidates.json`, including the raw samples and connection evidence.
-   The measured gap is **real − target**; the additive mapping candidate is
-   **target − real**. CONSISTENT requires at least five accepted poses per
-   joint and a max-minus-min candidate spread ≤1°. Saturated joints are
-   excluded. Gripper offsets are outside this pose check. **Nothing is applied.**
+- Pose FAIL: recalibrate that joint; INSUFFICIENT also calls out missing evidence.
+- Mean absolute real − commanded >3°: real servo problem; inspect gains, load or blockage.
+- |Mean sim − sim target| >1° and |angle correlation| >0.8: sim stiffness too low;
+  inspect the named actuator group in `assets/so101.py`.
+- More than 5% of frames at a runtime limit: limit mismatch.
 
-## Interpreting the report
+The report includes input identities, Git state, embedded-calibration match,
+rule thresholds and two PNG plots (pose offsets with ±1°/±2° bands, and tracking
+gap distributions). If matplotlib is unavailable it explicitly records that
+plots were skipped. Different follower/setup/mapping identities across the two
+sessions are rejected rather than combined.
 
-The header records calibration paths/hashes, the measured setup hash, the exact
-mapping, runtime limits, Git commit, thresholds and limitations. Each frame has
-the three signed gaps, limit/static flags and a suspected branch-error flag.
-Differences are never wrapped: a gap above 180° stays above 180° and is flagged.
+## Selection and recording compatibility
 
-For each body joint, both all-frame and static, not-at-limit tables report mean
-signed gap, mean absolute gap, median, population std, p95 absolute gap, maximum
-absolute gap, regression slope and correlation against real angle. The same
-statistics are reported for real tracking (`real − commanded`) and sim tracking
-(`sim − sim_target`). The gripper has its own tables because its closed anchor
-is unresolved.
+Simulation defaults to the locked `assets/real_setup.json` mapping.
+`ROBOT_ID` and `TELEOP_ID` never select a simulation mapping. Only an explicit
+`SO101_FOLLOWER_CALIBRATION` or a client's explicit calibration path changes it.
+The embedded-calibration stale check still applies to the default.
 
-The stillness gate requires velocities of **both real and sim** below the
-configured threshold over the entire short window. Startup frames cannot yet
-prove stillness. A joint is at-limit if a command, observation or target reaches,
-exceeds, or is within 0.05° of a runtime bound. Exclusion counts overlap.
-The first observation has unknown previous command/target, recorded as null.
+Hardware CLI IDs take precedence over their environment defaults. They select
+LeRobot files under `$HF_LEROBOT_CALIBRATION` (default
+`~/.cache/huggingface/lerobot/calibration`), in `robots/so101_follower` and
+`teleoperators/so101_leader`. No filename stem replaces a CLI ID. The explicit
+`real_rollout --calibration_file` input is loaded in memory while retaining the
+requested ID. Before connecting a follower, the client derives the mapping
+from the file LeRobot loaded and compares it with the sim mapping. A mismatch
+prints both source hashes and a per-joint min/max difference table and refuses
+connection. Missing leader files only affect leader clients.
 
-PASS means mean |sim−real| ≤1° on still, unsaturated frames; WARN means ≤3°;
-larger means FAIL. NO_DATA means no qualifying frames, not a pass. These verdicts
-do not certify physical zero calibration or sufficient range coverage. A slope
-near 0 is consistent with a constant offset; near −2 suggests sign inversion;
-other slopes suggest a scale error. Constant real angles provide no slope.
+With no explicit calibration selection, `recording_contract()` retains the
+exact pre-`0a32271` contract/hash, even with environment IDs set. Explicit
+selection includes calibration hashes; changing them requires a new dataset
+root. Neither reporting nor locking rewrites recorded datasets.
 
-## Calibration selection and recording compatibility
+## Preview evidence — 2026-10-29
 
-`SO101_FOLLOWER_CALIBRATION` and `SO101_LEADER_CALIBRATION` win over ID-based
-paths. Otherwise, `ROBOT_ID` / `TELEOP_ID` select
-`$HF_LEROBOT_CALIBRATION/robots/so101_follower/<id>.json` and
-`.../teleoperators/so101_leader/<id>.json`. The default calibration root is
-`~/.cache/huggingface/lerobot/calibration`. Paths expand `~` and resolve symlinks.
-Arbitrary filenames are supported: LeRobot's file lookup uses the selected
-filename stem while the interface retains its logical arm ID.
+The committed [contact sheet](reports/2026-10-29-calibration-preview/contact-sheet.png)
+and [PhysX clearance evidence](reports/2026-10-29-calibration-preview/preview.json)
+contain eight OK poses. Minimum nonexempt table clearance is 57.9 mm and minimum
+nonexempt self-clearance is 25.7 mm. Body-joint range coverage is 62.5–67.3%.
+The wrist/jaw interface and base/shoulder mounting exemptions were explicitly
+approved by the operator; the measured shoulder-to-table gap is 18.6 mm.
 
-If neither paths nor IDs are set in the environment, simulation retains the
-existing `real_setup.json` mapping and embedded-calibration stale check. The
-setup file, USD assets and physical calibration files are never regenerated by
-these tools. The mapping selection also reaches real_rollout; its explicit
-`--calibration_file` has highest priority.
+## Development verification
 
-When files are selected, recording contracts hash both selected calibration
-files as well as the mapping and existing setup provenance. Resuming a dataset
-under different calibration bytes is refused; choose a new dataset root.
-The no-selection contract remains unchanged.
+The implementation is tested with synthetic logs and fake motors, plus a
+hardware-free Isaac preview. The work report at
+`outputs/calibration_report_work_20261029.md` records commands, commits, baseline
+and final checks. No physical calibration verdict is claimed until the operator
+captures the independent poses and gap session.
 
-## Earlier +192° elbow and +88° roll gaps
+Verified on 2026-10-29 in the existing teleop image's CPU environment:
 
-See the [original report's trace decomposition](reports/2026-10-27-joint-angle-check/report.md#follow-up--decomposing-the-large-gaps).
-The old sim tracked its targets closely; those targets already disagreed with
-the observed follower. Heavy elbow saturation and disputed port-role provenance
-prevent physical offset claims. The generic agent's wrist-start re-zero can
-create a constant roll target gap. The new header identifies that behavior;
-`pick_place_agent` uses its existing absolute wrist mapping.
+| Check | origin/main baseline | Final |
+| --- | --- | --- |
+| Full CPU suite | 856 passed, 27 skipped | 881 passed, 27 skipped |
+| Subtests | 281 passed | 281 passed |
+| Flake8 (repository config, 17 changed Python files) | — | Passed |
+| Isaac reference preview | — | 8/8 OK, approved exemptions recorded |
 
-No new hardware capture or physical zero measurement was performed while
-building this tool. Return the new JSONL and summary for the per-joint average
-gap/verdict assessment after the operator run.
-
-## Verification — 2026-10-28
-
-| Check | Result |
-| --- | --- |
-| Complete CPU suite | 852 passed, 27 skipped; 281 subtests passed |
-| Focused host suites | 120 passed, 1 skipped; 30 subtests passed |
-| Flake8, all 18 changed Python files | Passed with the repository configuration |
-| Protected setup JSON, calibration fixture, real follower/leader files | Original hashes retained |
-
-The in-place table follow-up has 59 passing focused checks plus virtual-terminal
-checks for cell updates, terminal input, resizing and scroll restoration.
-
-The full suite used the existing teleop image's pinned dependencies in a
-disposable CPU container: no GPU requests, serial devices, or network access.
-Datasets, assets and policy sources were mounted read-only. Its bootstrap made
-SDK dependencies available to child Python processes and created an empty
-container-local `/external_storage/models` parent for dry-run command tests;
-it did not mount model weights or start training, simulation or a hardware
-session. The focused tests ran on the host. The host's complete suite initially
-failed on missing optional dependencies; the complete green result above is
-from the CPU container.
-
-Existing test fixtures now represent the selected-calibration initializer and
-the training wrapper's statistics-module import. No upstream GR00T source was
-changed. Synthetic tests also exercise full and interrupted torque-off pose
-sessions with fake motors, PhysX getter selection, unclipped angles, and
-exclusion of repeated reference targets.
-
-Local raw evidence is under
-`outputs/calibration-evidence/2026-10-28-calibration-check/`: `container_pytest.log`,
-`targeted_pytest.log`, `flake8.log`, `protected_inputs.json`, and
-`worker_isolation.txt`. `synthetic-demo.jsonl` and its summaries are explicitly
-marked synthetic; they are not physical measurements.
+The exact suite invocation is `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests -q`.
+The image bootstrap supplies its existing SDK dependencies to child processes;
+CPU test containers have no GPU, serial devices, or network. A writable temporary
+config location is required by the existing eval-config test. The host default
+Python lacks pytest, and system Python lacks optional test dependencies.
+A synthetic end-to-end lock test ran the actual updater in a temporary repository;
+the real setup and follower/leader files retained their original hashes.

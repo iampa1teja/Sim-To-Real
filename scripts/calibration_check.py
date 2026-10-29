@@ -205,6 +205,9 @@ def run_pose_session(robot, selection, renderer, stream, *, supported, pose_set=
         for name, joint in result["joints"].items():
             print(f"{name}: real-target median={joint['median_offset_deg']}° spread={joint['spread_deg']}° "
                   f"poses={joint['accepted_poses']} {joint['verdict']} {joint['reason']}", flush=True)
+        gripper = result["gripper"]
+        print(f"Gripper (nonblocking): real-target median={gripper['median_offset_deg']}° "
+              f"spread={gripper['spread_deg']}° poses={gripper['accepted_poses']} {gripper['verdict']}", flush=True)
         print(f"Calibration: {result['decision']} (gripper never blocks; applied=false)", flush=True)
         Path(str(stream.name) + ".candidates.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     return result

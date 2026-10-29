@@ -91,7 +91,8 @@ def make_plots(output, measurements, calibration, gap_path):
         for width, color in ((2, "#fff0c2"), (1, "#d4efdf")):
             ax.axhspan(-width, width, color=color)
         for index, row in enumerate(measurements):
-            accepted = row["accepted"] and not row.get("at_limit", {}).get(name, False)
+            accepted = row.get("joint_accepted", {}).get(name, row["accepted"]) if name == "gripper" else row["accepted"]
+            accepted = accepted and not row.get("at_limit", {}).get(name, False)
             ax.scatter(index + 1, row["real_minus_target_deg"][i], marker="o" if accepted else "x",
                        color="#1261a0" if accepted else "#a32121")
         ax.set(title=name + (" (nonblocking)" if name == "gripper" else ""), xlabel="Reference pose", ylabel="Real − target (°)")

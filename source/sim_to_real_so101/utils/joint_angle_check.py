@@ -234,7 +234,7 @@ def telemetry_provenance(selection, **extra):
             [*git, 'rev-parse', 'HEAD'],
             text=True, stderr=subprocess.DEVNULL, timeout=5).strip()
         details['git_dirty'] = bool(subprocess.check_output(
-            [*git, 'status', '--porcelain', '--untracked-files=no'],
+            [*git, 'status', '--porcelain', '--untracked-files=normal'],
             text=True, stderr=subprocess.DEVNULL, timeout=5).strip())
     except (OSError, subprocess.SubprocessError):
         details['git_commit'] = None
