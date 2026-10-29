@@ -17,14 +17,14 @@ Start the writable, GPU/display/device-mounted teleop container using
 docker exec -it teleop bash
 ```
 
-All commands below run inside that shell. These port roles are the operator's
-existing assignments; confirm them against the physical connections. Use Isaac's
+All commands below run inside that shell. Load the operator's configured IDs and ports from the mounted `docker/env`;
+confirm the printed roles against the physical connections. Use Isaac's
 Python wrapper for these commands (plain host Python cannot render Isaac).
 
 ```bash
 cd /workspace/Sim-to-Real-SO-101-Workshop
-export TELEOP_PORT=/dev/ttyACM0 ROBOT_PORT=/dev/ttyACM1
-export TELEOP_ID=rpd_teleop ROBOT_ID=rpd_robot
+source /root/env
+printf 'Leader: %s (%s)\nFollower: %s (%s)\n' "$TELEOP_PORT" "$TELEOP_ID" "$ROBOT_PORT" "$ROBOT_ID"
 export HF_LEROBOT_CALIBRATION=/root/.cache/huggingface/lerobot/calibration
 export CALIB_RUN=outputs/calibration-check/$(date +%Y%m%d-%H%M%S)
 mkdir -p "$CALIB_RUN"
