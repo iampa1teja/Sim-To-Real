@@ -180,7 +180,7 @@ def test_environment_override_fallback_provenance_and_loaded_mismatch(tmp_path):
         path.parent.mkdir(parents=True)
         path.write_bytes(FIXTURE.read_bytes())
     env = {"HF_LEROBOT_CALIBRATION": str(tmp_path), "ROBOT_ID": "f", "TELEOP_ID": "l"}
-    selection = resolve_calibration(environ=env)
+    selection = resolve_calibration(environ=env, follower_id="f", leader_id="l")
     assert selection.follower_path == follower and selection.leader_path == leader
     assert selection.mapping == follower_mapping_from_calibration(follower, **sim_mapping_parameters())
     assert selection.provenance["follower_calibration"]["sha256"] == file_sha256(follower)
@@ -364,7 +364,8 @@ def test_selected_filename_is_used_by_both_lerobot_configs(tmp_path):
         interface = SimpleNamespace(kind=kind, id="logical-id", port="unused", calibration_selection=selection,
                                     make_cameras_cfg=lambda: {}, follower_options={})
         cfg = namespace["make_cfg"](interface)
-        assert cfg["calibration_dir"] / (cfg["id"] + ".json") == path
+        assert cfg["calibration_dir"] == path.parent
+        assert cfg["id"] == "logical-id"
         assert interface.id == "logical-id"
 
 

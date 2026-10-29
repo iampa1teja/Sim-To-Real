@@ -1,0 +1,24 @@
+{
+  "source_commit": "0a32271^",
+  "contract": {
+    "version": 3,
+    "follower_id": "rpd_robot",
+    "leader_id": "rpd_teleop",
+    "calibration_sha256": "ad965257ab5f9dcca88efaebc6414d89d5b8336a71ab7e66efed0d0716b84b7b",
+    "start_sync": "follower_state",
+    "roll_resolved": false,
+    "synced_joints": [
+      "shoulder_pan",
+      "shoulder_lift",
+      "elbow_flex",
+      "wrist_flex",
+      "wrist_roll",
+      "gripper"
+    ],
+    "wrist_rezero": false,
+    "recorded_action": "unshifted_leader",
+    "wrist_roll_zero_offset_degrees": 0.0,
+    "roll_zero_measurement": "unmeasured constant",
+    "note": "All six joints sync from the follower; every sim target uses the mapped leader action. The shared roll-zero constant is independent of episode starts; no sim-only re-zero."
+  }
+}

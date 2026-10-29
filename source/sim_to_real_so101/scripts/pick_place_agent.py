@@ -111,7 +111,8 @@ if args_cli.calibration_check_log and args_cli.joint_angle_log and args_cli.cali
 # ---------------------------------------------------------------------------
 # Serial port pre-flight
 # ---------------------------------------------------------------------------
-args_cli.calibration_selection = resolve_calibration()
+args_cli.calibration_selection = resolve_calibration(
+    follower_id=args_cli.follower_id if args_cli.enable_real_follower else None, leader_id=args_cli.robot_id)
 args_cli.calibration_selection.print_paths()
 alignment_contract = recording_contract(follower_id=args_cli.follower_id, leader_id=args_cli.robot_id,
                                         calibration_selection=args_cli.calibration_selection)

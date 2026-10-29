@@ -14,10 +14,9 @@ def recording_contract(*, follower_id, leader_id, setup=None, calibration_select
     selection = calibration_selection or resolve_calibration(setup=setup)
     resolved = setup["sim_joint_mapping_source"].get("wrist_roll_fit_status") == "verified"
     calibration = {key: setup[key] for key in ("sim_joint_mapping", "sim_joint_mapping_source", "runtime_joint_limits")}
-    if selection.follower_path is not None or selection.leader_path is not None:
+    if selection.provenance["explicit_selection"]:
         calibration = dict(calibration, sim_joint_mapping=selection.mapping,
-                           selected_calibrations={role: selection.provenance[f"{role}_calibration"]["sha256"]
-                                                  for role in ("follower", "leader")})
+                           selected_calibrations=selection.provenance["selected_calibrations"])
     source = setup["sim_joint_mapping_source"]
     contract = {"version": 3, "follower_id": follower_id, "leader_id": leader_id,
                 "calibration_sha256": hashlib.sha256(json.dumps(calibration, sort_keys=True).encode()).hexdigest(),

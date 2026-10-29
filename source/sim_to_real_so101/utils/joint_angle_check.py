@@ -15,7 +15,7 @@ import time
 
 import numpy as np
 
-from .joint_calibration import FOLLOWER_JOINTS, resolve_calibration
+from .joint_calibration import FOLLOWER_JOINTS, load_device_calibration, resolve_calibration
 from .calibration_check import CalibrationGapLogger, units_to_degrees
 from .joint_angle_display import JointAngleTable
 
@@ -170,9 +170,10 @@ def make_observation_only_robot(port, robot_id, calibration_path):
     path = Path(calibration_path)
     if not path.is_file():
         raise ValueError('An existing follower calibration file is required; none will be created')
-    robot = SO101Follower(SO101FollowerConfig(port=port, id=path.stem,
+    robot = SO101Follower(SO101FollowerConfig(port=port, id=robot_id,
                                               calibration_dir=path.parent, cameras={}, use_degrees=False,
                                               disable_torque_on_disconnect=False))
+    load_device_calibration(robot, path)
     if robot.cameras or tuple(robot.bus.motors) != FOLLOWER_JOINTS:
         raise RuntimeError('Read-only mode requires exactly six motors and zero sensors')
     return robot
