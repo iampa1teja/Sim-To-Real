@@ -171,7 +171,7 @@ class ScriptTest(unittest.TestCase):
         self.assertEqual(interface.robot.sent, [])
 
     def test_missing_or_invalid_mapping_refuses_before_interface_factory(self):
-        for content, message in ((None, "Cannot read follower calibration file"), ("{}", "missing joint"),
+        for content, message in ((None, "Cannot read calibration file"), ("{}", "missing joint"),
                                  ('{"shoulder_pan": {"range_min": 1, "range_max": 0}}', "range_max")):
             with self.subTest(content=content):
                 if content is None:
@@ -189,7 +189,6 @@ class ScriptTest(unittest.TestCase):
     def test_default_mapping_path_uses_calibration_root_and_follower_id(self):
         for root in (self.dir, None):
             with self.subTest(root=root), patch.dict(os.environ, {}, clear=True), patch.object(
-                    joint_calibration, "follower_mapping_from_calibration", return_value={}) as load, patch.object(
                     joint_calibration, "file_sha256", return_value="synthetic"):
                 if root is not None:
                     os.environ["HF_LEROBOT_CALIBRATION"] = str(root)
@@ -197,12 +196,13 @@ class ScriptTest(unittest.TestCase):
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it"])
                 script.validate(args)
                 expected_root = root or Path("~/.cache/huggingface/lerobot/calibration").expanduser()
-                load.assert_called_once_with(expected_root / "robots/so101_follower/rpd_robot.json",
-                                             **script.rr.sim_mapping_parameters())
+                self.assertEqual(args.calibration_file, expected_root / "robots/so101_follower/rpd_robot.json")
+                self.assertEqual(args.joint_mapping, json.loads(joint_calibration.SETUP_PATH.read_text())["sim_joint_mapping"])
                 args = script.build_parser().parse_args(["--policy", "demo", "--lang_instruction", "pick it",
                                                         "--follower_id", "other_robot"])
                 script.validate(args)
-                self.assertEqual(load.call_args.args[0], expected_root / "robots/so101_follower/other_robot.json")
+                self.assertEqual(args.calibration_file, expected_root / "robots/so101_follower/other_robot.json")
+                self.assertEqual(args.joint_mapping, json.loads(joint_calibration.SETUP_PATH.read_text())["sim_joint_mapping"])
 
     def test_shared_roll_and_nonzero_gripper_contact_anchor_reach_real_mapping(self):
         anchors = dict(gripper_closed_degrees=-13, gripper_contact_units=1.4,

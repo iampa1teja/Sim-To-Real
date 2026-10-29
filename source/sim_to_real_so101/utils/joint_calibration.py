@@ -206,7 +206,7 @@ def resolve_calibration(*, environ=None, setup=None, follower_id=None, leader_id
             mapping = derived
     selected = {"follower": calibration_identity(mapping_path)["sha256"],
                 "leader": calibration_identity(explicit_leader, required=False)["sha256"]}
-    provenance = {"follower_calibration": follower_identity, "leader_calibration": leader_identity,
+    provenance = {"follower_id": follower_id, "leader_id": leader_id, "follower_calibration": follower_identity, "leader_calibration": leader_identity,
                   "real_setup": calibration_identity(SETUP_PATH), "mapping_calibration": mapping_identity,
                   "mapping": mapping, "mapping_parameters": sim_mapping_parameters(source),
                   "mapping_source": "follower_file" if mapping_path else "embedded_real_setup",

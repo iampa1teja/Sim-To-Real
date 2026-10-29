@@ -85,7 +85,8 @@ class LeRobotSO101Interface:
         self.kind = kind
         self.rename_map = rename_map
         self.follower_options = dict(follower_options or {})
-        self.calibration_selection = calibration_selection or resolve_calibration(**{f"{kind}_id": id})
+        self._device_selection_pending = calibration_selection is None
+        self.calibration_selection = calibration_selection or resolve_calibration()
         if joint_mapping is None and self.calibration_selection.follower_path is not None:
             joint_mapping = self.calibration_selection.mapping
 
@@ -159,6 +160,9 @@ class LeRobotSO101Interface:
         raise ValueError(f"Unsupported SO-101 interface kind: {self.kind!r}")
 
     def init_device(self, visualize: bool = False):
+        if self._device_selection_pending:
+            self.calibration_selection = resolve_calibration(**{f"{self.kind}_id": self.id})
+            self._device_selection_pending = False
         self.cfg = self.make_cfg()
         self.robot = make_robot_from_config(self.cfg)
         path = getattr(self.calibration_selection, f"{self.kind}_path")

@@ -44,9 +44,8 @@ def build_parser():
                         help="disable torque on exit; the arm will drop")
     parser.add_argument("--follower_port", default=env("ROBOT_PORT"))
     parser.add_argument("--follower_id", default=env("ROBOT_ID"))
-    parser.add_argument("--calibration_file", help="follower mapping JSON (default: "
-                        "$HF_LEROBOT_CALIBRATION/robots/so101_follower/<follower_id>.json, "
-                        "or ~/.cache/huggingface/lerobot/calibration/robots/so101_follower/<follower_id>.json)")
+    parser.add_argument("--calibration_file", help="Explicit follower mapping and hardware JSON; "
+                        "default mapping is locked real_setup.json; follower_id selects the hardware file")
     parser.add_argument("--camera_gripper", default=env("CAMERA_GRIPPER"))
     parser.add_argument("--camera_external", default=env("CAMERA_EXTERNAL"))
     parser.add_argument("--camera_width", type=int, default=int(env("CAMERA_WIDTH", "640")))

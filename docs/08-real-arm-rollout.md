@@ -8,12 +8,16 @@ supplying raw LeRobot units (-100..100 for the body joints, 0..100 for the gripp
 It runs in the teleop container and starts no simulator. The action horizon defaults to 30 targets per query;
 pass `--action_horizon` to override it.
 
-The real joint mapping comes from the follower's calibration file, using its encoder ranges and the
-2048-count zero (4096 counts per turn). The default is
-`$HF_LEROBOT_CALIBRATION/robots/so101_follower/$ROBOT_ID.json`, with
-`~/.cache/huggingface/lerobot/calibration` as the calibration root when the variable is unset;
-`--follower_id` overrides the robot ID. Pass `--calibration_file /path/to/follower.json` to override the
-mapping file. Missing or invalid mapping files are rejected before any hardware is initialized.
+The mapping defaults to the locked `assets/real_setup.json`, like simulation.
+`--follower_id` overrides `ROBOT_ID` and selects the LeRobot file under
+`$HF_LEROBOT_CALIBRATION/robots/so101_follower/<id>.json` (the root defaults to
+`~/.cache/huggingface/lerobot/calibration`). IDs never change the sim mapping.
+An explicit `SO101_FOLLOWER_CALIBRATION` selects a mapping for this session;
+`--calibration_file /path/to/follower.json` takes precedence and also loads that
+file into LeRobot without changing the requested ID. Before connection, the
+client checks that the file LeRobot loaded derives the same mapping. A mismatch
+refuses startup with both hashes and a per-joint difference table. See
+[Calibration check](09-calibration-check.md) to preview, measure and lock a new mapping.
 
 > **Not yet run on hardware.** The control loop, the safety rules and the script flow are covered by tests with
 > a fake robot and a fake policy. No arm has been moved with this code. Do the shadow run below first.
