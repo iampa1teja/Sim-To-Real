@@ -46,6 +46,14 @@ def build_parser():
     poses.add_argument("--supported", action="store_true", help="Confirm the real arm is physically supported with torque off")
     poses.add_argument("--task", default="Lerobot-So101-Teleop-MyRoom")
     poses.add_argument("--device", default="cuda:0")
+    report = modes.add_parser("report", help="Combine independent poses and tracking evidence offline")
+    report.add_argument("--poses", type=Path, required=True)
+    report.add_argument("--gap", type=Path, required=True)
+    report.add_argument("--output", type=Path, required=True)
+    for flag, kind in (("pass-deg", float), ("warn-deg", float), ("spread-deg", float), ("min-poses", int)):
+        report.add_argument("--pose-" + flag, type=kind, default=None, help="Override the recorded pose threshold")
+    lock = modes.add_parser("lock", help="Lock a LOCKABLE report into simulation; print git commands")
+    lock.add_argument("--report", type=Path, required=True)
     return parser
 
 
@@ -254,7 +262,21 @@ def poses(args, parser):
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.mode == "watch":
+    if args.mode == "report":
+        from sim_to_real_so101.utils.calibration_report import generate_report
+        from sim_to_real_so101.utils.calibration_poses import read_pose_log
+        header, _, _ = read_pose_log(args.poses)
+        values = dict(header.get("pose_thresholds", {}))
+        for key in ("pass_deg", "warn_deg", "spread_deg", "min_poses"):
+            value = getattr(args, "pose_" + key)
+            if value is not None:
+                values[key] = value
+        result = generate_report(args.poses, args.gap, args.output, PoseThresholds(**values))
+        print(f"Calibration: {result['calibration']['decision']}. Reports: {args.output}/report.md and report.json")
+    elif args.mode == "lock":
+        from sim_to_real_so101.utils.calibration_report import lock_report
+        lock_report(args.report)
+    elif args.mode == "watch":
         watch_log(args.log)
     elif args.mode == "poses":
         poses(args, parser)
