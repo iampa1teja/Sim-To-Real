@@ -1,0 +1,1268 @@
+{
+  "pose_set": {
+    "path": "/workspace/Sim-to-Real-SO-101-Workshop/configs/calibration/so101_reference_poses.toml",
+    "sha256": "0394faaf394b5ab4d1575e57bd797952cb03a6a1532dd4fc3f09ad4714fb9d8c",
+    "version": 1,
+    "coverage_fraction": {
+      "shoulder_pan": 0.6729935031412153,
+      "shoulder_lift": 0.6470758845990893,
+      "elbow_flex": 0.6464189393576444,
+      "wrist_flex": 0.6506544680636842,
+      "wrist_roll": 0.625
+    },
+    "preview": {
+      "margin_m": 0.02,
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "max_support_force_n": 20.0,
+      "max_support_reach_m": 0.45,
+      "max_support_height_m": 0.6
+    }
+  },
+  "poses": [
+    {
+      "name": "all-zero",
+      "target_deg": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "shown_physx_deg": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.1070053539266022,
+        "lower_arm": 0.21657545296910943,
+        "wrist": 0.22111606648244303,
+        "gripper": 0.20877572851618204,
+        "jaw": 0.21267588041395805
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605330498100023
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.034999939248262946,
+        "base/lower_arm": 0.14457003356071585,
+        "base/wrist": 0.15550141947537305,
+        "base/gripper": 0.2275993408373162,
+        "base/jaw": 0.24200579136722933,
+        "shoulder/lower_arm": 0.0873700875166814,
+        "shoulder/wrist": 0.13070222598179393,
+        "shoulder/gripper": 0.20280004475102342,
+        "shoulder/jaw": 0.2172061109677048,
+        "upper_arm/wrist": 0.11270230685917487,
+        "upper_arm/gripper": 0.1847998386099292,
+        "upper_arm/jaw": 0.1992054094091184,
+        "lower_arm/gripper": 0.04989976391709944,
+        "lower_arm/jaw": 0.06430532074165196
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556702613831,
+          0.8587769865989685,
+          -0.7347875237464905,
+          0.6782339811325073,
+          0.005849218927323818,
+          0.0071932910941541195
+        ],
+        "upper_arm": [
+          0.6903013586997986,
+          -0.5573015213012695,
+          0.9135738611221313,
+          0.7071827054023743,
+          0.03480056673288345,
+          -0.705838680267334,
+          0.021755443885922432
+        ],
+        "lower_arm": [
+          0.687932550907135,
+          -0.5314794182777405,
+          1.0266385078430176,
+          0.5246605277061462,
+          -0.475446879863739,
+          -0.48371896147727966,
+          0.5144875049591064
+        ],
+        "wrist": [
+          0.6771436333656311,
+          -0.3971300721168518,
+          1.034313440322876,
+          -0.7071826457977295,
+          -0.03480055555701256,
+          0.7058387994766235,
+          -0.02175544761121273
+        ],
+        "gripper": [
+          0.6542176604270935,
+          -0.33768200874328613,
+          1.0353872776031494,
+          -0.7130339741706848,
+          -0.02760726399719715,
+          -0.028951246291399002,
+          -0.6999874114990234
+        ],
+        "jaw": [
+          0.6724607348442078,
+          -0.313094824552536,
+          1.0546669960021973,
+          -0.9991569519042969,
+          -0.039992865175008774,
+          -0.000950414570979774,
+          0.009227019734680653
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.32998930292634115,
+        "support_height_m": 0.26657390477537657,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "left-upright",
+      "target_deg": [
+        -75.0,
+        -30.0,
+        35.0,
+        25.0,
+        -100.0,
+        10.0
+      ],
+      "shown_physx_deg": [
+        -75.0,
+        -30.0,
+        35.0,
+        25.0,
+        -100.0,
+        10.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.1070052767175482,
+        "lower_arm": 0.20528856266387466,
+        "wrist": 0.1800190514882371,
+        "gripper": 0.13328546902602204,
+        "jaw": 0.11776808846917623
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.01860527675210885
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.030607614058815513,
+        "base/lower_arm": 0.13749134742693203,
+        "base/wrist": 0.15237548781955423,
+        "base/gripper": 0.13327821989531013,
+        "base/jaw": 0.14375520306998862,
+        "shoulder/lower_arm": 0.08135017400136368,
+        "shoulder/wrist": 0.10766417379728666,
+        "shoulder/gripper": 0.11645568471868839,
+        "shoulder/jaw": 0.12973975964611018,
+        "upper_arm/wrist": 0.08372541816659937,
+        "upper_arm/gripper": 0.10061100134496578,
+        "upper_arm/jaw": 0.11200719888012418,
+        "lower_arm/gripper": 0.04231872873480702,
+        "lower_arm/jaw": 0.05598622153243782
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745748519897461,
+          -0.5880556702613831,
+          0.8587770462036133,
+          -0.9958286881446838,
+          0.09076903760433197,
+          0.0002615645935293287,
+          0.009267532266676426
+        ],
+        "upper_arm": [
+          0.6479179859161377,
+          -0.5655897259712219,
+          0.913371205329895,
+          0.4107774496078491,
+          0.5834954977035522,
+          -0.6363269686698914,
+          0.2930574417114258
+        ],
+        "lower_arm": [
+          0.6792973279953003,
+          -0.5734442472457886,
+          1.024769902229309,
+          0.7072426080703735,
+          -0.09493710845708847,
+          -0.03387678414583206,
+          0.6997478008270264
+        ],
+        "wrist": [
+          0.5466869473457336,
+          -0.5489470958709717,
+          1.0184910297393799,
+          -0.647491455078125,
+          -0.29993316531181335,
+          0.40454673767089844,
+          -0.5719587206840515
+        ],
+        "gripper": [
+          0.4914078712463379,
+          -0.5566149353981018,
+          0.9877297282218933,
+          -0.009788896888494492,
+          -0.5009027719497681,
+          0.14884309470653534,
+          -0.8525527715682983
+        ],
+        "jaw": [
+          0.4856144189834595,
+          -0.5397002696990967,
+          0.956275463104248,
+          -0.6291452646255493,
+          -0.19485096633434296,
+          0.4057537019252777,
+          -0.6336981058120728
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.2598090118469414,
+        "support_height_m": 0.16507594929089706,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "right-upright",
+      "target_deg": [
+        75.0,
+        -45.0,
+        55.0,
+        45.0,
+        100.0,
+        20.0
+      ],
+      "shown_physx_deg": [
+        75.0,
+        -45.0,
+        55.0,
+        45.0,
+        100.0,
+        20.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.10700537518750657,
+        "lower_arm": 0.1831777336675245,
+        "wrist": 0.1406950284994044,
+        "gripper": 0.05789683196951016,
+        "jaw": 0.0854282019297045
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605357704848308
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.030029477599168408,
+        "base/lower_arm": 0.11360604733287993,
+        "base/wrist": 0.09393853149651488,
+        "base/gripper": 0.07086761564099764,
+        "base/jaw": 0.10468773605457815,
+        "shoulder/lower_arm": 0.0589506649836129,
+        "shoulder/wrist": 0.06903527386970199,
+        "shoulder/gripper": 0.05421227958692265,
+        "shoulder/jaw": 0.10006062078143385,
+        "upper_arm/wrist": 0.05172930735827519,
+        "upper_arm/gripper": 0.03482212749021707,
+        "upper_arm/jaw": 0.07071880236369882,
+        "lower_arm/gripper": 0.03860389716320628,
+        "lower_arm/jaw": 0.05702926414162418
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556702613831,
+          0.8587770462036133,
+          -0.1700635403394699,
+          0.9853894114494324,
+          0.009019418619573116,
+          0.0021461148280650377
+        ],
+        "upper_arm": [
+          0.7092790007591248,
+          -0.5960888862609863,
+          0.9128779768943787,
+          0.6844446659088135,
+          -0.15170006453990936,
+          -0.3787824213504791,
+          -0.6041907072067261
+        ],
+        "lower_arm": [
+          0.6528227925300598,
+          -0.617968738079071,
+          1.0118223428726196,
+          0.061136454343795776,
+          -0.6983837485313416,
+          -0.6901286840438843,
+          0.17956854403018951
+        ],
+        "wrist": [
+          0.7788594961166382,
+          -0.5728062391281128,
+          0.9944974184036255,
+          -0.32374367117881775,
+          0.6218258738517761,
+          0.7063135504722595,
+          0.09820248931646347
+        ],
+        "gripper": [
+          0.8058688044548035,
+          -0.5430853366851807,
+          0.9450201988220215,
+          -0.03351235017180443,
+          0.30243349075317383,
+          -0.24072636663913727,
+          -0.921662449836731
+        ],
+        "jaw": [
+          0.8239766359329224,
+          -0.513099730014801,
+          0.9359644055366516,
+          -0.657573938369751,
+          0.16025379300117493,
+          -0.4872910678386688,
+          -0.5517813563346863
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.1591134446171778,
+        "support_height_m": 0.10336558364240903,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "shoulder-back",
+      "target_deg": [
+        -45.0,
+        -85.0,
+        10.0,
+        55.0,
+        -65.0,
+        30.0
+      ],
+      "shown_physx_deg": [
+        -45.0,
+        -84.99999237060547,
+        10.0,
+        55.0,
+        -65.0,
+        30.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.1070051570442687,
+        "lower_arm": 0.1447097095569528,
+        "wrist": 0.2763588419912336,
+        "gripper": 0.2798219969099445,
+        "jaw": 0.2811901580770033
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.01860525126066062
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.03399960787675749,
+        "base/lower_arm": 0.06923083250308171,
+        "base/wrist": 0.1975346597341363,
+        "base/gripper": 0.19989923138098353,
+        "base/jaw": 0.20602177381213937,
+        "shoulder/lower_arm": 0.05693359305998058,
+        "shoulder/wrist": 0.1466219151137611,
+        "shoulder/gripper": 0.14269925510165482,
+        "shoulder/jaw": 0.1491450778521306,
+        "upper_arm/wrist": 0.10429045285828009,
+        "upper_arm/gripper": 0.1132578638872157,
+        "upper_arm/jaw": 0.12322505603198664,
+        "lower_arm/gripper": 0.03770252531242829,
+        "lower_arm/jaw": 0.04844815819148124
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556106567383,
+          0.8587769865989685,
+          -0.9384039640426636,
+          0.3454156219959259,
+          0.002651254879310727,
+          0.008884093724191189
+        ],
+        "upper_arm": [
+          0.6632170677185059,
+          -0.5554395318031311,
+          0.9135767817497253,
+          0.2713557481765747,
+          0.6586252450942993,
+          -0.6673797965049744,
+          -0.21721644699573517
+        ],
+        "lower_arm": [
+          0.7466959953308105,
+          -0.6272489428520203,
+          0.9500553607940674,
+          0.6789606213569641,
+          0.2154844105243683,
+          -0.5953802466392517,
+          0.37161946296691895
+        ],
+        "wrist": [
+          0.7237845063209534,
+          -0.6103084087371826,
+          1.0820140838623047,
+          -0.5827380418777466,
+          -0.40967968106269836,
+          0.6795729398727417,
+          -0.1753842979669571
+        ],
+        "gripper": [
+          0.6683117151260376,
+          -0.5872550010681152,
+          1.1032776832580566,
+          -0.44791996479034424,
+          -0.6896177530288696,
+          0.07029034197330475,
+          -0.5646718144416809
+        ],
+        "jaw": [
+          0.6654549241065979,
+          -0.551203191280365,
+          1.1022075414657593,
+          -0.8049578666687012,
+          -0.23769047856330872,
+          0.49766090512275696,
+          -0.2188146561384201
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.08711491100336997,
+        "support_height_m": 0.3408211295171207,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "shoulder-forward",
+      "target_deg": [
+        35.0,
+        50.0,
+        -65.0,
+        -35.0,
+        65.0,
+        40.0
+      ],
+      "shown_physx_deg": [
+        35.0,
+        50.0,
+        -65.0,
+        -35.0,
+        65.0,
+        40.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.10700544080664634,
+        "lower_arm": 0.15791547097003947,
+        "wrist": 0.19785379742078926,
+        "gripper": 0.23752835839234665,
+        "jaw": 0.27099649949088134
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605378629771026
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.045912705748827214,
+        "base/lower_arm": 0.09224232660619147,
+        "base/wrist": 0.22899759433855416,
+        "base/gripper": 0.30109518462691776,
+        "base/jaw": 0.2441246227969619,
+        "shoulder/lower_arm": 0.0797044959863179,
+        "shoulder/wrist": 0.18995596412889815,
+        "shoulder/gripper": 0.2587851991347264,
+        "shoulder/jaw": 0.26910065690639595,
+        "upper_arm/wrist": 0.09156999211114492,
+        "upper_arm/gripper": 0.1568163606852383,
+        "upper_arm/jaw": 0.17107831175466637,
+        "lower_arm/gripper": 0.04216573291329895,
+        "lower_arm/jaw": 0.052483308972791076
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556702613831,
+          0.8587770462036133,
+          -0.49683040380477905,
+          0.8677981495857239,
+          0.007741527631878853,
+          0.005101507529616356
+        ],
+        "upper_arm": [
+          0.7056642770767212,
+          -0.5721001029014587,
+          0.9133177995681763,
+          0.5415171384811401,
+          -0.4500841498374939,
+          -0.7006856799125671,
+          0.11499080806970596
+        ],
+        "lower_arm": [
+          0.7583737373352051,
+          -0.4831717610359192,
+          0.9659435153007507,
+          0.4312639832496643,
+          -0.5566218495368958,
+          -0.6591876745223999,
+          0.26392239332199097
+        ],
+        "wrist": [
+          0.8236139416694641,
+          -0.3727210760116577,
+          1.0080080032348633,
+          -0.6928649544715881,
+          -0.12551774084568024,
+          0.5384803414344788,
+          0.462841659784317
+        ],
+        "gripper": [
+          0.8278335928916931,
+          -0.33056211471557617,
+          1.055606722831726,
+          -0.6352649927139282,
+          0.6962145566940308,
+          -0.09559457004070282,
+          -0.3202894330024719
+        ],
+        "jaw": [
+          0.8178948163986206,
+          -0.3312737047672272,
+          1.090388298034668,
+          -0.4896737337112427,
+          0.6301844716072083,
+          -0.44995325803756714,
+          0.400785893201828
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.34009867673117034,
+        "support_height_m": 0.30296946913300227,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "elbow-forward",
+      "target_deg": [
+        -25.0,
+        -5.0,
+        60.0,
+        -65.0,
+        -35.0,
+        50.0
+      ],
+      "shown_physx_deg": [
+        -25.0,
+        -5.0,
+        60.0,
+        -65.0,
+        -35.0,
+        50.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.10700535268708733,
+        "lower_arm": 0.11231935574795403,
+        "wrist": 0.11406625845455977,
+        "gripper": 0.10558081561979568,
+        "jaw": 0.10283986169157279
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605349286742935
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.03399975299972591,
+        "base/lower_arm": 0.07903819824488018,
+        "base/wrist": 0.07941816519627165,
+        "base/gripper": 0.15151578587342135,
+        "base/jaw": 0.16324470979877292,
+        "shoulder/lower_arm": 0.04313589360139514,
+        "shoulder/wrist": 0.06576590145063432,
+        "shoulder/gripper": 0.1378634520807825,
+        "shoulder/jaw": 0.14818054965931504,
+        "upper_arm/wrist": 0.0480576564964913,
+        "upper_arm/gripper": 0.11361057164133537,
+        "upper_arm/jaw": 0.13114364771868992,
+        "lower_arm/gripper": 0.04065382035617887,
+        "lower_arm/jaw": 0.05097075044647542
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745748519897461,
+          -0.5880556106567383,
+          0.8587770462036133,
+          -0.8641667366027832,
+          0.5031200051307678,
+          0.0041536688804626465,
+          0.008288758806884289
+        ],
+        "upper_arm": [
+          0.6753984689712524,
+          -0.5536048412322998,
+          0.9136250019073486,
+          0.6769119501113892,
+          0.21647943556308746,
+          -0.6885299682617188,
+          0.14440637826919556
+        ],
+        "lower_arm": [
+          0.6663382053375244,
+          -0.5400031805038452,
+          1.0284680128097534,
+          0.38429975509643555,
+          -0.5978184938430786,
+          -0.03871758654713631,
+          0.7024440169334412
+        ],
+        "wrist": [
+          0.6261592507362366,
+          -0.4670327305793762,
+          0.9222323298454285,
+          -0.666824996471405,
+          -0.24579991400241852,
+          0.6941736936569214,
+          -0.11423584073781967
+        ],
+        "gripper": [
+          0.5806993246078491,
+          -0.42384469509124756,
+          0.9335907697677612,
+          -0.6534966826438904,
+          -0.4091399013996124,
+          0.026202918961644173,
+          -0.6362860202789307
+        ],
+        "jaw": [
+          0.5934067964553833,
+          -0.3910379707813263,
+          0.9420334100723267,
+          -0.9410009384155273,
+          0.14002656936645508,
+          0.28413644433021545,
+          -0.11906518042087555
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.2665088131889201,
+        "support_height_m": 0.17105023477067402,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "wrist-up",
+      "target_deg": [
+        55.0,
+        -15.0,
+        -25.0,
+        65.0,
+        35.0,
+        60.0
+      ],
+      "shown_physx_deg": [
+        55.0,
+        -15.0,
+        -25.0,
+        65.0,
+        35.0,
+        60.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.10700541729687804,
+        "lower_arm": 0.22298676342613344,
+        "wrist": 0.28597991230594305,
+        "gripper": 0.2476007271740706,
+        "jaw": 0.27631580518494725
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605314878254675
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.03230310219128374,
+        "base/lower_arm": 0.14377717602664275,
+        "base/wrist": 0.24301993350229634,
+        "base/gripper": 0.20008896390467257,
+        "base/jaw": 0.20066923620134097,
+        "shoulder/lower_arm": 0.08657709612909414,
+        "shoulder/wrist": 0.19524916434092787,
+        "shoulder/gripper": 0.16778259685264374,
+        "shoulder/jaw": 0.2087911323010424,
+        "upper_arm/wrist": 0.09060695132309993,
+        "upper_arm/gripper": 0.12818189230102006,
+        "upper_arm/jaw": 0.15754323002471793,
+        "lower_arm/gripper": 0.0374817128161018,
+        "lower_arm/jaw": 0.0482262216183465
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556106567383,
+          0.8587769865989685,
+          -0.3385910987854004,
+          0.9408879280090332,
+          0.008509757928550243,
+          0.003679709043353796
+        ],
+        "upper_arm": [
+          0.7095869183540344,
+          -0.5837758779525757,
+          0.9131062626838684,
+          0.6703850626945496,
+          -0.2093394696712494,
+          -0.5965573787689209,
+          -0.38843265175819397
+        ],
+        "lower_arm": [
+          0.7078416347503662,
+          -0.5872535109519958,
+          1.029041051864624,
+          0.45291802287101746,
+          -0.5367536544799805,
+          -0.7118360996246338,
+          -0.007069408427923918
+        ],
+        "wrist": [
+          0.7848021984100342,
+          -0.5252245664596558,
+          1.1209895610809326,
+          -0.5583575367927551,
+          0.42600008845329285,
+          0.6934325098991394,
+          0.1609727144241333
+        ],
+        "gripper": [
+          0.8159754872322083,
+          -0.47552013397216797,
+          1.0961195230484009,
+          -0.4026036858558655,
+          0.3638535439968109,
+          0.11625566333532333,
+          -0.8318687081336975
+        ],
+        "jaw": [
+          0.8447650671005249,
+          -0.4594537913799286,
+          1.111021637916565,
+          -0.5862131714820862,
+          0.7304574847221375,
+          -0.30339014530181885,
+          -0.17532922327518463
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.2416544358170814,
+        "support_height_m": 0.29888095160956896,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    },
+    {
+      "name": "wrist-down",
+      "target_deg": [
+        -55.0,
+        15.0,
+        -45.0,
+        -45.0,
+        -15.0,
+        70.0
+      ],
+      "shown_physx_deg": [
+        -55.0,
+        15.0,
+        -45.0,
+        -45.0,
+        -15.0,
+        70.0
+      ],
+      "status": "OK",
+      "reasons": [],
+      "margin_m": 0.02,
+      "table_clearance_m": {
+        "upper_arm": 0.10700525263352101,
+        "lower_arm": 0.20849266000347516,
+        "wrist": 0.28044732114317555,
+        "gripper": 0.3473931954329089,
+        "jaw": 0.35706220020939333
+      },
+      "exempt_table_clearance_m": {
+        "base": 5.047674545994793e-06,
+        "shoulder": 0.018605239313607323
+      },
+      "self_clearance_lower_bound_m": {
+        "base/upper_arm": 0.025677580327475358,
+        "base/lower_arm": 0.12949689591557112,
+        "base/wrist": 0.237315205659828,
+        "base/gripper": 0.3094128442498282,
+        "base/jaw": 0.30995249731268437,
+        "shoulder/lower_arm": 0.07229699270488188,
+        "shoulder/wrist": 0.18455703476494612,
+        "shoulder/gripper": 0.25665464293412166,
+        "shoulder/jaw": 0.2682411047636656,
+        "upper_arm/wrist": 0.08932325890636328,
+        "upper_arm/gripper": 0.14156524120523506,
+        "upper_arm/jaw": 0.15315202293122598,
+        "lower_arm/gripper": 0.041078878322772905,
+        "lower_arm/jaw": 0.052665679811361055
+      },
+      "method": "collision convex hulls transformed by PhysX; OBB/SAT broad phase and GJK separating-plane clearance lower bound",
+      "exempt_adjacent_pairs": [
+        "base/shoulder",
+        "gripper/jaw",
+        "gripper/wrist",
+        "jaw/wrist",
+        "lower_arm/upper_arm",
+        "lower_arm/wrist",
+        "shoulder/upper_arm"
+      ],
+      "mounted_table_exemptions": [
+        "base",
+        "shoulder"
+      ],
+      "mechanical_interface_exemptions": [
+        [
+          "wrist",
+          "jaw"
+        ]
+      ],
+      "physx_link_transforms_xyzw": {
+        "base": [
+          0.697253406047821,
+          -0.6076356768608093,
+          0.7635428309440613,
+          -0.0009490876691415906,
+          -0.00922235008329153,
+          0.9991573691368103,
+          -0.03998761996626854
+        ],
+        "shoulder": [
+          0.6745747923851013,
+          -0.5880556702613831,
+          0.8587769865989685,
+          -0.9649379849433899,
+          0.26231396198272705,
+          0.0018668757984414697,
+          0.009081335738301277
+        ],
+        "upper_arm": [
+          0.6575497984886169,
+          -0.5579111576080322,
+          0.9135244488716125,
+          0.6585217118263245,
+          0.2731710374355316,
+          -0.5596590638160706,
+          0.4225026071071625
+        ],
+        "lower_arm": [
+          0.6089828610420227,
+          -0.5313506722450256,
+          1.0154645442962646,
+          0.7129327058792114,
+          0.000370424852008,
+          -0.3553716540336609,
+          0.6045143604278564
+        ],
+        "wrist": [
+          0.5103926062583923,
+          -0.47486093640327454,
+          1.0883612632751465,
+          -0.2724841833114624,
+          -0.6588062644004822,
+          0.694493293762207,
+          0.09698398411273956
+        ],
+        "gripper": [
+          0.48752331733703613,
+          -0.4835544526576996,
+          1.1472022533416748,
+          -0.7898067831993103,
+          -0.6001406311988831,
+          -0.05552712827920914,
+          -0.11381323635578156
+        ],
+        "jaw": [
+          0.5053834915161133,
+          -0.4662730097770691,
+          1.1734968423843384,
+          -0.7893262505531311,
+          -0.0132908895611763,
+          0.5896259546279907,
+          0.17067083716392517
+        ]
+      },
+      "table_plane": {
+        "point": [
+          -0.0009317593895543654,
+          -0.01487668142443033,
+          0.8037859940564143
+        ],
+        "normal": [
+          -0.0011590139937130049,
+          -0.01850507989962041,
+          0.9998280945764982
+        ],
+        "source": "upper support plane of the room Tabletop mesh, with measured real_setup.json table normal"
+      },
+      "hand_hold": {
+        "plausible": true,
+        "support_force_n": 4.757908804351465,
+        "support_reach_m": 0.23220832065333633,
+        "support_height_m": 0.40902481318145273,
+        "rule": "supported arm: total moving weight and gripper support point within configured reach/height"
+      }
+    }
+  ],
+  "all_ok": true,
+  "no_robot": true,
+  "camera": "camera_realsense_rgb (same pose, focal scale 0.35 for full-arm reference view)",
+  "contact_sheet": "outputs/calibration-check/preview-verified/contact-sheet.png"
+}

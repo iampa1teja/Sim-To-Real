@@ -181,8 +181,8 @@ def _stats(gap, real):
     return result
 
 
-def summarize(path, thresholds=None, *, allow_empty=False):
-    """Recompute stillness and all three linear gaps, and write both summary files."""
+def gap_data(path, thresholds=None, *, allow_empty=False):
+    """Recompute stillness, limits and gaps from the unchanged raw JSONL schema."""
     path = Path(path)
     with path.open(encoding="utf-8") as stream:
         records = [json.loads(line) for line in stream if line.strip()]
@@ -215,28 +215,43 @@ def summarize(path, thresholds=None, *, allow_empty=False):
     real_values = np.asarray(reals).reshape(shape)
     still, at_limit = np.asarray(still, dtype=bool).reshape(shape), np.asarray(at_limit, dtype=bool).reshape(shape)
     gaps = {key: np.asarray(value).reshape(shape) for key, value in gap_rows.items()}
+    return header, thresholds, order, real_values, still, at_limit, gaps
+
+
+def tracking_verdict(stats, thresholds):
+    value = stats["mean_abs_deg"]
+    return ("NO_DATA" if value is None else "PASS" if value <= thresholds.pass_deg + 1e-12
+            else "WARN" if value <= thresholds.warn_deg + 1e-12 else "FAIL")
+
+
+def summarize(path, thresholds=None, *, allow_empty=False, write=True):
+    """Summarize tracking only; these verdicts never establish calibration."""
+    header, thresholds, order, real_values, still, at_limit, gaps = gap_data(path, thresholds, allow_empty=allow_empty)
+    frame_count = len(real_values)
     joints = {}
     for i, name in enumerate(order):
         mask = still[:, i] & ~at_limit[:, i]
         filtered = {key: _stats(value[mask, i], real_values[mask, i]) for key, value in gaps.items()}
-        mean_abs = filtered[GAPS[0]]["mean_abs_deg"]
-        verdict = ("NO_DATA" if mean_abs is None else "PASS" if mean_abs <= thresholds.pass_deg
-                   else "WARN" if mean_abs <= thresholds.warn_deg else "FAIL")
         joints[name] = dict(all_frames={key: _stats(value[:, i], real_values[:, i]) for key, value in gaps.items()},
-                            static_not_at_limit=filtered, verdict=verdict,
-                            counts=dict(total=len(rows), used=int(mask.sum()), excluded_at_limit=int(at_limit[:, i].sum()),
+                            static_not_at_limit=filtered,
+                            static_frames={key: _stats(value[still[:, i], i], real_values[still[:, i], i])
+                                           for key, value in gaps.items()},
+                            real_tracking_verdict=tracking_verdict(filtered[GAPS[1]], thresholds),
+                            sim_tracking_verdict=tracking_verdict(filtered[GAPS[2]], thresholds),
+                            counts=dict(total=frame_count, used=int(mask.sum()), excluded_at_limit=int(at_limit[:, i].sum()),
                                         excluded_moving=int((~still[:, i]).sum()),
                                         excluded_either=int((~mask).sum()),
                                         suspected_branch_error=int(np.any([abs(v[:, i]) > 180 for v in gaps.values()], axis=0).sum())))
-    result = dict(schema_version=1, frames=len(rows), provenance=header, thresholds=asdict(thresholds),
+    result = dict(schema_version=2, frames=frame_count, provenance=header, thresholds=asdict(thresholds),
                   joints={key: value for key, value in joints.items() if key != "gripper"},
                   gripper=joints.get("gripper"), limitation=LIMITATION, interpretation=INTERPRETATION,
                   notes=["Exclusion counts overlap; startup window frames count as moving/unknown.",
                          "Slope near 0 is consistent with a constant gap; near -2 suggests sign inversion; "
                          "other slopes suggest span/scale mismatch. Insufficient angle coverage gives null slope.",
                          "Gripper is separate: its closed anchor is unresolved in real_setup.json."])
-    Path(str(path) + ".summary.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
-    write_markdown(result, Path(str(path) + ".summary.md"))
+    if write:
+        Path(str(path) + ".summary.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        write_markdown(result, Path(str(path) + ".summary.md"))
     return result
 
 
@@ -245,24 +260,24 @@ def write_markdown(summary, path):
     def number(value):
         return "—" if value is None else f"{value:.3f}"
 
-    text = ["# Sim-vs-real calibration check", "", f"Frames: {summary['frames']}", "",
+    text = ["# Sim-vs-real tracking check — NOT a calibration verdict", "", f"Frames: {summary['frames']}", "",
             summary["interpretation"], "", summary["limitation"], "",
-            "Verdicts use mean absolute sim−real gap on static, not-at-limit frames. "
+            "Real-tracking and sim-tracking verdicts use their respective mean absolute gaps on static, not-at-limit frames. "
             f"PASS ≤ {summary['thresholds']['pass_deg']:g}°; WARN ≤ {summary['thresholds']['warn_deg']:g}°; "
             "FAIL above WARN; NO_DATA means no qualifying frames.", ""]
     groups = (("Body joints", summary["joints"]),
               ("Gripper (closed anchor unresolved)", {"gripper": summary["gripper"]} if summary["gripper"] else {}))
     for label, joints in groups:
-        text.extend([f"## {label}", "", "| Joint | Verdict | Used | At limit | Moving/unknown | >180° |",
-                     "| --- | --- | ---: | ---: | ---: | ---: |"])
+        text.extend([f"## {label}", "", "| Joint | Real-tracking | Sim-tracking | Used | At limit | Moving/unknown | >180° |",
+                     "| --- | --- | --- | ---: | ---: | ---: | ---: |"])
         for name, result in joints.items():
             count = result["counts"]
-            text.append(f"| {name} | {result['verdict']} | {count['used']} | {count['excluded_at_limit']} | "
+            text.append(f"| {name} | {result['real_tracking_verdict']} | {result['sim_tracking_verdict']} | {count['used']} | {count['excluded_at_limit']} | "
                         f"{count['excluded_moving']} | {count['suspected_branch_error']} |")
         for subset in ("all_frames", "static_not_at_limit"):
             text.extend(["", f"### {subset.replace('_', ' ')}", "",
                          "| Joint | Gap | n | Mean signed ° | Mean abs ° | Median ° | Std ° | p95 abs ° | Max abs ° | Slope | Corr |",
-                         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"])
+                         "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"])
             for name, result in joints.items():
                 for gap, stats in result[subset].items():
                     columns = " | ".join(number(stats[key]) for key in (
@@ -274,16 +289,10 @@ def write_markdown(summary, path):
     Path(path).write_text("\n".join(text), encoding="utf-8")
 
 
-def reference_poses(joint_order, runtime_limits):
-    """Return zero plus five distinct targets spanning the interior of each range."""
-    bounds = _bounds(runtime_limits, len(joint_order))
-    if np.any(bounds[:, 0] >= 0) or np.any(bounds[:, 1] <= 0):
-        raise ValueError("All-zero reference must be inside every runtime limit")
-    poses = [("all-zero", np.zeros(len(joint_order)))]
-    for index, fraction in enumerate(np.linspace(0.15, 0.85, 5)):
-        pose = bounds[:, 0] + fraction * (bounds[:, 1] - bounds[:, 0])
-        poses.append((f"interior-{index + 1}", pose))
-    return poses
+def reference_poses(joint_order, runtime_limits, path=None):
+    """Read the versioned, previewed operator reference poses."""
+    from .calibration_poses import POSE_SET_PATH, load_pose_set
+    return load_pose_set(joint_order, runtime_limits, path or POSE_SET_PATH)[0]
 
 
 def pose_measurement(name, target_deg, samples, mapping, joint_order, runtime_limits):
@@ -296,7 +305,8 @@ def pose_measurement(name, target_deg, samples, mapping, joint_order, runtime_li
     bounds = _bounds(runtime_limits, len(joint_order))
     std = observations.std(axis=0, ddof=1)
     gap = real - target
-    return dict(name=name, accepted=bool(np.all(std <= 0.3)), samples=samples,
+    return dict(name=name, accepted=bool(all(std[i] <= .3 for i, joint in enumerate(joint_order) if joint != "gripper")),
+                joint_accepted={joint: bool(std[i] <= .3) for i, joint in enumerate(joint_order)}, samples=samples,
                 target_deg=target.tolist(), real_deg=real.tolist(), real_minus_target_deg=gap.tolist(),
                 suspected_branch_error=(abs(gap) > 180).tolist(),
                 offsets_degrees={joint: float(-gap[i]) for i, joint in enumerate(joint_order) if joint != "gripper"},

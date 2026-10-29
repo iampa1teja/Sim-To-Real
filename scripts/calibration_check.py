@@ -16,6 +16,7 @@ from sim_to_real_so101.utils.calibration_check import (
 )
 from sim_to_real_so101.utils.joint_calibration import FOLLOWER_JOINTS, resolve_calibration
 from sim_to_real_so101.utils.joint_angle_display import JointAngleTable
+from sim_to_real_so101.utils.calibration_poses import POSE_SET_PATH, PoseThresholds, load_pose_set, summarize_poses
 
 
 def build_parser():
@@ -31,9 +32,17 @@ def build_parser():
     watch = modes.add_parser("watch", help="Show a fixed live table; Ctrl-C stops this observer only")
     watch.add_argument("--log", type=Path, required=True)
     poses = modes.add_parser("poses", help="Operator-started reference-pose session (requires Isaac/LeRobot)")
-    poses.add_argument("--log", type=Path, required=True, help="NEW pose evidence JSONL; never overwritten")
+    poses.add_argument("--log", type=Path, help="NEW pose evidence JSONL; never overwritten")
+    poses.add_argument("--preview", action="store_true", help="Isaac-only clearance checks and room-camera contact sheet")
+    poses.add_argument("--headless", action="store_true", help="Render without a display (also usable for preview)")
+    poses.add_argument("--output", type=Path, default=ROOT / "outputs/calibration-check/preview")
+    poses.add_argument("--pose-set", type=Path, default=POSE_SET_PATH)
+    poses.add_argument("--pose-pass-deg", type=float, default=1.)
+    poses.add_argument("--pose-warn-deg", type=float, default=2.)
+    poses.add_argument("--pose-spread-deg", type=float, default=1.)
+    poses.add_argument("--pose-min-poses", type=int, default=5)
     poses.add_argument("--follower-port", default=os.environ.get("ROBOT_PORT"))
-    poses.add_argument("--follower-id", default=os.environ.get("ROBOT_ID"))
+    poses.add_argument("--follower-id", "--follower_id", default=os.environ.get("ROBOT_ID"))
     poses.add_argument("--supported", action="store_true", help="Confirm the real arm is physically supported with torque off")
     poses.add_argument("--task", default="Lerobot-So101-Teleop-MyRoom")
     poses.add_argument("--device", default="cuda:0")
@@ -82,7 +91,7 @@ class PoseRenderer:
         from isaaclab.app import AppLauncher
 
         self.env = None
-        self.app = AppLauncher(headless=False, device=args.device, enable_cameras=True).app
+        self.app = AppLauncher(headless=args.headless, device=args.device, enable_cameras=True).app
         try:
             import gymnasium as gym
             import torch
@@ -95,18 +104,28 @@ class PoseRenderer:
             cfg = parse_env_cfg(args.task, device=args.device, num_envs=1, use_fabric=True)
             if cfg.sim_joint_mapping != selection.mapping:
                 raise ValueError("Rendered environment differs from the selected calibration")
+            # Widen only this reference renderer's room camera, preserving its
+            # calibrated location/orientation and all production task defaults.
+            camera = cfg.scene.camera_realsense_rgb.spawn
+            camera.intrinsics = dict(camera.intrinsics)
+            for key in ("fx", "fy"):
+                camera.intrinsics[key] *= .35
+            camera.focal_length *= .35
             self.env = gym.make(args.task, cfg=cfg)
             self.env.reset()
             self.robot = self.env.unwrapped.scene["robot"]
             self.joint_ids = [self.robot.joint_names.index(name) for name in USD_JOINTS]
             self.torch = torch
         except BaseException:
-            self.close()
+            import traceback
+            traceback.print_exc()
+            self.close(exit_code=1)
             raise
 
     def show(self, name, target):
         q = self.torch.deg2rad(self.torch.tensor(target, device=self.env.unwrapped.device, dtype=self.torch.float32))[None, :]
         self.robot.write_joint_state_to_sim(q, self.torch.zeros_like(q), joint_ids=self.joint_ids)
+        self.env.unwrapped.sim.forward()
         self.render_for(.1)
         actual = self.robot.root_physx_view.get_dof_positions()[0, self.joint_ids].detach().cpu().numpy()
         actual = actual * 180 / self.torch.pi
@@ -138,7 +157,8 @@ class PoseRenderer:
         if answers.get().strip().lower() in {"q", "quit", "exit"}:
             raise KeyboardInterrupt
 
-    def close(self):
+    def close(self, exit_code=0):
+        self.app._app.post_quit(exit_code)
         try:
             if self.env is not None:
                 self.env.close()
@@ -146,10 +166,10 @@ class PoseRenderer:
             self.app.close()
 
 
-def run_pose_session(robot, selection, renderer, stream, *, supported):
+def run_pose_session(robot, selection, renderer, stream, *, supported, pose_set=POSE_SET_PATH, thresholds=None):
     """Collect operator matches through the guarded session, including finalization."""
     from sim_to_real_so101.utils.joint_angle_check import (
-        observation_only_session, sample_pose, summarize_candidates,
+        observation_only_session, sample_pose,
     )
     from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
 
@@ -159,7 +179,7 @@ def run_pose_session(robot, selection, renderer, stream, *, supported):
     measurements, evidence = [], {}
     try:
         with observation_only_session(robot, selection.follower_path, evidence, supported=supported) as reader:
-            for name, target in reference_poses(FOLLOWER_JOINTS, limits):
+            for name, target in reference_poses(FOLLOWER_JOINTS, limits, pose_set):
                 shown = renderer.show(name, target)
                 renderer.wait_for_match()
                 samples = sample_pose(reader, sleep=renderer.render_for)
@@ -169,20 +189,45 @@ def run_pose_session(robot, selection, renderer, stream, *, supported):
                 stream.write(json.dumps(dict(type="pose", **measurement), allow_nan=False) + "\n")
                 print("Accepted" if measurement["accepted"] else "Rejected: motion exceeded 0.3 normalized units std", flush=True)
     finally:
-        result = summarize_candidates(measurements, pan_reference="operator visually matching rendered poses")
+        result = summarize_poses(measurements, thresholds)
+        result["applied"] = False
         result.update(limitation=LIMITATION, connection_evidence=evidence,
                       measurements=measurements, real_minus_target_sign="measurement", candidate_sign="target minus real; additive to mapping")
         stream.write(json.dumps(dict(type="pose_summary", **result), allow_nan=False) + "\n")
         for name, joint in result["joints"].items():
-            print(f"{name}: candidate={joint['offset_degrees']}° spread={joint['spread_degrees']}° "
-                  f"poses={joint['poses']} {joint['status']} (applied=false)", flush=True)
+            print(f"{name}: real-target median={joint['median_offset_deg']}° spread={joint['spread_deg']}° "
+                  f"poses={joint['accepted_poses']} {joint['verdict']} {joint['reason']}", flush=True)
+        print(f"Calibration: {result['decision']} (gripper never blocks; applied=false)", flush=True)
         Path(str(stream.name) + ".candidates.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     return result
 
 
 def poses(args, parser):
-    if not args.supported or not args.follower_port or not args.follower_id:
-        parser.error("poses requires --supported, --follower-port / ROBOT_PORT and --follower-id / ROBOT_ID")
+    from dataclasses import asdict
+    from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
+
+    bounds = runtime_joint_limits()
+    limits = [[bounds[n]["joint_min"], bounds[n]["joint_max"]] for n in FOLLOWER_JOINTS]
+    references, pose_identity = load_pose_set(FOLLOWER_JOINTS, limits, args.pose_set)
+    thresholds = PoseThresholds(args.pose_pass_deg, args.pose_warn_deg, args.pose_spread_deg, args.pose_min_poses)
+    if args.preview:
+        from sim_to_real_so101.utils.calibration_preview import preview
+        renderer = PoseRenderer(args, resolve_calibration())
+        exit_code = 1
+        try:
+            result = preview(renderer, references, pose_identity, args.output)
+            exit_code = 0 if result["all_ok"] else 1
+        except BaseException:
+            import traceback
+            traceback.print_exc()
+            raise
+        finally:
+            renderer.close(exit_code=exit_code)
+        if not result["all_ok"]:
+            raise SystemExit(1)
+        return
+    if not args.supported or not args.follower_port or not args.follower_id or not args.log:
+        parser.error("poses requires --supported, --log, --follower-port / ROBOT_PORT and --follower-id / ROBOT_ID")
     from sim_to_real_so101.utils.joint_angle_check import make_observation_only_robot, telemetry_provenance
 
     selection = resolve_calibration(follower_id=args.follower_id)
@@ -190,12 +235,15 @@ def poses(args, parser):
     renderer = None
     args.log.parent.mkdir(parents=True, exist_ok=True)
     with args.log.open("x", encoding="utf-8", buffering=1) as stream:
-        header = telemetry_provenance(selection, type="provenance", mode="operator_poses", limitation=LIMITATION)
+        header = telemetry_provenance(selection, type="provenance", mode="operator_poses", limitation=LIMITATION,
+                                      joint_order=list(FOLLOWER_JOINTS), runtime_limits=limits, pose_set=pose_identity,
+                                      pose_thresholds=asdict(thresholds))
         stream.write(json.dumps(header, allow_nan=False) + "\n")
         try:
             renderer = PoseRenderer(args, selection)
             robot = make_observation_only_robot(args.follower_port, args.follower_id, selection.follower_path)
-            run_pose_session(robot, selection, renderer, stream, supported=args.supported)
+            run_pose_session(robot, selection, renderer, stream, supported=args.supported,
+                             pose_set=args.pose_set, thresholds=thresholds)
         except KeyboardInterrupt:
             print("Pose session stopped. Motors remain off; no offset was applied.", flush=True)
         finally:
@@ -221,7 +269,7 @@ def main(argv=None):
         for name, joint in {**result["joints"], **({"gripper": result["gripper"]} if result["gripper"] else {})}.items():
             gap = joint["static_not_at_limit"]["sim_minus_real_deg"]
             print(f"{name}: mean={gap['mean_signed_deg']}° mean_abs={gap['mean_abs_deg']}° "
-                  f"n={gap['count']} {joint['verdict']}")
+                  f"n={gap['count']} real-tracking={joint['real_tracking_verdict']} sim-tracking={joint['sim_tracking_verdict']}")
         print(f"Reports: {args.log}.summary.json and {args.log}.summary.md")
 
 

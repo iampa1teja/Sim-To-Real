@@ -61,8 +61,8 @@ def test_known_offsets_tracking_breakdown_verdicts_and_markdown(tmp_path):
             assert joint[scope][GAPS[1]]["mean_signed_deg"] == pytest.approx(1.)
             assert joint[scope][GAPS[2]]["mean_signed_deg"] == pytest.approx(1.)
         assert joint["counts"]["used"] == 27
-    assert [j["verdict"] for j in result["joints"].values()] == ["PASS", "WARN", "FAIL", "PASS", "WARN"]
-    assert "gripper" not in result["joints"] and result["gripper"]["verdict"] == "FAIL"
+    assert all(j["real_tracking_verdict"] == j["sim_tracking_verdict"] == "PASS" for j in result["joints"].values())
+    assert "gripper" not in result["joints"] and result["gripper"]["real_tracking_verdict"] == "PASS"
     assert json.loads(Path(str(path) + ".summary.json").read_text()) == result == trace.summary
     markdown = Path(str(path) + ".summary.md").read_text()
     assert LIMITATION in markdown and "Gripper (closed anchor unresolved)" in markdown
@@ -89,9 +89,9 @@ def test_excludes_limits_and_motion_per_joint_and_uses_both_velocities(tmp_path)
     assert joints["shoulder_pan"]["counts"]["excluded_at_limit"] == 30
     for name in FOLLOWER_JOINTS[:3]:
         assert joints[name]["counts"]["used"] == 0
-        assert joints[name]["verdict"] == "NO_DATA"
+        assert joints[name]["sim_tracking_verdict"] == "NO_DATA"
     assert joints["wrist_flex"]["counts"]["used"] == 27
-    assert joints["wrist_flex"]["verdict"] == "PASS"
+    assert joints["wrist_flex"]["sim_tracking_verdict"] == "PASS"
 
 
 def test_a_clamped_target_is_flagged_even_if_readback_has_not_reached_it(tmp_path):
@@ -155,12 +155,12 @@ def test_offline_threshold_override_recomputes_stillness_and_verdict(tmp_path):
     path = tmp_path / "thresholds.jsonl"
     with logger(path) as trace:
         for i in range(30):
-            record(trace, i, real=np.ones(6) * i * .02, sim=np.ones(6) * (i * .02 + 2))
-    assert trace.summary["joints"]["shoulder_pan"]["verdict"] == "WARN"
+            record(trace, i, real=np.ones(6) * i * .02, sim=np.ones(6) * (i * .02 + 2), target=np.ones(6) * i * .02)
+    assert trace.summary["joints"]["shoulder_pan"]["sim_tracking_verdict"] == "WARN"
     result = summarize(path, Thresholds(static_velocity_deg_s=.1))
-    assert result["joints"]["shoulder_pan"]["verdict"] == "NO_DATA"
+    assert result["joints"]["shoulder_pan"]["sim_tracking_verdict"] == "NO_DATA"
     result = summarize(path, Thresholds(pass_deg=2.1))
-    assert result["joints"]["shoulder_pan"]["verdict"] == "PASS"
+    assert result["joints"]["shoulder_pan"]["sim_tracking_verdict"] == "PASS"
 
 
 def test_unset_environment_retains_current_mapping_and_stale_check():
@@ -253,9 +253,9 @@ def test_cli_offline_summary_watch_partial_lines_and_no_hardware_imports(tmp_pat
 def test_reference_poses_and_additive_candidates_do_not_wrap():
     from sim_to_real_so101.utils.joint_angle_check import summarize_candidates
 
-    limits = [[-100, 100]] * 6
+    limits = [[SETUP["runtime_joint_limits"][n]["joint_min"], SETUP["runtime_joint_limits"][n]["joint_max"]] for n in FOLLOWER_JOINTS]
     poses = reference_poses(FOLLOWER_JOINTS, limits)
-    assert len(poses) == 6 and not poses[0][1].any()
+    assert len(poses) == 8 and not poses[0][1].any()
     mapping = {name: {"joint_min": -100, "joint_max": 100} for name in FOLLOWER_JOINTS}
     results = []
     for name, target in poses:
@@ -263,11 +263,11 @@ def test_reference_poses_and_additive_candidates_do_not_wrap():
         units[-1] = 50
         samples = {"observations": [units.tolist()] * 30}
         result = pose_measurement(name, target, samples, mapping, FOLLOWER_JOINTS, limits)
-        assert result["real_minus_target_deg"][0] == 2
-        assert result["offsets_degrees"]["shoulder_pan"] == -2
+        assert result["real_minus_target_deg"][0] == pytest.approx(2)
+        assert result["offsets_degrees"]["shoulder_pan"] == pytest.approx(-2)
         results.append(result)
     candidates = summarize_candidates(results, pan_reference="visual reference")
-    assert all(j["status"] == "CONSISTENT" and j["offset_degrees"] == -2 for j in candidates["joints"].values())
+    assert all(j["status"] == "CONSISTENT" and j["offset_degrees"] == pytest.approx(-2) for j in candidates["joints"].values())
     duplicates = summarize_candidates([results[0]] * 6, pan_reference="visual reference")
     assert all(j["status"] == "UNRESOLVED" and j["poses"] == 1 for j in duplicates["joints"].values())
     samples = {"observations": [[360, 0, 0, 0, 0, 50]] * 30}
@@ -343,7 +343,7 @@ def test_pose_session_collects_six_poses_without_motor_or_calibration_writes(tmp
     log = tmp_path / "complete-poses.jsonl"
     with log.open("x", buffering=1) as stream:
         result = cli.run_pose_session(robot, selection, renderer, stream, supported=True)
-    assert len(result["measurements"]) == 6 and robot.count == 180
+    assert len(result["measurements"]) == 8 and robot.count == 240
     assert result["applied"] is False and not robot.bus.is_connected
     assert result["connection_evidence"]["calibration_unchanged"]
     assert path.read_bytes() == FIXTURE.read_bytes()
