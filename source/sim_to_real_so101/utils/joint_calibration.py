@@ -153,6 +153,8 @@ class CalibrationSelection:
             for name, sim, real, delta in rows:
                 lines.append(f"{name:17s} {sim['joint_min']:8.3f} {sim['joint_max']:8.3f}  "
                              f"{real['joint_min']:8.3f} {real['joint_max']:8.3f}  {delta[0]:+8.3f} {delta[1]:+8.3f}")
+            lines.append("Before the lock, select the new file for this session: "
+                         f"export SO101_FOLLOWER_CALIBRATION={loaded}")
             raise ValueError("\n".join(lines))
         # Check the in-memory normalization too, when the installed driver exposes it.
         calibration = getattr(robot, "calibration", None)

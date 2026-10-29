@@ -65,6 +65,7 @@ def relabel_dataset(source, destination, old_mapping, new_mapping):
             column = pa.array(values.tolist(), type=table.schema.field(name).type)
             table = table.set_column(table.schema.get_field_index(name), name, column)
         pq.write_table(table, path)
+
     def stats_value(value, stat):
         array = np.asarray(value, dtype=np.float64)
         if stat == "count":
