@@ -250,16 +250,25 @@ def poses(args, parser):
                                       joint_order=list(FOLLOWER_JOINTS), runtime_limits=limits, pose_set=pose_identity,
                                       pose_thresholds=asdict(thresholds))
         stream.write(json.dumps(header, allow_nan=False) + "\n")
+        exit_code = 1
         try:
             renderer = PoseRenderer(args, selection)
             robot = make_observation_only_robot(args.follower_port, args.follower_id, selection.follower_path)
             run_pose_session(robot, selection, renderer, stream, supported=args.supported,
                              pose_set=args.pose_set, thresholds=thresholds)
+            exit_code = 0
         except KeyboardInterrupt:
             print("Pose session stopped. Motors remain off; no offset was applied.", flush=True)
+            exit_code = 130
+        except BaseException:
+            # Closing the Isaac app ends the process, so report the error first.
+            import traceback
+            traceback.print_exc()
+            sys.stderr.flush()
+            raise
         finally:
             if renderer is not None:
-                renderer.close()
+                renderer.close(exit_code=exit_code)
 
 
 def main(argv=None):

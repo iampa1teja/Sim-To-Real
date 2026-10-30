@@ -225,6 +225,37 @@ def load_cli():
     return module
 
 
+def test_pose_session_reports_error_before_renderer_closes(tmp_path, monkeypatch, capsys):
+    from sim_to_real_so101.utils import joint_angle_check
+
+    cli = load_cli()
+    calls = []
+
+    class FakeRenderer:
+        def __init__(self, args, selection):
+            pass
+
+        def close(self, exit_code=0):
+            calls.append((exit_code, capsys.readouterr().err))
+
+    def fail_session(*args, **kwargs):
+        raise ValueError("mismatch")
+
+    monkeypatch.setattr(cli, "PoseRenderer", FakeRenderer)
+    monkeypatch.setattr(cli, "resolve_calibration", lambda **kwargs: resolve_calibration(environ={}))
+    monkeypatch.setattr(joint_angle_check, "make_observation_only_robot", lambda *args: object())
+    monkeypatch.setattr(cli, "run_pose_session", fail_session)
+    parser = cli.build_parser()
+    args = parser.parse_args(["poses", "--supported", "--follower-port", "unused", "--follower-id", "fake",
+                              "--log", str(tmp_path / "poses.jsonl")])
+    with pytest.raises(ValueError, match="mismatch"):
+        cli.poses(args, parser)
+    assert len(calls) == 1
+    assert calls[0][0] == 1
+    assert "Traceback (most recent call last)" in calls[0][1]
+    assert "ValueError: mismatch" in calls[0][1]
+
+
 def test_cli_offline_summary_watch_partial_lines_and_no_hardware_imports(tmp_path):
     cli = load_cli()
     path = tmp_path / "cli.jsonl"

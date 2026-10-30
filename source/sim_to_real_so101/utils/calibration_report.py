@@ -106,7 +106,11 @@ def make_plots(output, measurements, calibration, gap_path):
             values = gaps[key][still[:, i], i]
             values = values[np.isfinite(values)]
             if len(values):
-                ax.hist(values, bins=20, histtype="step", label=key.removesuffix("_deg"))
+                # A near-constant gap gives bins finer than float resolution; widen to at least 0.1°.
+                low, high = float(values.min()), float(values.max())
+                if high - low < .1:
+                    low, high = (low + high) / 2 - .05, (low + high) / 2 + .05
+                ax.hist(values, bins=20, range=(low, high), histtype="step", label=key.removesuffix("_deg"))
         ax.set(title=name, xlabel="Gap on still frames (°)", ylabel="Frames")
         if ax.patches:
             ax.legend(fontsize=7)

@@ -89,6 +89,30 @@ def synthetic_logs(tmp_path, offsets=None):
     return pose, gap
 
 
+def test_report_writes_both_plots_for_nearly_constant_gap(tmp_path):
+    try:
+        __import__("matplotlib")
+    except ImportError:
+        reason = "matplotlib is unavailable; PNG regression requires matplotlib"
+        print(reason)
+        pytest.skip(reason)
+    pose, _ = synthetic_logs(tmp_path)
+    header = json.loads(pose.read_text().splitlines()[0])
+    gap = tmp_path / "constant-gap.jsonl"
+    with CalibrationGapLogger(gap, joint_order=FOLLOWER_JOINTS, runtime_limits=[[-100, 100]] * 6,
+                              provenance=header) as log:
+        for i in range(30):
+            real = np.zeros(6)
+            sim = np.full(6, .5 + (i % 2) * 1e-16)
+            log.record(commanded_deg=real, real_deg=real, sim_deg=sim, sim_target_deg=sim,
+                       timestamp_ns=1_000_000_000 + i * 100_000_000)
+    output = tmp_path / "constant-report"
+    report = generate_report(pose, gap, output)
+    assert report["plots"]["status"] == "written"
+    for name in ("pose-offsets.png", "tracking-gaps.png"):
+        assert (output / name).read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+
+
 def test_report_from_synthetic_logs_and_plots(tmp_path):
     pose, gap = synthetic_logs(tmp_path, [3.] * 6)
     before = [file_sha256(p) for p in (pose, gap)]
