@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import hashlib
-import inspect
 import json
 from pathlib import Path
 import subprocess
@@ -70,10 +69,6 @@ def sample_pose(robot, *, sleep=time.sleep, clock=time.time_ns):
                 median=np.median(values, axis=0).tolist(), std=std.tolist(),
                 stable=bool(np.all(std <= STABILITY_LIMIT)),
                 rejected_joints=[name for name, spread in zip(FOLLOWER_JOINTS, std) if spread > STABILITY_LIMIT])
-
-
-def angular_delta(measured, expected):
-    return (np.asarray(measured) - np.asarray(expected) + 180) % 360 - 180
 
 
 def summarize_candidates(pose_results, *, pan_reference=None):
@@ -215,13 +210,6 @@ def observation_only_session(robot, calibration_path, evidence, *, supported=Fal
                 evidence['calibration_unchanged'] = evidence['calibration_sha256_before'] == evidence['calibration_sha256_after']
                 if not evidence['calibration_unchanged']:
                     raise RuntimeError('Calibration file changed during the read-only check')
-
-
-def driver_provenance(robot):
-    paths = {inspect.getsourcefile(type(robot)), inspect.getsourcefile(type(robot.bus))}
-    # Include the installed motor-bus base that implements torque_disabled().
-    paths.update(inspect.getsourcefile(cls) for cls in type(robot.bus).__mro__ if cls.__module__.startswith('lerobot.'))
-    return {str(path): sha256(path) for path in sorted(path for path in paths if path)}
 
 
 def telemetry_provenance(selection, **extra):

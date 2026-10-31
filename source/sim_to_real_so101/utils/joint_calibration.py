@@ -75,15 +75,6 @@ def sim_mapping_parameters(source=None):
             "wrist_roll_zero_offset_degrees": source.get("wrist_roll_zero_offset_degrees", 0.0)}
 
 
-def sim_gripper_closed_degrees():
-    """The retained/measured gripper anchor; this is not a joint limit."""
-    return sim_mapping_parameters()["gripper_closed_degrees"]
-
-
-def sim_wrist_roll_zero_offset_degrees():
-    return sim_mapping_parameters()["wrist_roll_zero_offset_degrees"]
-
-
 def file_sha256(path):
     """Hash input bytes without modifying the file."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
