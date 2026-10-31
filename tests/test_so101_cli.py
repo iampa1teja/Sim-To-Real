@@ -355,7 +355,7 @@ class MainTest(unittest.TestCase):
     def test_record_and_rollout_pass_flags_through(self):
         _, out, _, run = self.run_main(["rollout", "--policy", "molmoact2", "--enable-motion", "--lang_instruction", "go"])
         self.assertEqual(run.call_args.args[0][-5:], ("real_rollout", "--policy", "molmoact2", "--enable-motion",
-                                                       "--lang_instruction", "go")[-5:])
+                                                      "--lang_instruction", "go")[-5:])
         self.assertIn("so101 real_rollout --policy molmoact2 --enable-motion --lang_instruction go", out)
         _, _, _, run = self.run_main(["eval", "--help"])
         self.assertEqual(run.call_args.args[0][2:], ("--help",))

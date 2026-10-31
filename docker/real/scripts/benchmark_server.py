@@ -9,7 +9,7 @@ import torch
 
 
 def seed_policy(seed):
-    if type(seed) is not int or not 0 <= seed <= 2**32-1:
+    if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise ValueError('seed must be a uint32 integer')
     random.seed(seed)
     np.random.seed(seed)
@@ -24,6 +24,7 @@ def main():
     sys.path.insert(0, '/Isaac-GR00T')
     from gr00t.policy.server_client import PolicyServer
     original = PolicyServer.__init__
+
     def initialize(self, *args, **kwargs):
         original(self, *args, **kwargs)
         self.register_endpoint('seed_policy', seed_policy)

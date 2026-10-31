@@ -68,40 +68,40 @@ class ManualJointController:
         self.target_positions = {}
         self.running = True
         self._moving = False
-        
+
         # Initialize target positions from current state
         current_state = self.robot.bus.sync_read("Present_Position")
         self.target_positions = {name: float(pos) for name, pos in current_state.items()}
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("Manual Joint Control for SO Follower")
-        print("="*60)
+        print("=" * 60)
         print("\nControls:")
         print("  LEFT/RIGHT arrows: Decrease/increase current joint")
         print("  UP/DOWN arrows:    Switch between joints")
         print("  'h' key:           Move to home position (smooth)")
         print("  'z' key:           Send all joints to 0")
         print("  'q' or ESC:        Quit")
-        print("="*60 + "\n")
-        
+        print("=" * 60 + "\n")
+
         self._display_status()
 
     def _display_status(self):
         """Display current joint positions and selection."""
         print("\033[2J\033[H")  # Clear screen and move cursor to top
-        print("="*60)
+        print("=" * 60)
         print("Manual Joint Control for SO Follower")
-        print("="*60)
+        print("=" * 60)
         print(f"\nStep size: {self.step_size}")
         print("\nJoint Positions:")
-        print("-"*60)
-        
+        print("-" * 60)
+
         for idx, joint_name in enumerate(self.joint_names):
             target = self.target_positions[joint_name]
             indicator = ">>>" if idx == self.current_joint_idx else "   "
             print(f"{indicator} {joint_name:20s}: {target:8.2f}")
-        
-        print("-"*60)
+
+        print("-" * 60)
         print(f"\nCurrently selected: {self.joint_names[self.current_joint_idx]}")
         status = " [MOVING TO HOME...]" if self._moving else ""
         print(f"\nControls: LEFT/RIGHT=adjust, UP/DOWN=switch joint, H=home, Z=zero all, Q/ESC=quit{status}")
@@ -115,7 +115,7 @@ class ManualJointController:
         """Adjust current joint by delta."""
         joint_name = self.joint_names[self.current_joint_idx]
         self.target_positions[joint_name] += delta
-        
+
         # Clamp to reasonable ranges based on motor type
         if joint_name == "gripper":
             self.target_positions[joint_name] = max(0, min(100, self.target_positions[joint_name]))
@@ -125,7 +125,7 @@ class ManualJointController:
                 self.target_positions[joint_name] = max(-180, min(180, self.target_positions[joint_name]))
             else:
                 self.target_positions[joint_name] = max(-100, min(100, self.target_positions[joint_name]))
-        
+
         self._send_action()
         self._display_status()
 
@@ -200,7 +200,7 @@ class ManualJointController:
         # Start keyboard listener
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
-        
+
         try:
             # Keep the main thread alive and periodically update display
             while self.running:
@@ -243,32 +243,32 @@ def main():
         action="store_true",
         help="Use degrees for joint positions instead of normalized range",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Parse arguments with dot notation
     robot_port = getattr(args, 'robot.port')
     robot_id = getattr(args, 'robot.id')
-    
+
     # Create robot config
     config = SOFollowerRobotConfig(
         id=robot_id,
         port=robot_port,
         use_degrees=args.use_degrees,
     )
-    
+
     # Initialize robot
     print("Initializing robot...")
     robot = SOFollower(config)
-    
+
     try:
         robot.connect()
         print("Robot connected successfully!")
-        
+
         # Start manual control
         controller = ManualJointController(robot, step_size=args.step_size)
         controller.run()
-        
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback

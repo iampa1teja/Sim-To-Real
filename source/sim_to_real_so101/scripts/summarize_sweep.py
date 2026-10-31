@@ -40,13 +40,14 @@ def aggregate(horizon, split, rows, report, status):
     value = summarize(rows, report.get('step_dt', 1))
     timing = results_report(rows, task='', checkpoint='', seed=0, step_dt=report.get('step_dt', 1))['overall']
     times = [r['success_step'] * report.get('step_dt', 1) for r in rows if r['success']]
+
     def avg(key):
         # Missing telemetry must never be represented as measured zero.
         return mean(r[key] for r in rows) if rows and all(r.get(key) is not None for r in rows) else None
     result = dict(action_horizon=horizon, split=split, status=status,
                   episodes=value['episodes'], successes=value['successes'], success_rate=value['success_rate'],
                   ci95_low=value['success_rate_ci95'][0], ci95_high=value['success_rate_ci95'][1],
-                  **{s+'_rate': value['stage_rates'][s] for s in STAGES if s != 'success'},
+                  **{s + '_rate': value['stage_rates'][s] for s in STAGES if s != 'success'},
                   **value['failure_modes'], median_time_to_success_s=value['median_time_to_success_s'],
                   mean_time_to_success_s=mean(times) if times else None,
                   success_within_15s=timing['success_rate_within_15s'],
@@ -62,19 +63,19 @@ def aggregate(horizon, split, rows, report, status):
 
 def summarize_folder(folder):
     folder = Path(folder)
-    config = json.loads((folder/'sweep_config.json').read_text())
+    config = json.loads((folder / 'sweep_config.json').read_text())
     if 'variants' in config:
         return summarize_latch_variants(folder, config)
     expected = [tuple(k) for k in config['expected_schedule']]
     rows, reports = [], {}
     for horizon in config['horizons']:
-        run = folder/f'ah_{horizon}'
+        run = folder / f'ah_{horizon}'
         try:
-            report = json.loads((run/'results.json').read_text())
+            report = json.loads((run / 'results.json').read_text())
         except (OSError, ValueError):
             report = {}
         status = 'complete' if complete_report(report, expected, config['eval_set_id'], horizon, config.get('report_settings')) else 'failed'
-        if (run/'status.json').exists() and json.loads((run/'status.json').read_text()).get('status') == 'failed':
+        if (run / 'status.json').exists() and json.loads((run / 'status.json').read_text()).get('status') == 'failed':
             status = 'failed'
         if status == 'complete':
             reports[horizon] = report
@@ -82,6 +83,7 @@ def summarize_folder(folder):
         for split in [*config['selected_splits'], 'all']:
             subset = [r for r in episodes if split == 'all' or r['split'] == split]
             rows.append(aggregate(horizon, split, subset, report, status))
+
     def rank(h):
         all_row = next(r for r in rows if r['action_horizon'] == h and r['split'] == 'all')
         preferred = 'id_near' if 'id_near' in reports[h].get('by_split', {}) else 'id'
@@ -91,7 +93,7 @@ def summarize_folder(folder):
     ranked = sorted(reports, key=rank)
     best = ranked[0] if ranked else None
     comparisons = {}
-    for label, other in [('runner_up', ranked[1] if len(ranked)>1 else None), ('horizon_16', 16 if 16 in reports else None)]:
+    for label, other in [('runner_up', ranked[1] if len(ranked) > 1 else None), ('horizon_16', 16 if 16 in reports else None)]:
         if best is None or other is None:
             comparisons[label] = {'available': False, 'reason': 'Complete paired reports unavailable'}
             continue
@@ -102,15 +104,17 @@ def summarize_folder(folder):
             continue
         overall = next(p for p in tests if p['split'] == 'all')
         comparisons[label] = dict(available=True, first=best, second=other, tests=tests,
-            statistically_better=overall['p_value'] < .05 and overall['first_only'] > overall['second_only'])
+                                  statistically_better=overall['p_value'] < .05 and overall['first_only'] > overall['second_only'])
     output = dict(rows=rows, best_horizon=best, paired_comparisons=comparisons,
                   note='95% Wilson intervals are descriptive episode-level intervals; repeats are correlated. McNemar uses repeat 0; p-values are unadjusted.')
-    (folder/'summary.json').write_text(json.dumps(output, indent=2, allow_nan=False)+'\n')
+    (folder / 'summary.json').write_text(json.dumps(output, indent=2, allow_nan=False) + '\n')
     columns = list(dict.fromkeys(k for r in rows for k in r))
-    with (folder/'summary.csv').open('w', newline='') as f:
-        writer = csv.DictWriter(f, columns); writer.writeheader()
+    with (folder / 'summary.csv').open('w', newline='') as f:
+        writer = csv.DictWriter(f, columns)
+        writer.writeheader()
         for row in rows:
-            writer.writerow({k: json.dumps(v) if isinstance(v, dict) else v for k,v in row.items()})
+            writer.writerow({k: json.dumps(v) if isinstance(v, dict) else v for k, v in row.items()})
+
     def pct(v):
         return '—' if v is None else f'{v:.1%}'
     lines = ['# Action-horizon sweep', '', output['note'], '',
@@ -131,11 +135,11 @@ def summarize_folder(folder):
         lines.append(f"| {r['action_horizon']} | {r['split']} | {r['status']} | {r['successes']}/{r['episodes']} | {pct(r['success_rate'])} [{pct(r['ci95_low'])}, {pct(r['ci95_high'])}] | {t('median_time_to_success_s')} / {t('mean_time_to_success_s')} | {pct(r['success_within_15s'])} |")
     lines += ['', '| AH | Split | Reached | Grasped | Lifted | Over box | Placed |', '| --- | --- | --- | --- | --- | --- | --- |']
     for r in rows:
-        lines.append('| '+ ' | '.join([str(r['action_horizon']),r['split'],*[pct(r[s+'_rate']) for s in STAGES if s!='success']])+' |')
-    lines += ['', '| AH | Split | '+' | '.join(FAILURES)+' |', '| --- | --- | '+' | '.join(['---']*len(FAILURES))+' |']
+        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[pct(r[s + '_rate']) for s in STAGES if s != 'success']]) + ' |')
+    lines += ['', '| AH | Split | ' + ' | '.join(FAILURES) + ' |', '| --- | --- | ' + ' | '.join(['---'] * len(FAILURES)) + ' |']
     for r in rows:
-        lines.append('| '+' | '.join([str(r['action_horizon']),r['split'],*[str(r[f]) for f in FAILURES]])+' |')
-    (folder/'summary.md').write_text('\n'.join(lines)+'\n')
+        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[str(r[f]) for f in FAILURES]]) + ' |')
+    (folder / 'summary.md').write_text('\n'.join(lines) + '\n')
     make_plots(folder, rows)
     return output
 
@@ -144,27 +148,42 @@ def make_plots(folder, rows):
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    plots = folder/'plots'; plots.mkdir(exist_ok=True)
-    valid = [r for r in rows if r['status']=='complete']
+    plots = folder / 'plots'
+    plots.mkdir(exist_ok=True)
+    valid = [r for r in rows if r['status'] == 'complete']
     fig, ax = plt.subplots()
     for split in sorted({r['split'] for r in valid}):
-        group = sorted([r for r in valid if r['split']==split], key=lambda r:r['action_horizon'])
+        group = sorted([r for r in valid if r['split'] == split], key=lambda r: r['action_horizon'])
         ax.errorbar([r['action_horizon'] for r in group], [r['success_rate'] for r in group],
-                    yerr=[[r['success_rate']-r['ci95_low'] for r in group], [r['ci95_high']-r['success_rate'] for r in group]], marker='o', label=split)
-    ax.set(xlabel='Action horizon', ylabel='Success rate', ylim=(0,1.05));
-    if valid: ax.legend()
-    fig.tight_layout(); fig.savefig(plots/'success_vs_horizon.png'); plt.close(fig)
-    all_rows = sorted([r for r in valid if r['split']=='all'], key=lambda r:r['action_horizon'])
-    x=[r['action_horizon'] for r in all_rows]
-    for filename, fields, ylabel in [('stages_vs_horizon.png',[s+'_rate' for s in STAGES if s!='success'],'Stage rate'), ('time_to_success_vs_horizon.png',['median_time_to_success_s','mean_time_to_success_s'],'Simulation seconds')]:
-        fig,ax=plt.subplots()
-        for field in fields: ax.plot(x,[r[field] if r[field] is not None else float('nan') for r in all_rows],marker='o',label=field)
-        ax.set(xlabel='Action horizon',ylabel=ylabel); ax.legend(); fig.tight_layout(); fig.savefig(plots/filename); plt.close(fig)
-    fig,ax=plt.subplots(); bottom=[0]*len(x)
+                    yerr=[[r['success_rate'] - r['ci95_low'] for r in group], [r['ci95_high'] - r['success_rate'] for r in group]], marker='o', label=split)
+    ax.set(xlabel='Action horizon', ylabel='Success rate', ylim=(0, 1.05))
+    if valid:
+        ax.legend()
+    fig.tight_layout()
+    fig.savefig(plots / 'success_vs_horizon.png')
+    plt.close(fig)
+    all_rows = sorted([r for r in valid if r['split'] == 'all'], key=lambda r: r['action_horizon'])
+    x = [r['action_horizon'] for r in all_rows]
+    for filename, fields, ylabel in [('stages_vs_horizon.png', [s + '_rate' for s in STAGES if s != 'success'], 'Stage rate'), ('time_to_success_vs_horizon.png', ['median_time_to_success_s', 'mean_time_to_success_s'], 'Simulation seconds')]:
+        fig, ax = plt.subplots()
+        for field in fields:
+            ax.plot(x, [r[field] if r[field] is not None else float('nan') for r in all_rows], marker='o', label=field)
+        ax.set(xlabel='Action horizon', ylabel=ylabel)
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(plots / filename)
+        plt.close(fig)
+    fig, ax = plt.subplots()
+    bottom = [0] * len(x)
     for failure in FAILURES:
-        values=[r[failure] for r in all_rows]; ax.bar([str(h) for h in x],values,bottom=bottom,label=failure)
-        bottom=[a+b for a,b in zip(bottom,values)]
-    ax.set(xlabel='Action horizon',ylabel='Failed episodes'); ax.legend(fontsize=7); fig.tight_layout(); fig.savefig(plots/'failure_modes_vs_horizon.png'); plt.close(fig)
+        values = [r[failure] for r in all_rows]
+        ax.bar([str(h) for h in x], values, bottom=bottom, label=failure)
+        bottom = [a + b for a, b in zip(bottom, values)]
+    ax.set(xlabel='Action horizon', ylabel='Failed episodes')
+    ax.legend(fontsize=7)
+    fig.tight_layout()
+    fig.savefig(plots / 'failure_modes_vs_horizon.png')
+    plt.close(fig)
 
 
 def summarize_latch_variants(folder, config):
@@ -196,7 +215,7 @@ def summarize_latch_variants(folder, config):
             continue
         for split in [*config['selected_splits'], 'all']:
             first, second = [next(r for r in rows if r['action_horizon'] == horizon and
-                                 r['split'] == split and r['gripper_latch'] == mode) for mode in ('off', 'on')]
+                                  r['split'] == split and r['gripper_latch'] == mode) for mode in ('off', 'on')]
             differences = {}
             for key in ('success_rate', 'grasped_rate', 'mean_time_to_grasp_s', 'mean_dither_score'):
                 differences[key + '_on_minus_off'] = (second[key] - first[key]
@@ -219,6 +238,7 @@ def summarize_latch_variants(folder, config):
         writer.writerows(rows)
     lines = ['| H | Latch | Split | Status | Success | Grasp rate | Time to grasp (s) | Dither |',
              '|---|---|---|---|---|---|---|---|']
+
     def fmt(value):
         return '—' if value is None else f'{value:.4g}'
     for r in rows:
@@ -232,9 +252,12 @@ def summarize_latch_variants(folder, config):
 
 
 def main(argv=None):
-    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('folder',type=Path)
-    args=parser.parse_args(argv); summarize_folder(args.folder)
-    print((args.folder/'summary.md').read_text())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('folder', type=Path)
+    args = parser.parse_args(argv)
+    summarize_folder(args.folder)
+    print((args.folder / 'summary.md').read_text())
 
 
-if __name__=='__main__': main()
+if __name__ == '__main__':
+    main()

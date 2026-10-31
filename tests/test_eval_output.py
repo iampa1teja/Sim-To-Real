@@ -187,7 +187,7 @@ time.sleep(60)
 
 def test_failure_tail_retains_earlier_error_when_last_lines_are_shutdown_noise(tmp_path):
     logfile = tmp_path / "full.log"
-    logfile.write_text("ERROR: real failure\n" + "shutdown info\n"*30)
+    logfile.write_text("ERROR: real failure\n" + "shutdown info\n" * 30)
     stream = io.StringIO()
     module.show_tail(logfile, stream)
     assert "real failure" in stream.getvalue()
@@ -222,7 +222,7 @@ time.sleep(60)
         assert process.stdout.readline().strip() == "ready"
         process.send_signal(signum)
         stdout, stderr = process.communicate(timeout=5)
-        assert process.returncode == 128+signum
+        assert process.returncode == 128 + signum
         assert "child saved" in stdout and "child saved" in logfile.read_text()
         assert "Command failed" not in stderr
     finally:
@@ -277,6 +277,7 @@ def test_evaluator_cleanup_observes_delayed_tagged_start_during_quiet_interval(m
     first_scan = threading.Event()
     target = []
     real_signal_owned = cleanup.signal_owned
+
     def observe(*args, **kwargs):
         found = real_signal_owned(*args, **kwargs)
         if not first_scan.is_set():
@@ -284,6 +285,7 @@ def test_evaluator_cleanup_observes_delayed_tagged_start_during_quiet_interval(m
             first_scan.set()
         return found
     monkeypatch.setattr(cleanup, "signal_owned", observe)
+
     def start_after_first_empty_scan():
         first_scan.wait(timeout=2)
         time.sleep(.05)

@@ -53,7 +53,7 @@ def compare(groups, report):
                     rows.append(row)
                     if len(array):
                         axes[index, int(unit == "degrees")].hist(array, bins=bins[index, unit], density=True,
-                                                           histtype="step", label=label, linewidth=1.3)
+                                                                 histtype="step", label=label, linewidth=1.3)
         for i, joint in enumerate(FOLLOWER_JOINTS):
             for j, unit in enumerate(("LeRobot units", "degrees")):
                 axes[i, j].set_title(f"{joint}: {unit}")

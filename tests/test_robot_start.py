@@ -23,6 +23,7 @@ import torch
 sys.path.insert(0, os.path.dirname(__file__))
 from _fakes import CURRENT, PKG, REAL_SETUP_JSON, FakeStage, install_stubs, load_module  # noqa: E402
 
+
 def _parquet_available():
     try:  # may be installed but blocked, e.g. by Windows App Control
         importlib.import_module("pyarrow.parquet")
@@ -171,10 +172,9 @@ class RecordedRobotStartTests(unittest.TestCase):
         sampler = E.RecordedStarts(self.meta, seed=0, robot_states_root=self.root)
         for index, episode in enumerate((0, 2, 5)):
             np.testing.assert_allclose(sampler.starts[index][0][:2], {0: (0.20, -0.05), 2: (0.30, 0.10),
-                                                                     5: (0.25, 0.00)}[episode])
+                                                                      5: (0.25, 0.00)}[episode])
             np.testing.assert_allclose(sampler.robot_state(index), STATE[episode])
         np.testing.assert_allclose(sampler.robot_state(-1), np.mean([STATE[e] for e in (0, 2, 5)], axis=0))
-
 
 
 def write_sidecars(root, episodes):

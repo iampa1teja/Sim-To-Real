@@ -92,8 +92,8 @@ numeric stats; camera stats come from the corresponding recorded episode.
                 row[f"stats/{key}/{stat}"] = value.tolist()
         for key in videos:
             old = root / info["video_path"].format(video_key=key,
-                chunk_index=int(row[f"videos/{key}/chunk_index"]),
-                file_index=int(row[f"videos/{key}/file_index"]))
+                                                   chunk_index=int(row[f"videos/{key}/chunk_index"]),
+                                                   file_index=int(row[f"videos/{key}/file_index"]))
             new = rebuilt / info["video_path"].format(video_key=key, chunk_index=chunk, file_index=file)
             new.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(old, new)

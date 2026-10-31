@@ -82,12 +82,12 @@ def run_control_tick(*, leader_roll, follower_roll):
     group = SimpleNamespace(recorders={"sim": recorder},
                             add_frames=lambda frames, auxiliary: captured.append(frames))
     namespace = dict(torch=torch, leader_iface=iface, follower_iface=follower_iface, env=SimpleNamespace(
-                         unwrapped=raw, step=lambda action: (sim_sent.append(action.clone()) or ({}, None, None, None, None))),
-                     sync_episode_start=True, obs=None, actions=torch.zeros((1,6)),
-                     episode_cube=SimpleNamespace(park=lambda: None), recording=True, recorder_group=group, cube_trajectory=[], base_body_id=0,
-                     args_cli=SimpleNamespace(task_name="task", rerun=False),
-                     synced_start_pose=synced_start_pose,
-                     _cube_pose_in_base=lambda *args: torch.zeros(7))
+        unwrapped=raw, step=lambda action: (sim_sent.append(action.clone()) or ({}, None, None, None, None))),
+        sync_episode_start=True, obs=None, actions=torch.zeros((1, 6)),
+        episode_cube=SimpleNamespace(park=lambda: None), recording=True, recorder_group=group, cube_trajectory=[], base_body_id=0,
+        args_cli=SimpleNamespace(task_name="task", rerun=False),
+        synced_start_pose=synced_start_pose,
+        _cube_pose_in_base=lambda *args: torch.zeros(7))
     source = (ROOT / "source/sim_to_real_so101/scripts/pick_place_agent.py").read_text()
     start = source.index("            # ── Control tick")
     end = source.index("            gui.set_state(", start)

@@ -58,9 +58,11 @@ def _inspect_safetensors(path, indexed_keys=()):
 def transformers_hub_cache(environ=None):
     """Match the default cache used by the pinned Transformers model loaders."""
     env = os.environ if environ is None else environ
+
     def expand_hub_path(value):
         # Hub modern constants expand ~ and variables, in this order.
         value = os.path.expanduser(str(value))
+
         def replace(match):
             name = match.group(1)
             if name.startswith('{'):
@@ -149,12 +151,14 @@ def inspect_cosmos_cache(cache_root=None, *, environ=None):
 def inspect_so_arm_checkpoint(root, *, check_weights=True):
     """Fail before launching if the saved embodiment or weight layout differs."""
     root = Path(root)
+
     def read(name):
         return json.loads((root / name).read_text())
     config = read('config.json')
     processor = read('processor_config.json')
     ids = read('embodiment_id.json')
     statistics = read('statistics.json')
+
     def require(condition, message):
         if not condition:
             raise ValueError(message)

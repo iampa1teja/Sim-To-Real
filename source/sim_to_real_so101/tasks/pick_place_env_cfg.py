@@ -86,7 +86,6 @@ WHITE_BOX_INNER_HALF_SIZE = (0.065625, 0.04064896)  # measured USD inner walls, 
 WHITE_BOX_FLOOR_Z = 0.0018  # inside floor height above the origin, metres
 
 
-
 @configclass
 class PickPlaceSceneCfg(MyRoomSceneCfg):
     """ 
@@ -140,6 +139,7 @@ class PickPlaceSceneCfg(MyRoomSceneCfg):
         ),
     )
 
+
 @configclass
 class PickPlaceEventsCfg(MyRoomEventsCfg):
     """
@@ -153,7 +153,7 @@ class PickPlaceEventsCfg(MyRoomEventsCfg):
     """
     spawn_cube: EventTerm = EventTerm(
         func=reset_object_pose,
-        mode = "reset",
+        mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("blue_cube"),
             "pose_range": {},

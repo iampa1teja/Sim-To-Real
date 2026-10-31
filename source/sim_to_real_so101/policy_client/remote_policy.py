@@ -7,8 +7,8 @@ how the reply is read, this class only moves data and feeds the existing smoothi
 from __future__ import annotations
 import logging
 import numpy as np
-from collections.abc import Mapping 
-import time 
+from collections.abc import Mapping
+import time
 
 from .contract import load_client_policy
 from .discovery import discover
@@ -71,29 +71,28 @@ class RemotePolicy:
 
         log.info("Connected to policy server: %s; info=%s", self._manifest.name, info,)
 
-        
     def reset(self, seed: int | None = None) -> None:
         self._buffer.clear()
-        self._policy.reset() 
-        self._client.reset() 
+        self._policy.reset()
+        self._client.reset()
 
         if seed is not None:
-            self._client.seed(seed) 
+            self._client.seed(seed)
 
         log.info("Reset policy %s with seed %s", self._manifest.name, seed)
 
     def steps_until_query(self) -> int:
-        return len(self._buffer) 
+        return len(self._buffer)
 
     def close_timing(self) -> dict:
         if not self._latencies:
             return {
-                "count" : 0, 
-                "mean_ms": 0.0, 
-                "max_ms": 0.0, 
+                "count" : 0,
+                "mean_ms": 0.0,
+                "max_ms": 0.0,
             }
         return {
-            "count": len(self._latencies), 
+            "count": len(self._latencies),
             "mean_ms": float(np.mean(self._latencies)),
             "max_ms": float(max(self._latencies)),
         }
@@ -103,23 +102,23 @@ class RemotePolicy:
             value = getattr(self._robot, attr, None)
 
             if callable(value):
-                value = value() 
+                value = value()
 
             if value is not None:
                 joint_order = list(value)
                 if joint_order:
-                    return joint_order 
+                    return joint_order
         value = observation.get("joint_order")
 
         if value is not None:
-            joint_order = list(value) 
+            joint_order = list(value)
             if joint_order:
-                return joint_order 
+                return joint_order
 
         raise ValueError("Cannot determine robot joint order. Provide robot._iface.joint_order, robot_iface.joint_names, or observation['joint_order']")
 
     def get_action(self, observation: dict) -> dict:
-        if not isinstance(observation, dict): 
+        if not isinstance(observation, dict):
             raise TypeError("observation must be dictionary")
 
         if not self._buffer:
@@ -130,9 +129,9 @@ class RemotePolicy:
 
             if joint_positions.ndim != 1:
                 raise ValueError("'joint_positions' must be a one dimensional array")
-            images = observation.get("images", observation) 
+            images = observation.get("images", observation)
 
-            if not isinstance(images, Mapping): 
+            if not isinstance(images, Mapping):
                 raise TypeError("Observation images must be a dictionary")
 
             missing_cameras = [camera for camera in self._manifest.cameras if camera not in images]
@@ -144,7 +143,7 @@ class RemotePolicy:
                 for camera in self._manifest.cameras
             }
 
-            joint_order = self._get_joint_order(observation) 
+            joint_order = self._get_joint_order(observation)
 
             request = self._policy.build_request(joint_positions, camera_images, self._lang_instruction)
 
@@ -153,13 +152,13 @@ class RemotePolicy:
             try:
                 reply = self._client.call_endpoint("get_action", request)
             finally:
-                elapsed_ms = (time.perf_counter() - start) * 1000 
+                elapsed_ms = (time.perf_counter() - start) * 1000
                 self._latencies.append(elapsed_ms)
 
-            parsed = self._policy.parse_response(reply, joint_order) 
+            parsed = self._policy.parse_response(reply, joint_order)
 
-            if isinstance(parsed, ActionChunk): 
-                chunk = parsed 
+            if isinstance(parsed, ActionChunk):
+                chunk = parsed
             else:
                 chunk = ActionChunk(actions=np.asarray(parsed, dtype=np.float32))
             actions = chunk.actions[:self._action_horizon]
@@ -169,9 +168,9 @@ class RemotePolicy:
 
             self._buffer = [row.copy() for row in actions]
 
-        row = self._buffer.pop(0) 
+        row = self._buffer.pop(0)
 
-        joint_order = self._get_joint_order(observation) 
+        joint_order = self._get_joint_order(observation)
 
         if len(row) != len(joint_order):
             raise ValueError(f"Action contains {len(row)} values, but the robot has {len(joint_order)} joints")

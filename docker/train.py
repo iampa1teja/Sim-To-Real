@@ -34,7 +34,7 @@ def build_command(workflow, forwarded, environ):
              'failures': 'so101_pick_place_sim_n17_200k_failures_ft'}
     defaults = {
         'BASE_MODEL': external / ('so101_pick_place_sim_n17_200k/milestones/checkpoint-200000'
-                                 if workflow == 'failures' else 'nv_so_arm_n17'),
+                                  if workflow == 'failures' else 'nv_so_arm_n17'),
         'DATASET': REPO / 'datasets' / ('pick_place_sim' if workflow == 'sim' else 'pick_place_v2_gr00t'),
         'OUT': external / names.get(workflow, 'so101_pick_place_v2_nvinit'),
     }

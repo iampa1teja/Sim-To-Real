@@ -108,6 +108,7 @@ def main():
              "## Step 0: counts and degrees", "",
              "| Joint | Calibration counts | Encoder degrees | Old sim mapping | New sim mapping | USD limits | Outside USD |",
              "|---|---|---|---|---|---|---|"]
+
     def interval(low, high):
         return f"{low:.6f} … {high:.6f}"
     for name, usd_name in zip(names, usd_names):

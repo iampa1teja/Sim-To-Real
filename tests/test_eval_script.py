@@ -307,14 +307,6 @@ def test_molmo_horizon_above_chunk_length_is_rejected_before_launch(tmp_path):
     assert not commands(result)
 
 
-
-
-
-
-
-
-
-
 def test_action_repeat_reaches_the_evaluator(tmp_path):
     result = run(tmp_path, BASE + "  action_repeat: 5\n")
     assert result.returncode == 0, result.stderr

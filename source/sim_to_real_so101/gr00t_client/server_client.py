@@ -65,7 +65,7 @@ class MsgSerializer:
             raise ValueError(f"Malformed serialized payload: '{name}' missing")
 
         if any(marker in obj for marker in ("__ModalityConfig__", b"__ModalityConfig__",
-                                             "__ModalityConfig_class__", b"__ModalityConfig_class__")):
+                                            "__ModalityConfig_class__", b"__ModalityConfig_class__")):
             payload = field("as_json")
             if isinstance(payload, bytes):
                 payload = payload.decode()

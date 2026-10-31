@@ -28,8 +28,8 @@ class ReplacementTest(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.base = Path(self.tmp.name)
         recorders = {name: LeRobotRecorder("pick", f"test/{name}", str(self.base / name), 30, "cpu",
-                    cameras={"front": {"height": 64, "width": 64}}, batch_encoding_size=100,
-                    image_writer_threads_per_camera=1) for name in ("sim", "real")}
+                                           cameras={"front": {"height": 64, "width": 64}}, batch_encoding_size=100,
+                                           image_writer_threads_per_camera=1) for name in ("sim", "real")}
         group = SynchronizedLeRobotRecorders(recorders)
         group.init_datasets()
         self.session = RerecordingSession(group)
@@ -46,9 +46,9 @@ class ReplacementTest(unittest.TestCase):
     def record(self, n, value):
         for _ in range(n):
             self.session.add_frames({name: {"action": np.full(6, value, dtype=np.float32),
-                "observation.state": np.full(6, -value, dtype=np.float32), "task": "pick",
-                "observation.images.front": np.full((64, 64, 3), value * 20, dtype=np.uint8)}
-                for name in ("sim", "real")})
+                                            "observation.state": np.full(6, -value, dtype=np.float32), "task": "pick",
+                                            "observation.images.front": np.full((64, 64, 3), value * 20, dtype=np.uint8)}
+                                     for name in ("sim", "real")})
 
     def test_replace_middle_and_append(self):
         originals = {name: hashes(self.base / name) for name in ("sim", "real")}
@@ -131,7 +131,9 @@ class RecoveryTest(unittest.TestCase):
             base = Path(directory)
             sim, real = base / "sim", base / "real"
             backup = base / "sim.backup"
-            sim.mkdir(); real.mkdir(); backup.mkdir()
+            sim.mkdir()
+            real.mkdir()
+            backup.mkdir()
             (sim / "value").write_text("new")
             (backup / "value").write_text("original")
             journal = transaction_path(sim)

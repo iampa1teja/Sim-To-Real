@@ -12,6 +12,7 @@ from .server import PolicyServer
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Launch a policy server.")
 
@@ -26,58 +27,59 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def parse_options(pairs: list[str] | None) -> dict[str, str]:
-    options: dict[str, str]  = {} 
+    options: dict[str, str] = {}
     if not pairs:
-        return options 
+        return options
 
     for item in pairs:
-        if "=" not in item: 
+        if "=" not in item:
             raise ValueError(f"Invalid option {item!r}: expected KEY-VALUE")
-        key, value = item.split("=",1)
+        key, value = item.split("=", 1)
 
-        if not key: 
+        if not key:
             raise ValueError(f"Invalid option {item!r}: key cannot be empty")
 
-        options[key] = value 
+        options[key] = value
 
-    return options            
+    return options
+
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try :
-        mainfest = load_manifest(args.policy_dir) 
+        mainfest = load_manifest(args.policy_dir)
     except Exception:
         log.exception("failed to load manifest form %s", args.policy_dir)
-        return 1 
+        return 1
 
-    try: 
-        options = parse_options(args.option) 
-    except Exception as exc: 
-        log.error("%s", exc) 
-        return 1 
-
-    server = None 
-    exit_code = 0 
     try:
-        policy = load_server_policy(args.policy_dir) 
-        policy.load(checkpoint=args.checkpoint, device=args.device, options=options) 
+        options = parse_options(args.option)
+    except Exception as exc:
+        log.error("%s", exc)
+        return 1
+
+    server = None
+    exit_code = 0
+    try:
+        policy = load_server_policy(args.policy_dir)
+        policy.load(checkpoint=args.checkpoint, device=args.device, options=options)
 
         port = (args.port if args.port is not None else mainfest.default_port)
 
-        server = PolicyServer(policy=policy, host = args.host, port = port, api_token=args.api_token) 
+        server = PolicyServer(policy=policy, host=args.host, port=port, api_token=args.api_token)
 
         log.info("Starting policy '%s' on %s:%s", mainfest.name, args.host, server.port)
-        server.run() 
+        server.run()
 
     except KeyboardInterrupt:
         log.info("Policy server interrupted")
 
     except Exception:
         log.exception("Failed to start the policy server")
-        exit_code = 1 
+        exit_code = 1
     finally:
         if server is not None:
-            server.close() 
+            server.close()
         return exit_code
 
 

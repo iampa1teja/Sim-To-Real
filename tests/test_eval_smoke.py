@@ -52,7 +52,7 @@ def test_new_milestones_at_boundary_are_accepted_with_only_thirty_more_seconds()
         stages[name] = True
         assert not budget.observe(when, stages)
         assert budget.deadline_s == when + 30
-    assert not budget.observe(180 + 1/30, stages, success=True)
+    assert not budget.observe(180 + 1 / 30, stages, success=True)
     assert budget.maximum_duration_s == 210
 
 
@@ -70,7 +70,7 @@ def test_repeated_reaching_or_grasping_never_extends_time():
 
 def test_late_new_progress_does_not_extend_an_expired_deadline():
     budget = MilestoneDeadline()
-    assert budget.observe(60 + 1/30, {'reached': True})
+    assert budget.observe(60 + 1 / 30, {'reached': True})
     assert budget.stop_reason == 'reach_timeout'
     assert budget.deadline_s == 60
 

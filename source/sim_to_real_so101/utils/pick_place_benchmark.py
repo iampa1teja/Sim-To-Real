@@ -7,8 +7,8 @@ from pathlib import Path
 from statistics import median
 import numpy as np
 from .pick_place_eval import (RecordedStarts, footprint,
-                             footprints_overlap, resting_pose, rotation_matrix,
-                             upright_orientation, results_report)
+                              footprints_overlap, resting_pose, rotation_matrix,
+                              upright_orientation, results_report)
 
 SPLITS = ('id', 'ood', 'yaw', 'train')
 STAGES = ('reached', 'grasped', 'lifted', 'over_box', 'placed', 'success')
@@ -19,8 +19,9 @@ FAILURES = ('never_reached', 'missed_grasp', 'dropped_before_box', 'dropped_outs
 def hull(points):
     """CCW monotone-chain convex hull, without a SciPy dependency."""
     points = sorted(set(map(tuple, np.asarray(points, dtype=float))))
+
     def cross(o, a, b):
-        return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
     halves = []
     for ordered in (points, points[::-1]):
         half = []
@@ -38,14 +39,14 @@ def inside_polygon(point, polygon):
     polygon = np.asarray(polygon)
     edges = np.roll(polygon, -1, axis=0) - polygon
     delta = np.asarray(point) - polygon
-    return bool(np.all(edges[:, 0]*delta[:, 1] - edges[:, 1]*delta[:, 0] >= -1e-12))
+    return bool(np.all(edges[:, 0] * delta[:, 1] - edges[:, 1] * delta[:, 0] >= -1e-12))
 
 
 def hull_distance(point, polygon):
     polygon = np.asarray(polygon)
     edges = np.roll(polygon, -1, axis=0) - polygon
-    t = np.clip(np.sum((point-polygon)*edges, axis=1) / np.sum(edges*edges, axis=1), 0, 1)
-    return float(np.linalg.norm(point - (polygon + t[:, None]*edges), axis=1).min())
+    t = np.clip(np.sum((point - polygon) * edges, axis=1) / np.sum(edges * edges, axis=1), 0, 1)
+    return float(np.linalg.norm(point - (polygon + t[:, None] * edges), axis=1).min())
 
 
 def polygons_match(first, second, *, atol=1e-5):
@@ -69,41 +70,41 @@ def polygons_match(first, second, *, atol=1e-5):
 def face_yaw(quaternion):
     rotation = rotation_matrix(quaternion)
     axis = np.argmax(np.linalg.norm(rotation[:2], axis=0))
-    return float(np.arctan2(rotation[1, axis], rotation[0, axis]) % (np.pi/2))
+    return float(np.arctan2(rotation[1, axis], rotation[0, axis]) % (np.pi / 2))
 
 
 def wrap_yaw(angle):
     """Square-symmetric relative yaw in [-pi/4, pi/4)."""
-    return (np.asarray(angle) + np.pi/4) % (np.pi/2) - np.pi/4
+    return (np.asarray(angle) + np.pi / 4) % (np.pi / 2) - np.pi / 4
 
 
 def sample_yaw(xy, training_xy, training_relative_yaws, mode, rng):
     """Return (absolute yaw modulo pi/2, relative yaw, copied source index)."""
     bearing = math.atan2(xy[1], xy[0])
-    source = int(np.argmin(np.linalg.norm(training_xy-xy, axis=1))) if mode == 'matched' else None
+    source = int(np.argmin(np.linalg.norm(training_xy - xy, axis=1))) if mode == 'matched' else None
     if mode == 'matched':
-        yaw = (bearing + training_relative_yaws[source]) % (np.pi/2)
+        yaw = (bearing + training_relative_yaws[source]) % (np.pi / 2)
     elif mode == 'radial':
-        yaw = bearing % (np.pi/2)
+        yaw = bearing % (np.pi / 2)
     elif mode == 'random':
-        yaw = rng.uniform(0, np.pi/2)
+        yaw = rng.uniform(0, np.pi / 2)
     else:
         raise ValueError('Unknown yaw mode')
-    return float(yaw), float(wrap_yaw(yaw-bearing)), source
+    return float(yaw), float(wrap_yaw(yaw - bearing)), source
 
 
 def circular_mean(angles, period):
-    mean = np.mean(np.exp(2j*np.pi*np.asarray(angles)/period))
+    mean = np.mean(np.exp(2j * np.pi * np.asarray(angles) / period))
     if abs(mean) < 1e-6:
         raise ValueError('Recorded orientations have no stable circular alignment rule')
-    return float(np.angle(mean)*period/(2*np.pi))
+    return float(np.angle(mean) * period / (2 * np.pi))
 
 
 def pose_for_xy(xy, yaw, scene):
     q = upright_orientation(scene['base_quaternion_wxyz'], scene['table_plane_world'],
-                            [math.cos(yaw/2), 0, 0, math.sin(yaw/2)])
+                            [math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)])
     world, rotation = resting_pose(np.r_[xy, 0], q, scene['base_position_world'],
-                                  scene['base_quaternion_wxyz'], scene['table_plane_world'], scene['cube_size_m'])
+                                   scene['base_quaternion_wxyz'], scene['table_plane_world'], scene['cube_size_m'])
     return q, world, rotation
 
 
@@ -117,7 +118,7 @@ def clear_of_box(xy, yaw, scene):
 def supported_on_table(xy, yaw, scene):
     _, world, rotation = pose_for_xy(xy, yaw, scene)
     base_rotation = rotation_matrix(scene['base_quaternion_wxyz'])
-    centre = base_rotation.T @ (world-np.asarray(scene['base_position_world']))
+    centre = base_rotation.T @ (world - np.asarray(scene['base_position_world']))
     projected = footprint(centre, base_rotation.T @ rotation, scene['cube_size_m'])
     return all(inside_polygon(p, scene['table_outline_base_xy']) for p in projected)
 
@@ -136,7 +137,7 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
         raise ValueError('Require min_dist_m >= 0 and 0 < ood_margin_m[0] < ood_margin_m[1]')
     if yaw_mode not in ('matched', 'radial', 'random'):
         raise ValueError('yaw_mode must be matched, radial or random')
-    recorded = RecordedStarts(Path(dataset)/'pick_place_meta', robot_states_root=dataset)
+    recorded = RecordedStarts(Path(dataset) / 'pick_place_meta', robot_states_root=dataset)
     xy = np.array([p[:2] for p, _ in recorded.starts])
     polygon = hull(xy)
     # Opt-in: keep id/ood starts inside the radial band of the recorded picks, so none is closer to the base or
@@ -145,42 +146,43 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
     bearings = np.arctan2(xy[:, 1], xy[:, 0])
     # Pan coverage means the polar sweep of the recorded cube starts. Resting
     # first-frame arm states are used for resetting, not inverse kinematics.
-    pan_offset = circular_mean(bearings, 2*np.pi)
-    pan = (bearings-pan_offset+np.pi) % (2*np.pi)-np.pi
-    pan_limits = [float(pan.min()-np.deg2rad(10)), float(pan.max()+np.deg2rad(10))]
+    pan_offset = circular_mean(bearings, 2 * np.pi)
+    pan = (bearings - pan_offset + np.pi) % (2 * np.pi) - np.pi
+    pan_limits = [float(pan.min() - np.deg2rad(10)), float(pan.max() + np.deg2rad(10))]
     recorded_yaws = np.array([face_yaw(q) for _, q in recorded.starts])
-    relative_yaws = wrap_yaw(recorded_yaws-bearings)
+    relative_yaws = wrap_yaw(recorded_yaws - bearings)
     mean_state = np.mean(recorded.robot_states, axis=0).tolist()
     rng = np.random.default_rng(seed)
     starts = []
+
     def row(split, p, yaw, **extra):
         return dict(id=f'{split}-{sum(s["split"] == split for s in starts):03d}', split=split,
                     x=float(p[0]), y=float(p[1]), yaw=float(yaw), zone='OUT' if split == 'ood' else recorded.zone(p),
                     arm_start_state=mean_state.copy(),
-                    rel_yaw=float(wrap_yaw(yaw-math.atan2(p[1], p[0]))), source_start_id=None, **extra)
+                    rel_yaw=float(wrap_yaw(yaw - math.atan2(p[1], p[0]))), source_start_id=None, **extra)
     for split, count in (('id', n_id), ('ood', n_ood)):
         accepted = 0
         margin = ood_margin_m[1] if split == 'ood' else 0
         for _ in range(500000):
             if accepted == count:
                 break
-            p = rng.uniform(xy.min(0)-margin, xy.max(0)+margin)
+            p = rng.uniform(xy.min(0) - margin, xy.max(0) + margin)
             inside = inside_polygon(p, polygon)
             if split == 'id' and not inside:
                 continue
             if split == 'ood':
                 distance = hull_distance(p, polygon)
-                estimated_pan = (np.arctan2(p[1], p[0])-pan_offset+np.pi) % (2*np.pi)-np.pi
+                estimated_pan = (np.arctan2(p[1], p[0]) - pan_offset + np.pi) % (2 * np.pi) - np.pi
                 if inside or not ood_margin_m[0] <= distance <= ood_margin_m[1] or not pan_limits[0] <= estimated_pan <= pan_limits[1]:
                     continue
             if reach and not reach[0] <= np.linalg.norm(p) <= reach[1]:
                 continue
-            if np.linalg.norm(xy-p, axis=1).min() < min_dist_m:
+            if np.linalg.norm(xy - p, axis=1).min() < min_dist_m:
                 continue
             yaw, _, source = sample_yaw(p, xy, relative_yaws, yaw_mode, rng)
             if not clear_of_box(p, yaw, scene) or not supported_on_table(p, yaw, scene):
                 continue
-            paired_yaw = rng.uniform(0, np.pi/2) if split == 'id' and accepted < n_yaw else None
+            paired_yaw = rng.uniform(0, np.pi / 2) if split == 'id' and accepted < n_yaw else None
             if paired_yaw is not None and (not clear_of_box(p, paired_yaw, scene) or not supported_on_table(p, paired_yaw, scene)):
                 continue
             starts.append(row(split, p, yaw, **({'paired_yaw': float(paired_yaw)} if paired_yaw is not None else {})))
@@ -261,11 +263,11 @@ class EvalSetStarts:
 
     def sample(self, accepts_random=None):
         # Isaac performs one unused automatic reset on the final done step.
-        index = min(self.cursor, len(self.schedule)-1)
+        index = min(self.cursor, len(self.schedule) - 1)
         self.current = self.schedule[index]
         self.cursor += 1
         s = self.current
-        q = s.get('orientation_wxyz', [math.cos(s['yaw']/2), 0, 0, math.sin(s['yaw']/2)])
+        q = s.get('orientation_wxyz', [math.cos(s['yaw'] / 2), 0, 0, math.sin(s['yaw'] / 2)])
         return index, np.array([s['x'], s['y'], 0.]), np.asarray(q), s['zone']
 
     def robot_state(self, index):
@@ -278,11 +280,11 @@ def wilson_interval(successes, episodes):
     if episodes == 0:
         return [None, None]
     z = 1.959963984540054
-    p = successes/episodes
-    denom = 1+z*z/episodes
-    centre = (p+z*z/(2*episodes))/denom
-    half = z*math.sqrt(p*(1-p)/episodes+z*z/(4*episodes**2))/denom
-    return [max(0., centre-half), min(1., centre+half)]
+    p = successes / episodes
+    denom = 1 + z * z / episodes
+    centre = (p + z * z / (2 * episodes)) / denom
+    half = z * math.sqrt(p * (1 - p) / episodes + z * z / (4 * episodes**2)) / denom
+    return [max(0., centre - half), min(1., centre + half)]
 
 
 def mcnemar(first, second):
@@ -291,8 +293,8 @@ def mcnemar(first, second):
         raise ValueError('Paired observations must have equal length')
     b = sum(bool(a) and not bool(c) for a, c in zip(first, second))
     c = sum(not bool(a) and bool(d) for a, d in zip(first, second))
-    n = b+c
-    p = min(1., 2 * sum(math.comb(n, k) for k in range(min(b, c)+1)) / (2**n)) if n else 1.
+    n = b + c
+    p = min(1., 2 * sum(math.comb(n, k) for k in range(min(b, c) + 1)) / (2**n)) if n else 1.
     return dict(shared_starts=len(first), first_only=b, second_only=c, discordant=n,
                 p_value=p, method='exact two-sided McNemar')
 
@@ -338,10 +340,10 @@ class StageTrace:
 def summarize(rows, step_dt):
     n = len(rows)
     successes = sum(r['success'] for r in rows)
-    times = [r['success_step']*step_dt for r in rows if r['success']]
-    return dict(episodes=n, successes=successes, success_rate=successes/n if n else None,
+    times = [r['success_step'] * step_dt for r in rows if r['success']]
+    return dict(episodes=n, successes=successes, success_rate=successes / n if n else None,
                 success_rate_ci95=wilson_interval(successes, n),
-                stage_rates={s: sum(r['stages'][s] for r in rows)/n if n else None for s in STAGES},
+                stage_rates={s: sum(r['stages'][s] for r in rows) / n if n else None for s in STAGES},
                 failure_modes={f: sum(r['failure_mode'] == f for r in rows) for f in FAILURES},
                 median_time_to_success_s=median(times) if times else None)
 
@@ -352,8 +354,8 @@ def benchmark_report(episodes, eval_set, repeats, **kwargs):
                   ci_method='95% Wilson, episode-level; repeats are not independent starts',
                   overall=summarize(episodes, kwargs['step_dt']))
     for key in ('split', 'zone'):
-        report['by_'+key] = {name: summarize([r for r in episodes if r[key] == name], kwargs['step_dt'])
-                             for name in sorted({r[key] for r in episodes})}
+        report['by_' + key] = {name: summarize([r for r in episodes if r[key] == name], kwargs['step_dt'])
+                               for name in sorted({r[key] for r in episodes})}
     report['per_start_consistency'] = {
         name: dict(successes=sum(r['success'] for r in episodes if r['start_id'] == name),
                    repeats=sum(r['start_id'] == name for r in episodes),
@@ -391,9 +393,9 @@ def save_heatmap(report, path):
     fig.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap=cmap), ax=ax, label='Success fraction', shrink=.7)
     region = np.array([[s['x'], s['y']] for s in data['starts']] + data['scene']['box_footprint_base_xy'])
     low, high = region.min(0), region.max(0)
-    pad = np.maximum(high-low, .01)*.1
-    ax.set_xlim(low[0]-pad[0], high[0]+pad[0])
-    ax.set_ylim(low[1]-pad[1], high[1]+pad[1])
+    pad = np.maximum(high - low, .01) * .1
+    ax.set_xlim(low[0] - pad[0], high[0] + pad[0])
+    ax.set_ylim(low[1] - pad[1], high[1] + pad[1])
     ax.set(xlabel='Base-link X (m)', ylabel='Base-link Y (m)', title='Pick/place fixed-start benchmark', aspect='equal')
     ax.legend(loc='best')
     fig.tight_layout()

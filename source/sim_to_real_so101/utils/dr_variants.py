@@ -19,20 +19,23 @@ DR_TERMS = ("light", "robot_color", "camera_external", "camera_wrist")
 # Cameras are calibrated to the real setup, so the default keeps camera views fixed.
 DEFAULT_DR = ("light", "robot_color")
 
+
 @dataclass
-class DRRanges:          
+class DRRanges:
     exposure: tuple[float, float]
     robot_colors: dict[str, tuple]
     camera_pos: dict[str, tuple[float, float]]
     camera_rot: dict[str, tuple[float, float]]
     focal_length: tuple[float, float] | None  # None when camera DR is not configured
 
+
 @dataclass
-class DRDraw:         
+class DRDraw:
     exposure: float | None
     robot_color: str | None
-    camera_external: dict | None 
+    camera_external: dict | None
     camera_wrist_focal: float | None
+
 
 @dataclass
 class PlannedEpisode:
@@ -41,7 +44,8 @@ class PlannedEpisode:
     color: str
     dr_seed: int
     task_text: str
-    draw: DRDraw | None = None      
+    draw: DRDraw | None = None
+
 
 def parse_csv(text, allowed) -> list[str]:
     values = [s.strip() for s in text.split(",")]
@@ -52,9 +56,11 @@ def parse_csv(text, allowed) -> list[str]:
         raise ValueError(f"Duplicate CSV value: {text!r}")
     return values
 
+
 def episode_seed(seed, src_index, color) -> int:
     data = f"{seed}:{src_index}:{color}".encode()
     return int.from_bytes(hashlib.sha256(data).digest()[:8], "big")
+
 
 def draw_dr(terms, ranges, rng: random.Random) -> DRDraw:
     unknown_terms = set(terms) - set(DR_TERMS)
@@ -69,7 +75,8 @@ def draw_dr(terms, ranges, rng: random.Random) -> DRDraw:
         focal = rng.uniform(*ranges.focal_length)
         camera_external = {"pos": pos, "rot": rot, "focal": focal}
     camera_wrist_focal = rng.uniform(*ranges.focal_length) if "camera_wrist" in terms else None
-    return DRDraw(exposure, robot_color, camera_external, camera_wrist_focal)   
+    return DRDraw(exposure, robot_color, camera_external, camera_wrist_focal)
+
 
 def task_text(color, lang_blue, lang_red) -> str:
     if color == "blue":
@@ -77,7 +84,8 @@ def task_text(color, lang_blue, lang_red) -> str:
     elif color == "red":
         return lang_red
     else:
-        raise ValueError(f"Unknown color: {color}")    
+        raise ValueError(f"Unknown color: {color}")
+
 
 def plan_episodes(src_indices, colors, terms, ranges, seed, include_originals, lang_blue, lang_red) -> list[PlannedEpisode]:
     episodes = []
@@ -95,7 +103,7 @@ def plan_episodes(src_indices, colors, terms, ranges, seed, include_originals, l
                 draw=None,
             ))
             dst_index += 1
-    
+
     for src_index in src_indices:
         for color in colors:
             dr_seed = episode_seed(seed, src_index, color)
@@ -111,6 +119,7 @@ def plan_episodes(src_indices, colors, terms, ranges, seed, include_originals, l
             ))
             dst_index += 1
     return episodes
+
 
 def build_manifest(plan, args: dict, git_commit: str) -> dict:
     originals = sum(episode.draw is None for episode in plan)
@@ -145,6 +154,7 @@ def build_manifest(plan, args: dict, git_commit: str) -> dict:
             "red": sum(episode.color == "red" for episode in generated),
         },
     }
+
 
 def write_json_atomic(path, data) -> None:
     directory = os.path.dirname(os.path.abspath(path))

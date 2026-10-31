@@ -40,7 +40,7 @@ def main(argv):
     if argv:
         logs = Path(argv[0])
     else:
-        runs = sorted((ROOT/'datasets/hyperparameters/parallel_logs').glob('*/'), key=lambda p: p.stat().st_mtime)
+        runs = sorted((ROOT / 'datasets/hyperparameters/parallel_logs').glob('*/'), key=lambda p: p.stat().st_mtime)
         if not runs:
             sys.exit('No parallel_logs folder yet')
         logs = runs[-1]
@@ -56,16 +56,16 @@ def main(argv):
         while True:
             finished = 0
             for s, bar in bars.items():
-                done, total, successes, status = state(logs/f'checkpoint-{s}.log')
+                done, total, successes, status = state(logs / f'checkpoint-{s}.log')
                 if total and bar.total != total:
                     bar.total = total
                 if done > bar.n:
-                    bar.update(done-bar.n)
-                rate = f'{successes}/{done} = {successes/done:.0%}' if done else '-'
+                    bar.update(done - bar.n)
+                rate = f'{successes}/{done} = {successes / done:.0%}' if done else '-'
                 bar.set_postfix_str(f'{status}, success {rate}', refresh=True)
                 finished += status in ('complete', 'failed')
             # Also stop if the logs folder vanished or the launching driver exited (we were orphaned).
-            if finished == len(bars) or (logs/'.done').exists() or not logs.is_dir() or (parent and os.getppid() != parent):
+            if finished == len(bars) or (logs / '.done').exists() or not logs.is_dir() or (parent and os.getppid() != parent):
                 break
             time.sleep(3)
     except KeyboardInterrupt:

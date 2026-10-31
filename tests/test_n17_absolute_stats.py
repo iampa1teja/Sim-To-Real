@@ -29,7 +29,7 @@ class SelectedStatisticsTest(unittest.TestCase):
 
     def test_relative_or_unknown_groups_preserve_upstream_generation(self):
         for representations, tag in ((["RELATIVE", "ABSOLUTE"], "new_embodiment"),
-                                      (["ABSOLUTE"], "another_embodiment"), ([], "new_embodiment")):
+                                     (["ABSOLUTE"], "another_embodiment"), ([], "new_embodiment")):
             with self.subTest(representations=representations, tag=tag):
                 original = Mock(return_value="generated")
                 factory = SimpleNamespace(generate_rel_stats=original)

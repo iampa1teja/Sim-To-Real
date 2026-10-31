@@ -23,8 +23,8 @@ def dataset(tmp_path):
     (meta / 'info.json').write_text(json.dumps({'features': {
         name: {'names': list(KEYS)} for name in ('action', 'observation.state')}}))
     (meta / 'stats.json').write_text(json.dumps({
-        'action': {'min': [0]*5 + [10], 'max': [20]*5 + [90]},
-        'observation.state': {'min': [0]*5 + [12], 'max': [20]*5 + [89]}}))
+        'action': {'min': [0] * 5 + [10], 'max': [20] * 5 + [90]},
+        'observation.state': {'min': [0] * 5 + [12], 'max': [20] * 5 + [89]}}))
     return meta.parent
 
 
@@ -80,7 +80,7 @@ def test_ten_step_gate_and_arm_unaffected(dataset):
     for step in range(40):
         # Alternating >2-unit arm changes block engagement; then steady arm.
         arm = float(step % 2 * 4) if step < 20 else 0.
-        raw = np.array([arm]*5 + [20.])
+        raw = np.array([arm] * 5 + [20.])
         sent = grasp.process(raw, raw, 0)
         assert sent[:5].tobytes() == raw[:5].tobytes()
         if step < 32:
@@ -91,7 +91,7 @@ def test_ten_step_gate_and_arm_unaffected(dataset):
 
 def test_measured_empty_escape_reopens_then_requires_normal_retrigger(dataset, caplog):
     grasp = controller(dataset, gripper_latch=True)
-    raw = np.array([0.]*5 + [20.])
+    raw = np.array([0.] * 5 + [20.])
     grasp.measured = 12
     for _ in range(13):
         grasp.process(raw, raw, 0)
@@ -111,7 +111,7 @@ def test_measured_empty_escape_reopens_then_requires_normal_retrigger(dataset, c
 def test_object_stall_never_triggers_timer_release(dataset):
     grasp = controller(dataset, gripper_latch=True)
     grasp.measured = 15.001  # just above empty + 3
-    raw = np.array([0.]*5 + [20.])
+    raw = np.array([0.] * 5 + [20.])
     for _ in range(1000):
         sent = grasp.process(raw, raw, 0)
     assert grasp.latch.latched and sent[-1] == 10
@@ -123,7 +123,7 @@ def test_object_stall_never_triggers_timer_release(dataset):
 
 def test_empty_requires_consecutive_measured_steps(dataset):
     grasp = controller(dataset, gripper_latch=True)
-    raw = np.array([0.]*5 + [20.])
+    raw = np.array([0.] * 5 + [20.])
     for step in range(150):
         grasp.measured = 12 if step % 15 < 14 else 16
         grasp.process(raw, raw, 0)
@@ -132,27 +132,27 @@ def test_empty_requires_consecutive_measured_steps(dataset):
 
 
 def test_logging_only_is_byte_identical_after_smoothing(dataset, tmp_path):
-    grasp = controller(dataset, log_gripper=True, gripper_csv=str(tmp_path/'log.csv'))
+    grasp = controller(dataset, log_gripper=True, gripper_csv=str(tmp_path / 'log.csv'))
     plain = ActionSmoother(SmoothingConfig(blend_steps=3, ema_alpha=.5), 8, KEYS)
     logged = ActionSmoother(SmoothingConfig(blend_steps=3, ema_alpha=.5), 8, KEYS, grasp=grasp)
     for step in range(24):
         if step % 8 == 0:
-            chunk = actions(20-step)
+            chunk = actions(20 - step)
             for smoother in (plain, logged):
-                smoother.add_chunk(chunk, step, step, step//8)
+                smoother.add_chunk(chunk, step, step, step // 8)
         expected = plain.action(step)[1]
         actual = logged.action(step)[1]
         assert actual.tobytes() == expected.tobytes()
     grasp.close()
-    rows = list(csv.DictReader((tmp_path/'log.csv').open()))
+    rows = list(csv.DictReader((tmp_path / 'log.csv').open()))
     assert len(rows) == 24
-    assert float(rows[8]['endpoint_delta_norm']) == pytest.approx(np.sqrt(5*8**2))
+    assert float(rows[8]['endpoint_delta_norm']) == pytest.approx(np.sqrt(5 * 8**2))
     assert float(rows[8]['predicted_gripper']) == pytest.approx(12.5)
 
 
 def test_dither_ignores_gripper_zero_deltas_and_outside_window():
     assert dither_score([], []) == 0
-    arm = np.array([[0,0], [1,1], [1,2], [0,3], [1,4], [0,5]])
+    arm = np.array([[0, 0], [1, 1], [1, 2], [0, 3], [1, 4], [0, 5]])
     assert dither_score(np.arange(6), arm, 5, window_s=10) == 3
     assert dither_score(np.arange(6), arm, 5) == 1
     assert dither_score(np.arange(6), arm, 3) == 0
@@ -160,11 +160,11 @@ def test_dither_ignores_gripper_zero_deltas_and_outside_window():
 
 
 def test_csv_summary_uses_two_seconds_before_actual_grasp(dataset, tmp_path, capsys):
-    grasp = controller(dataset, log_gripper=True, gripper_csv=str(tmp_path/'gripper.csv'))
+    grasp = controller(dataset, log_gripper=True, gripper_csv=str(tmp_path / 'gripper.csv'))
     grasp.measured = 25
     for step in range(180):
-        raw = np.array([step % 2]*5 + [float(step)])
-        grasp.process(raw, raw, step//16)
+        raw = np.array([step % 2] * 5 + [float(step)])
+        grasp.process(raw, raw, step // 16)
     grasp.mark_grasp(3)
     result = grasp.finish_episode('success')
     assert result['predicted_gripper_min_2s'] == 30
@@ -172,12 +172,12 @@ def test_csv_summary_uses_two_seconds_before_actual_grasp(dataset, tmp_path, cap
     assert result['time_to_grasp_s'] == 3
     assert 'before grasp: [30.0, 90.0]' in capsys.readouterr().out
     grasp.close()
-    rows = list(csv.DictReader((tmp_path/'gripper.csv').open()))
+    rows = list(csv.DictReader((tmp_path / 'gripper.csv').open()))
     assert all(float(r['measured_gripper']) == 25 for r in rows)
     assert all(float(r['grasp_time_s']) == 3 for r in rows)
-    script = Path(__file__).resolve().parents[1]/'scripts/plot_grasp.py'
-    subprocess.run([sys.executable, str(script), str(tmp_path/'gripper.csv')], check=True)
-    assert (tmp_path/'gripper_ep0.png').stat().st_size > 1000
+    script = Path(__file__).resolve().parents[1] / 'scripts/plot_grasp.py'
+    subprocess.run([sys.executable, str(script), str(tmp_path / 'gripper.csv')], check=True)
+    assert (tmp_path / 'gripper_ep0.png').stat().st_size > 1000
 
 
 def test_fixed_noise_resets_before_every_query_and_rejects_missing_ack():
@@ -186,7 +186,7 @@ def test_fixed_noise_resets_before_every_query_and_rejects_missing_ack():
     policy._client.call_endpoint = lambda endpoint, payload: calls.append(payload['seed']) or payload
     for step in range(24):
         policy.get_action(np.zeros(6), {})
-    assert calls == [1984]*3
+    assert calls == [1984] * 3
     policy.reset(seed=33)
     policy.get_action(np.zeros(6), {})
     assert calls[-2:] == [33, 33]
@@ -199,7 +199,7 @@ def test_sim_latch_uses_measured_joint_and_reset(dataset):
     policy = make_sim_policy(grasp_config=GraspConfig(gripper_latch=True, latch_dataset=str(dataset)))
     policy._iface.get_raw_actions_from_radians = lambda joints: joints
     for _ in range(20):
-        policy.get_action(np.array([0.]*5 + [25.]), {})
+        policy.get_action(np.array([0.] * 5 + [25.]), {})
     assert all(r['measured_gripper'] == 25 for r in policy.grasp.rows)
     policy.reset()
     assert not policy.grasp.latch.latched
@@ -207,8 +207,8 @@ def test_sim_latch_uses_measured_joint_and_reset(dataset):
 
 
 @pytest.mark.parametrize('kwargs', [dict(latch_confirm_steps=0), dict(latch_steady_steps=0),
-    dict(latch_min_hold=-1), dict(latch_close_below=90, latch_open_above=80),
-    dict(latch_steady_max_delta=float('nan')), dict(latch_empty_margin=-1)])
+                                    dict(latch_min_hold=-1), dict(latch_close_below=90, latch_open_above=80),
+                                    dict(latch_steady_max_delta=float('nan')), dict(latch_empty_margin=-1)])
 def test_invalid_controls_rejected(kwargs):
     with pytest.raises(ValueError):
         GripperLatch(0, 100, GraspConfig(**kwargs))
@@ -229,14 +229,15 @@ def test_default_off_client_bytes_and_query_count():
 def test_sim_latch_and_logging_preserve_arm_mapping(dataset, smoothing):
     baseline = make_sim_policy(action_horizon=8, **smoothing)
     latched = make_sim_policy(action_horizon=8,
-        grasp_config=GraspConfig(gripper_latch=True, latch_dataset=str(dataset)), **smoothing)
+                              grasp_config=GraspConfig(gripper_latch=True, latch_dataset=str(dataset)), **smoothing)
     latched._iface.get_raw_actions_from_radians = lambda joints: joints
+
     def predict(_):
         return np.hstack([np.zeros((16, 5)), np.full((16, 1), 20.)])
     baseline._client.get_action = latched._client.get_action = predict
     for step in range(50):
-        a = baseline.get_action(np.array([0.]*5 + [25.]), {})
-        b = latched.get_action(np.array([0.]*5 + [25.]), {})
+        a = baseline.get_action(np.array([0.] * 5 + [25.]), {})
+        b = latched.get_action(np.array([0.] * 5 + [25.]), {})
         assert a[:5].tobytes() == b[:5].tobytes()
         if step >= 12:
             assert b[-1] == 70.125  # unchanged FakeInterface mapping: 10*7+.125
@@ -255,12 +256,12 @@ def test_latch_sweep_summary_pairs_schedule_and_reports_metrics(tmp_path):
             row.update(time_to_grasp_s=1.5 if row['stages']['grasped'] else None, dither_score=dither)
         folder = tmp_path / f'ah_8_latch_{mode}'
         folder.mkdir()
-        (folder/'results.json').write_text(json.dumps(value))
+        (folder / 'results.json').write_text(json.dumps(value))
         variants.append(dict(horizon=8, latch=mode, folder=folder.name, settings={'gripper_latch': mode == 'on'}))
-    config = dict(horizons=[8], variants=variants, selected_splits=['id','ood','yaw'],
+    config = dict(horizons=[8], variants=variants, selected_splits=['id', 'ood', 'yaw'],
                   eval_set_id=off['eval_set_id'],
-                  expected_schedule=[(r['start_id'],r['repeat']) for r in off['episodes']])
-    (tmp_path/'sweep_config.json').write_text(json.dumps(config))
+                  expected_schedule=[(r['start_id'], r['repeat']) for r in off['episodes']])
+    (tmp_path / 'sweep_config.json').write_text(json.dumps(config))
     summary = summarize_folder(tmp_path)
     comparison = next(r for r in summary['latch_comparisons'] if r['split'] == 'all')
     assert comparison['on_only_successes'] == 1
@@ -268,7 +269,7 @@ def test_latch_sweep_summary_pairs_schedule_and_reports_metrics(tmp_path):
     assert comparison['grasped_rate_on_minus_off'] == .25
     assert comparison['mean_dither_score_on_minus_off'] == -5
     # An off report in the on folder must not qualify for comparisons or resume.
-    (tmp_path/'ah_8_latch_on/results.json').write_text(json.dumps(off))
+    (tmp_path / 'ah_8_latch_on/results.json').write_text(json.dumps(off))
     summary = summarize_folder(tmp_path)
     assert summary['latch_comparisons'] == [{'action_horizon': 8, 'available': False}]
 
@@ -281,7 +282,7 @@ def test_runner_forwards_grasp_controls_and_seeded_server_without_eval_set(tmp_p
         'eval: {dataset: /workspace/data}\n'
         'grasp: {seed_per_episode: true, gripper_latch: true, log_gripper: true,'
         ' latch_steady_steps: 10, gripper_empty_closed: 2}\n')
-    base = ['bash', str(root/'docker/eval.sh'), str(config), '--dry_run']
+    base = ['bash', str(root / 'docker/eval.sh'), str(config), '--dry_run']
     server = subprocess.run(base + ['--server_only'], capture_output=True, text=True, check=True).stdout
     assert '--policy groot_n17' in server and 'lerobot_eval' not in server
     client = subprocess.run(base + ['--external_server'], capture_output=True, text=True, check=True).stdout

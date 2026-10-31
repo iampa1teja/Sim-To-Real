@@ -56,6 +56,7 @@ assert not build.exists() or args.resume, f'Inspect previous build before retryi
 assert source != output and not output.is_relative_to(source)
 assert build != source and not build.is_relative_to(source) and not source.is_relative_to(build)
 
+
 def sha(path):
     digest = hashlib.sha256()
     with path.open('rb') as stream:
@@ -70,6 +71,7 @@ def snapshot(root):
 
 def write_json(path, data):
     path.write_text(json.dumps(data, indent=2, allow_nan=False) + '\n')
+
 
 before = snapshot(source)
 if args.resume:
@@ -128,7 +130,7 @@ else:
                     record[name] = (np.asarray(record[name]) + shift).tolist()
         records.append(record)
         path = source / info['data_path'].format(chunk_index=int(original['data/chunk_index']),
-                                               file_index=int(original['data/file_index']))
+                                                 file_index=int(original['data/file_index']))
         table = pq.read_table(path)
         table = table.filter(pc.equal(table['episode_index'], old_ep))
         assert table.num_rows == length
@@ -212,6 +214,7 @@ if args.model_profile == 'so_arm_n17':
     shutil.copy2(config_source, build / 'so_arm_n17_config.py')
 write_json(build / 'source_sha256.json', before)
 
+
 def decode_check(item):
     path, ep, key, length = item
     count = 0
@@ -229,6 +232,7 @@ def decode_check(item):
             count += 1
     assert count == length, (path, count, length)
     return {'episode': ep, 'camera': key, 'frames': count, 'sha256': sha(path)}
+
 
 print(f'Decoding and checking every frame in {len(video_checks)} videos...', flush=True)
 with ThreadPoolExecutor(max_workers=4) as pool:
@@ -288,4 +292,4 @@ write_json(build / 'preparation_report.json', report)
 (build / 'prepared_sha256.json').unlink(missing_ok=True)
 write_json(build / 'prepared_sha256.json', snapshot(build))
 build.rename(output)
-print(json.dumps({k:v for k,v in report.items() if k != 'video_checks'}, indent=2), flush=True)
+print(json.dumps({k: v for k, v in report.items() if k != 'video_checks'}, indent=2), flush=True)

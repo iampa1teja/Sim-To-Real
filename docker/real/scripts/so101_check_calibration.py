@@ -156,8 +156,8 @@ def print_report(
             all_pass = False
         flag = "✓" if status == "PASS" else "⚠"
         mean_str = f"{r['mean']:.0f}" if r["mean"] is not None else "—"
-        std_str  = f"{r['std']:.0f}"  if r["std"]  is not None else "—"
-        dev_str  = f"{r['deviation_std']:+.2f}σ" if r["deviation_std"] is not None else "—"
+        std_str = f"{r['std']:.0f}" if r["std"] is not None else "—"
+        dev_str = f"{r['deviation_std']:+.2f}σ" if r["deviation_std"] is not None else "—"
         print(
             f"  {r['joint']:<18} {r['motion_range']:>6}  {mean_str:>7} {std_str:>6} {dev_str:>10}  "
             f"{r['homing_offset']:>8}  {flag} {status}"

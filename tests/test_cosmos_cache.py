@@ -60,7 +60,7 @@ class CosmosCacheTests(unittest.TestCase):
         self.assertEqual(report["weight_shards"], ["model.safetensors"])
         self.assertEqual(report["repo_id"], "nvidia/Cosmos-Reason2-2B")
         self.assertEqual(before, {str(path.relative_to(self.cache)): path.read_bytes()
-                                 for path in self.cache.rglob("*") if path.is_file()})
+                                  for path in self.cache.rglob("*") if path.is_file()})
 
     def test_cache_alias_precedence_matches_transformers_and_hub_defaults(self):
         env = {"HF_HOME": str(self.cache / "home"), "HF_HUB_CACHE": str(self.cache / "modern"),

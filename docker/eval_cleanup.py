@@ -64,7 +64,7 @@ def cleanup(run_id: str, grace: float = 8, kill_wait: float = 2, quiet_period: f
         if not found:
             if empty_since is None:
                 empty_since = now
-            if now-empty_since >= quiet_period:
+            if now - empty_since >= quiet_period:
                 if signaled:
                     print(f"Stopped {len(signaled)} owned evaluation process(es).", flush=True)
                 return 0
@@ -82,7 +82,7 @@ def cleanup(run_id: str, grace: float = 8, kill_wait: float = 2, quiet_period: f
         if not found:
             if empty_since is None:
                 empty_since = now
-            if now-empty_since >= quiet_period:
+            if now - empty_since >= quiet_period:
                 print(f"Stopped {len(signaled)} owned evaluation process(es); forced shutdown was required.", flush=True)
                 return 0
         else:

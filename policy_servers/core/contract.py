@@ -33,7 +33,7 @@ def load_server_policy(policy_dir: str | Path) -> ServerPolicy:
     path_key = str(server_path.resolve()).encode("utf-8")
     module_name = f"_policy_server_{hashlib.sha256(path_key).hexdigest()}"
     spec = importlib.util.spec_from_file_location(module_name, server_path)
-    
+
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not create an import spec for {server_path}")
 

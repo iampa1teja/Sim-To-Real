@@ -8,7 +8,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'source'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'source'))
 from sim_to_real_so101.utils.eval_comparison import compare
 
 

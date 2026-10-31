@@ -204,7 +204,7 @@ sys.exit(91)
 
     def test_environment_overrides_and_explicit_resume_flag(self):
         result = self.run_script(settings={"DRY_RUN": "1", "RESUME": "1", "MAX_STEPS": "30",
-                                          "SAVE_STEPS": "30", "BATCH": "8", "SAVE_TOTAL_LIMIT": "1"})
+                                           "SAVE_STEPS": "30", "BATCH": "8", "SAVE_TOTAL_LIMIT": "1"})
         self.assertEqual(result.returncode, 0, result.stderr)
         args = self.launch_args(result)
         self.assertIn("--resume-from-checkpoint", args)
@@ -310,11 +310,11 @@ sys.exit(91)
     def test_pipeline_preserves_failure_and_logs_with_offline_allocator(self):
         self.fixture()
         result = self.run_script(settings={"TRAIN_TEST_LAUNCH_EXIT": "47",
-                                          "TRAIN_TEST_DISK_FREE": str(50 * 1024**3),
-                                          "NO_ALBUMENTATIONS_UPDATE": "0",
-                                          "GROOT_SKIP_HF_MODEL_WEIGHTS": "1",
-                                          "GROOT_HF_LOCAL_FIRST": "1",
-                                          "PYTEST_CURRENT_TEST": "inherited test"})
+                                           "TRAIN_TEST_DISK_FREE": str(50 * 1024**3),
+                                           "NO_ALBUMENTATIONS_UPDATE": "0",
+                                           "GROOT_SKIP_HF_MODEL_WEIGHTS": "1",
+                                           "GROOT_HF_LOCAL_FIRST": "1",
+                                           "PYTEST_CURRENT_TEST": "inherited test"})
         self.assertEqual(result.returncode, 47, result.stderr)
         self.assertIn("FAKE training output", (self.out / "train.log").read_text())
         launch = next(call for call in self.calls() if any(
@@ -406,6 +406,7 @@ class EmbeddedGpuGuardTests(unittest.TestCase):
                           f"<used_memory>{used} MiB</used_memory></process_info>"
                           for pid, name, used in processes)
         xml = f"<nvidia_smi_log><gpu><processes>{entries}</processes></gpu></nvidia_smi_log>"
+
         def fake_run(args, **kwargs):
             self.assertEqual(args[0], "nvidia-smi")
             output = xml if "-x" in args else f"{memory}, {utilization}\n"

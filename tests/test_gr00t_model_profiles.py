@@ -32,7 +32,7 @@ def tiny_shard(path, tensor_name, values=(1.0, 2.0)):
     """Write the safetensors binary format with one real F32 CPU tensor."""
     payload = struct.pack('<' + 'f' * len(values), *values)
     header = json.dumps({tensor_name: {'dtype': 'F32', 'shape': [len(values)],
-                                      'data_offsets': [0, len(payload)]}}).encode()
+                                       'data_offsets': [0, len(payload)]}}).encode()
     header += b' ' * (-len(header) % 8)
     path.write_bytes(struct.pack('<Q', len(header)) + header + payload)
 
@@ -228,6 +228,7 @@ class CheckpointProfileTests(unittest.TestCase):
         self.assertEqual(len(remaining) % 2, 0)
         self.assertTrue(all(option in ('--revision', '--include', '--local-dir')
                             for option in remaining[::2]), remaining)
+
         def selected(filename):
             return any(fnmatch.fnmatchcase(filename, pattern) for pattern in patterns)
         for filename in ('config.json', 'processor_config.json', 'embodiment_id.json', 'statistics.json',

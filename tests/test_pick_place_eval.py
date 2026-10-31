@@ -52,7 +52,7 @@ class RecordedStartTests(unittest.TestCase):
         sequence = [a.sample()[0] for _ in range(30)]
         self.assertEqual(sequence, [b.sample()[0] for _ in range(30)])
         for i in range(0, 30, 3):
-            self.assertEqual(set(sequence[i:i+3]), {0, 1, 2})
+            self.assertEqual(set(sequence[i:i + 3]), {0, 1, 2})
 
     def test_random_recorded_uniform(self):
         sampler = eval_utils.RecordedStarts(self.directory, mode='random', seed=123)
@@ -67,29 +67,30 @@ class RecordedStartTests(unittest.TestCase):
         matrix = eval_utils.rotation_matrix(q)
         point = np.array([.23, -.09, .17])
         world = base + matrix @ point
-        np.testing.assert_allclose(matrix.T @ (world-base), point, atol=1e-6)
+        np.testing.assert_allclose(matrix.T @ (world - base), point, atol=1e-6)
         plane = np.array([.02, -.03, .79])
-        world, rotation = eval_utils.resting_pose(point, [.9, .1, .2, .3], base, q, plane, [.02]*3)
-        recovered = matrix.T @ (world-base)
+        world, rotation = eval_utils.resting_pose(point, [.9, .1, .2, .3], base, q, plane, [.02] * 3)
+        recovered = matrix.T @ (world - base)
         np.testing.assert_allclose(recovered[:2], point[:2], atol=1e-6)
         normal = np.r_[-plane[:2], 1.]
         support = .01 * np.abs(normal @ rotation).sum()
         self.assertAlmostEqual(normal @ world - support - .0002, plane[2], places=12)
-        other, _ = eval_utils.resting_pose([*point[:2], -999], [.9, .1, .2, .3], base, q, plane, [.02]*3)
+        other, _ = eval_utils.resting_pose([*point[:2], -999], [.9, .1, .2, .3], base, q, plane, [.02] * 3)
         np.testing.assert_allclose(world, other)
 
     def test_random_inside_bounds_and_outside_rotated_box(self):
         sampler = eval_utils.RecordedStarts(self.directory, random_fraction=1, seed=2)
         box = eval_utils.footprint([.25, .05, 0], eval_utils.rotation_matrix([.92, 0, 0, .38]), [.135, .085, .045], True)
+
         def accepts(p, q):
-            return not eval_utils.footprints_overlap(eval_utils.footprint(p, eval_utils.rotation_matrix(q), [.02]*3), box)
+            return not eval_utils.footprints_overlap(eval_utils.footprint(p, eval_utils.rotation_matrix(q), [.02] * 3), box)
         for _ in range(1000):
             index, p, q, zone = sampler.sample(accepts)
             self.assertEqual(index, -1)
             self.assertTrue(np.all(p[:2] >= sampler.low) and np.all(p[:2] <= sampler.high))
             self.assertTrue(accepts(p, q))
-            self.assertTrue(0 <= 2*np.arctan2(q[3], q[0]) < np.pi/2)
-            self.assertIn(zone, [a+b for a in 'NMF' for b in 'LCR'])
+            self.assertTrue(0 <= 2 * np.arctan2(q[3], q[0]) < np.pi / 2)
+            self.assertIn(zone, [a + b for a in 'NMF' for b in 'LCR'])
 
     def test_random_cube_is_upright_on_live_table(self):
         base = [.94, .1, .2, -.2]
@@ -101,10 +102,10 @@ class RecordedStartTests(unittest.TestCase):
 
     def test_overlap_known_cases(self):
         def square(x, y, angle=0):
-            return eval_utils.footprint([x, y, 0], eval_utils.rotation_matrix([np.cos(angle/2), 0, 0, np.sin(angle/2)]), [2, 2, 1])
+            return eval_utils.footprint([x, y, 0], eval_utils.rotation_matrix([np.cos(angle / 2), 0, 0, np.sin(angle / 2)]), [2, 2, 1])
         self.assertTrue(eval_utils.footprints_overlap(square(0, 0), square(0, 0)))
         self.assertFalse(eval_utils.footprints_overlap(square(0, 0), square(3, 0)))
-        self.assertTrue(eval_utils.footprints_overlap(square(0, 0), square(2.1, 0, np.pi/4)))
+        self.assertTrue(eval_utils.footprints_overlap(square(0, 0), square(2.1, 0, np.pi / 4)))
         self.assertFalse(eval_utils.footprints_overlap(square(0, 0), square(2, 0)))
 
     def test_zones_and_away_axis(self):
@@ -142,18 +143,18 @@ class RecordedStartTests(unittest.TestCase):
                     (1, 'recorded', 'NL', 'red', False)])]
         report = json.loads(json.dumps(eval_utils.results_report(
             rows, 'task', 'checkpoint', 42, random_fraction=.25, episode_length_s=30.,
-            action_horizon=8, step_dt=1/30), allow_nan=False))
+            action_horizon=8, step_dt=1 / 30), allow_nan=False))
         self.assertEqual(set(report), {'schema_version', 'task', 'checkpoint', 'seed', 'time',
-                                      'overall', 'by_start', 'by_zone', 'by_cube_color', 'episodes',
-                                      'random_fraction', 'episode_length_s', 'action_horizon', 'step_dt'})
+                                       'overall', 'by_start', 'by_zone', 'by_cube_color', 'episodes',
+                                       'random_fraction', 'episode_length_s', 'action_horizon', 'step_dt'})
         self.assertEqual(report['schema_version'], 1)
         self.assertEqual(report['random_fraction'], .25)
         self.assertEqual(report['episode_length_s'], 30.)
         self.assertEqual(report['action_horizon'], 8)
-        self.assertEqual(report['step_dt'], 1/30)
-        self.assertEqual(report['overall'], {'episodes': 3, 'successes': 1, 'success_rate': 1/3,
-                                            'successes_within_15s': 1, 'success_rate_within_15s': 1/3,
-                                            'median_time_to_success_s': 15.})
+        self.assertEqual(report['step_dt'], 1 / 30)
+        self.assertEqual(report['overall'], {'episodes': 3, 'successes': 1, 'success_rate': 1 / 3,
+                                             'successes_within_15s': 1, 'success_rate_within_15s': 1 / 3,
+                                             'median_time_to_success_s': 15.})
         self.assertEqual(report['by_start']['recorded']['success_rate'], .5)
         self.assertEqual(report['by_zone']['FR']['success_rate'], 0)
         self.assertEqual(report['by_cube_color']['blue']['success_rate'], 1)
@@ -164,9 +165,9 @@ class RecordedStartTests(unittest.TestCase):
                  'steps': step, 'start_kind': 'recorded', 'zone': 'NL', 'cube_color': 'blue'}
                 for step, success in ((449, True), (450, True), (451, True), (900, True), (900, False))]
         report = eval_utils.results_report(rows, 'task', 'checkpoint', 42,
-                                           episode_length_s=30., action_horizon=8, step_dt=1/30)
-        self.assertEqual(report['overall']['success_rate'], 4/5)
-        self.assertEqual(report['overall']['success_rate_within_15s'], 2/5)
+                                           episode_length_s=30., action_horizon=8, step_dt=1 / 30)
+        self.assertEqual(report['overall']['success_rate'], 4 / 5)
+        self.assertEqual(report['overall']['success_rate_within_15s'], 2 / 5)
         self.assertEqual(report['overall']['successes_within_15s'], 2)
         self.assertAlmostEqual(report['overall']['median_time_to_success_s'], (450 + 451) / 60)
         self.assertEqual(report['by_start']['recorded'], report['overall'])
@@ -184,7 +185,7 @@ class RecordedStartTests(unittest.TestCase):
                    'start_kind': 'recorded', 'zone': 'NL', 'cube_color': 'blue'}
         legacy = {key: value for key, value in timeout.items() if key != 'success_step'}
         legacy['success'] = True
-        for rows, options in (([], {'step_dt': 1/30}), ([timeout], {'step_dt': 1/30}), ([legacy], {})):
+        for rows, options in (([], {'step_dt': 1 / 30}), ([timeout], {'step_dt': 1 / 30}), ([legacy], {})):
             with self.subTest(rows=rows, options=options):
                 report = eval_utils.results_report(rows, 'task', 'checkpoint', 42, **options)
                 json.dumps(report, allow_nan=False)

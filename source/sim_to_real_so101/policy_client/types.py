@@ -15,4 +15,3 @@ class ActionChunk:
             raise ValueError(f"actions must be a 2d array got shape {self.actions.shape}")
         if self.actions.shape[0] == 0:
             raise ValueError("actions must have atleast one step")
-        
