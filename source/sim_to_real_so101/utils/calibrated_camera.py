@@ -2,7 +2,7 @@
 from isaaclab.sensors import TiledCamera
 from isaaclab.sim import PinholeCameraCfg
 from isaaclab.utils import configclass
-from sim_to_real_so101.assets.real_setup import apply_opencv_intrinsics
+from sim_to_real_so101.assets.real_setup import apply_opencv_intrinsics  # noqa: F401  (re-exported for task configs)
 
 
 @configclass

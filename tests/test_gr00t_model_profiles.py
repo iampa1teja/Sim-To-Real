@@ -228,7 +228,8 @@ class CheckpointProfileTests(unittest.TestCase):
         self.assertEqual(len(remaining) % 2, 0)
         self.assertTrue(all(option in ('--revision', '--include', '--local-dir')
                             for option in remaining[::2]), remaining)
-        selected = lambda filename: any(fnmatch.fnmatchcase(filename, pattern) for pattern in patterns)
+        def selected(filename):
+            return any(fnmatch.fnmatchcase(filename, pattern) for pattern in patterns)
         for filename in ('config.json', 'processor_config.json', 'embodiment_id.json', 'statistics.json',
                          'model.safetensors.index.json', *self.shards):
             self.assertTrue(selected(filename), filename)

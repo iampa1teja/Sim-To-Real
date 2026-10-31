@@ -10,8 +10,8 @@ import numpy as np
 from collections.abc import Mapping 
 import time 
 
-from .contract import ClientPolicy, load_client_policy
-from .discovery import PolicyManifest, discover
+from .contract import load_client_policy
+from .discovery import discover
 from .transport import PolicyClient
 from .types import ActionChunk
 

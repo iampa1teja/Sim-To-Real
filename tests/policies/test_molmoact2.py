@@ -561,7 +561,7 @@ def test_mixed_action_restore_rejects_incompatible_checkpoints(server, precision
 def test_load_restores_action_precision_before_gpu_move_and_refreshes_rotary_alias_after(server, monkeypatch):
     from types import ModuleType
 
-    torch = pytest.importorskip("torch")
+    pytest.importorskip("torch")
     calls = []
 
     class Model:

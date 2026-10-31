@@ -9,8 +9,8 @@ import bitsandbytes
 import torch
 import torchcodec
 import transformers
-from lerobot.datasets.utils import load_info
-from gr00t.data.dataset.lerobot_episode_loader import LeRobotEpisodeLoader
+from lerobot.datasets.utils import load_info  # noqa: F401  (import check only)
+from gr00t.data.dataset.lerobot_episode_loader import LeRobotEpisodeLoader  # noqa: F401  (import check only)
 
 root = Path('/Isaac-GR00T')
 revision = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
