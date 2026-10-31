@@ -114,9 +114,15 @@ class WrapperTests(unittest.TestCase):
         self.experiment.run = self.original_run
         self.offline_helper = ModuleType("gr00t_offline_cosmos")
         self.offline_helper.offline_cosmos_processor = Mock(return_value=contextlib.nullcontext())
+        self.factory = ModuleType("gr00t.data.dataset.factory")
+        self.original_generate_rel_stats = Mock()
+        self.factory.generate_rel_stats = self.original_generate_rel_stats
         self.modules = {"gr00t": self.gr00t,
                         "gr00t.experiment": ModuleType("gr00t.experiment"),
                         "gr00t.experiment.experiment": self.experiment,
+                        "gr00t.data": ModuleType("gr00t.data"),
+                        "gr00t.data.dataset": ModuleType("gr00t.data.dataset"),
+                        "gr00t.data.dataset.factory": self.factory,
                         "gr00t_offline_cosmos": self.offline_helper}
         self.official.write_text('''
 import os, sys
@@ -151,6 +157,7 @@ fixture_experiment.result = run(fixture_experiment.config)
         self.assertEqual(sys.path, prior_path)
         self.assertEqual(Path.cwd(), prior_cwd)
         self.offline_helper.offline_cosmos_processor.assert_called_once_with()
+        self.assertIs(self.factory.generate_rel_stats, self.original_generate_rel_stats)
 
     def test_runpy_entry_adds_project_helper_path_and_restores_it(self):
         project = REPO / "policies/groot_n17/train/launch_pick_place_n17.py"
@@ -185,6 +192,7 @@ fixture_experiment.result = run(fixture_experiment.config)
                 else:
                     self.assertEqual(str(caught.exception), "load failed")
                 self.assertIs(self.experiment.run, self.original_run)
+                self.assertIs(self.factory.generate_rel_stats, self.original_generate_rel_stats)
 
     def test_skip_weight_loading_is_rejected_at_the_actual_run_boundary(self):
         self.experiment.config.training.skip_weight_loading = True

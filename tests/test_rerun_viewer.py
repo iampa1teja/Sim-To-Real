@@ -118,9 +118,12 @@ def test_sim_visualization_connects_to_requested_viewer_without_spawning(monkeyp
     context = {"os": os, "uuid": uuid, "make_robot_from_config": lambda cfg: "robot",
                "init_rerun": lambda **kw: calls.append(("spawn", kw["session_name"]))}
     exec(compile(ast.Module(body=[method], type_ignores=[]), str(ROOT), "exec"), context)
-    iface = SimpleNamespace(make_cfg=lambda: "config", port=None, id="simulation")
+    verified = []
+    iface = SimpleNamespace(_device_selection_pending=False, make_cfg=lambda: "config", port=None, id="simulation", kind="leader",
+                            calibration_selection=SimpleNamespace(leader_path=None, verify_loaded=lambda robot, role: verified.append((robot, role))))
     context["init_device"](iface, visualize=True)
     assert iface.robot == "robot"
+    assert verified == [("robot", "leader")]
     if endpoint:
         assert [call[0] for call in calls] == ["init", "connect"]
         assert calls[1][1] == endpoint

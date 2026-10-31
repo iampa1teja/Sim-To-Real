@@ -143,3 +143,57 @@ Raw telemetry and all detailed evidence are unversioned under `outputs/calibrati
 - Physical confirmation of the reference faces and measurement signs.
 
 No candidate has been applied. Teleoperation launch remains under operator control.
+
+## Follow-up — decomposing the large gaps
+
+An offline re-read of the preserved `teleop.jsonl` (SHA-256
+`bad771f5a06f71c321548fc0d5ba99b22da4dce71e82a56840fa4e9929ce847b`)
+separates the existing sim target from the observed follower. No new hardware
+run or calibration change was made. The first frame has no previous target;
+target statistics below use the remaining 467 rows. Each column is its own
+median, so the medians need not add exactly.
+
+| Joint | Median sim − mapped follower ° | Median previous target − mapped follower ° | Median sim − previous target ° |
+| --- | ---: | ---: | ---: |
+| elbow_flex | +192.596055 | +193.251965 | −0.655910 |
+| wrist_roll | +87.962361 | +87.956178 | +0.006183 |
+
+The sim followed its targets closely. Most of the discrepancy already existed
+between those targets and the follower encoder reading. In particular, the
+elbow's mapped follower ranged from −100.000007° to +90.878891°, while the sim
+ranged from +36.599671° to +92.600747°. In 442/468 frames the mapped elbow was
+at a runtime limit; the dominant comparison spans opposite ends of the allowed
+range. Clamping hides how far the raw mapped reading might lie beyond that
+bound. **Clamping alone cannot explain why sim and real received different
+effective angles when both use the same normalized command and mapping.**
+The log lacks the previous raw leader command, unclipped real degrees, and
+loaded-file hashes needed to distinguish a role/calibration mismatch, a real
+tracking problem or an encoder branch. The disputed port-role provenance is an
+additional reason to withhold a physical offset. A +192.6° linear gap remains
++192.6°: it must be flagged for branch investigation, never converted to −167.4°
+by modulo arithmetic. The separate 468/468 zero-step test proves the numerical
+mapping can be written/read through PhysX; it does not resolve this live mismatch.
+
+For wrist roll, the generic `lerobot_agent` still computes
+`sim_wrist_start + mapped_leader_roll - leader_wrist_start`. That introduces a
+session/start-dependent constant relative to absolute follower mapping. The
+trace's +87.956° **target−follower** median and +0.006° sim-tracking median are
+consistent with that mechanism. They do not prove an independently measured
+physical +90° zero error. The original run did not record the leader start
+angle, so its exact contribution cannot be recovered. Current setup's
+`wrist_roll_zero_offset_degrees` is 0°; the separate
+`wrist_roll_model_offset=-90` belongs to policy inference and is not executed
+by ordinary leader teleop. A near-90° number by itself cannot identify a policy
+frame offset. `pick_place_agent` already uses absolute wrist targets; this
+tooling preserves each agent's existing execution behavior and labels it in
+the provenance header.
+
+The [new calibration-check run sheet](../../09-calibration-check.md) records
+unclipped commanded/real degrees, actual PhysX degrees, previous clamped target,
+all three linear gaps, limit/static flags, and selected file hashes. Its
+still/unsaturated statistics separate tracking from a persistent mapping gap.
+Encoder-based checks still cannot detect a zero-pose error made during
+calibration: real degrees use the same encoder calibration as sim. The
+operator-matched torque-off pose mode supplies the independent reference;
+it prints candidates and applies nothing. Fresh per-joint average gaps and
+verdicts remain pending an operator-started run.

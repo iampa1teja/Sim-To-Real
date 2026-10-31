@@ -17,6 +17,7 @@ from pathlib import Path
 import sys
 
 from sim_to_real_so101.utils import real_rollout as rr
+from sim_to_real_so101.utils.joint_calibration import resolve_calibration
 
 DEFAULT_RENAME_MAP = '{"external": "room", "gripper": "wrist"}'
 
@@ -43,9 +44,8 @@ def build_parser():
                         help="disable torque on exit; the arm will drop")
     parser.add_argument("--follower_port", default=env("ROBOT_PORT"))
     parser.add_argument("--follower_id", default=env("ROBOT_ID"))
-    parser.add_argument("--calibration_file", help="follower mapping JSON (default: "
-                        "$HF_LEROBOT_CALIBRATION/robots/so101_follower/<follower_id>.json, "
-                        "or ~/.cache/huggingface/lerobot/calibration/robots/so101_follower/<follower_id>.json)")
+    parser.add_argument("--calibration_file", help="Explicit follower mapping and hardware JSON; "
+                        "default mapping is locked real_setup.json; follower_id selects the hardware file")
     parser.add_argument("--camera_gripper", default=env("CAMERA_GRIPPER"))
     parser.add_argument("--camera_external", default=env("CAMERA_EXTERNAL"))
     parser.add_argument("--camera_width", type=int, default=int(env("CAMERA_WIDTH", "640")))
@@ -65,14 +65,10 @@ def validate(args):
         errors.append("set ROBOT_PORT or pass --follower_port")
     if not args.follower_id:
         errors.append("set ROBOT_ID or pass --follower_id")
-    if args.calibration_file is None:
-        calibration_root = Path(os.environ.get("HF_LEROBOT_CALIBRATION", "~/.cache/huggingface/lerobot/calibration"))
-        args.calibration_file = calibration_root.expanduser() / "robots" / "so101_follower" / f"{args.follower_id}.json"
-    else:
-        args.calibration_file = Path(args.calibration_file).expanduser()
     try:
-        args.joint_mapping = rr.follower_mapping_from_calibration(
-            args.calibration_file, **rr.sim_mapping_parameters())
+        args.calibration_selection = resolve_calibration(follower_id=args.follower_id, follower_path=args.calibration_file)
+        args.calibration_file = args.calibration_selection.follower_path
+        args.joint_mapping = args.calibration_selection.mapping
     except ValueError as error:
         errors.append(str(error))
     if not (args.camera_gripper or args.camera_external):
@@ -111,6 +107,7 @@ def make_interface(args):
     return LeRobotSO101Interface(
         device="cpu", port=args.follower_port, id=args.follower_id, cameras=camera_specs(args), fps=args.fps,
         kind="follower", rename_map=json.loads(args.rename_map), joint_mapping=args.joint_mapping,
+        calibration_selection=args.calibration_selection,
         follower_options={"max_relative_target": args.max_relative_target,
                           "disable_torque_on_disconnect": args.release_on_exit})
 
@@ -131,6 +128,9 @@ def make_policy(args, interface):
 def connect_follower(interface):
     """Connect without ever entering LeRobot's interactive calibration, and refuse an uncalibrated arm."""
     interface.init_device()
+    selection = getattr(interface, "calibration_selection", None)
+    if selection is not None:
+        selection.verify_loaded(interface.robot, "follower")
     calibration_file = Path(interface.robot.calibration_fpath)
     if not calibration_file.is_file():
         raise SystemExit(f"No calibration file for follower {interface.id!r} ({calibration_file}). "
@@ -155,6 +155,7 @@ def main(argv=None, *, interface_factory=make_interface, policy_factory=make_pol
     if errors:
         print("real_rollout: " + "; ".join(errors), file=sys.stderr)
         return 2
+    args.calibration_selection.print_paths()
     if not args.no_prompt and not sys.stdin.isatty() and input_fn is input:
         print("real_rollout: needs an interactive terminal (docker exec -it) or --no_prompt", file=sys.stderr)
         return 2
@@ -170,6 +171,7 @@ def main(argv=None, *, interface_factory=make_interface, policy_factory=make_pol
     expected_roll = rr.sim_start_roll_units(args.joint_mapping)
     header["sim_start_roll_units"] = expected_roll
     header["mapping_parameters"] = rr.sim_mapping_parameters()
+    header["calibration"] = args.calibration_selection.provenance
     settings = rr.RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error,
                                   expected_start_roll=expected_roll)
     interface = interface_factory(args)

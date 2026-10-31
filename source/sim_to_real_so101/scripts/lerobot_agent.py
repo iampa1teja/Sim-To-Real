@@ -126,6 +126,8 @@ parser.add_argument("--no_calibration", action="store_true",
                     help="Connect both arms with calibration disabled; never accept or run calibration.")
 parser.add_argument("--joint_angle_log", type=str, default=None,
                     help="New JSONL path for passive follower/mapped/PhysX joint telemetry; requires a follower.")
+parser.add_argument("--calibration_check_log", type=str, default=None,
+                    help="New passive calibration JSONL and automatic summary files; requires a follower.")
 
 # MyRoom currently has no task RigidObject. This optional hook only acts on a
 # caller-supplied Isaac Lab scene entity and therefore invents no prim path.
@@ -158,8 +160,29 @@ if args_cli.image_writer_threads_per_camera < 0:
     parser.error("--image_writer_threads_per_camera cannot be negative.")
 if args_cli.enable_real_follower and os.path.realpath(args_cli.port) == os.path.realpath(args_cli.follower_port):
     parser.error("Leader and follower serial ports must be different.")
-if args_cli.joint_angle_log and not args_cli.enable_real_follower:
-    parser.error("--joint_angle_log requires --enable_real_follower.")
+calibration_log_path = args_cli.calibration_check_log or args_cli.joint_angle_log
+if calibration_log_path and not args_cli.enable_real_follower:
+    parser.error("--calibration_check_log / --joint_angle_log requires --enable_real_follower.")
+if args_cli.calibration_check_log and args_cli.joint_angle_log and args_cli.calibration_check_log != args_cli.joint_angle_log:
+    parser.error("Use one telemetry output path for --calibration_check_log / --joint_angle_log.")
+
+from sim_to_real_so101.utils.joint_calibration import resolve_calibration
+from sim_to_real_so101.utils.recording_alignment import recording_contract, validate_recording_root, mark_recording_root
+
+args_cli.calibration_selection = resolve_calibration(
+    follower_id=args_cli.follower_id if args_cli.enable_real_follower else None, leader_id=args_cli.robot_id)
+args_cli.calibration_selection.print_paths()
+alignment_contract = recording_contract(follower_id=args_cli.follower_id, leader_id=args_cli.robot_id,
+                                        calibration_selection=args_cli.calibration_selection)
+recording_roots = []
+if all(dataset_args) and any((args_cli.calibration_selection.follower_path, args_cli.calibration_selection.leader_path)):
+    recording_roots.append(args_cli.repo_root)
+    if args_cli.enable_real_follower:
+        from pathlib import Path
+        root = Path(args_cli.repo_root)
+        recording_roots.append(args_cli.real_repo_root or str(root.with_name(root.name + "-real")))
+    for root in recording_roots:
+        validate_recording_root(root, alignment_contract)
 
 
 validate_serial_ports(args_cli, parser)
@@ -242,7 +265,7 @@ def _reset_for_buffer(env, keyboard_control) -> None:
 
 
 @torch.inference_mode()
-def main():
+def main():  # noqa: C901
     spawn_server = None
     keyboard_control = None
     env = None
@@ -254,6 +277,10 @@ def main():
 
     try:
         exit_cleanly_on_termination()
+        if calibration_log_path:
+            from sim_to_real_so101.utils.joint_angle_check import JointAngleTelemetry
+            joint_angle_log = JointAngleTelemetry(calibration_log_path, selection=args_cli.calibration_selection,
+                                                  provenance={"agent": "lerobot_agent", "sim_wrist_start_rezero": True})
         # Use Fabric consistently with zero/eval agents so rendered links and
         # the attached wrist camera follow the live articulation.
         use_fabric = not args_cli.disable_fabric
@@ -264,6 +291,9 @@ def main():
             use_fabric=use_fabric,
         )
         env_cfg.seed = args_cli.seed
+        if (hasattr(env_cfg, "sim_joint_mapping")
+                and env_cfg.sim_joint_mapping != args_cli.calibration_selection.mapping):
+            raise ValueError("Environment mapping differs from the selected follower calibration")
         if env_cfg.scene.num_envs != 1:
             raise ValueError("Manual recorder scripts require num_envs == 1.")
         if env_cfg.terminations is not None and any(
@@ -297,14 +327,10 @@ def main():
         if not sim_cameras:
             print("[WARNING]: No simulation cameras found.")
 
-        if args_cli.joint_angle_log:
-            from sim_to_real_so101.utils.joint_angle_check import JointAngleTelemetry
-            joint_angle_log = JointAngleTelemetry(args_cli.joint_angle_log)
-
         leader_iface = connect_interface(
             args_cli, env.unwrapped.device, sim_cameras, "leader",
             joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
-            calibrate=not args_cli.no_calibration,
+            calibrate=not (args_cli.no_calibration or calibration_log_path),
         )
 
         recording_mode = bool(all(dataset_args))
@@ -313,17 +339,19 @@ def main():
         real_cameras = real_camera_specs(args_cli) if recording_mode else {}
         if args_cli.enable_real_follower:
             follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower",
-                                               calibrate=not args_cli.no_calibration)
+                                               calibrate=not (args_cli.no_calibration or calibration_log_path))
 
         if recording_mode:
             recorder_group = make_recorders(
                 args_cli, env.unwrapped.device, sim_cameras, follower_iface, real_cameras,
             )
             recorder_group.init_datasets()
+            for root in recording_roots:
+                mark_recording_root(root, alignment_contract)
+            dataset_paths = {name: os.fspath(rec.dataset_root) for name, rec in recorder_group.recorders.items()}
             print(
                 f"[INFO]: Recording ready at synchronized episode "
-                f"{recorder_group.episode_index}: "
-                f"{ {name: os.fspath(rec.dataset_root) for name, rec in recorder_group.recorders.items()} }"
+                f"{recorder_group.episode_index}: {dataset_paths}"
             )
         else:
             print(
@@ -350,6 +378,7 @@ def main():
         wrist_roll_index = 4
         leader_wrist_start = None
         previous_sim_target = None
+        previous_leader_action = None
         # Obs from the last env.step(); None forces compute() after scene edits outside env.step().
         obs = None
 
@@ -379,6 +408,11 @@ def main():
 
         while simulation_app.is_running():
             loop_start = time.perf_counter()
+            if joint_angle_log is not None:
+                # Capture the completed tick before resets or either next command.
+                follower_angles = follower_iface.robot.get_observation()
+                joint_angle_log.observe(follower_angles, leader_iface, env.unwrapped.scene["robot"],
+                                        previous_sim_target, previous_command=previous_leader_action)
             if spawn_server is not None:
                 spawn_server.poll(spawn_requested_cube)
             requests = keyboard_control.consume_requests()
@@ -516,12 +550,6 @@ def main():
 
             if follower_iface is not None:
                 try:
-                    if joint_angle_log is not None:
-                        # Observe the previous completed tick BEFORE sending its
-                        # next command. This tap never commands either arm.
-                        follower_angles = follower_iface.robot.get_observation()
-                        joint_angle_log.observe(follower_angles, leader_iface,
-                                                env.unwrapped.scene["robot"], previous_sim_target)
                     # Critical invariant: this is the original LeRobot
                     # action, not the mapped Isaac Sim tensor.
                     follower_iface.robot.send_action(leader_action)
@@ -535,6 +563,7 @@ def main():
             try:
                 obs, _, _, _, _ = env.step(actions)
                 previous_sim_target = mapped_action.clone()
+                previous_leader_action = dict(leader_action)
             except Exception as exc:
                 raise RuntimeError(
                     f"Isaac Sim action application failed: {exc}"

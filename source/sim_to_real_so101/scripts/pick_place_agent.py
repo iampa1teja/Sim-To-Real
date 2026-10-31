@@ -18,6 +18,7 @@ from sim_to_real_so101.utils.recording_setup import (
 from sim_to_real_so101.utils.recording_alignment import (
     recording_contract, validate_recording_root, mark_recording_root, synced_start_pose,
 )
+from sim_to_real_so101.utils.joint_calibration import resolve_calibration
 
 parser = argparse.ArgumentParser(description="SO-101 pick-and-place agent.")
 parser.add_argument("--disable_fabric", action="store_true", default=False)
@@ -62,6 +63,10 @@ parser.add_argument("--real_camera_fourcc", type=str, default=os.getenv("CAMERA_
 parser.add_argument("--fps", type=int, default=int(os.getenv("CONTROL_FPS", "30")))
 parser.add_argument("--seed", type=int, default=101)
 parser.add_argument("--rerun", action="store_true", default=False, help="Enable Rerun visualization")
+parser.add_argument("--no_calibration", action="store_true", help="Refuse calibration during this session.")
+parser.add_argument("--calibration_check_log", type=str, default=None,
+                    help="New passive calibration JSONL and automatic summary files; requires a follower.")
+parser.add_argument("--joint_angle_log", type=str, default=None, help="Alias for --calibration_check_log.")
 
 # Preparation countdown before recording; starting does not reset the scene.
 parser.add_argument("--reset_wait_s", type=int, default=10,
@@ -96,12 +101,21 @@ if args_cli.enable_real_follower and (
     os.path.realpath(args_cli.port) == os.path.realpath(args_cli.follower_port)
 ):
     parser.error("Leader and follower serial ports must be different.")
+calibration_log_path = args_cli.calibration_check_log or args_cli.joint_angle_log
+if calibration_log_path and not args_cli.enable_real_follower:
+    parser.error("--calibration_check_log / --joint_angle_log requires --enable_real_follower.")
+if args_cli.calibration_check_log and args_cli.joint_angle_log and args_cli.calibration_check_log != args_cli.joint_angle_log:
+    parser.error("Use one telemetry output path for --calibration_check_log / --joint_angle_log.")
 
 
 # ---------------------------------------------------------------------------
 # Serial port pre-flight
 # ---------------------------------------------------------------------------
-alignment_contract = recording_contract(follower_id=args_cli.follower_id, leader_id=args_cli.robot_id)
+args_cli.calibration_selection = resolve_calibration(
+    follower_id=args_cli.follower_id if args_cli.enable_real_follower else None, leader_id=args_cli.robot_id)
+args_cli.calibration_selection.print_paths()
+alignment_contract = recording_contract(follower_id=args_cli.follower_id, leader_id=args_cli.robot_id,
+                                        calibration_selection=args_cli.calibration_selection)
 recording_roots = []
 if all(dataset_args):
     recording_roots.append(args_cli.repo_root)
@@ -153,7 +167,6 @@ SIM_RGB, SIM_WRIST, REAL_RGB, REAL_WRIST = "Sim: realsense", "Sim: wrist", "Real
 # "stop" means stop *recording* (save), which is "end"; "stop" here means quit.
 GUI_REQUESTS = {"start": "start", "stop": "end", "save": "end", "encode": "encode",
                 "exit": "stop", "discard": "rerecord", "spawn": "spawn"}
-
 
 
 def say(text: str, blocking: bool = False) -> None:
@@ -231,14 +244,14 @@ def _log_rerun_frame(visual_obs: dict, real_observation: dict | None, action: di
     """Stream 4-camera frame to Rerun viewer."""
     from lerobot.utils.visualization_utils import log_rerun_data
     observation = {
-        "sim_rgb":   visual_obs.get("rgb_realsense_rgb"),
+        "sim_rgb": visual_obs.get("rgb_realsense_rgb"),
         "sim_wrist": visual_obs.get("rgb_wrist_cam"),
     }
     if real_observation is not None:
         # Raw follower observation dict is keyed by camera name directly
         # (see real_camera_specs(args_cli)), not by the "observation.images.*"
         # prefix used only on the processed LeRobot dataset frame.
-        observation["real_rgb"]   = real_observation.get("external")
+        observation["real_rgb"] = real_observation.get("external")
         observation["real_wrist"] = real_observation.get("gripper")
     observation = {
         key: (value[0].detach().cpu().numpy() if isinstance(value, torch.Tensor) else value)
@@ -252,7 +265,7 @@ def _log_rerun_frame(visual_obs: dict, real_observation: dict | None, action: di
 # ---------------------------------------------------------------------------
 
 @torch.inference_mode()
-def main():
+def main():  # noqa: C901
     # Physics buffers updated during stepping may be inference tensors. Keep
     # keyboard-driven spawn/reset/save transitions in the same context.
     keyboard_control = None
@@ -263,9 +276,16 @@ def main():
     recorder_group = None
     recording = False
     exit_encode = True
+    joint_angle_log = None
+    previous_sim_target = None
+    previous_leader_action = None
 
     try:
         exit_cleanly_on_termination()
+        if calibration_log_path:
+            from sim_to_real_so101.utils.joint_angle_check import JointAngleTelemetry
+            joint_angle_log = JointAngleTelemetry(calibration_log_path, selection=args_cli.calibration_selection,
+                                                  provenance={"agent": "pick_place_agent", "sim_wrist_start_rezero": False})
         # ── Env ───────────────────────────────────────────────────────────
         use_fabric = not args_cli.disable_fabric
         env_cfg = parse_env_cfg(
@@ -275,6 +295,9 @@ def main():
             use_fabric=use_fabric,
         )
         env_cfg.seed = args_cli.seed
+        if (hasattr(env_cfg, "sim_joint_mapping")
+                and env_cfg.sim_joint_mapping != args_cli.calibration_selection.mapping):
+            raise ValueError("Environment mapping differs from the selected follower calibration")
         if env_cfg.scene.num_envs != 1:
             raise ValueError("Manual recorder scripts require num_envs == 1.")
         if env_cfg.terminations is not None and any(
@@ -312,6 +335,7 @@ def main():
         leader_iface = connect_interface(
             args_cli, env.unwrapped.device, sim_cameras, "leader", visualize=args_cli.rerun,
             joint_mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None),
+            calibrate=not (args_cli.no_calibration or calibration_log_path),
         )
 
         recording_mode = bool(all(dataset_args))
@@ -319,7 +343,8 @@ def main():
         real_cameras = real_camera_specs(args_cli)
 
         if args_cli.enable_real_follower:
-            follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower")
+            follower_iface = connect_interface(args_cli, env.unwrapped.device, real_cameras, "follower",
+                                               calibrate=not (args_cli.no_calibration or calibration_log_path))
 
         if recording_mode:
             recover_replacement(args_cli.repo_root)
@@ -381,6 +406,11 @@ def main():
 
         while simulation_app.is_running():
             loop_start = time.perf_counter()
+            if joint_angle_log is not None:
+                # Observe the previous completed tick before reset/start sync or commands.
+                follower_angles = follower_iface.robot.get_observation()
+                joint_angle_log.observe(follower_angles, leader_iface, env.unwrapped.scene["robot"],
+                                        previous_sim_target, previous_command=previous_leader_action)
             requests = keyboard_control.consume_requests()
             gui_requests = gui.consume_requests()
             for button, request in GUI_REQUESTS.items():
@@ -592,6 +622,8 @@ def main():
             episode_cube.park()
             try:
                 obs, _, _, _, _ = env.step(actions)
+                previous_sim_target = mapped_action.clone()
+                previous_leader_action = dict(leader_action)
             except Exception as exc:
                 raise RuntimeError(f"env.step() failed: {exc}") from exc
             remaining = (1.0 / args_cli.fps) - (time.perf_counter() - loop_start)
@@ -618,10 +650,13 @@ def main():
             signum = getattr(signal, name, None)
             if signum is not None:
                 signal.signal(signum, interrupt_cleanup)
+        if joint_angle_log is not None:
+            _cleanup("Calibration summary", joint_angle_log.close)
         if keyboard_control is not None:
             _cleanup("Keyboard cleanup", keyboard_control.cleanup)
         _cleanup("Follower disconnect", lambda: _disconnect(follower_iface, "physical follower"))
         _cleanup("Leader disconnect", lambda: _disconnect(leader_iface, "physical leader"))
+
         def exit_progress(pending):
             if gui is not None:
                 gui.set_state(
