@@ -14,8 +14,8 @@ args.enable_cameras = True
 launcher = AppLauncher(args)
 try:
     import gymnasium as gym
-    import isaaclab_tasks
-    import sim_to_real_so101.tasks
+    import isaaclab_tasks  # noqa: F401  (registers Gym tasks)
+    import sim_to_real_so101.tasks  # noqa: F401  (registers Gym tasks)
     from isaaclab_tasks.utils import parse_env_cfg
     from sim_to_real_so101.utils.pick_place_benchmark_runtime import capture_scene
     cfg = parse_env_cfg('Lerobot-So101-Teleop-Pick-Place', device=args.device, num_envs=1)

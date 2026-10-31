@@ -247,7 +247,6 @@ def main():
     args = parser.parse_args()
     
     # Parse arguments with dot notation
-    robot_type = getattr(args, 'robot.type')
     robot_port = getattr(args, 'robot.port')
     robot_id = getattr(args, 'robot.id')
     

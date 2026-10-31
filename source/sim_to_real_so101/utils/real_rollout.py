@@ -14,7 +14,8 @@ import time
 
 import numpy as np
 
-from sim_to_real_so101.utils.joint_calibration import (
+# Several names are re-exported for scripts/real_rollout.py and its tests.
+from sim_to_real_so101.utils.joint_calibration import (  # noqa: F401
     FOLLOWER_JOINTS, follower_mapping_from_calibration, sim_gripper_closed_degrees,
     SETUP_PATH, sim_mapping_parameters, sim_wrist_roll_zero_offset_degrees,
 )

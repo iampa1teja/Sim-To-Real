@@ -126,7 +126,8 @@ def summarize_folder(folder):
               '| AH | Split | Status | Successes/episodes | Rate [95% CI] | Median / mean success s | ≤15 s |',
               '| --- | --- | --- | --- | --- | --- | --- |']
     for r in rows:
-        t = lambda key: '—' if r[key] is None else f'{r[key]:.2f}'
+        def t(key, r=r):
+            return '—' if r[key] is None else f'{r[key]:.2f}'
         lines.append(f"| {r['action_horizon']} | {r['split']} | {r['status']} | {r['successes']}/{r['episodes']} | {pct(r['success_rate'])} [{pct(r['ci95_low'])}, {pct(r['ci95_high'])}] | {t('median_time_to_success_s')} / {t('mean_time_to_success_s')} | {pct(r['success_within_15s'])} |")
     lines += ['', '| AH | Split | Reached | Grasped | Lifted | Over box | Placed |', '| --- | --- | --- | --- | --- | --- | --- |']
     for r in rows:
