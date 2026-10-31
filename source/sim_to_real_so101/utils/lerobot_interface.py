@@ -29,8 +29,6 @@ from lerobot.teleoperators.so101_leader import SO101LeaderConfig
 from lerobot.robots.so101_follower import SO101FollowerConfig
 
 from lerobot.cameras.opencv import OpenCVCameraConfig
-from lerobot.configs.policies import PreTrainedConfig
-from lerobot.policies.factory import make_policy, make_pre_post_processors
 from lerobot.robots import make_robot_from_config
 from lerobot.processor import make_default_processors
 from lerobot.datasets.pipeline_features import (
@@ -39,9 +37,6 @@ from lerobot.datasets.pipeline_features import (
 )
 from lerobot.datasets.utils import build_dataset_frame, combine_feature_dicts
 from lerobot.utils.constants import ACTION, OBS_STR
-from lerobot.utils.control_utils import predict_action
-from lerobot.utils.utils import get_safe_torch_device
-from lerobot.policies.utils import make_robot_action
 from lerobot.utils.visualization_utils import init_rerun
 from sim_to_real_so101.utils.rerun_logging import log_rerun_data
 
@@ -315,121 +310,6 @@ class LeRobotSO101Interface:
         raw_degrees[-1] = normalized[-1] * 100.0  # gripper: 0-1 -> 0-100
 
         return raw_degrees
-
-    def make_policy(
-        self,
-        name_or_path: str,
-    ):
-
-        _, self.robot_action_processor, self.robot_observation_processor = (
-            make_default_processors()
-        )
-
-        self.dataset_features = combine_feature_dicts(
-            # Observation features (joint positions + camera images)
-            aggregate_pipeline_dataset_features(
-                pipeline=self.robot_observation_processor,
-                initial_features=create_initial_features(
-                    observation=self.robot.observation_features
-                ),
-                use_videos=True,  # MUST be True to include cameras!
-            ),
-            # Action features (target joint positions)
-            aggregate_pipeline_dataset_features(
-                pipeline=self.robot_action_processor,
-                initial_features=create_initial_features(
-                    action=self.robot.action_features
-                ),
-                use_videos=True,
-            ),
-        )
-
-        policy_config = PreTrainedConfig.from_pretrained(name_or_path)
-        policy_config.pretrained_path = name_or_path
-        policy_config.device = self.device
-
-        self.dataset_meta = DummyDatasetMeta(self.dataset_features, self.robot.name)
-
-        self.policy = make_policy(policy_config, ds_meta=self.dataset_meta)
-
-        print("[INFO]: Policy loaded")
-
-        self.preprocessor, self.postprocessor = make_pre_post_processors(
-            policy_cfg=policy_config,
-            pretrained_path=name_or_path,
-            dataset_stats={},  # No normalization stats (policy handles it)
-            preprocessor_overrides={
-                "device_processor": {"device": policy_config.device},
-            },
-        )
-
-        print("[INFO]: Preprocessor and postprocessor loaded")
-
-    def sim_obs_to_policy_processor(self, sim_observation: torch.Tensor, visual_obs: dict) -> dict:
-        # TODO: makes no sense to copy to host here, but this is whay predict_action expects
-
-        state: torch.Tensor = self.get_raw_actions_from_radians(sim_observation)
-
-        state_np = state.cpu().numpy()
-
-        sim_observation = {}
-        sim_observation["shoulder_pan.pos"] = state_np[0]
-        sim_observation["shoulder_lift.pos"] = state_np[1]
-        sim_observation["elbow_flex.pos"] = state_np[2]
-        sim_observation["wrist_flex.pos"] = state_np[3]
-        sim_observation["wrist_roll.pos"] = state_np[4]
-        sim_observation["gripper.pos"] = state_np[5]
-
-        for camera in self.cameras.keys():
-            img: torch.Tensor = (
-                visual_obs[f"rgb_{camera}"][0].clone()
-            )
-            # need to rename camera to match policy/feature config
-            camera_name = camera
-            if self.rename_map:
-                camera_name = self.rename_map[camera]
-            sim_observation[camera_name] = img.cpu().detach().numpy()
-
-        obs_processed = self.robot_observation_processor(sim_observation)
-        observation_frame = build_dataset_frame(
-            self.dataset_features,  # Defines structure of observations/actions
-            obs_processed,  # Raw observation data
-            prefix=OBS_STR,  # Adds "observation." prefix to keys
-        )
-
-        return observation_frame
-
-    def predict_action(self, observation_frame: dict) -> dict:
-        action_values = predict_action(
-            observation=observation_frame,
-            policy=self.policy,
-            device=get_safe_torch_device(self.policy.config.device),
-            preprocessor=self.preprocessor,
-            postprocessor=self.postprocessor,
-            use_amp=self.policy.config.use_amp,
-            task="Pick up the vial and place it in the tray",
-            robot_type=self.robot.robot_type,
-        )
-        return action_values
-
-    def prediction_to_sim_processor(
-        self, action_values: dict, observation_frame: dict, log: bool = False
-    ) -> dict:
-        robot_action = make_robot_action(action_values, self.dataset_features)
-        robot_action_to_send = self.robot_action_processor((robot_action, None))
-
-        motor_actions = {
-            k: v for k, v in robot_action_to_send.items() if k.endswith(".pos")
-        }
-        sim_motor_actions: torch.Tensor = self.get_raw_actions_tensor(motor_actions)
-
-        if log:
-            log_rerun_data(observation=observation_frame, action=robot_action)
-
-        mapped_sim_motor_actions: torch.Tensor = self.get_mapped_actions_vectorized(
-            sim_motor_actions
-        )
-        return mapped_sim_motor_actions
 
     # TODO: we should return a single object instead of a tuple
     def real_to_sim_obs_processor(
@@ -735,10 +615,3 @@ class SimRemotePolicy:
             log_rerun_data(observation=obs_log, action=action_dict)
 
         return sim_action
-
-
-class DummyDatasetMeta:
-    def __init__(self, features, robot_type):
-        self.features = features
-        self.stats = {}
-        self.robot_type = robot_type

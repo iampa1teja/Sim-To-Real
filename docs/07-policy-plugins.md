@@ -87,11 +87,6 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 
 **`smoothing.py`, `grasp.py`**: move unchanged. Only fix the import lines (`sim_to_real_so101.gr00t_client.*` becomes relative or `sim_to_real_so101.policy_client.*`).
 
-**`cli.py`**
-- Imports: `argparse`, `discovery`.
-- `add_policy_arguments(parser)`: `--policy` (choices from `discover()`), `--host`, `--port`, `--policy_option KEY=VALUE` (repeatable).
-- `policy_from_args(args) -> tuple[PolicyManifest, dict]`.
-
 ### `policies/<name>/`
 
 **`groot_n17/client.py`**
@@ -112,7 +107,7 @@ You write every `.py` file listed here. The non-Python files already exist: `pol
 
 **`source/sim_to_real_so101/scripts/new_policy.py`**: `main()` takes a name, validates it, copies `policies/_template/` to `policies/<name>/`, rewrites the name in `policy.toml` and `pyproject.toml`. Register it in `pyproject.toml` `[project.scripts]` as `new_policy`.
 
-**Edits**: `utils/lerobot_interface.py` (use `RemotePolicy`), `scripts/lerobot_eval.py` (`--policy` via `cli.py`), `scripts/sweep_action_horizon.py`, `scripts/plot_grasp.py` (imports only).
+**Edits**: `utils/lerobot_interface.py` (use `RemotePolicy`), `scripts/lerobot_eval.py` (`--policy`), `scripts/sweep_action_horizon.py`, `scripts/plot_grasp.py` (imports only).
 
 **Tests**
 - `tests/policy_client/test_transport.py`, `test_smoothing.py`, `test_grasp.py`: moved with new import paths.

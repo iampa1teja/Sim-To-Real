@@ -6,7 +6,6 @@ control-step indices, so stale prefixes and temporal overlaps share one clock.
 
 from dataclasses import dataclass
 import csv
-import logging
 import math
 from pathlib import Path
 from queue import Empty, Queue
@@ -386,10 +385,3 @@ class FixedRateScheduler:
         elif remaining > 0:
             self.sleep(remaining)
         return overrun
-
-
-def log_late(result, step, horizon):
-    elapsed = step - result.observation_step
-    logging.info("Chunk %s inference %.3fs, dropping %s stale actions%s", result.chunk_id,
-                 result.latency, min(elapsed, len(result.actions)),
-                 " (past execution horizon)" if elapsed >= horizon else "")
