@@ -43,7 +43,7 @@ class AuditTests(unittest.TestCase):
         data[1][10:40, 1] = 1
         data[1][45:60, 2] = np.arange(15) % 2
         row = self.measure(data)
-        self.assertAlmostEqual(row['hover_s'], 29/30)
+        self.assertAlmostEqual(row['hover_s'], 29 / 30)
         self.assertEqual(row['dither'], 13)
         refs = [dict(episode=i, **self.measure(fixture())) for i in (1, 2, 4, 5)]
         row['episode'] = 7

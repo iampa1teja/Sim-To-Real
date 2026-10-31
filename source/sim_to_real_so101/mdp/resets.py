@@ -28,19 +28,18 @@ from isaacsim.core.prims import XFormPrim
 from sim_to_real_so101.utils.gripper_geometry import gripper_tip_local_offset, table_plane
 
 
-
 ROBOT_COLORS = {
     "orange": (0.876, 0.317, 0.132),
-    "beige": (0.960784, 0.960784, 0.862745),  
+    "beige": (0.960784, 0.960784, 0.862745),
     "teal": (0.0, 0.8, 0.502),
     "white": (0.95, 0.95, 0.95),
     "black": (0.08, 0.08, 0.08),
 }
 
 
-def randomize_robot_color(env, 
-    env_ids: torch.Tensor | None,
-    color_names: list[str] = list(ROBOT_COLORS.keys()),
+def randomize_robot_color(env,
+                          env_ids: torch.Tensor | None,
+                          color_names: list[str] = list(ROBOT_COLORS.keys()),
 ):
     """Randomly set robot color from predefined palette on each reset."""
     idx = torch.randint(0, len(color_names), (1,), device="cpu").item()
@@ -49,6 +48,7 @@ def randomize_robot_color(env,
     set_robot_color(env, selected_color)
     return selected_name
 
+
 def randomize_mat_rotation(
     env,
     env_ids: torch.Tensor | None,
@@ -56,13 +56,13 @@ def randomize_mat_rotation(
     asset_cfg: SceneEntityCfg = None,
 ):
     """Randomize mat yaw rotation on reset.
-    
+
     Args:
         yaw_range: Range of yaw rotation in radians (default ±0.3 rad ≈ ±17°).
     """
     asset = env.scene[asset_cfg.name]
     asset_prim_path = asset.prim_paths[0]
-    
+
     # Sample random yaw for each environment
     yaw = math_utils.sample_uniform(
         yaw_range[0], yaw_range[1], (len(env_ids),), device=env.unwrapped.device
@@ -71,11 +71,11 @@ def randomize_mat_rotation(
     roll = torch.zeros_like(yaw)
     pitch = torch.zeros_like(yaw)
     base_yaw = torch.full_like(yaw, math.pi / 2)  # 90° in radians
-    
+
     orientations = math_utils.quat_from_euler_xyz(roll, pitch, base_yaw + yaw)
-    
+
     asset_xform = XFormPrim(prim_paths_expr=asset_prim_path)
-    
+
     with Sdf.ChangeBlock():
         asset_xform.set_local_poses(orientations=orientations)
 
@@ -87,7 +87,7 @@ def randomize_camera_focal_length(
     asset_cfg: SceneEntityCfg = None,
 ):
     """Randomize camera focal length on reset (affects field of view).
-    
+
     Args:
         focal_length_range: Range of focal lengths in mm (default 12-15mm).
             Lower = wider FOV, higher = narrower FOV.
@@ -111,7 +111,7 @@ def randomize_camera_pose(
     rot_range: dict[str, tuple[float, float]] = None,
 ):
     """Randomize camera mount position and orientation relative to its USD default.
-    
+
     Args:
         prim_path_pattern: Prim path pattern for the camera mount xform.
         pos_range: Dict with x, y, z keys and (min, max) tuple values in meters.
@@ -121,13 +121,13 @@ def randomize_camera_pose(
         pos_range = {}
     if rot_range is None:
         rot_range = {}
-    
+
     prim_path = prim_path_pattern.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
     prims = sim_utils.find_matching_prims(prim_path)
-    
+
     if not prims:
         return
-    
+
     # Sample random offsets
     pos_offset = {
         axis: math_utils.sample_uniform(*pos_range.get(axis, (0, 0)), (1,), device="cpu").item()
@@ -290,7 +290,7 @@ def reset_cube_from_recorded_starts(
         if eval_set:
             from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
             env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset,
-                                                 selection=selection)
+                                                   selection=selection)
         else:
             env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
                                                     robot_states_root=_robot_states_root(starts_dir, reset_robot))
@@ -418,11 +418,12 @@ def sync_pick_place_camera_intrinsics(env, env_ids):
             for axis in ('fx', 'fy'):
                 prim.GetAttribute('omni:lensdistortion:opencvPinhole:' + axis).Set(calibration[axis] * scale)
 
+
 def set_robot_color(env, rgb: tuple[float, float, float]):
     """Set color of the arm to a desired RGB value.(for domain randomization)"""
     with Sdf.ChangeBlock():
-        robot = env.scene["robot"] 
-        material_prim_path = robot.cfg.prim_path + "/Looks/material_a_3d_printed/Shader" 
+        robot = env.scene["robot"]
+        material_prim_path = robot.cfg.prim_path + "/Looks/material_a_3d_printed/Shader"
         material_prim = sim_utils.find_matching_prims(material_prim_path)[0]
         material_prim.GetAttribute("inputs:diffuse_color_constant").Set(rgb)
 

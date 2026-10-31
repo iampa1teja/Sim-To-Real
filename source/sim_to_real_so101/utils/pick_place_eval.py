@@ -15,9 +15,9 @@ def rotation_matrix(quaternion):
         raise ValueError("orientation_wxyz must contain four finite values and be nonzero")
     w, x, y, z = q / np.linalg.norm(q)
     return np.array([
-        [1 - 2*(y*y+z*z), 2*(x*y-z*w), 2*(x*z+y*w)],
-        [2*(x*y+z*w), 1 - 2*(x*x+z*z), 2*(y*z-x*w)],
-        [2*(x*z-y*w), 2*(y*z+x*w), 1 - 2*(x*x+y*y)],
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
     ])
 
 
@@ -63,7 +63,7 @@ SO101_USD_JOINTS = ("Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "
 from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
 
 SO101_USD_LIMITS_DEG = {name: (span["joint_min"], span["joint_max"])
-                       for name, span in runtime_joint_limits().items()}
+                        for name, span in runtime_joint_limits().items()}
 
 
 def dataset_state_to_radians(state, joint_mapping=None):
@@ -146,7 +146,7 @@ class RecordedStarts:
         a = self.away_axis
         away = fraction[a] if self.away_sign > 0 else 1 - fraction[a]
         left_sign = self.away_sign * (1 if a == 0 else -1)
-        left = fraction[1-a] if left_sign > 0 else 1 - fraction[1-a]
+        left = fraction[1 - a] if left_sign > 0 else 1 - fraction[1 - a]
         row = min(2, max(0, int(away * 3)))
         col = min(2, max(0, int(left * 3)))
         return 'NMF'[row] + 'RCL'[col]
@@ -157,8 +157,8 @@ class RecordedStarts:
                 raise ValueError('Random starts require a live box footprint check')
             for _ in range(10000):
                 position = np.r_[self.rng.uniform(self.low, self.high), 0.0]
-                yaw = self.rng.uniform(0, np.pi/2)
-                orientation = np.array([np.cos(yaw/2), 0, 0, np.sin(yaw/2)])
+                yaw = self.rng.uniform(0, np.pi / 2)
+                orientation = np.array([np.cos(yaw / 2), 0, 0, np.sin(yaw / 2)])
                 if accepts_random(position, orientation):
                     return -1, position, orientation, self.zone(position[:2])
             raise ValueError('Cannot sample a non-overlapping cube footprint inside recorded bounds after 10000 attempts')
@@ -190,8 +190,8 @@ def upright_orientation(base_orientation, plane, yaw_orientation):
     tilt /= np.linalg.norm(tilt)
     w, x, y, z = tilt
     a, b, c, d = yaw_orientation
-    return np.array([w*a-x*b-y*c-z*d, w*b+x*a+y*d-z*c,
-                     w*c-x*d+y*a+z*b, w*d+x*c-y*b+z*a])
+    return np.array([w * a - x * b - y * c - z * d, w * b + x * a + y * d - z * c,
+                     w * c - x * d + y * a + z * b, w * d + x * c - y * b + z * a])
 
 
 def resting_pose(position, orientation, base_position, base_orientation, plane, cube_size):
@@ -203,7 +203,7 @@ def resting_pose(position, orientation, base_position, base_orientation, plane, 
     base_rotation = rotation_matrix(base_orientation)
     rotation = base_rotation @ rotation_matrix(orientation)
     normal = np.array([-plane[0], -plane[1], 1.0])
-    support = np.sum(np.abs(normal @ rotation) * np.asarray(cube_size)/2)
+    support = np.sum(np.abs(normal @ rotation) * np.asarray(cube_size) / 2)
     world = np.asarray(base_position) + base_rotation @ np.r_[position[:2], 0.0]
     denominator = normal @ base_rotation[:, 2]
     if abs(denominator) < 1e-8:
@@ -224,7 +224,7 @@ def footprints_overlap(first, second):
     # axes cannot separate overlapping convex hulls.
     for points in (first, second):
         for i, point in enumerate(points):
-            for other in points[i+1:]:
+            for other in points[i + 1:]:
                 edge = other - point
                 axis = np.array([-edge[1], edge[0]])
                 if not np.any(axis):

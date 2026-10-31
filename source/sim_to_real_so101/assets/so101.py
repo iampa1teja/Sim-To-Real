@@ -49,60 +49,58 @@ SO101_CFG = ArticulationCfg(
         },
         pos=(-0.05, 0.0, 0),
         rot=euler_angles_to_quat(np.array([0, 0, 90]), degrees=True),
-        
+
     ),
     actuators={
         # ROTATION (Gear: 1/191, Torque: 34.4 N-m)
         "rotation": ImplicitActuatorCfg(
             joint_names_expr=["Rotation"],
             effort_limit_sim=30,
-            stiffness=55,        
-            damping=0.7,         
+            stiffness=55,
+            damping=0.7,
         ),
-        
+
         # PITCH (Gear: 1/345, Torque: 62.1 N-m - HIGHEST)
         "pitch": ImplicitActuatorCfg(
             joint_names_expr=["Pitch"],
             effort_limit_sim=30,
-            stiffness=30,        
-            damping=0.8,         
+            stiffness=30,
+            damping=0.8,
         ),
-        
+
         # ELBOW (Gear: 1/191, Torque: 34.4 N-m)
         "elbow": ImplicitActuatorCfg(
             joint_names_expr=["Elbow"],
             effort_limit_sim=30,
-            stiffness=25,        
-            damping=0.7,         
+            stiffness=25,
+            damping=0.7,
         ),
-        
+
         # WRIST PITCH (Gear: 1/147, Torque: 26.5 N-m)
         "wrist_pitch": ImplicitActuatorCfg(
             joint_names_expr=["Wrist_Pitch"],
             effort_limit_sim=30,
-            stiffness=12,        
-            damping=0.5,         
+            stiffness=12,
+            damping=0.5,
         ),
-        
+
         # WRIST ROLL (Gear: 1/147, Torque: 26.5 N-m)
         "wrist_roll": ImplicitActuatorCfg(
             joint_names_expr=["Wrist_Roll"],
             effort_limit_sim=30,
-            stiffness=7,         
-            damping=0.5,         
+            stiffness=7,
+            damping=0.5,
         ),
-        
+
         # GRIPPER (Gear: 1/147, Torque: 26.5 N-m)
         "gripper": ImplicitActuatorCfg(
             joint_names_expr=["Jaw"],
             effort_limit_sim=30,
-            stiffness=4,         
-            damping=0.3,         
+            stiffness=4,
+            damping=0.3,
         ),
     },
 )
-
-
 
 
 S0101_CONTACT_GRASP_CFG = SO101_CFG.copy()

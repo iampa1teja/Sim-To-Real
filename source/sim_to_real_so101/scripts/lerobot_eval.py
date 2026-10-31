@@ -546,7 +546,7 @@ def _evaluate():
                     video_dir = Path("outputs/eval_videos") / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
             video_dir = video_dir.expanduser().resolve()
             video_recorder = EpisodeVideoRecorder(video_dir, fps=1 / step_dt, rename_map=rename_map,
-                                                 encoder=getattr(args_cli, "video_encoder", "libx264"))
+                                                  encoder=getattr(args_cli, "video_encoder", "libx264"))
             if resume:
                 video_attempt = next_video_attempt(video_dir)
             print(f"[INFO]: Saving attempt videos to {video_dir} "

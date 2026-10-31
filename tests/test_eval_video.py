@@ -54,7 +54,7 @@ def test_streams_distinct_attempts_and_two_camera_views(tmp_path):
 
 
 def test_partial_attempt_close_finalizes_playable_files(tmp_path):
-    recorder = EpisodeVideoRecorder(tmp_path, fps=1/.03333333333333333)
+    recorder = EpisodeVideoRecorder(tmp_path, fps=1 / .03333333333333333)
     recorder.start_episode(0)
     recorder.write(observations(128))
     with pytest.raises(KeyError, match="Missing video camera"):

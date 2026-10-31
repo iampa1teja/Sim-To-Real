@@ -12,6 +12,7 @@ class CalibratedPinholeCameraCfg(PinholeCameraCfg):
     # Per-camera residual colour response (see utils/camera_response.py); None = raw render.
     response: dict | None = None
 
+
 class CalibratedTiledCamera(TiledCamera):
     """Report the lens model's K instead of Isaac Lab's centered approximation.
 

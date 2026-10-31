@@ -67,7 +67,7 @@ def interface():
     from sim_to_real_so101.utils.joint_limits import runtime_joint_limits
     bounds = runtime_joint_limits()
     test_class = ast.ClassDef(name="InterfaceMapping", bases=[], keywords=[],
-                             body=methods, decorator_list=[])
+                              body=methods, decorator_list=[])
     module = ast.fix_missing_locations(ast.Module(body=[test_class], type_ignores=[]))
     namespace = {"torch": SimpleNamespace(zeros_like=np.zeros_like, clamp=_clamp, pi=np.pi)}
     exec(compile(module, str(path), "exec"), namespace)

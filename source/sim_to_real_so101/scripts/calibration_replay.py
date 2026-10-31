@@ -67,6 +67,7 @@ def main():
                       new_mapping=mapping, initial_positions="Recorded physical joint and cube positions; velocities zero",
                       success_criterion=({k: v for k, v in success_params.items() if k != "contact_sensor_cfg"}),
                       control_fps=30, seed=args.seed, episodes=[], complete=False)
+
         def publish():
             report["successes"] = sum(row["success"] for row in report["episodes"])
             args.report.write_text(json.dumps(report, indent=2) + "\n")

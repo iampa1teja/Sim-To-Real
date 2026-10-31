@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--baseline-ref", default="2055ffd33d53b773433871263ac3354800911286")
     args = parser.parse_args()
     assets = ROOT / "source/sim_to_real_so101/assets"
+
     def baseline_file(relative):
         return subprocess.check_output(["git", "-c", f"safe.directory={ROOT}", "-C", str(ROOT),
                                         "show", f"{args.baseline_ref}:{relative}"])
@@ -59,7 +60,7 @@ def main():
     stage = Usd.Stage.Open(str(assets / "usd/SO-ARM101-USD.usd"))
     variant = Usd.Stage.Open(str(audit_assets / "ARM_new.usd"))
     limits = {p.GetName(): [UsdPhysics.RevoluteJoint(p).GetLowerLimitAttr().Get(),
-                          UsdPhysics.RevoluteJoint(p).GetUpperLimitAttr().Get()]
+                            UsdPhysics.RevoluteJoint(p).GetUpperLimitAttr().Get()]
               for p in stage.Traverse() if p.IsA(UsdPhysics.RevoluteJoint)}
     changes = []
     for prim in variant.Traverse():

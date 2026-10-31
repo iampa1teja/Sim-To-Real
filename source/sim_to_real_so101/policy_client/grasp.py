@@ -141,7 +141,7 @@ def seed_query(client, seed):
 
 
 class GraspController:
-    def __init__(self, config, joint_keys, dt=1/30):
+    def __init__(self, config, joint_keys, dt=1 / 30):
         self.config, self.keys, self.dt = config, tuple(joint_keys), dt
         self.gripper_index = self.keys.index('gripper.pos')
         self.arm_indices = [i for i in range(len(self.keys)) if i != self.gripper_index]

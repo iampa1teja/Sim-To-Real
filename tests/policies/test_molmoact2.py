@@ -199,7 +199,7 @@ def test_third_view_survives_plugin_adapter_and_reaches_model(server, no_gpu_tor
     transport_name = "sim_to_real_so101.policy_client.transport"
     monkeypatch.setitem(sys.modules, transport_name, SimpleNamespace(PolicyClient=object))
     adapter_spec = importlib.util.spec_from_file_location("sim_to_real_so101.policy_client._camera_test_adapter",
-                        ROOT / "source/sim_to_real_so101/policy_client/adapter.py")
+                                                          ROOT / "source/sim_to_real_so101/policy_client/adapter.py")
     adapter_module = importlib.util.module_from_spec(adapter_spec)
     adapter_spec.loader.exec_module(adapter_module)
 
@@ -212,7 +212,7 @@ def test_third_view_survives_plugin_adapter_and_reaches_model(server, no_gpu_tor
 
     manifest = load_manifest(ROOT / "policies/molmoact2")
     adapter = adapter_module.PluginClient(SimpleNamespace(call_endpoint=call),
-                           client_policy({"include_original_room": "true"}), manifest, JOINT_ORDER)
+                                          client_policy({"include_original_room": "true"}), manifest, JOINT_ORDER)
     images = dict(request()["images"], original_room=np.full((4, 5, 3), 113, np.uint8))
     actions = adapter.get_action({"state": np.zeros(6), "images": images, "instruction": "Pick the cube"})
     assert endpoints == ["get_action"]
@@ -518,7 +518,7 @@ def test_mixed_action_profile_restores_original_fp32_values_and_keeps_backbone_b
     if sharded:
         weight_map = {}
         for index in range(2):
-            shard = f"model-0000{index+1}-of-00002.safetensors"
+            shard = f"model-0000{index + 1}-of-00002.safetensors"
             selected = {name: value for position, (name, value) in enumerate(original.items()) if position % 2 == index}
             save_file(selected, directory / shard)
             weight_map.update(dict.fromkeys(selected, shard))
@@ -615,8 +615,8 @@ def test_fp32_expert_compute_matches_reference_inside_outer_autocast(server):
                      dataclass=dataclass, MolmoAct2ActionExpertConfig=SimpleNamespace, __name__=__name__)
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), namespace)
     config = SimpleNamespace(num_layers=2, hidden_size=32, num_heads=4, timestep_embed_dim=16,
-        max_action_dim=6, context_layer_norm=True, mlp_ratio=2., ffn_multiple_of=8, attn_dropout=0.,
-        dropout=0., qk_norm=True, qk_norm_eps=1e-6, rope=True, max_action_horizon=30, causal_attn=False)
+                             max_action_dim=6, context_layer_norm=True, mlp_ratio=2., ffn_multiple_of=8, attn_dropout=0.,
+                             dropout=0., qk_norm=True, qk_norm_eps=1e-6, rope=True, max_action_horizon=30, causal_attn=False)
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(1984)
         expert = namespace['ActionExpert'](config, llm_dim=32, llm_kv_dim=32, llm_num_layers=2).float().eval()
@@ -626,8 +626,8 @@ def test_fp32_expert_compute_matches_reference_inside_outer_autocast(server):
                     torch.nn.init.normal_(module.weight, std=.04)
                     if module.bias is not None:
                         torch.nn.init.normal_(module.bias, std=.01)
-        kv = [(torch.randn(1,12,32).bfloat16(), torch.randn(1,12,32).bfloat16()) for _ in range(2)]
-        actions = torch.randn(1,30,6)
+        kv = [(torch.randn(1, 12, 32).bfloat16(), torch.randn(1, 12, 32).bfloat16()) for _ in range(2)]
+        actions = torch.randn(1, 30, 6)
     original_actions = actions.clone()
     weights = {name: value.clone() for name, value in expert.state_dict().items()}
     kwargs = dict(batch_size=1, seq_len=30, device=actions.device, dtype=torch.float32)
@@ -638,7 +638,7 @@ def test_fp32_expert_compute_matches_reference_inside_outer_autocast(server):
     assert all(p.dtype == torch.float32 for p in expert.parameters())
     assert before.dtype == torch.bfloat16
     with torch.inference_mode(), torch.autocast('cpu', enabled=False):
-        context = expert.prepare_context(encoder_kv_states=[(k.float(), v.float()) for k,v in kv], **kwargs)
+        context = expert.prepare_context(encoder_kv_states=[(k.float(), v.float()) for k, v in kv], **kwargs)
         expected = expert.forward_with_context(actions, t, context=context)
     model = SimpleNamespace(model=SimpleNamespace(action_expert=expert, action_cuda_graph_manager=SimpleNamespace(action_flow_graph=object())))
     server.preserve_float32_action_compute(model)

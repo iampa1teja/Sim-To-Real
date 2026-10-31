@@ -21,7 +21,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('sim_to_real_so101.utils.pick_place_eval',
-                                            ROOT / 'source/sim_to_real_so101/utils/pick_place_eval.py')
+                                              ROOT / 'source/sim_to_real_so101/utils/pick_place_eval.py')
 sys.path.insert(0, str(ROOT / 'source'))
 from sim_to_real_so101.policy_client.grasp import GraspConfig, add_grasp_arguments
 HELPERS = importlib.util.module_from_spec(SPEC)
@@ -76,7 +76,7 @@ class FakePolicy:
 
 
 class FakeEnvironment:
-    def __init__(self, outcomes=None, step_dt=1/30, failure_stage=None, close_error=None):
+    def __init__(self, outcomes=None, step_dt=1 / 30, failure_stage=None, close_error=None):
         self.unwrapped = self
         self.device = 'cpu'
         self.scene = {}
@@ -148,7 +148,7 @@ class FakeEnvironment:
 
 class EvaluatorRolloutTests(unittest.TestCase):
     def evaluate(self, path, stop_after=None, args_override=None, task_episode_length_s=15., outcomes=None,
-                 step_dt=1/30, expected_error=None, failure_stage=None, close_error=None, run_main=False):
+                 step_dt=1 / 30, expected_error=None, failure_stage=None, close_error=None, run_main=False):
         env = FakeEnvironment(outcomes, step_dt, failure_stage, close_error)
         robot = SimpleNamespace(spawn=SimpleNamespace(usd_path='/task/default.usd'))
         cfg = SimpleNamespace(scene=SimpleNamespace(num_envs=1, robot=robot), episode_length_s=task_episode_length_s,
@@ -170,6 +170,7 @@ class EvaluatorRolloutTests(unittest.TestCase):
         interface = SimpleNamespace(init_device=lambda **kw: None)
         simulation = SimpleNamespace(is_running=lambda: stop_after is None or env.episode < stop_after,
                                      close=lambda: setattr(env, 'application_closed', True))
+
         def make_environment(*args, **kwargs):
             env.made_episode_length_s = kwargs['cfg'].episode_length_s
             env.made_robot_usd = kwargs['cfg'].scene.robot.spawn.usd_path
@@ -284,9 +285,9 @@ class EvaluatorRolloutTests(unittest.TestCase):
                 rerun = SimpleNamespace(get_global_data_recording=lambda: None, disconnect=lambda: None)
                 with patch.dict(sys.modules, {'rerun': rerun, 'sim_to_real_so101.utils.eval_video': None}):
                     env, cfg = self.evaluate(root / 'report.json',
-                                            args_override={'smoke_test': True, 'eval_set': selected_path,
-                                                           'splits': None, 'repeats': 1, 'save_videos': True},
-                                            outcomes=[(1, True, False)] * 6)
+                                             args_override={'smoke_test': True, 'eval_set': selected_path,
+                                                            'splits': None, 'repeats': 1, 'save_videos': True},
+                                             outcomes=[(1, True, False)] * 6)
                 self.assertEqual(env.episode, 5)
                 self.assertEqual(list(root.iterdir()), [selected_path])
                 repeats = cfg.events.spawn_cube.params['repeats']
@@ -346,10 +347,6 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertTrue(env.closed)
         self.assertIn('[RESULT] incomplete: 0/5 episodes; success 0/0 (n/a)', env.printed)
 
-
-
-
-
     def test_autoreset_preserves_episode_metadata_and_exact_count(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'report.json'
@@ -365,13 +362,13 @@ class EvaluatorRolloutTests(unittest.TestCase):
         self.assertEqual([row['success'] for row in report['episodes']], [True, False, True])
         self.assertEqual([row['success_step'] for row in report['episodes']], [1, None, 1])
         self.assertTrue(report['complete'])
-        self.assertEqual(report['overall']['success_rate'], 2/3)
-        self.assertEqual(report['overall']['success_rate_within_15s'], 2/3)
-        self.assertEqual(report['overall']['median_time_to_success_s'], 1/30)
+        self.assertEqual(report['overall']['success_rate'], 2 / 3)
+        self.assertEqual(report['overall']['success_rate_within_15s'], 2 / 3)
+        self.assertEqual(report['overall']['median_time_to_success_s'], 1 / 30)
         self.assertEqual(report['random_fraction'], 0)
         self.assertEqual(report['episode_length_s'], 15)
         self.assertEqual(report['action_horizon'], 16)
-        self.assertEqual(report['step_dt'], 1/30)
+        self.assertEqual(report['step_dt'], 1 / 30)
         self.assertEqual(report['robot_usd'], '/task/default.usd')
         self.assertEqual(env.made_episode_length_s, 15)
         self.assertIn('[RESULT] complete: 3/3 episodes; success 2/3 (66.7%)', env.printed)
@@ -551,31 +548,32 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
         self.assertEqual(env.progress_bars[-1].postfixes[-1], 'success=0.0% (0/3)')
 
     def test_benchmark_progress_updates_stages_and_retains_terminal_milestone(self):
-        original_step=FakeEnvironment.step
-        def step_with_milestones(env,actions):
-            trace=env._benchmark_trace
-            trace.stages['reached']=True
-            if env.episode_step>=1:
-                trace.stages['grasped']=True
-                trace.stages['lifted']=True
-                trace.holding=env.episode_step==1
-            return original_step(env,actions)
-        with tempfile.TemporaryDirectory() as directory, patch.object(FakeEnvironment,'step',step_with_milestones):
-            path=Path(directory)/'report.json'
-            env,_=self.evaluate(path,args_override={'eval_set':ROOT/'eval_sets/pick_place_v1_seed1984.json',
-                                                   'splits':None,'repeats':1,'smoke_test':True},
-                                outcomes=[(4,False,True)]*6)
+        original_step = FakeEnvironment.step
+
+        def step_with_milestones(env, actions):
+            trace = env._benchmark_trace
+            trace.stages['reached'] = True
+            if env.episode_step >= 1:
+                trace.stages['grasped'] = True
+                trace.stages['lifted'] = True
+                trace.holding = env.episode_step == 1
+            return original_step(env, actions)
+        with tempfile.TemporaryDirectory() as directory, patch.object(FakeEnvironment, 'step', step_with_milestones):
+            path = Path(directory) / 'report.json'
+            env, _ = self.evaluate(path, args_override={'eval_set': ROOT / 'eval_sets/pick_place_v1_seed1984.json',
+                                                        'splits': None, 'repeats': 1, 'smoke_test': True},
+                                   outcomes=[(4, False, True)] * 6)
         for bar in env.progress_bars:
-            self.assertIn('stage=approaching',bar.postfixes[0])
+            self.assertIn('stage=approaching', bar.postfixes[0])
             self.assertTrue(any('stage=reached' in text for text in bar.postfixes))
             self.assertTrue(any('stage=lifted, held=yes' in text for text in bar.postfixes))
-            self.assertIn('stage=lifted, held=no',bar.postfixes[-1])
+            self.assertIn('stage=lifted, held=no', bar.postfixes[-1])
 
     def test_override_is_applied_before_environment_creation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'report.json'
             env, cfg = self.evaluate(path, args_override={'episode_length_s': 30., 'action_horizon': 8,
-                                                        'random_fraction': .25})
+                                                          'random_fraction': .25})
             report = json.loads(path.read_text())
         self.assertEqual(env.made_episode_length_s, 30.)
         self.assertEqual(cfg.episode_length_s, 30.)
@@ -661,13 +659,13 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
             report = json.loads(path.read_text())
         self.assertEqual(FakePolicy.instances[-1].options['action_repeat'], 1)
         self.assertEqual(report['action_repeat'], 1)
-        self.assertAlmostEqual(report['replan_interval_s'], 16/30)
+        self.assertAlmostEqual(report['replan_interval_s'], 16 / 30)
 
     def test_molmo_repeat_five_reports_five_second_replan_interval(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'report.json'
             env, _ = self.evaluate(path, args_override={'policy': 'molmoact2', 'action_horizon': 30,
-                                                      'action_repeat': 5, 'prefetch_steps': 149})
+                                                        'action_repeat': 5, 'prefetch_steps': 149})
             report = json.loads(path.read_text())
         self.assertEqual(FakePolicy.instances[-1].options['action_repeat'], 5)
         self.assertEqual(FakePolicy.instances[-1].options['prefetch_steps'], 149)
@@ -682,7 +680,7 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
                                        expected_error='action_repeat must be a positive integer')
                 self.assertIsNone(env.made_episode_length_s)
         env, _ = self.evaluate(None, args_override={'policy': 'molmoact2', 'action_horizon': 30,
-                                                   'action_repeat': 5, 'prefetch_steps': 150},
+                                                    'action_repeat': 5, 'prefetch_steps': 150},
                                expected_error='prefetch_steps')
         self.assertIsNone(env.made_episode_length_s)
 
@@ -708,9 +706,9 @@ with patch('sim_to_real_so101.utils.eval_resume.write_report', side_effect=exit_
             report = json.loads(path.read_text())
         self.assertEqual([row['steps'] for row in report['episodes']], [450, 451, 900])
         self.assertEqual([row['success_step'] for row in report['episodes']], [450, 451, None])
-        self.assertEqual(report['overall']['success_rate'], 2/3)
+        self.assertEqual(report['overall']['success_rate'], 2 / 3)
         self.assertEqual(report['overall']['successes_within_15s'], 1)
-        self.assertEqual(report['overall']['success_rate_within_15s'], 1/3)
+        self.assertEqual(report['overall']['success_rate_within_15s'], 1 / 3)
         self.assertAlmostEqual(report['overall']['median_time_to_success_s'], (450 + 451) / 60)
         self.assertEqual(report['by_zone']['FR']['success_rate'], 1.)
         self.assertEqual(report['by_zone']['FR']['success_rate_within_15s'], 0.)
@@ -826,6 +824,7 @@ class EvaluatorShutdownTests(unittest.TestCase):
         self.assertIn('ValueError: Injected policy setup failure', printed)
         self.assertEqual(flushed, printed)
 
+
 class EvaluatorCliTests(unittest.TestCase):
     class Launcher:
         launches = 0
@@ -875,7 +874,6 @@ class EvaluatorCliTests(unittest.TestCase):
             self.parse_cli(['--policy', 'molmoact2', '--action_horizon', '31'])
         self.assertEqual(error.exception.code, 2)
         self.assertEqual(self.Launcher.launches, 0)
-
 
     def test_repeat_cli_prefetch_uses_effective_physical_chunk_length(self):
         args = self.parse_cli(['--policy', 'molmoact2', '--action_repeat', '5', '--prefetch_steps', '149'])

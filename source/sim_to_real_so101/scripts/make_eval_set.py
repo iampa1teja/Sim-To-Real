@@ -21,7 +21,7 @@ def main(argv=None):
     parser.add_argument('--reach_envelope', action='store_true',
                         help='Keep id/ood starts within the closest and farthest recorded pick from the base')
     parser.add_argument('--scene_json', type=Path,
-                        default=Path(__file__).resolve().parents[3]/'eval_sets/pick_place_scene.json',
+                        default=Path(__file__).resolve().parents[3] / 'eval_sets/pick_place_scene.json',
                         help='Live geometry snapshot from capture_eval_scene.py')
     args = parser.parse_args(argv)
     scene = json.loads(args.scene_json.read_text())
@@ -30,7 +30,7 @@ def main(argv=None):
                              n_yaw=args.n_yaw, min_dist_m=args.min_dist_m, ood_margin_m=args.ood_margin_m,
                              yaw_mode=args.yaw_mode, reach_envelope=args.reach_envelope, git_commit=commit)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(data, indent=2, allow_nan=False)+'\n')
+    args.out.write_text(json.dumps(data, indent=2, allow_nan=False) + '\n')
     print(json.dumps({'eval_set_id': data['eval_set_id'], 'splits': dict(Counter(s['split'] for s in data['starts'])),
                       'zones': {split: dict(Counter(s['zone'] for s in data['starts'] if s['split'] == split))
                                 for split in ('id', 'ood', 'yaw', 'train')}}, indent=2))

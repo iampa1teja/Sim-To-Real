@@ -166,8 +166,8 @@ class RecordingWebGui:
                 "encode": state["pending_videos"] > 0 and not state["encoding"],
                 "exit": True,
                 "rerecord": not state["active"] and not state["encoding"]
-                    and not state["pending_videos"] and state["rerecord_episode"] is None
-                    and type(episode) is int and 0 <= episode < state["saved_episodes"],
+                and not state["pending_videos"] and state["rerecord_episode"] is None
+                and type(episode) is int and 0 <= episode < state["saved_episodes"],
             }
             if self._closed or state["busy"] or state["pending"] or not allowed[name]:
                 return False

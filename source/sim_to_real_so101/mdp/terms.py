@@ -15,14 +15,12 @@
 import torch
 
 
-
 import isaaclab.utils.math as math_utils
 
 from isaaclab.assets import RigidObject
 from isaaclab.envs import ManagerBasedRLEnv
 from isaaclab.sensors import ContactSensor
 from isaaclab.managers import SceneEntityCfg
-
 
 
 def _ensure_pick_place_state(env, object_name):

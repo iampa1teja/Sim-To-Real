@@ -34,6 +34,7 @@ spec.loader.exec_module(module)
 loader_kwargs = {'video_backend': 'ffmpeg'} if profile_name == 'so100_n16' else {}
 loader = LeRobotEpisodeLoader(root, module.so100_config, **loader_kwargs)
 
+
 def check_episode(ep):
     length = loader.get_episode_length(ep)
     indices = [0, length // 2, length - 1]
@@ -58,6 +59,7 @@ def check_episode(ep):
         assert difference.max() <= 2, (ep, key, int(difference.max()))
         max_difference = max(max_difference, int(difference.max()))
     return max_difference
+
 
 with ThreadPoolExecutor(max_workers=2) as pool:
     differences = []

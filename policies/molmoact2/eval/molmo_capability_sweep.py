@@ -140,7 +140,7 @@ class Investigation:
             # or any process is created. The original manifest stays intact.
             manifest = self.snapshot / 'policies/molmoact2/policy.toml'
             contents, count = re.subn(r'(?m)^cameras\s*=.*$',
-                'cameras = ' + json.dumps(list(self.camera_inputs)), manifest.read_text())
+                                      'cameras = ' + json.dumps(list(self.camera_inputs)), manifest.read_text())
             if count != 1:
                 raise ValueError('Expected exactly one camera declaration in the private manifest')
             manifest.write_text(contents)
@@ -373,6 +373,7 @@ def main():
     parser.add_argument('--control-repo', type=Path, default=Path('/home/rpuser1/Sim-to-Real-SO-101-Workshop'))
     args = parser.parse_args()
     investigation = Investigation(args)
+
     def stop(signum, frame):
         raise KeyboardInterrupt('Signal ' + str(signum))
     signal.signal(signal.SIGTERM, stop)
@@ -390,8 +391,7 @@ def main():
         for label, options, horizon in candidates:
             investigation.trial(label, options, horizon)
         if max(item['report']['overall']['successes'] for item in investigation.results) <= investigation.results[0]['report']['overall']['successes']:
-            investigation.trial('fp32_explicit_task_instruction', fp32, instruction=
-                'Move the arm towards the blue cube, grasp it, lift it up, and drop it into the white box.')
+            investigation.trial('fp32_explicit_task_instruction', fp32, instruction='Move the arm towards the blue cube, grasp it, lift it up, and drop it into the white box.')
         ranked = sorted(investigation.results, key=rank_result, reverse=True)
         leader = ranked[0]
         # Paired verification tests both the control and the leader under the
@@ -400,7 +400,7 @@ def main():
             investigation.trial('verify_baseline_h30', baseline, 30, seed)
             if leader['label'] != 'baseline_h30':
                 investigation.trial('verify_' + leader['label'], leader['options'], leader['horizon'], seed,
-                                     instruction=leader['instruction'])
+                                    instruction=leader['instruction'])
         investigation.save('planned_trials_complete')
         print('[RESEARCH] Planned comparisons complete; results require analysis and premortem before promotion.', flush=True)
     except BaseException as error:

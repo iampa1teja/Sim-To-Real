@@ -55,8 +55,8 @@ def stored_target(start, scene):
         quaternion = upright_orientation(scene["base_quaternion_wxyz"],
                                          scene["table_plane_world"], quaternion)
     world, _ = resting_pose([start["x"], start["y"], 0], quaternion,
-                           scene["base_position_world"], scene["base_quaternion_wxyz"],
-                           scene["table_plane_world"], scene["cube_size_m"])
+                            scene["base_position_world"], scene["base_quaternion_wxyz"],
+                            scene["table_plane_world"], scene["cube_size_m"])
     return rotation_matrix(scene["base_quaternion_wxyz"]).T @ (
         world - scene["base_position_world"])
 
@@ -168,7 +168,7 @@ class Chain:
             pivots = self.elbow(grids[0][index:index + 16, None], grids[1][None, :]).reshape(-1, 3)
             for target_index, target in enumerate(targets):
                 distances[target_index] = min(distances[target_index],
-                                             np.linalg.norm(pivots - target, axis=1).min())
+                                              np.linalg.norm(pivots - target, axis=1).min())
         # Extra numerical margin; the analytic allowance, not the grid alone,
         # makes this a bound over the continuous pan/lift intervals.
         return np.maximum(distances - self.radius - allowance - 1e-7, 0), allowance
@@ -267,9 +267,9 @@ def main():
                 rows[-1]["cube_aligned_pose_search"] = chain.search_cube_aligned(
                     limits, targets[index], rotation_matrix(quaternion), best_angles)
         report["profiles"][label] = dict(bounds_degrees=limits.tolist(),
-            grid_cell_allowance_mm=allowance * 1000, smoke_starts=rows,
-            full_set_bounds=[dict(start_id=start["id"], zone=start["zone"], lower_mm=float(value * 1000))
-                             for start, value in zip(data["starts"], lower)])
+                                         grid_cell_allowance_mm=allowance * 1000, smoke_starts=rows,
+                                         full_set_bounds=[dict(start_id=start["id"], zone=start["zone"], lower_mm=float(value * 1000))
+                                                          for start, value in zip(data["starts"], lower)])
         output.write_text(json.dumps(report, indent=2) + "\n")
         print(label, "stored starts with bound >1 mm:", int((lower > .001).sum()),
               "; >30 mm:", int((lower > .03).sum()), flush=True)

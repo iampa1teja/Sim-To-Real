@@ -12,7 +12,7 @@ from sim_to_real_so101.utils.eval_resume import find_report, load_episodes, next
 from sim_to_real_so101.utils.pick_place_benchmark import EvalSetStarts
 
 
-SCHEDULE = [dict(id=f"s{i}", repeat=0, policy_seed=100+i, split="id") for i in range(3)]
+SCHEDULE = [dict(id=f"s{i}", repeat=0, policy_seed=100 + i, split="id") for i in range(3)]
 IDENTITY = dict(task="pick_place", checkpoint="so101", config_fingerprint="same", action_horizon=30)
 
 
@@ -41,7 +41,7 @@ def test_latest_matching_results_ignores_newer_other_configuration(tmp_path):
         if name == "other":
             data["config_fingerprint"] = "different"
         path.write_text("bad JSON" if name == "corrupt" else json.dumps(data))
-        os.utime(path, ns=(1000+index, 1000+index))
+        os.utime(path, ns=(1000 + index, 1000 + index))
     expected = tmp_path / "so101_latest.json"
     assert find_report(tmp_path, "so101_*.json", "same", "so101", "pick_place") == expected
     assert find_report(expected, "unused", "same", "so101", "pick_place") == expected

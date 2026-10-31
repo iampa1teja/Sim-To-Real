@@ -62,8 +62,8 @@ def test_sim_connection_supplies_its_actual_joint_scales_only_to_molmo(monkeypat
             return self
 
     iface = SimpleNamespace(SO101_JOINT_ORDER=KEYS,
-        mapping_joint_mins=np.array([-116.279296875, -100, -100, -95, -160, -10]).view(CpuArray),
-        mapping_joint_maxs=np.array([119.794921875, 100, 90, 95, 160, 100]).view(CpuArray))
+                            mapping_joint_mins=np.array([-116.279296875, -100, -100, -95, -160, -10]).view(CpuArray),
+                            mapping_joint_maxs=np.array([119.794921875, 100, 90, 95, 160, 100]).view(CpuArray))
     options = []
     client = SimpleNamespace(client=SimpleNamespace(port=5556),
                              policy=SimpleNamespace(cameras=("room", "wrist")))
@@ -205,8 +205,8 @@ def test_grasp_controller_observes_expanded_chunk_in_control_ticks():
     policy._iface.get_raw_actions_from_radians = lambda joints: joints
     observed = []
     policy.grasp = SimpleNamespace(gripper_index=5,
-        observe_chunk=lambda chunk, chunk_id: observed.append((chunk, chunk_id)),
-        process=lambda raw, sent, chunk_id: raw)
+                                   observe_chunk=lambda chunk, chunk_id: observed.append((chunk, chunk_id)),
+                                   process=lambda raw, sent, chunk_id: raw)
     policy.get_action(np.zeros(6), {})
     chunk, chunk_id = observed[0]
     assert chunk_id == 0 and len(chunk) == 150
@@ -412,10 +412,10 @@ def test_new_sim_cli_flags_and_early_validation():
 
 
 @pytest.mark.parametrize("options", [dict(prefetch_steps=-1), dict(prefetch_steps=12),
-                                       dict(blend_steps=-1), dict(ema_alpha=0), dict(ema_alpha=1.1),
-                                       dict(ema_alpha=float("nan")), dict(te_decay=float("inf")),
-                                       dict(te_decay=-1), dict(temporal_ensemble=-1),
-                                       dict(temporal_ensemble=2, blend_steps=2)])
+                                     dict(blend_steps=-1), dict(ema_alpha=0), dict(ema_alpha=1.1),
+                                     dict(ema_alpha=float("nan")), dict(te_decay=float("inf")),
+                                     dict(te_decay=-1), dict(temporal_ensemble=-1),
+                                     dict(temporal_ensemble=2, blend_steps=2)])
 def test_invalid_options_fail_before_a_rollout(options):
     with pytest.raises(ValueError):
         SmoothingConfig(**options).validate(12)

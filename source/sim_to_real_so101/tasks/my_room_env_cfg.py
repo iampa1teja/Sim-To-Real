@@ -147,7 +147,8 @@ class MyRoomObservationsCfg(ObservationsCfg):
 def _configure_scene_updates(env, env_ids):
     for path in ("/OmniverseKit_Front", "/OmniverseKit_Top", "/OmniverseKit_Right"):
         prim = env.sim.stage.GetPrimAtPath(path)
-        if prim.IsValid(): prim.SetActive(False)
+        if prim.IsValid():
+            prim.SetActive(False)
     # Use the actual calibrated sensor, including its native lens model, for
     # the GUI view. An independent Perspective camera has a different lens.
     if env.sim.has_gui():

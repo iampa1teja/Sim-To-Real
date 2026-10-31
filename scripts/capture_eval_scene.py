@@ -24,7 +24,7 @@ try:
         env.reset()
         data = capture_scene(env.unwrapped)
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(data, indent=2, allow_nan=False)+'\n')
+        args.out.write_text(json.dumps(data, indent=2, allow_nan=False) + '\n')
         print(f'Live scene snapshot: {args.out}', flush=True)
     finally:
         env.close()

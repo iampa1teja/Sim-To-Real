@@ -81,7 +81,7 @@ class LiveOutput:
             completed = count[1] == count[2] if count else "100%" in line
             terminal = self.stream.isatty()
             if (not terminal and episode == self.episode and stage == self.progress_stage
-                    and now-self.last_progress < 5 and not completed and not ERROR.search(line)):
+                    and now - self.last_progress < 5 and not completed and not ERROR.search(line)):
                 return
             self.last_progress, self.episode = now, episode
             self.progress_stage = stage
@@ -141,6 +141,7 @@ def run(command: list[str], logfile: Path | None, *, verbose=False) -> int:
     with logfile.open("wb") if logfile is not None else nullcontext() as log:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=0)
         interrupted = None
+
         def forward(signum, _frame):
             nonlocal interrupted
             interrupted = signum
@@ -169,8 +170,8 @@ def run(command: list[str], logfile: Path | None, *, verbose=False) -> int:
         if logfile is not None:
             show_tail(logfile)
     if interrupted is not None:
-        return 128+interrupted
-    return status if status >= 0 else 128-status
+        return 128 + interrupted
+    return status if status >= 0 else 128 - status
 
 
 def main():
