@@ -64,6 +64,9 @@ mkdir -p "$CALIB_RUN"
    The reference set moves one joint at a time: all-zero, then each body joint
    to its reference minimum and maximum with the others at zero. Pan, lift and
    wrist flex use −90°/+90°, elbow uses −90°/+45°, and wrist roll uses −135°/+135°.
+   Wrist-roll runtime limits are −180..+179.912° (exact upper bound
+   179.912109375°), matching encoder counts 0..4095. Its ±135° references
+   retain more than 5° margin and cover approximately 75% of that range.
    The gripper stays at zero. Elbow +90° leaves less than the required 5° runtime
    limit margin, so its maximum reference is +45°. Hold right angles with a
    square or phone. Each body joint has three distinct targets: zero, min and max.
@@ -243,3 +246,15 @@ config location is required by the existing eval-config test. The host default
 Python lacks pytest, and system Python lacks optional test dependencies.
 A synthetic end-to-end lock test ran the actual updater in a temporary repository;
 the real setup and follower/leader files retained their original hashes.
+
+Changing wrist-roll runtime limits changes the recording-contract hash. Existing
+dataset roots recorded under ±160° cannot resume with this setup; use a new root.
+
+For a simulation-only GPU check inside the teleop container:
+
+```bash
+/workspace/isaaclab/_isaac_sim/python.sh scripts/check_wrist_roll_range.py
+```
+
+This launches MyRoom headless, drives wrist roll to −179° and +179°, and checks
+`root_physx_view.get_dof_positions()` after physics steps. It never opens hardware.

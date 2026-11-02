@@ -1,3 +1,5 @@
+> Runtime update (2026-11-02): wrist_roll now uses −180..+179.912° (exact upper bound 179.912109375°). The ±160° results below are historical; the USD asset is unchanged.
+
 > Historical results from before the 2026-10-27 calibration revision. Alternate arm assets and the overhead-camera feature named below have since been removed. Current setup and dataset results are in [the calibration report](docs/reports/2026-10-27-calibration-fixes/report.md).
 
 # Sim vs. real SO-101 calibration audit

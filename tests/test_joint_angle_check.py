@@ -222,7 +222,8 @@ def test_installed_lerobot_connect_with_fake_motors_does_not_enable_torque(tmp_p
         assert not any(robot.bus.torque.values())
 
 
-def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path):
+@pytest.mark.parametrize('wrist_units, at_limit', [(99., False), (100., True)])
+def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path, wrist_units, at_limit):
     torch = pytest.importorskip('torch')
     import ast
     import json
@@ -243,7 +244,7 @@ def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path):
     LeRobotSO101Interface = scope['LeRobotSO101Interface']
     setup = json.loads((Path(__file__).resolve().parents[1] / 'source/sim_to_real_so101/assets/real_setup.json').read_text())
     iface = LeRobotSO101Interface('cpu', '', '', {}, 30, joint_mapping=setup['sim_joint_mapping'])
-    observation = dict(zip(ORDER, [10., 20., 30., 40., 99., 8.]))
+    observation = dict(zip(ORDER, [10., 20., 30., 40., wrist_units, 8.]))
     expected = iface.get_mapped_actions_vectorized(iface.get_raw_actions_tensor(observation))
     actual = expected.clone()
     actual[2] += np.deg2rad(2.)
@@ -264,7 +265,7 @@ def test_teleop_observer_reads_physx_and_never_controls_a_robot(tmp_path):
     finally:
         trace.close()
     assert row['sim_minus_mapped_follower_degrees'][2] == pytest.approx(2., abs=1e-5)
-    assert row['at_runtime_limit'][4]
+    assert row['at_runtime_limit'][4] is at_limit
     assert row['follower_units'] == list(observation.values())
     result = summarize_teleop(log)
     assert result['frames'] == 30 and result['stable_windows'][0]['accepted']

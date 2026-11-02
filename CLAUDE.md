@@ -128,7 +128,10 @@ provenance. `utils/joint_calibration.py` is the shared derivation used by the
 sim setup and `real_rollout`; never edit the real calibration files. Regenerate
 with `scripts/update_sim_calibration.py` in the teleop image's pxr environment.
 The gripper unit-zero anchor is the audited USD closing end-stop, with the
-measured follower span. USD limits still clamp all six calibrated ranges.
+measured follower span. JSON runtime limits override the USD bounds in PhysX
+and interface clamping. Wrist-roll runtime limits are −180..+179.912°
+(exact upper bound 179.912109375°), matching encoder counts 0..4095.
+The USD asset remains unchanged.
 Keep the wrist encoder zero at 2048 and preserve the initial physical pose.
 
 Use only `assets/usd/SO-ARM101-USD.usd` for the controlled arm. Alternate arm USDs

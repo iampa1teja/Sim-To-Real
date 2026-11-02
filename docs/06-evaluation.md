@@ -9,14 +9,17 @@ follower calibration through `utils/joint_calibration.py`, shared with
 `real_rollout`. `assets/real_setup.json` records each joint's encoder bounds and
 method. The gripper uses its measured span with unit 0 at the USD jaw closing
 end-stop (−10.000004°). Encoder 2048 remains wrist-roll zero. Every calibrated
-range exceeds a USD limit; those limits still clamp targets. The investigation
+range exceeds a USD limit; the JSON runtime limits override the USD bounds
+in PhysX and clamp targets. The investigation
 found no evidence for a 19° gripper offset.
 
 The only arm asset is `assets/usd/SO-ARM101-USD.usd`. Molmo profiles that previously
 selected the alternate wrist frame now set `policy.options.wrist_roll_model_offset: -90`.
 This expresses model wrist degrees as canonical USD wrist degrees minus 90;
-the inverse adds 90 to actions. Canonical ±160° wrist limits still apply, so
-model targets above 70° reach the upper stop. The follower calibration zero and
+the inverse adds 90 to actions. Wrist-roll runtime limits are −180..+179.912°
+(exact upper bound 179.912109375°), so model targets above 89.912109375°
+reach the upper stop. The USD asset retains its authored ±160° bounds;
+startup overrides them in PhysX. The follower calibration zero and
 initial physical joint pose receive no additional rotation. The room RGB/depth
 and wrist cameras remain; the optional Molmo overhead camera was removed.
 

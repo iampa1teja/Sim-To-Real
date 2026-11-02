@@ -15,14 +15,14 @@ from sim_to_real_so101.utils.joint_limits import (
 )
 
 
-def test_real_extrema_are_covered_without_full_turn_wrist_limits():
+def test_real_extrema_are_covered_with_full_calibrated_wrist_span():
     observed = np.array([[-111.88477, 96.15235], [-106.69923, 99.93165], [-74.44337, 92.37306],
                          [-19.16016, 103.79884], [-117.07032, 39.55079], [-8.15431, 104.43360]])
     limits = runtime_joint_limits()
     actual = np.array([[limits[n]["joint_min"], limits[n]["joint_max"]] for n in FOLLOWER_JOINTS])
     assert np.all(actual[:, 0] < observed[:, 0])
     assert np.all(actual[:, 1] > observed[:, 1])
-    assert actual[4, 0] > -180 and actual[4, 1] < 180
+    np.testing.assert_array_equal(actual[4], (np.array([0, 4095]) - 2048) * 360 / 4096)
     source = json.loads((ROOT / "source/sim_to_real_so101/assets/real_setup.json").read_text())
     assert actual[5, 0] < source["sim_joint_mapping_source"]["gripper_closed_degrees"]
 

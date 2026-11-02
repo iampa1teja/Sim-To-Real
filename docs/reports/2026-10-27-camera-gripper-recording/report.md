@@ -1,3 +1,5 @@
+> Runtime update (2026-11-02): wrist_roll now uses −180..+179.912° (exact upper bound 179.912109375°). The ±160° results below are historical; the USD asset is unchanged.
+
 # Camera, gripper and recording audit — 2026-10-27
 
 **Current follow-up:** recording contract v3 synchronizes all six joints and has no per-episode wrist re-zero. The original Parts 1–7 below describe the earlier implementation and run; the Follow-up section supersedes their recorder fallback instructions.

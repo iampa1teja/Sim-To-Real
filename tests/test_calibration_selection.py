@@ -13,7 +13,9 @@ sys.path.insert(0, str(ROOT / "source"))
 from sim_to_real_so101.utils.joint_calibration import (
     SETUP_PATH, file_sha256, load_device_calibration, resolve_calibration,
 )
-from sim_to_real_so101.utils.recording_alignment import recording_contract
+from sim_to_real_so101.utils.recording_alignment import (
+    mark_recording_root, recording_contract, validate_recording_root,
+)
 
 FIXTURE = ROOT / "tests/fixtures/rpd_robot.json"
 
@@ -87,7 +89,8 @@ def test_direct_client_path_wins_without_changing_id_and_only_loads_memory(tmp_p
     assert robot.bus.calibration is robot.calibration
 
 
-def test_no_selection_contract_matches_fixture_from_before_0a32271(tmp_path):
+def test_no_selection_contract_matches_fixture_with_current_runtime_limits(tmp_path):
+    # Historical contract fields, with the explicit full-span runtime-limit hash update.
     expected = json.loads((ROOT / "tests/fixtures/recording_contract_pre_0a32271.json").read_text())["contract"]
     path = hardware_file(tmp_path, "rpd_robot")
     env = {"ROBOT_ID": "absent", "TELEOP_ID": "absent", "HF_LEROBOT_CALIBRATION": str(tmp_path)}
@@ -97,3 +100,18 @@ def test_no_selection_contract_matches_fixture_from_before_0a32271(tmp_path):
     contract = recording_contract(follower_id="rpd_robot", leader_id="rpd_teleop", calibration_selection=selected)
     assert contract["calibration_sha256"] != expected["calibration_sha256"]
     assert contract["selected_calibrations"]["follower"] == file_sha256(path)
+
+
+def test_full_span_runtime_limits_reject_old_recording_root(tmp_path):
+    setup = json.loads(SETUP_PATH.read_text())
+    current = recording_contract(follower_id="rpd_robot", leader_id="rpd_teleop", setup=setup,
+                                 calibration_selection=resolve_calibration(setup=setup, environ={}))
+    setup["runtime_joint_limits"]["wrist_roll"] = {"joint_min": -160.0, "joint_max": 160.0}
+    previous = recording_contract(follower_id="rpd_robot", leader_id="rpd_teleop", setup=setup,
+                                  calibration_selection=resolve_calibration(setup=setup, environ={}))
+    assert previous["calibration_sha256"] == "ad965257ab5f9dcca88efaebc6414d89d5b8336a71ab7e66efed0d0716b84b7b"
+    assert current["calibration_sha256"] != previous["calibration_sha256"]
+    mark_recording_root(tmp_path, previous)
+    validate_recording_root(tmp_path, previous)
+    with pytest.raises(ValueError, match="Choose a NEW dataset root"):
+        validate_recording_root(tmp_path, current)

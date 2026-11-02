@@ -1,3 +1,5 @@
+> Runtime update (2026-11-02): wrist_roll now uses −180..+179.912° (exact upper bound 179.912109375°). The ±160° results below are historical; the USD asset is unchanged.
+
 # Calibration fixes — 2026-10-27
 
 The simulation now derives all six follower spans through one shared function. The real calibration files, original sim/real datasets, weights, scene assets and completed evaluation results remain intact.

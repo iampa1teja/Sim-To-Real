@@ -568,8 +568,8 @@
       "joint_max": 104.79882776625453
     },
     "wrist_roll": {
-      "joint_min": -160.0,
-      "joint_max": 160.0
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
     },
     "gripper": {
       "joint_min": -15.000003814697266,
@@ -609,6 +609,6 @@
     },
     "margin_degrees": 1.0,
     "jaw_below_anchor_margin_degrees": 5.0,
-    "method": "Union of original USD bounds and observed follower angle extrema + 1 deg; jaw lower extends 5 deg below retained anchor. Roll already covered, so keep +/-160; never +/-180. Runtime PhysX and interface clamp only; immutable USD unchanged."
+    "method": "Union of original USD bounds and observed follower angle extrema + 1 deg; jaw lower extends 5 deg below retained anchor. Roll uses the full calibrated encoder span (0..4095 counts = -180..+179.912 deg), matching the real servo's position-mode range. Runtime PhysX and interface clamp only; immutable USD unchanged."
   }
 }

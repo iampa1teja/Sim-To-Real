@@ -1,10 +1,11 @@
 {
   "source_commit": "0a32271^",
+  "runtime_limits_update": "2026-11-02: live setup wrist_roll -180..179.912109375; dataset roots recorded under +/-160 cannot resume",
   "contract": {
     "version": 3,
     "follower_id": "rpd_robot",
     "leader_id": "rpd_teleop",
-    "calibration_sha256": "ad965257ab5f9dcca88efaebc6414d89d5b8336a71ab7e66efed0d0716b84b7b",
+    "calibration_sha256": "20a91878fe90f3402be07ffff0762dfef5023589a194c3d2f6c105f136ebc7ea",
     "start_sync": "follower_state",
     "roll_resolved": false,
     "synced_joints": [

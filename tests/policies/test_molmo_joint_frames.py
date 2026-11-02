@@ -195,4 +195,4 @@ def test_original_molmo_frame_still_obeys_canonical_wrist_limit(interface):
     decoded = client_for_interface(interface).parse_response(
         {"actions": [[0, 90, 90, 0, 100, 37]]}, JOINT_ORDER)[0]
     physical = np.rad2deg(interface.get_mapped_actions_vectorized(decoded))
-    assert physical[4] == pytest.approx(160, abs=2e-5)
+    assert physical[4] == pytest.approx(179.912109375, abs=2e-5)

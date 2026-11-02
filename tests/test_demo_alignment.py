@@ -60,7 +60,8 @@ class DemoAlignmentTests(unittest.TestCase):
         self.assertEqual(result["frame"], 2)  # first lift, not the highest frame
         self.assertAlmostEqual(result["time_s"], 2 / 30)
         self.assertAlmostEqual(result["pan_deg"], expected_pan)
-        self.assertAlmostEqual(result["roll_deg"], 8)
+        expected_roll = -180 + 0.525 * (179.912109375 + 180)
+        self.assertAlmostEqual(result["roll_deg"], expected_roll)
         self.assertAlmostEqual(result["face_minus_pan_deg"],
                                alignment.square_angle(result["cube_yaw_deg"] - expected_pan))
 
