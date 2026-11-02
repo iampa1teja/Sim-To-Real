@@ -61,6 +61,19 @@ mkdir -p "$CALIB_RUN"
      --preview --output "$CALIB_RUN/preview"
    ```
 
+   The reference set moves one joint at a time: all-zero, then each body joint
+   to its reference minimum and maximum with the others at zero. Pan, lift and
+   wrist flex use −90°/+90°, elbow uses −90°/+45°, and wrist roll uses −135°/+135°.
+   The gripper stays at zero. Elbow +90° leaves less than the required 5° runtime
+   limit margin, so its maximum reference is +45°. Hold right angles with a
+   square or phone. Each body joint has three distinct targets: zero, min and max.
+
+   The 2026-11-02 simulation-only preview rejects `lift-max` (+90°): the lower
+   arm, wrist, gripper and jaw intersect the table plane, and the hand-support
+   envelope fails. The other ten references pass. The requested angles remain
+   unchanged; the operator must select a smaller lift reference and rerun
+   preview before using this set on the arm.
+
    Inspect `preview/contact-sheet.png` from the room camera and `preview.json`.
    The reference view preserves the room camera position/orientation and widens
    its field of view by scaling focal lengths to 35%, so the full arm is visible.
@@ -141,9 +154,9 @@ For each body joint, the pose summary reports median **real − target**, spread
 
 | Verdict | Absolute median | Spread | Accepted poses |
 | --- | --- | --- | --- |
-| PASS | ≤1° | ≤1° | ≥5 |
-| WARN | ≤2° | ≤1° | ≥5 |
-| FAIL | Any other result | Any other result | Fewer than 5 is labelled INSUFFICIENT |
+| PASS | ≤1° | ≤1° | ≥3 |
+| WARN | ≤2° | ≤1° | ≥3 |
+| FAIL | Any other result | Any other result | Fewer than 3 is labelled INSUFFICIENT |
 
 Overall LOCKABLE requires every body joint to be PASS or WARN. Gripper results
 are separate and never block. Both `poses` and `report` accept

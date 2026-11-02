@@ -24,11 +24,11 @@ def measurements(offsets):
 
 
 @pytest.mark.parametrize("values, verdict, reason", [
-    ([1.] * 5, "PASS", "WITHIN_PASS"), ([-1.] * 5, "PASS", "WITHIN_PASS"),
+    ([1.] * 3, "PASS", "WITHIN_PASS"), ([-1.] * 3, "PASS", "WITHIN_PASS"),
     ([1.00001] * 5, "WARN", "WITHIN_WARN"), ([2.] * 5, "WARN", "WITHIN_WARN"),
     ([-2.] * 5, "WARN", "WITHIN_WARN"), ([2.00001] * 5, "FAIL", "OFFSET"),
     ([0, .25, .5, .75, 1], "PASS", "WITHIN_PASS"),
-    ([0, .25, .5, .75, 1.00001], "FAIL", "SPREAD"), ([0.] * 4, "FAIL", "INSUFFICIENT"),
+    ([0, .25, .5, .75, 1.00001], "FAIL", "SPREAD"), ([0.] * 2, "FAIL", "INSUFFICIENT"),
     ([], "FAIL", "INSUFFICIENT"),
 ])
 def test_pose_lock_rule(values, verdict, reason):
@@ -54,7 +54,16 @@ def test_committed_pose_coverage_and_collision_margin(tmp_path):
     setup = json.loads(SETUP_PATH.read_text())
     bounds = [[setup["runtime_joint_limits"][n][k] for k in ("joint_min", "joint_max")] for n in FOLLOWER_JOINTS]
     poses, identity = load_pose_set(FOLLOWER_JOINTS, bounds)
-    assert 7 <= len(poses) <= 9 and np.all(poses[0][1] == 0)
+    assert 7 <= len(poses) <= 13 and np.all(poses[0][1] == 0)
+    assert len(poses) == 11
+    assert all(np.count_nonzero(target) == 1 for _, target in poses[1:])
+    rows = [dict(accepted=True, target_deg=target.tolist(), real_minus_target_deg=[0.] * 6)
+            for _, target in poses]
+    result = summarize_poses(rows)
+    assert result["thresholds"]["min_poses"] == 3
+    assert result["decision"] == "LOCKABLE"
+    assert all(joint["accepted_poses"] == 3 for joint in result["joints"].values())
+    assert result["gripper"]["accepted_poses"] == 1
     assert min(identity["coverage_fraction"].values()) >= .6
     altered = tmp_path / "bad.toml"
     altered.write_text(POSE_SET_PATH.read_text().replace("margin_m = 0.02", "margin_m = 0.019"))

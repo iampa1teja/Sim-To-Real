@@ -20,7 +20,7 @@ class PoseThresholds:
     pass_deg: float = 1.0
     warn_deg: float = 2.0
     spread_deg: float = 1.0
-    min_poses: int = 5
+    min_poses: int = 3
 
     def __post_init__(self):
         if (not all(np.isfinite(v) and v >= 0 for v in asdict(self).values())
@@ -39,8 +39,8 @@ def load_pose_set(joint_order, runtime_limits, path=POSE_SET_PATH):
     if bounds.shape != (len(joint_order), 2) or not np.isfinite(bounds).all() or np.any(bounds[:, 0] >= bounds[:, 1]):
         raise ValueError("Expected finite increasing runtime limits")
     poses = [(row["name"], np.asarray(row["degrees"], dtype=float)) for row in data["poses"]]
-    if not 7 <= len(poses) <= 9 or len({name for name, _ in poses}) != len(poses):
-        raise ValueError("Require all-zero plus 6–8 uniquely named reference poses")
+    if not 7 <= len(poses) <= 13 or len({name for name, _ in poses}) != len(poses):
+        raise ValueError("Require all-zero plus 6–12 uniquely named reference poses")
     if any(p.shape != (len(joint_order),) or not np.isfinite(p).all() for _, p in poses):
         raise ValueError("Reference poses must contain one finite angle per joint")
     angles = np.asarray([p for _, p in poses])

@@ -15,23 +15,32 @@ max_support_height_m = 0.60
 name = "all-zero"
 degrees = [0, 0, 0, 0, 0, 0]
 [[poses]]
-name = "left-upright"
-degrees = [-75, -30, 35, 25, -100, 10]
+name = "pan-min"
+degrees = [-90, 0, 0, 0, 0, 0]
 [[poses]]
-name = "right-upright"
-degrees = [75, -45, 55, 45, 100, 20]
+name = "pan-max"
+degrees = [90, 0, 0, 0, 0, 0]
 [[poses]]
-name = "shoulder-back"
-degrees = [-45, -85, 10, 55, -65, 30]
+name = "lift-min"
+degrees = [0, -90, 0, 0, 0, 0]
 [[poses]]
-name = "shoulder-forward"
-degrees = [35, 50, -65, -35, 65, 40]
+name = "lift-max"
+degrees = [0, 90, 0, 0, 0, 0]
 [[poses]]
-name = "elbow-forward"
-degrees = [-25, -5, 60, -65, -35, 50]
+name = "elbow-min"
+degrees = [0, 0, -90, 0, 0, 0]
 [[poses]]
-name = "wrist-up"
-degrees = [55, -15, -25, 65, 35, 60]
+name = "elbow-max"
+degrees = [0, 0, 45, 0, 0, 0]
 [[poses]]
-name = "wrist-down"
-degrees = [-55, 15, -45, -45, -15, 70]
+name = "wrist-flex-min"
+degrees = [0, 0, 0, -90, 0, 0]
+[[poses]]
+name = "wrist-flex-max"
+degrees = [0, 0, 0, 90, 0, 0]
+[[poses]]
+name = "wrist-roll-min"
+degrees = [0, 0, 0, 0, -135, 0]
+[[poses]]
+name = "wrist-roll-max"
+degrees = [0, 0, 0, 0, 135, 0]

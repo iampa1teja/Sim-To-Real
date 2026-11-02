@@ -286,7 +286,7 @@ def test_reference_poses_and_additive_candidates_do_not_wrap():
 
     limits = [[SETUP["runtime_joint_limits"][n]["joint_min"], SETUP["runtime_joint_limits"][n]["joint_max"]] for n in FOLLOWER_JOINTS]
     poses = reference_poses(FOLLOWER_JOINTS, limits)
-    assert len(poses) == 8 and not poses[0][1].any()
+    assert len(poses) == 11 and not poses[0][1].any()
     mapping = {name: {"joint_min": -100, "joint_max": 100} for name in FOLLOWER_JOINTS}
     results = []
     for name, target in poses:
@@ -298,7 +298,10 @@ def test_reference_poses_and_additive_candidates_do_not_wrap():
         assert result["offsets_degrees"]["shoulder_pan"] == pytest.approx(-2)
         results.append(result)
     candidates = summarize_candidates(results, pan_reference="visual reference")
-    assert all(j["status"] == "CONSISTENT" and j["offset_degrees"] == pytest.approx(-2) for j in candidates["joints"].values())
+    # The legacy additive-candidate diagnostic still requires five distinct targets.
+    # The calibration report's independent pose rule accepts the new three-target set.
+    assert all(j["status"] == "UNRESOLVED" and j["poses"] == 3
+               and j["offset_degrees"] == pytest.approx(-2) for j in candidates["joints"].values())
     duplicates = summarize_candidates([results[0]] * 6, pan_reference="visual reference")
     assert all(j["status"] == "UNRESOLVED" and j["poses"] == 1 for j in duplicates["joints"].values())
     samples = {"observations": [[360, 0, 0, 0, 0, 50]] * 30}
@@ -347,6 +350,14 @@ def test_pose_session_uses_write_guard_and_finalizes_on_interrupt(tmp_path):
     assert not robot.bus.is_connected and path.read_bytes() == FIXTURE.read_bytes()
 
 
+def test_pose_threshold_cli_defaults_and_report_inheritance():
+    parser = load_cli().build_parser()
+    assert parser.parse_args(["poses", "--preview"]).pose_min_poses == 3
+    report = ["report", "--poses", "poses.jsonl", "--gap", "gap.jsonl", "--output", "report"]
+    assert parser.parse_args(report).pose_min_poses is None
+    assert parser.parse_args(report + ["--pose-min-poses", "5"]).pose_min_poses == 5
+
+
 def test_pose_mode_requires_operator_support_before_rendering_or_connecting(tmp_path, monkeypatch):
     cli = load_cli()
 
@@ -360,7 +371,7 @@ def test_pose_mode_requires_operator_support_before_rendering_or_connecting(tmp_
     assert not log.exists()
 
 
-def test_pose_session_collects_six_poses_without_motor_or_calibration_writes(tmp_path):
+def test_pose_session_collects_eleven_poses_without_motor_or_calibration_writes(tmp_path):
     from test_joint_angle_check import FakeRobot
 
     cli = load_cli()
@@ -374,7 +385,7 @@ def test_pose_session_collects_six_poses_without_motor_or_calibration_writes(tmp
     log = tmp_path / "complete-poses.jsonl"
     with log.open("x", buffering=1) as stream:
         result = cli.run_pose_session(robot, selection, renderer, stream, supported=True)
-    assert len(result["measurements"]) == 8 and robot.count == 240
+    assert len(result["measurements"]) == 11 and robot.count == 330
     assert result["applied"] is False and not robot.bus.is_connected
     assert result["connection_evidence"]["calibration_unchanged"]
     assert path.read_bytes() == FIXTURE.read_bytes()

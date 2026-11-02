@@ -40,7 +40,7 @@ def build_parser():
     poses.add_argument("--pose-pass-deg", type=float, default=1.)
     poses.add_argument("--pose-warn-deg", type=float, default=2.)
     poses.add_argument("--pose-spread-deg", type=float, default=1.)
-    poses.add_argument("--pose-min-poses", type=int, default=5)
+    poses.add_argument("--pose-min-poses", type=int, default=3)
     poses.add_argument("--follower-port", default=os.environ.get("ROBOT_PORT"))
     poses.add_argument("--follower-id", "--follower_id", default=os.environ.get("ROBOT_ID"))
     poses.add_argument("--supported", action="store_true", help="Confirm the real arm is physically supported with torque off")
