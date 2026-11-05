@@ -1,0 +1,13 @@
+[project]
+name = "policy-my-policy"
+version = "0.1.0"
+requires-python = ">=3.12"
+# Put the model's own dependencies here, with exact pins for torch / transformers.
+# pyzmq, msgpack and numpy are required: the shared server core and policy_client wire format use them.
+dependencies = [
+    "numpy",
+    "pyzmq",
+    "msgpack",
+]
+
+# After editing, run `uv lock` in this folder and commit uv.lock. The container installs with --frozen.

@@ -1,0 +1,38 @@
+name: s2r
+
+services:
+  sim:
+    image: s2r-sim:${S2R_TAG:-latest}
+    container_name: s2r-sim
+    network_mode: host 
+    init: true
+    command: ["sleep", "infinity"]
+    environment:
+      ACCEPT_EULA: "Y"
+      PRIVACY_CONSENT: "Y"
+      NVIDIA_DRIVER_CAPABILITIES: all
+    volumes:
+      - .:/workspace/s2r
+      - ${S2R_DATASETS:-./datasets}:/workspace/datasets
+      - ${HF_LEROBOT_CALIBRATION:-~/.cache/huggingface/lerobot/calibration}:/root/.cache/huggingface/lerobot/calibration
+      - isaac-kit-cache:/isaac-sim/kit/cache
+      - isaac-ov-cache:/root/.cache/ov
+      - isaac-gl-cache:/root/.cache/nvidia/GLCache
+      - isaac-compute-cache:/root/.nv/ComputeCache
+      - isaac-logs:/root/.nvidia-omniverse/logs
+      - isaac-data:/root/.local/share/ov/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all 
+              capabilities: [gpu]
+
+volumes:
+  isaac-kit-cache:
+  isaac-ov-cache:
+  isaac-gl-cache:
+  isaac-comput-cache:
+  isaac-logs:
+  isaac-data:

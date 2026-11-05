@@ -1,0 +1,20 @@
+services:
+  sim:
+    privileged: true
+    environment:
+      - DISPLAY
+      - TELEOP_PORT
+      - TELEOP_ID
+      - ROBOT_PORT
+      - ROBOT_ID
+      - CAMERA_GRIPPER
+      - CAMERA_EXTERNAL
+      - CAMERA_WIDTH
+      - CAMERA_HEIGHT
+      - CAMERA_FOURCC
+      - CONTROL_FPS
+    volumes:
+      - /dev:/dev
+      - /run/udev:/run/udev:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-~/.Xauthority}:/root/.Xauthority:ro

@@ -1,0 +1,98 @@
+[arm]
+name = "SO101"
+usd_path = "usd/SO-ARM101-USD.usd" 
+
+[arm.spawn]
+activate_contact_sensors = false
+
+[arm.links]
+base = "base"
+ee = "gripper"
+fixed_jaw_mesh = "wrist_roll_follower_so101_v1"
+
+[arm.joints]
+names = ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "Jaw"]
+
+[arm.spawn.rigid_props]
+disable_gravity = false
+
+[arm.spawn.articulation_props]
+self_collision_enabled = false
+fix_root_link = true
+
+[arm.initial_state]
+position = [-0.05, 0.0, 0.0]
+rotation_euler_degrees = [0.0, 0.0, 90.0]   
+
+[arm.initial_state.joint_positions]
+Rotation = -0.2736
+Pitch = -0.6109
+Elbow = -0.0745
+Wrist_Pitch = 1.5148
+Wrist_Roll = -0.0326036732 
+Jaw = -0.1465
+
+[arm.actuators.rotation]
+joint_names_expr = ["Rotation"]
+effort_limit_sim = 30.0
+stiffness = 55.0
+damping = 0.7
+
+[arm.actuators.pitch]
+joint_names_expr = ["Pitch"]
+effort_limit_sim = 30.0
+stiffness = 30.0
+damping = 0.8
+
+[arm.actuators.elbow]
+joint_names_expr = ["Elbow"]
+effort_limit_sim = 30.0
+stiffness = 25.0
+damping = 0.7
+
+[arm.actuators.wrist_pitch]
+joint_names_expr = ["Wrist_Pitch"]
+effort_limit_sim = 30.0
+stiffness = 12.0
+damping = 0.5
+
+[arm.actuators.wrist_roll]
+joint_names_expr = ["Wrist_Roll"]
+effort_limit_sim = 30.0
+stiffness = 7.0
+damping = 0.5
+
+[arm.actuators.gripper]
+joint_names_expr = ["Jaw"]
+effort_limit_sim = 30.0
+stiffness = 4.0
+damping = 0.3
+
+[arm.variants.contact_grasp.spawn]
+activate_contact_sensors = true
+
+[arm.variants.no_camera]
+usd_path = "usd/SO-ARM101-USD-NO-CAMERA.usd"
+
+[arm.lerobot]
+follower_type = "so101_follower"
+leader_type = "so101_leader"
+use_degrees = false
+roll_joint = "wrist_roll"        # gets the arm-to-USD zero offset (sim_joint_mapping_source)
+gripper_joint = "gripper"        # gets the measured closed anchor
+# Under $HF_LEROBOT_CALIBRATION. LeRobot v0.6.1 defaults to robots/so_follower/; existing files use so101_*.
+follower_calibration_dir = "robots/so101_follower"
+leader_calibration_dir = "teleoperators/so101_leader"
+names = [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex", 
+    "wrist_roll", 
+    "gripper"
+]
+
+[arm.hardware]
+motor="ST3215"
+encoder_counts_per_turn=4096
+zero_count=2048
