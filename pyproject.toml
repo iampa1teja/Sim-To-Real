@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s2r"
+version = "0.2.0"
+description = "SO-101 sim-to-real: Isaac Lab 3.0 (Newton) teleop, recording and evaluation, plus the policy client/server platform."
+# The sim image installs this with --no-deps into Isaac Sim's Python 3.11; Isaac Lab and LeRobot come from the image.
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+# Host-side tools (uv sync) for CPU tests and result scripts; not pulled into the Isaac image.
+host = [
+    "numpy",
+    "pandas<3",
+    "pyarrow",
+    "torch",
+    "msgpack",
+    "pyzmq",
+    "draccus",
+    "pytest",
+    "scipy",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["cli*", "core*", "sim*"]
+
+[project.scripts]
+# Platform front door (also ./s2r)
+s2r = "cli.main:main"
+
+# Teleop / recording (sim image)
+lerobot_agent = "sim.teleop.lerobot_agent:main"
+spawn = "core.scripts.spawn:main"
+list_envs = "core.scripts.list_envs:main"
+
+# Evaluation (sim image)
+lerobot_eval = "sim.eval.lerobot_eval:main"
+make_eval_set = "core.scripts.make_eval_set:main"
+summarize_eval_sweep = "core.scripts.summarize_sweep:main"
+compare_eval_results = "core.results.compare:main"
+
+# Replay / domain randomization (sim image)
+dr_replay = "sim.generate.dr_replay:main"
+calibration_replay = "sim.generate.calibration_replay:main"
+
+# Real arm / calibration
+real_rollout = "core.scripts.real_rollout:main"
+calibration_report = "core.calibration.calibration_report:main"
+
+# Policies
+new_policy = "core.scripts.new_policy:main"

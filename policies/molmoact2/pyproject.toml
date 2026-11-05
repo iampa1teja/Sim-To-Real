@@ -1,0 +1,26 @@
+[project]
+name = "policy-molmoact2"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy",
+    "pyzmq",
+    "msgpack",
+    "pillow",
+    "einops>=0.7",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "transformers>=4.57,<4.58",
+    "accelerate>=1.0",
+    "safetensors",
+    "huggingface_hub",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

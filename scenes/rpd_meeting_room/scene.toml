@@ -1,0 +1,10 @@
+# Photo-matched digital twin of the RPD meeting room ("MyRoom" in v1).
+# Paths are relative to this file. Not read by code yet: sim/scene/real_setup.py still uses these names directly.
+
+[scene]
+name = "rpd_meeting_room"
+description = "Measured table, calibrated RealSense room camera and wrist camera, fitted lighting and textures."
+setup = "real_setup.json"                     # measured geometry, cameras, lighting, appearance
+room_usd = "usd/digital_twin.usdz"            # scanned room
+env_cfg = "sim.envs.rpd_meeting_room_env_cfg:RpdMeetingRoomEnvCfg"  # scene env cfg class (sim.envs registers S2R-<scene>)
+room_usd_runtime = "usd/digital_twin_room.usda"  # wrapper the env actually spawns (references the usdz)

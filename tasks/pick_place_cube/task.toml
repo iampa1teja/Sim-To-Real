@@ -1,0 +1,38 @@
+[task]
+name = "pick_place_cube"
+instruction = "Pick up the cube and place it in the box"
+default_variant = "teleop"
+
+[task.variants]
+teleop   = "env_cfg:apply_teleop"
+eval     = "env_cfg:apply_eval"
+eval_dr  = "env_cfg:apply_eval_dr"
+
+[task.objects.white_box]
+usd = "usd/White-Box-Physics.usda"
+rigid = true 
+size_outer = [0.135, 0.085, 0.045]
+inner_half_size = [0.065625, 0.04064896]
+floor_z = 0.0018
+right_offset = 0.247172813204101
+front_edge_clearance = 0.0
+
+[task.objects.blue_cube]
+size = [0.02, 0.02, 0.02]
+rigid = true
+mass = 0.008
+position = [0.0, 0.0, 0.05]
+
+[task.success]
+min_lift = 0.01
+warmup_steps = 30
+force_threshold = 2.0
+confirm_steps = 25
+
+[task.episode]
+decimation = 4
+eval_steps = 450
+
+[task.dr]
+room_light_exposure_range = [-3.0, 1.0]
+cube_colors = { blue = "from_setup", red = [0.8, 0.05, 0.05]}

@@ -1,0 +1,28 @@
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube        
+variant: teleop
+fps: 30
+seed: 101
+calibrate: true
+control_input: terminal      
+
+leader:
+  id: leader_arm_1
+
+follower:
+  enabled: false
+
+dataset:
+  repo_id: null              
+  root: null                 
+  task_name: null            
+  save_mp4: false
+  depth: false
+  instance_id_seg: false
+
+gui:
+  enabled: true
+  host: 127.0.0.1
+  port: 8765
+  fps: 15.0

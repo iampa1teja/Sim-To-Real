@@ -1,0 +1,6 @@
+s2r-data/
+outputs/
+datasets/
+__pycache__/
+*.pyc
+.venv/

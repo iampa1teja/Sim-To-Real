@@ -1,0 +1,9 @@
+# Keep LF line endings in the repo so scripts work in the Linux containers.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.usd binary
+*.usdz binary
+*.pt binary
+*.safetensors binary

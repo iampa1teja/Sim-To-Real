@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Front door: ./s2r <policies|prepare|train|verify|serve|record|eval|rollout|spawn|envs|build|pull|tunnel|sync> ...
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+exec env PYTHONPATH="$repo_dir/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m cli "$@"
