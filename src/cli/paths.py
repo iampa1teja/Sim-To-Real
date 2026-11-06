@@ -22,7 +22,9 @@ SIM_CONTAINER = "s2r-sim"          # running sim container (override with S2R_SI
 SIM_REPO = "/workspace/s2r"        # repo path inside the sim image (docker/sim/Dockerfile WORKDIR)
 SIM_PROGRAMS = {"record": "lerobot_agent", "eval": "lerobot_eval", "rollout": "real_rollout", "spawn": "spawn",
                 "envs": "list_envs", "dr-replay": "dr_replay", "calibration-replay": "calibration_replay",
-                "calibration-report": "calibration_report", "eval-set": "make_eval_set"}
+                "calibration-report": "calibration_report", "eval-set": "make_eval_set",
+                "calibrate": "calibrate_arm", "calibration-check": "check_calibration",
+                "calibration-stats": "calibration_stats"}
 
 
 class CliError(ValueError):

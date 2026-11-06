@@ -43,6 +43,9 @@ Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides t
 | `s2r dr-replay ...` | `dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
 | `s2r calibration-replay ...` | `calibration_replay` | Method B calibration replay (physics, keeps successes) |
 | `s2r calibration-report --gap ...` | `calibration_report` | Tracking-gap report |
+| `s2r calibrate leader\|follower --port ...` | `calibrate_arm` | LeRobot calibration saved where `arm.toml` expects it |
+| `s2r calibration-check --id follower_arm_1` | `check_calibration` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
+| `s2r calibration-stats` | `calibration_stats` | Rebuild stats from `arms/so101/calibration/samples/` |
 | `s2r envs` | `list_envs` | List arms, scenes, tasks and gym ids |
 
 Policy commands run on the host (or a remote GPU with `--host user@box --remote-root /abs/path`):

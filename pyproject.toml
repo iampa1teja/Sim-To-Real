@@ -50,6 +50,9 @@ calibration_replay = "sim.generate.calibration_replay:main"
 # Real arm / calibration
 real_rollout = "core.scripts.real_rollout:main"
 calibration_report = "core.calibration.calibration_report:main"
+check_calibration = "core.calibration.check_calibration:main"
+calibration_stats = "core.calibration.calibration_stats:main"
+calibrate_arm = "core.calibration.calibrate_arm:main"
 
 # Policies
 new_policy = "core.scripts.new_policy:main"

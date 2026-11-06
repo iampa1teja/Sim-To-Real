@@ -8,7 +8,8 @@ import sys
 
 REPO = Path(__file__).resolve().parents[2]
 USAGE_NOTE = (
-    "Sim commands (record, eval, rollout, spawn, envs, dr-replay, calibration-replay, calibration-report, eval-set) "
+    "Sim commands (record, eval, rollout, spawn, envs, dr-replay, calibration-replay, calibration-report, eval-set, "
+    "calibrate, calibration-check, calibration-stats) "
     "pass every argument after the command to the program inside the running sim container; to only print the "
     "command put --dry-run first: 's2r --dry-run record --config_path configs/teleop/sim_only.yaml'. "
     "Remote GPU: run 's2r sync', then serve/train with --host user@box --remote-root /abs/path. To evaluate a "

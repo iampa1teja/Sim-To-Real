@@ -39,6 +39,21 @@ def as_torch(x):
     return x if isinstance(x, torch.Tensor) else x.torch
 
 
+def env_indices(env, env_ids):
+    """Any env_ids an event can receive (None, slice, list, tensor) as a 1-D index tensor.
+
+    Isaac Lab's EventManager passes startup, reset and interval terms different shapes
+    (and different versions differ), so every event that indexes by environment
+    normalizes through this instead of assuming a tensor.
+    """
+    all_ids = torch.arange(env.num_envs, device=env.device)
+    if env_ids is None:
+        return all_ids
+    if isinstance(env_ids, slice):
+        return all_ids[env_ids]
+    return torch.as_tensor(env_ids, device=env.device).reshape(-1)
+
+
 ROBOT_COLORS = {
     "orange": (0.876, 0.317, 0.132),
     "beige": (0.960784, 0.960784, 0.862745),
@@ -82,7 +97,7 @@ def _ee_body(env, robot):
 # ---------------------------------------------------------------------------
 
 
-def randomize_robot_color(env, env_ids: torch.Tensor | None, color_names: list[str] = list(ROBOT_COLORS.keys())):
+def randomize_robot_color(env, env_ids, color_names: list[str] = list(ROBOT_COLORS.keys())):
     """Randomly set robot color from predefined palette on each reset."""
     idx = torch.randint(0, len(color_names), (1,), device="cpu").item()
     selected_name = color_names[idx]
@@ -106,7 +121,7 @@ def set_robot_color(env, rgb: tuple[float, float, float]):
 
 def reset_object_pose(
     env,
-    env_ids: torch.Tensor,
+    env_ids,
     asset_cfg: SceneEntityCfg,
     pose_range: dict[str, tuple[float, float]],
     side_clearance_m: float = 0.003,
@@ -125,8 +140,7 @@ def reset_object_pose(
     """
     from sim.scene.gripper_geometry import gripper_tip_local_offset, table_plane
 
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
+    env_ids = env_indices(env, env_ids)
     if len(env_ids) == 0:
         return
     asset = env.scene[asset_cfg.name]
@@ -179,7 +193,7 @@ def reset_object_pose(
 
 def park_object(
     env,
-    env_ids: torch.Tensor | slice | None,
+    env_ids,
     asset_cfg: SceneEntityCfg,
     park_offset: tuple[float, float, float] = (0.0, 0.0, -2.0),
 ) -> None:
@@ -189,10 +203,7 @@ def park_object(
     objects are declared up front and parked here on reset; ``sim.generate.object_spawner``
     keeps them parked every tick and teleports one to the jaw when asked.
     """
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
-    elif isinstance(env_ids, slice):
-        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
+    env_ids = env_indices(env, env_ids)
     if len(env_ids) == 0:
         return
     asset = env.scene[asset_cfg.name]
@@ -304,7 +315,7 @@ def apply_runtime_joint_limits(env, env_ids):
         device=env.device,
         dtype=torch.float32,
     )
-    count = env.num_envs if env_ids is None else len(env_ids)
-    limits = torch.deg2rad(values).unsqueeze(0).repeat(count, 1, 1)
+    env_ids = env_indices(env, env_ids)
+    limits = torch.deg2rad(values).unsqueeze(0).repeat(len(env_ids), 1, 1)
     robot.write_joint_position_limit_to_sim_index(limits=limits, joint_ids=joint_ids, env_ids=env_ids)
     print(f"[INFO]: Runtime joint limits applied from the scene setup: {bounds}")
