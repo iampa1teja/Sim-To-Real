@@ -179,7 +179,7 @@ def reset_object_pose(
 
 def park_object(
     env,
-    env_ids: torch.Tensor | None,
+    env_ids: torch.Tensor | slice | None,
     asset_cfg: SceneEntityCfg,
     park_offset: tuple[float, float, float] = (0.0, 0.0, -2.0),
 ) -> None:
@@ -191,6 +191,8 @@ def park_object(
     """
     if env_ids is None:
         env_ids = torch.arange(env.num_envs, device=env.device)
+    elif isinstance(env_ids, slice):
+        env_ids = torch.arange(env.num_envs, device=env.device)[env_ids]
     if len(env_ids) == 0:
         return
     asset = env.scene[asset_cfg.name]
@@ -286,7 +288,7 @@ def set_camera_focal_length(env, asset_cfg: SceneEntityCfg, focal_length):
                     focal_attr.Set(focal_length)
 
 
-def apply_runtime_joint_limits(env, env_ids=None):
+def apply_runtime_joint_limits(env, env_ids):
     """Startup event: write real_setup.json's runtime joint limits (degrees) to the sim as radians."""
     from core.arms.joint_limits import joint_name_pairs, runtime_joint_limits
 

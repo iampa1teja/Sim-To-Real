@@ -174,7 +174,7 @@ def _configure_scene_updates(env, env_ids):
         if prim.IsValid():
             prim.SetActive(False)
     # Use the calibrated room camera, including its lens model, for the GUI view.
-    if env.sim.has_gui():
+    if env.sim.has_gui:
         try:
             from omni.kit.viewport.utility import get_active_viewport
         except ImportError:  # 3.0 visualizers may run without the Kit viewport

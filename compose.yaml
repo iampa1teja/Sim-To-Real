@@ -33,6 +33,6 @@ volumes:
   isaac-kit-cache:
   isaac-ov-cache:
   isaac-gl-cache:
-  isaac-comput-cache:
+  isaac-compute-cache:
   isaac-logs:
   isaac-data:
