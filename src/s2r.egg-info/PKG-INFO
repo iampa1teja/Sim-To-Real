@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: s2r
+Version: 0.2.0
+Summary: SO-101 sim-to-real: Isaac Lab 3.0 (Newton) teleop, recording and evaluation, plus the policy client/server platform.
+Requires-Python: >=3.11
+License-File: LICENSE
+Dynamic: license-file

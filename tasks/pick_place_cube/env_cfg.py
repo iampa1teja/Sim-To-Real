@@ -25,6 +25,9 @@ from .mdp import (
 )
 from sim.envs.rpd_meeting_room_env_cfg import drop_unused_camera_outputs
 from sim.scene.real_setup import SETUP, robot_rotation
+from sim.scene.contact_materials import (
+    GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties,
+)
 
 
 CUBE_PRIM = "{ENV_REGEX_NS}/CUBE"
@@ -106,7 +109,9 @@ def apply_teleop(cfg, task):
             size=cube.size,
             rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=cube.params["mass"]),
-            collision_props=sim_utils.UsdPhysicsCollisionCfg(),
+            collision_props=contact_properties(),
+            physics_material_path="physicsMaterial",
+            physics_material=contact_material(GRASP_FRICTION, rolling_friction=GRASP_ROLLING_FRICTION),
             visual_material=_material("blue_cube"),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=cube.position, rot=(0.0, 0.0, 0.0, 1.0)),

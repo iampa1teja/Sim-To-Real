@@ -63,7 +63,8 @@ damping = 0.5
 
 [arm.actuators.gripper]
 joint_names_expr = ["Jaw"]
-effort_limit_sim = 30.0
+effort_limit_sim = 0.3
+armature = 0.000625
 stiffness = 4.0
 damping = 0.3
 

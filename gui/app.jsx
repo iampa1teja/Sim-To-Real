@@ -3,6 +3,7 @@
 // button clicks go to POST /command.
 
 const { useEffect, useState, useRef } = React;
+const CAMERA_ORDER = { "Sim: realsense_rgb": 0, "Sim: wrist_cam": 1, "Real: external": 2, "Real: gripper": 3 };
 
 // "active" = an episode is running, including its pre-recording countdown.
 const BUTTONS = [
@@ -145,6 +146,9 @@ function App() {
   const [rerecordOpen, setRerecordOpen] = useState(false);
   const live = connected && state !== null && !state.closed;
   const disabled = !live || pending || state?.busy || state?.pending;
+  const cameras = [...(state?.cameras ?? [])].sort(
+    (a, b) => (CAMERA_ORDER[a] ?? 4) - (CAMERA_ORDER[b] ?? 4)
+  );
 
   const onClick = (cmd, options) => {
     setError(null);
@@ -200,7 +204,7 @@ function App() {
       </p>}
 
       <section className="grid">
-        {(state?.cameras ?? []).map((name, index) => (
+        {cameras.map((name, index) => (
           <CameraPane key={name} name={name} index={index} frame={state.frames[name]} />
         ))}
       </section>

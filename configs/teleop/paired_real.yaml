@@ -8,20 +8,25 @@ calibrate: true
 control_input: terminal
 
 leader:
-  id: leader_arm_1
+  id: rpd_leader
 
 follower:
   enabled: true
-  id: follower_arm_1
+  id: rpd_follower
+  calibration_path: /root/.cache/huggingface/lerobot/calibration/robots/so101_follower/rpd_follower.json
+  cameras:
+    gripper: /dev/video0
+    external: /dev/video6
   camera_width: 640
   camera_height: 480
 
 dataset:
-  repo_id: local/pick_place_cube
-  root: /workspace/datasets/pick_place_cube
+  repo_id: local/test
+  root: /workspace/datasets/test
   task_name: Pick up the blue cube and place it in the white box.
-  real_repo_id: null
-  real_root: null
+  real_repo_id: local/test-real
+  real_root: /workspace/datasets/test-real
+  on_alignment_mismatch: new
   save_mp4: false
   depth: false
   instance_id_seg: false

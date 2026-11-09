@@ -6,6 +6,13 @@
       -0.6076356057211214,
       0.7635429149057084
     ],
+    "mount_translation_correction_m": [-0.0012, -0.0052, 0.0082],
+    "mount_translation_source": {
+      "method": "Contact alignment inferred from paired episode 1, 2026-11-06; not an independent mount survey",
+      "episode_sidecar_sha256": "848f6e9b7d3ff089e529b72c6629898c9514c0e3474518c30e60a612c06f2a88",
+      "evidence": "Recorded real joint angles put the fixed fingertip 6.50 mm and moving fingertip up to 8.12 mm below the modeled tabletop. The correction was verified with unchanged recorded commands and initial cube world pose.",
+      "scope": "Robot mount only; nominal scene coordinates, tabletop, cameras, and box placement retain their measured reference."
+    },
     "yaw_degrees": 184.583662,
     "table_normal": [
       -0.001159014,

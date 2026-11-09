@@ -1,0 +1,14 @@
+[console_scripts]
+calibration_replay = sim.generate.calibration_replay:main
+calibration_report = core.calibration.calibration_report:main
+compare_eval_results = core.results.compare:main
+dr_replay = sim.generate.dr_replay:main
+lerobot_agent = sim.teleop.lerobot_agent:main
+lerobot_eval = sim.eval.lerobot_eval:main
+list_envs = core.scripts.list_envs:main
+make_eval_set = core.scripts.make_eval_set:main
+new_policy = core.scripts.new_policy:main
+real_rollout = core.scripts.real_rollout:main
+s2r = cli.main:main
+spawn = core.scripts.spawn:main
+summarize_eval_sweep = core.scripts.summarize_sweep:main
