@@ -5,8 +5,8 @@ from typing import Any
 
 import rerun as rr
 from lerobot.cameras.opencv import OpenCVCameraConfig
-from lerobot.robots import RobotConfig, make_robot_from_config
-from lerobot.teleoperators import TeleoperatorConfig
+from lerobot.robots import RobotConfig, make_robot_from_config, so_follower  # noqa: F401 (register configs)
+from lerobot.teleoperators import TeleoperatorConfig, so_leader  # noqa: F401 (register configs)
 from lerobot.teleoperators.utils import make_teleoperator_from_config
 from lerobot.processor import make_default_processors
 from lerobot.datasets.pipeline_features import aggregate_pipeline_dataset_features, create_initial_features

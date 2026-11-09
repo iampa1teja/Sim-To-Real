@@ -28,6 +28,22 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 REPLAY_DR_TERMS = ("light", "robot_color")  # camera views stay fixed to the calibrated real setup
 
 
+def rendering_kit_args(existing: str = "") -> str:
+    """Enable the installed material context-menu dependency before Kit starts.
+
+    The material library initializes its menus asynchronously during startup.
+    Enabling this extension after app creation can miss that initialization.
+    """
+    extension = "omni.kit.context_menu"
+    words = existing.split()
+    for index, word in enumerate(words):
+        if word == f"--enable={extension}" or (
+            word == "--enable" and words[index + 1:index + 2] == [extension]
+        ):
+            return existing
+    return f"{existing} --enable {extension}".strip()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Replay recorded episodes with visual domain randomization.")
     parser.add_argument("--src_root", required=True)
@@ -225,6 +241,7 @@ def main(argv=None):
     AppLauncher.add_app_launcher_args(parser)
     args = parser.parse_args(argv)
     args.enable_cameras = True
+    args.kit_args = rendering_kit_args(args.kit_args)
     app = AppLauncher(args).app
 
     env = writer = None

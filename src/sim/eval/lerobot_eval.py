@@ -121,6 +121,22 @@ def load_yaml_config(path):
     return out
 
 
+def rendering_kit_args(existing: str = "") -> str:
+    """Enable the installed material context-menu dependency before Kit starts.
+
+    The material library initializes its menus asynchronously during startup.
+    Enabling this extension after app creation can miss that initialization.
+    """
+    extension = "omni.kit.context_menu"
+    words = existing.split()
+    for index, word in enumerate(words):
+        if word == f"--enable={extension}" or (
+            word == "--enable" and words[index + 1:index + 2] == [extension]
+        ):
+            return existing
+    return f"{existing} --enable {extension}".strip()
+
+
 def _build_parser():
     parser = argparse.ArgumentParser(description="S2R policy evaluation in simulation (remote policy server).")
     parser.add_argument("--config_path", type=Path, default=None, help="configs/eval YAML; flags override it")
@@ -245,6 +261,7 @@ def parse_args(argv=None):
         parser.error("temporal_ensemble and blend_steps are mutually exclusive")
     # Always enable cameras: the policy reads them and videos record them.
     args.enable_cameras = True
+    args.kit_args = rendering_kit_args(args.kit_args)
     return args, AppLauncher
 
 

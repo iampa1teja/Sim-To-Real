@@ -15,14 +15,23 @@ LEADER_CALIBRATION_DIR = _LEROBOT["leader_calibration_dir"]
 SETUP_PATH = setup_path()
 MARKER = "meta/recording_alignment.json"
 
+
+class RecordingAlignmentError(ValueError):
+    """An existing dataset cannot be resumed with the selected calibration."""
+
+
 def recording_contract(*, follower_id, leader_id, setup=None, calibration_selection=None):
     setup = json.loads(SETUP_PATH.read_text()) if setup is None else setup
     selection = calibration_selection or resolve_calibration(setup=setup)
     resolved = setup["sim_joint_mapping_source"].get("wrist_roll_fit_status") == "verified"
     calibration = {key: setup[key] for key in ("sim_joint_mapping", "sim_joint_mapping_source", "runtime_joint_limits")}
     if selection.provenance["explicit_selection"]:
-        calibration = dict(calibration, sim_joint_mapping=selection.mapping,
-                           selected_calibrations=selection.provenance["selected_calibrations"])
+        calibration = dict(calibration, sim_joint_mapping=selection.mapping)
+    # Record the files actually loaded by both devices, including the leader's default file.
+    selected = {role: selection.provenance[f"{role}_calibration"]["sha256"]
+                for role in ("follower", "leader")}
+    if any(selected.values()):
+        calibration["selected_calibrations"] = selected
     source = setup["sim_joint_mapping_source"]
     contract = {
         "version": 3, "follower_id": follower_id, "leader_id": leader_id,
@@ -44,9 +53,15 @@ def validate_recording_root(root, contract):
     if not root.exists() or not any(root.iterdir()):
         return
     marker = root / MARKER
-    if not marker.is_file() or json.loads(marker.read_text()) != contract:
-        raise ValueError(f"Recording alignment differs or is missing in {root}. "
-                         "Choose a NEW dataset root, e.g. pick_place_v3_start_synced; legacy and v2 roots cannot be resumed.")
+    try:
+        saved = json.loads(marker.read_text()) if marker.is_file() else None
+    except json.JSONDecodeError:
+        saved = None
+    if saved != contract:
+        raise RecordingAlignmentError(
+            f"Recording alignment differs or is missing in {root}. "
+            "Choose a new dataset root or set dataset.on_alignment_mismatch=new "
+            "to keep recordings from different calibrations in separate folders.")
 
 
 def mark_recording_root(root, contract):

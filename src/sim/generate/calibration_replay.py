@@ -23,6 +23,21 @@ EXPECTED_SOURCE_EPISODES = 75
 SOURCE_REPO_ID = "local/pick_place_v1"
 
 
+def rendering_kit_args(existing: str = "") -> str:
+    """Enable the installed material context-menu dependency before Kit starts.
+
+    The material library initializes its menus asynchronously during startup.
+    Enabling this extension after app creation can miss that initialization.
+    """
+    extension = "omni.kit.context_menu"
+    words = existing.split()
+    for index, word in enumerate(words):
+        if word == f"--enable={extension}" or (
+            word == "--enable" and words[index + 1:index + 2] == [extension]
+        ):
+            return existing
+    return f"{existing} --enable {extension}".strip()
+
 def _bounds(mapping):
     import numpy as np
 
@@ -69,6 +84,7 @@ def main(argv=None):
     args.num_envs = 1
     args.variant = "teleop"
     args.fps = 30
+    args.kit_args = rendering_kit_args(args.kit_args)
     app = AppLauncher(args).app
     env = writer = None
     try:

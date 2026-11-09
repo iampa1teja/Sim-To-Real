@@ -89,9 +89,32 @@ class CameraResponse:
         if self.noise_a or self.noise_b:
             self.generator = torch.Generator(device=device)
             self.generator.manual_seed(int(noise.get("seed", 0)))
+        self._byte_lut = None
+        self._byte_lut_channels = None
+        identity_vignette = self.vignette is None or (
+            vignette.get("k1", 0.0) == 0.0
+            and vignette.get("k2", 0.0) == 0.0
+            and bool((self.vignette == 1.0).all())
+        )
+        if identity_vignette and self.blur_sigma == 0.0 and self.noise_a == 0.0 and self.noise_b == 0.0:
+            # Every channel is then a deterministic function of its input byte.
+            # Evaluate all 256 possibilities with the same float32 operations and
+            # final rounding used below. This is a complete table, not an
+            # interpolated approximation. Multiplication by an identity vignette
+            # leaves these finite float32 values unchanged.
+            levels = torch.arange(256, device=device, dtype=dtype)[:, None].expand(-1, 3)
+            x = srgb_to_linear(levels / 255.0)
+            x = x * self.gain + self.offset
+            y = linear_to_srgb(x.clamp(0, 1))
+            if self.lut is not None:
+                y = _apply_lut(y, self.lut)
+            self._byte_lut = (y.clamp(0, 1) * 255).round().to(torch.uint8)
+            self._byte_lut_channels = torch.arange(3, device=device, dtype=torch.long)
 
     def __call__(self, rgb_uint8):
         """rgb_uint8: (N, H, W, 3) uint8 tensor -> (N, H, W, 3) uint8 tensor."""
+        if self._byte_lut is not None and rgb_uint8.dtype == torch.uint8:
+            return self._byte_lut[rgb_uint8.long(), self._byte_lut_channels]
         x = srgb_to_linear(rgb_uint8.float() / 255.0)
         if self.vignette is not None:
             x = x * self.vignette

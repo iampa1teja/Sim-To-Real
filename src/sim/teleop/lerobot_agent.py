@@ -1,15 +1,19 @@
 import os 
 import time 
+import traceback
 from functools import partial
+from copy import deepcopy
 
 import torch 
 
 from sim.recording.recording_setup import (
     cleanup, 
+    derived_real_repo_id,
     derived_real_root,
     disconnect,
     exit_cleanly_on_termination,
     make_recorders,
+    prepare_recording_roots,
     real_camera_specs,
     validate_serial_ports
 )
@@ -17,28 +21,38 @@ from sim.teleop.config import AgentConfig, apply_selection, parse_config
 
 def _prepare(cfg: AgentConfig):
     from core.arms.joint_calibration import resolve_calibration
-    from core.utils.recording_alignment import recording_contract, validate_recording_root
+    from core.utils.recording_alignment import recording_contract
 
     selection = resolve_calibration(
         follower_id=cfg.follower.id if cfg.follower.enabled else None, 
         leader_id=cfg.leader.id,
+        follower_path=cfg.follower.calibration_path,
     )
     selection.print_paths()
     contract = recording_contract(follower_id=cfg.follower.id, leader_id=cfg.leader.id, calibration_selection=selection)
-
-    if cfg.recording:
-        from sim.recording.rerecording import recover_replacement
-
-        # Roll back a re-record publication that was interrupted, before either dataset is checked or opened.
-        recover_replacement(cfg.dataset.root)
 
     roots = []
     if cfg.recording and (selection.follower_path or selection.leader_path):
         roots.append(cfg.dataset.root)
         if cfg.follower.enabled:
             roots.append(cfg.dataset.real_root or derived_real_root(cfg.dataset.root))
-        for root in roots:
-            validate_recording_root(root, contract)
+        roots, suffix = prepare_recording_roots(
+            roots, contract, on_mismatch=cfg.dataset.on_alignment_mismatch)
+        if suffix:
+            if cfg.follower.enabled:
+                cfg.dataset.real_root = roots[1]
+                cfg.dataset.real_repo_id = (cfg.dataset.real_repo_id or
+                                            derived_real_repo_id(cfg.dataset.repo_id)) + suffix
+            cfg.dataset.root = roots[0]
+            cfg.dataset.repo_id += suffix
+            print("[recording] Calibration differs from the configured dataset; "
+                  "using separate folders and preserving existing recordings.", flush=True)
+        for role, root in zip(("sim", "real"), roots):
+            print(f"[recording] {role} dataset: {root}", flush=True)
+    elif cfg.recording:
+        from sim.recording.rerecording import recover_replacement
+
+        recover_replacement(cfg.dataset.root)
     ports = {"leader": cfg.leader.port}
     if cfg.follower.enabled:
         ports["follower"] = cfg.follower.port
@@ -65,6 +79,8 @@ def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     env_cfg = parse_env_cfg(env_id, device=device, num_envs=1, use_fabric=cfg.use_fabric)
     env_cfg.seed = cfg.seed
 
+    if selection.provenance.get("mapping_source") == "follower_file":
+        env_cfg.sim_joint_mapping = deepcopy(selection.mapping)
     if getattr(env_cfg, "sim_joint_mapping", None) not in (None, selection.mapping):
         raise ValueError("Environment mapping differs from the selected follower calibration.")
     if env_cfg.terminations is not None and any(
@@ -203,6 +219,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
     spawner = None
     gui = None
     recording = False
+    exit_code = 0
     calibrate = cfg.calibrate and not cfg.telemetry.joint_angle_log
 
     try:
@@ -464,6 +481,10 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
 
     except KeyboardInterrupt:
         print("[INFO]: Interrupted; shutting down cleanly.")
+    except Exception:
+        exit_code = 1
+        traceback.print_exc()
+        raise
     finally:
         if telemetry is not None:
             cleanup("Joint telemetry close", telemetry.close)
@@ -479,7 +500,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
             cleanup("Dataset finalization", recorders.finalize)
         if env is not None:
             cleanup("Environment close", env.close)
-        cleanup("Simulation app close", simulation_app.close)
+        cleanup("Simulation app close", partial(simulation_app.close, exit_code=exit_code))
 
 def main(argv=None):
     cfg, isaac_args = parse_config(argv)

@@ -29,6 +29,8 @@ from isaaclab_physx.renderers import IsaacRtxRendererCfg, IsaacRtxRendererGlobal
 from sim.envs.base_env_cfg import BaseEnvCfg, BaseEventsCfg, BaseObservationsCfg, BaseSceneCfg
 from sim.envs.mdp import apply_runtime_joint_limits, image_raw, image_rgb_raw
 from sim.scene.calibrated_camera import CalibratedPinholeCameraCfg, CalibratedTiledCamera, apply_opencv_intrinsics
+from sim.scene.calibrated_viewport_cfg import CalibratedKitVisualizerCfg
+from sim.scene.contact_materials import bind_contact_material
 from sim.scene.real_setup import (
     DEFAULT_SETUP_USDZ, SETUP, apply_robot_appearance, apply_room_appearance, apply_room_lighting,
     camera_rotation, quaternion_tuple, robot_rotation,
@@ -41,6 +43,7 @@ ROOM_ARM_COLOR = tuple(SETUP["appearance"]["robot_beige"])
 def _rtx_renderer() -> IsaacRtxRendererCfg:
     """v1's MyRoom render settings, now carried by the camera's RTX renderer config."""
     return IsaacRtxRendererCfg(
+        class_type="sim.scene.calibrated_renderer:CalibratedRtxRenderer",
         global_settings=IsaacRtxRendererGlobalSettingsCfg(
             antialiasing_mode="DLAA",
             enable_ambient_occlusion=True,
@@ -73,11 +76,13 @@ def _spawn_room_without_embedded_robot(prim_path, cfg, translation=None, orienta
         # Filter at composition time; removing the embedded articulation after
         # spawning can invalidate Isaac Lab's already registered robot callbacks.
         runtime_cfg = cfg.replace(usd_path=DEFAULT_SETUP_USDZ.replace(".usdz", "_room.usda"))
-        return spawn_from_usd(prim_path, runtime_cfg, translation=translation, orientation=orientation, **kwargs)
-    room = spawn_from_usd(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
-    for prim in reversed(list(Usd.PrimRange(room))):
-        if prim.GetName() == "Robot" or prim.IsA(UsdGeom.Camera):
-            prim.SetActive(False)
+        room = spawn_from_usd(prim_path, runtime_cfg, translation=translation, orientation=orientation, **kwargs)
+    else:
+        room = spawn_from_usd(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
+        for prim in reversed(list(Usd.PrimRange(room))):
+            if prim.GetName() == "Robot" or prim.IsA(UsdGeom.Camera):
+                prim.SetActive(False)
+    bind_contact_material(room, lambda prim: "tabletop" in str(prim.GetPath()).lower())
     return room
 
 
@@ -173,17 +178,6 @@ def _configure_scene_updates(env, env_ids):
         prim = env.sim.stage.GetPrimAtPath(path)
         if prim.IsValid():
             prim.SetActive(False)
-    # Use the calibrated room camera, including its lens model, for the GUI view.
-    if env.sim.has_gui:
-        try:
-            from omni.kit.viewport.utility import get_active_viewport
-        except ImportError:  # 3.0 visualizers may run without the Kit viewport
-            get_active_viewport = None
-        viewport = get_active_viewport() if get_active_viewport else None
-        if viewport is not None:
-            viewport.camera_path = env.cfg.viewer.cam_prim_path
-            viewport.fill_frame = False
-            viewport.set_texture_resolution(env.cfg.viewer.resolution)
     # Apply the same material settings as the packaged USDZ. Custom room overrides can
     # have unrelated materials and lighting.
     if env.cfg.scene.room.spawn.usd_path == DEFAULT_SETUP_USDZ:
@@ -214,14 +208,36 @@ class RpdMeetingRoomEnvCfg(BaseEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
-        # The measured scene overrides arm.toml's default placement.
-        self.scene.robot.init_state.pos = tuple(SETUP["robot"]["position"])
+        # Newton supplies stable contact manifolds for the triangulated tabletop;
+        # MJWarp still solves the dynamics. Native MJWarp contacts let the cube
+        # rock and creep here, even with nonzero friction and multi-CCD enabled.
+        self.sim.physics.solver_cfg.use_mujoco_contacts = False
+        self.sim.physics.solver_cfg.cone = "elliptic"
+        self.sim.physics.solver_cfg.impratio = 1000.0
+        self.sim.physics.solver_cfg.tolerance = 1e-8
+        # Refresh moving-jaw contacts every 2.08 ms within the existing 120 Hz
+        # physics tick; control and camera rendering keep their 30 Hz cadence.
+        self.sim.physics.num_substeps = 4
+        self.sim.physics.collision_decimation = 1
+        # Keep the scene's surveyed reference separate from the contact-fitted
+        # mount correction so the table and box retain their recorded world poses.
+        self.scene.robot.init_state.pos = tuple(
+            p + delta for p, delta in zip(
+                SETUP["robot"]["position"],
+                SETUP["robot"].get("mount_translation_correction_m", (0.0, 0.0, 0.0)),
+                strict=True,
+            )
+        )
         self.scene.robot.init_state.rot = robot_rotation()
         self.scene.robot.init_state.joint_pos = SETUP["robot"]["joint_positions"].copy()
-        self.viewer.cam_prim_path = "/World/envs/env_0/realsense_camera_rgb"
-        self.viewer.resolution = (SETUP["realsense"]["width"], SETUP["realsense"]["height"])
-        self.viewer.eye = tuple(SETUP["viewer"]["eye"])
-        self.viewer.lookat = tuple(SETUP["viewer"]["lookat"])
+        self.sim.default_visualizer_cfg = CalibratedKitVisualizerCfg(
+            camera_prim_path="/World/envs/env_0/realsense_camera_rgb",
+            window_width=SETUP["realsense"]["width"],
+            window_height=SETUP["realsense"]["height"],
+            eye=tuple(SETUP["viewer"]["eye"]),
+            lookat=tuple(SETUP["viewer"]["lookat"]),
+        )
+        self.sim.visualizer_cfgs = [self.sim.default_visualizer_cfg]
 
 
 def drop_unused_camera_outputs(cfg, depth=False, instance_id_seg=False):

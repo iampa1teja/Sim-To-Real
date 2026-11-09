@@ -7,6 +7,8 @@ delayed until a recorder is built (after the Isaac app has launched).
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import signal
 import stat
@@ -66,6 +68,40 @@ def derived_real_root(sim_root: str) -> str:
     """``.../name`` -> ``.../name-real``."""
     path = Path(sim_root)
     return os.fspath(path.with_name(f"{path.name}-real"))
+
+
+def prepare_recording_roots(roots: list[str], contract: dict, *, on_mismatch: str = "error"):
+    """Recover and validate a dataset pair, selecting a calibration suffix when requested.
+
+    Selection never creates directories or rewrites alignment markers. The recorder owns
+    initialization, and a repeated launch with the same contract selects the same pair.
+    """
+    from core.utils.recording_alignment import RecordingAlignmentError, validate_recording_root
+    from .rerecording import recover_replacement
+
+    if on_mismatch not in ("error", "new"):
+        raise ValueError(f"Unknown recording alignment policy: {on_mismatch!r}")
+    if not roots or len({Path(root).resolve() for root in roots}) != len(roots):
+        raise ValueError("Recording roots must be nonempty and distinct.")
+
+    def validate(candidates):
+        # Recover both sides of an interrupted paired publication before inspecting either.
+        recover_replacement(candidates[0])
+        for root in candidates:
+            validate_recording_root(root, contract)
+
+    try:
+        validate(roots)
+        return roots, ""
+    except RecordingAlignmentError:
+        if on_mismatch == "error":
+            raise
+
+    suffix = "-cal-" + hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()[:12]
+    candidates = [os.fspath(Path(root).with_name(Path(root).name + suffix)) for root in roots]
+    # A conflicting candidate is an error: never relabel or overwrite existing recordings.
+    validate(candidates)
+    return candidates, suffix
 
 
 def real_camera_specs(cameras: dict[str, str | int], *, fps: int, width: int, height: int,

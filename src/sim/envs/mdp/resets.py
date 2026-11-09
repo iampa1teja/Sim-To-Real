@@ -77,8 +77,20 @@ def _xyzw(q):
 
 def _env_prim_path(env, asset, index):
     """Concrete prim path of ``asset`` in environment ``index``."""
-    return re.sub(r"env_\.\*", f"env_{index}", asset.cfg.prim_path).replace(
-        "{ENV_REGEX_NS}", env.scene.env_prim_paths[index]
+    path = asset.cfg.prim_path
+    env_paths = getattr(env.scene, "env_prim_paths", None)
+    # Asset configs may retain the namespace token or contain either version's
+    # expanded regex. USD lookups need the actual scene namespace in all cases.
+    namespace_pattern = r"(?:^|/)env_(?:\.\*|\[\^/\]\+)(?=/|$)"
+    if env_paths is not None:
+        env_path = env_paths[index]
+        path = path.replace("{ENV_REGEX_NS}", env_path)
+        match = re.search(namespace_pattern, path)
+        return env_path + path[match.end():] if match else path
+    return re.sub(
+        namespace_pattern,
+        lambda match: ("/" if match.group().startswith("/") else "") + f"env_{index}",
+        path,
     )
 
 

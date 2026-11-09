@@ -9,6 +9,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
+from isaaclab_visualizers.kit import KitVisualizerCfg
 
 from sim.envs.mdp import (
     JointPositionActionCfg,
@@ -107,9 +108,14 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 2
         self.episode_length_s = 5.0
 
-        self.viewer.eye = (-0.25, -0.4, 0.22)
-        self.viewer.lookat = (0.15, 0.0, 0.12)
+        self.sim.default_visualizer_cfg = KitVisualizerCfg(
+            eye=(-0.25, -0.4, 0.22), lookat=(0.15, 0.0, 0.12),
+        )
+        # Defaults alone do not create a visualizer in Isaac Lab 3.0.
+        self.sim.visualizer_cfgs = [self.sim.default_visualizer_cfg]
 
-        self.sim.physics = NewtonCfg(solver_cfg=MJWarpSolverCfg())
+        # Integrate the native PD drives implicitly: Euler is unstable for the
+        # SO101's light links at these gains and the 120 Hz physics timestep.
+        self.sim.physics = NewtonCfg(solver_cfg=MJWarpSolverCfg(integrator="implicitfast"))
         self.sim.dt = 1.0 / 120.0
         self.sim.render_interval = self.decimation

@@ -7,7 +7,12 @@ import torch
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
+from isaaclab.sim.spawners.from_files import spawn_from_usd
 from isaaclab.utils.math import quat_from_euler_xyz
+
+from sim.scene.contact_materials import (
+    GRASP_FRICTION, GRASP_ROLLING_FRICTION, bind_contact_material, enable_collision_meshes,
+)
 
 # The toml reading lives in core so hardware code can use it without Isaac.
 from core.arms.spec import arms_dir, load_arm_spec  # noqa: F401  (re-exported)
@@ -17,6 +22,15 @@ def _quat_from_euler_degrees(angles: list[float]) -> tuple[float, ...]:
     """Use Isaac Lab's own helper so the order always matches what ArticulationCfg expects."""
     roll, pitch, yaw = (torch.tensor([math.radians(a)]) for a in angles)
     return tuple(quat_from_euler_xyz(roll, pitch, yaw)[0].tolist())
+
+
+def _spawn_arm(prim_path, cfg, translation=None, orientation=None, **kwargs):
+    root = spawn_from_usd(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
+    enable_collision_meshes(root)
+    jaws = tuple(root.GetPath().AppendChild(name) for name in ("gripper", "jaw"))
+    bind_contact_material(root, lambda prim: any(prim.GetPath().HasPrefix(path) for path in jaws),
+                          friction=GRASP_FRICTION, rolling_friction=GRASP_ROLLING_FRICTION)
+    return root
 
 
 def load_arm_cfg(name: str, variant: str | None = None) -> ArticulationCfg:
@@ -30,6 +44,7 @@ def load_arm_cfg(name: str, variant: str | None = None) -> ArticulationCfg:
 
     return ArticulationCfg(
         spawn=sim_utils.UsdFileCfg(
+            func=_spawn_arm,
             usd_path=str(usd_path),
             activate_contact_sensors=spawn.get("activate_contact_sensors", False),
             rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(**spawn.get("rigid_props", {})),

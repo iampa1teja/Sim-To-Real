@@ -3,7 +3,7 @@
 # Newton builds its physics model once, so objects cannot be created while the sim runs (v1 added a new
 # USD cube prim per request; that only worked on PhysX). Instead, spawnable task objects are declared up
 # front in the task's env cfg with a `park_object` reset event: they sit parked out of the scene, this
-# module keeps them there every tick, and a spawn request teleports one next to the fixed jaw tip (same
+# module re-parks them after substantial drift, and a spawn request teleports one next to the fixed jaw tip (same
 # placement as v1: jaw-tip offset, oriented like the end effector, snapped onto the table plane).
 # One copy per object: spawning an object that is already out re-places it at the jaw.
 #
@@ -17,6 +17,10 @@ from queue import Empty, Queue
 from threading import Event, Thread
 
 PARK_EVENT = "park_object"
+# Parked objects are already two metres below the environment. Let gravity move
+# them within this offscreen region instead of invalidating renderer transforms
+# with a teleport on every recording tick.
+PARK_DRIFT_LIMIT_M = 0.25
 
 
 # Localhost listener: validates the auth key and request, queues it, waits (10 s) for the sim thread to answer.
@@ -132,16 +136,20 @@ class ObjectSpawner:
     def reset(self):
         self.parked = set(self.offsets)
 
-    # Re-write the park pose of objects still waiting, so gravity never drags them into view. Call before env.step.
+    # Re-park only environments whose waiting object has left the offscreen region.
     def hold(self):
         if not self.parked:
             return
         from isaaclab.managers import SceneEntityCfg
 
-        from sim.envs.mdp import park_object
+        from sim.envs.mdp import as_torch, park_object
 
         for name in self.parked:
-            park_object(self.env, None, SceneEntityCfg(name), self.offsets[name])
+            position = as_torch(self.env.scene[name].data.root_pos_w)
+            target = as_torch(self.env.scene.env_origins) + position.new_tensor(self.offsets[name])
+            drifted = ((position - target).square().sum(dim=-1) > PARK_DRIFT_LIMIT_M ** 2).nonzero().flatten()
+            if len(drifted):
+                park_object(self.env, drifted, SceneEntityCfg(name), self.offsets[name])
 
     # Teleport `name` (default: the first spawnable object) beside the jaw tip; returns its name and position.
     def spawn(self, name=None, offset=(0.0, 0.0, 0.0)):

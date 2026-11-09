@@ -12,6 +12,21 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal
 
+def rendering_kit_args(existing: str = "") -> str:
+    """Enable the installed material context-menu dependency before Kit starts.
+
+    The material library initializes its menus asynchronously during startup.
+    Enabling this extension after app creation can miss that initialization.
+    """
+    extension = "omni.kit.context_menu"
+    words = existing.split()
+    for index, word in enumerate(words):
+        if word == f"--enable={extension}" or (
+            word == "--enable" and words[index + 1:index + 2] == [extension]
+        ):
+            return existing
+    return f"{existing} --enable {extension}".strip()
+
 
 def _env(name: str, default: str | None = None):
     return field(default_factory=lambda: os.getenv(name, default))
@@ -29,6 +44,7 @@ class FollowerConfig:
     enabled: bool = False
     port: str = _env("ROBOT_PORT", "/dev/ttyACM1")
     id: str = _env("ROBOT_ID", "follower_arm_1")
+    calibration_path: str | None = None
     # name -> OpenCV index or /dev/video path. Opened only when recording a real dataset.
     cameras: dict[str, str] = field(default_factory=lambda: {
         name: value for name, value in (("gripper", os.getenv("CAMERA_GRIPPER")),
@@ -48,6 +64,7 @@ class DatasetConfig:
     # Real-follower dataset; defaults to "<repo_id>-real" / "<root>-real".
     real_repo_id: str | None = None
     real_root: str | None = None
+    on_alignment_mismatch: Literal["error", "new"] = "error"
     save_mp4: bool = False
     depth: bool = False
     instance_id_seg: bool = False
@@ -155,6 +172,7 @@ def parse_config(argv: list[str] | None = None) -> tuple[AgentConfig, argparse.N
     cfg = draccus.parse(config_class=AgentConfig, config_path=config_path, args=rest)
     # Every teleop agent renders the cameras it records or streams.
     isaac_args.enable_cameras = True
+    isaac_args.kit_args = rendering_kit_args(isaac_args.kit_args)
     return cfg, isaac_args
 
 
