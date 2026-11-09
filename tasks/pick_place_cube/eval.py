@@ -74,8 +74,8 @@ def usd_limits_deg():
 
 # Dataset units (observation.state) -> sim joint radians, in LEROBOT_JOINTS order.
 # Arm joints map -100..100 and the gripper 0..100 onto the calibrated span (joint_mapping overrides it per joint),
-# then clamp to the runtime limits. Same maths as JointMapping.to_radians_np, kept separate because frozen eval sets
-# carry their own joint_mapping.
+# then clamp to the runtime limits. Frozen eval sets carry their own joint_mapping; the
+# conversion itself is shared with JointMapping.
 def dataset_state_to_radians(state, joint_mapping=None):
     limits = usd_limits_deg()
     state = np.asarray(state, dtype=float)
@@ -86,13 +86,13 @@ def dataset_state_to_radians(state, joint_mapping=None):
         if name not in mapping:
             raise ValueError(f"Unknown joint mapping: {name}")
         mapping[name] = (float(span["joint_min"]), float(span["joint_max"]))
-    radians = np.empty(len(LEROBOT_JOINTS))
-    for i, name in enumerate(LEROBOT_JOINTS):
-        normalized = state[i] / 100.0 if name == "gripper" else (state[i] + 100.0) / 200.0
-        low, high = mapping[name]
-        usd_low, usd_high = limits[name]
-        radians[i] = np.deg2rad(np.clip(low + normalized * (high - low), usd_low, usd_high))
-    return radians
+    from core.arms.joint_calibration import GRIPPER_JOINT
+    from core.arms.mapping import units_to_degrees
+
+    spans = {name: dict(joint_min=low, joint_max=high) for name, (low, high) in mapping.items()}
+    degrees = units_to_degrees(state, spans, LEROBOT_JOINTS, gripper_joints=(GRIPPER_JOINT,))
+    low, high = np.asarray([limits[name] for name in LEROBOT_JOINTS]).T
+    return np.deg2rad(np.clip(degrees, low, high))
 
 
 def load_robot_starts(dataset_root, episode_ids):
@@ -104,13 +104,12 @@ def load_robot_starts(dataset_root, episode_ids):
         raise ValueError(f"No data parquet files under {dataset_root}; cannot read recorded robot starts")
     first = {}
     for path in paths:
-        table = pq.read_table(path, columns=["episode_index", "frame_index", "observation.state"])
+        table = pq.read_table(path, columns=["episode_index", "observation.state"],
+                              filters=[("frame_index", "=", 0), ("episode_index", "in", list(episode_ids))])
         episodes = table.column("episode_index").to_pylist()
-        frames = table.column("frame_index").to_pylist()
         states = table.column("observation.state").to_pylist()
-        for episode, frame, state in zip(episodes, frames, states):
-            if frame == 0:
-                first[int(episode)] = np.asarray(state, dtype=float)
+        for episode, state in zip(episodes, states):
+            first[int(episode)] = np.asarray(state, dtype=float)
     missing = [e for e in episode_ids if e not in first]
     if missing:
         raise ValueError(f"No first-frame robot state in {dataset_root} for episodes {missing}")

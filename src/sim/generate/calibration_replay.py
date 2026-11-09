@@ -9,7 +9,7 @@ requires contact acquisition, lift, release inside the box, and 25 stable ticks.
 """
 # Changes from v1 for Isaac Lab 3.0 / Newton:
 # - Joint units go through core.arms.mapping.JointMapping (v1 LeRobotSO101Interface is gone); old -> new mapping
-#   relabeling uses the local _units_to_degrees / _degrees_to_units (v1 utils/calibration_dataset was not ported).
+#   relabeling shares the pure units_to_degrees / degrees_to_units helpers in core.arms.mapping.
 # - Source snapshot hashes come from core.utils.hashing.tree_sha256 (same keys as v1 snapshot on Linux).
 # - Success params come from the task (tasks/pick_place_cube/env_cfg.py) instead of PickPlaceTerminationsCfg.
 # - Live quaternions are XYZW; sidecar poses are written WXYZ (v1 format).
@@ -19,51 +19,10 @@ from pathlib import Path
 from types import SimpleNamespace
 import traceback
 
+from sim.app import rendering_kit_args
+
 EXPECTED_SOURCE_EPISODES = 75
 SOURCE_REPO_ID = "local/pick_place_v1"
-
-
-def rendering_kit_args(existing: str = "") -> str:
-    """Enable the installed material context-menu dependency before Kit starts.
-
-    The material library initializes its menus asynchronously during startup.
-    Enabling this extension after app creation can miss that initialization.
-    """
-    extension = "omni.kit.context_menu"
-    words = existing.split()
-    for index, word in enumerate(words):
-        if word == f"--enable={extension}" or (
-            word == "--enable" and words[index + 1:index + 2] == [extension]
-        ):
-            return existing
-    return f"{existing} --enable {extension}".strip()
-
-def _bounds(mapping):
-    import numpy as np
-
-    from core.arms.joint_calibration import FOLLOWER_JOINTS, GRIPPER_JOINT
-
-    low = np.array([mapping[n]["joint_min"] for n in FOLLOWER_JOINTS], dtype=np.float64)
-    high = np.array([mapping[n]["joint_max"] for n in FOLLOWER_JOINTS], dtype=np.float64)
-    if not np.isfinite([low, high]).all() or np.any(high <= low):
-        raise ValueError("Mapping bounds must be finite and increasing")
-    gripper = np.array([n == GRIPPER_JOINT for n in FOLLOWER_JOINTS])
-    # Body joints span -100..100 raw units, the gripper 0..100.
-    return low, high, np.where(gripper, 100.0, 200.0), np.where(gripper, 0.0, 100.0)
-
-
-def _units_to_degrees(units, mapping):
-    import numpy as np
-
-    low, high, scale, offset = _bounds(mapping)
-    return low + (np.asarray(units, dtype=np.float64) + offset) / scale * (high - low)
-
-
-def _degrees_to_units(degrees, mapping):
-    import numpy as np
-
-    low, high, scale, offset = _bounds(mapping)
-    return (np.asarray(degrees, dtype=np.float64) - low) / (high - low) * scale - offset
 
 
 def main(argv=None):
@@ -93,7 +52,8 @@ def main(argv=None):
         import isaaclab.utils.math as math_utils
 
         import sim.envs
-        from core.arms.mapping import JointMapping
+        from core.arms.mapping import JointMapping, degrees_to_units, units_to_degrees
+        from core.arms.joint_calibration import FOLLOWER_JOINTS, GRIPPER_JOINT
         from core.tasks.loader import load_task_module
         from core.utils.hashing import tree_sha256
         from sim.envs.mdp.resets import as_torch
@@ -140,7 +100,9 @@ def main(argv=None):
         with torch.inference_mode():
             for episode in source:
                 env.reset()
-                initial = _degrees_to_units(_units_to_degrees(episode.states[0], audit["old_mapping"]), mapping)
+                conversion = dict(joint_order=FOLLOWER_JOINTS, gripper_joints=(GRIPPER_JOINT,))
+                initial = degrees_to_units(
+                    units_to_degrees(episode.states[0], audit["old_mapping"], **conversion), mapping, **conversion)
                 replayer.pose_frame(initial, episode.poses_base[0])
                 q = joints.to_radians(initial).reshape(1, -1)
                 robot.set_joint_position_target_index(target=q, joint_ids=replayer.joint_ids, env_ids=replayer.env_ids)

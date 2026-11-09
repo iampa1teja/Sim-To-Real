@@ -35,6 +35,8 @@ import traceback
 from pathlib import Path
 from types import SimpleNamespace
 
+from sim.app import apply_selection, rendering_kit_args
+
 SERVER_ONLY_KEYS = {"models_dir", "server_image"}  # read by `s2r serve`, ignored here
 _RENAMES = {
     "policy": {"name": "policy", "host": "policy_host", "port": "policy_port", "timeout_ms": "policy_timeout_ms",
@@ -119,22 +121,6 @@ def load_yaml_config(path):
         if out.get(name) is not None:
             out[name] = Path(out[name])
     return out
-
-
-def rendering_kit_args(existing: str = "") -> str:
-    """Enable the installed material context-menu dependency before Kit starts.
-
-    The material library initializes its menus asynchronously during startup.
-    Enabling this extension after app creation can miss that initialization.
-    """
-    extension = "omni.kit.context_menu"
-    words = existing.split()
-    for index, word in enumerate(words):
-        if word == f"--enable={extension}" or (
-            word == "--enable" and words[index + 1:index + 2] == [extension]
-        ):
-            return existing
-    return f"{existing} --enable {extension}".strip()
 
 
 def _build_parser():
@@ -222,7 +208,6 @@ def parse_args(argv=None):
     defaults = load_yaml_config(known.config_path) if known.config_path else {}
 
     # Arm/scene/task must be exported before anything imports core or sim (they read S2R_* at import).
-    from sim.teleop.config import apply_selection
 
     parser = _build_parser()
     selection = SimpleNamespace(**{name: getattr(known, name) or defaults.get(name) or parser.get_default(name)

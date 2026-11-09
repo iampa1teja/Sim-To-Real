@@ -71,6 +71,16 @@ def main():
         e = env.unwrapped
         robot = e.scene["robot"]
         obs, _ = env.reset()
+        # A 20 mm cube cannot be inserted between the closed fingers. Open the
+        # jaw through the normal action path before testing jaw-relative spawn;
+        # the later sinusoid keeps that jaw open while the arm moves.
+        jaw = robot.find_joints("Jaw")[0][0]
+        fixture_target = as_torch(robot.data.joint_pos).clone()
+        fixture_target[:, jaw] = 0.6
+        for _ in range(30):
+            obs, *_ = env.step(fixture_target)
+        result["spawn_jaw_position_rad"] = float(as_torch(robot.data.joint_pos)[0, jaw])
+        assert result["spawn_jaw_position_rad"] > 0.5, result["spawn_jaw_position_rad"]
         mapping = JointMapping.from_setup(device=e.device)
         # Frame construction only: no dataset is opened or written.
         recorder = LeRobotRecorder("runtime check", "local/check", "/tmp/unused-s2r-check", 30, e.device)

@@ -1,5 +1,5 @@
 # Photo-matched digital twin of the RPD meeting room ("MyRoom" in v1).
-# Paths are relative to this file. Not read by code yet: sim/scene/real_setup.py still uses these names directly.
+# Paths are relative to this file.
 
 [scene]
 name = "rpd_meeting_room"

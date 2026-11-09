@@ -21,27 +21,13 @@ import argparse
 import json
 import os
 from pathlib import Path
-import subprocess
 from types import SimpleNamespace
+
+from core.utils.provenance import git_commit
+from sim.app import apply_selection, rendering_kit_args
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REPLAY_DR_TERMS = ("light", "robot_color")  # camera views stay fixed to the calibrated real setup
-
-
-def rendering_kit_args(existing: str = "") -> str:
-    """Enable the installed material context-menu dependency before Kit starts.
-
-    The material library initializes its menus asynchronously during startup.
-    Enabling this extension after app creation can miss that initialization.
-    """
-    extension = "omni.kit.context_menu"
-    words = existing.split()
-    for index, word in enumerate(words):
-        if word == f"--enable={extension}" or (
-            word == "--enable" and words[index + 1:index + 2] == [extension]
-        ):
-            return existing
-    return f"{existing} --enable {extension}".strip()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -72,15 +58,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def apply_selection(args) -> None:
-    """Export S2R_ARM / S2R_SCENE / S2R_TASK before anything imports core or sim."""
-    from sim.teleop.config import apply_selection as apply
-
-    if not args.task:
-        raise SystemExit("dr_replay needs a task.")
-    apply(args)
-
-
 def parse_episode_list(text) -> set[int]:
     if not text.strip():
         return set()
@@ -106,14 +83,6 @@ def check_source_fps(src_root, fps) -> None:
     info = json.loads((Path(src_root) / "meta" / "info.json").read_text(encoding="utf-8"))
     if int(info["fps"]) != fps:
         raise ValueError(f"Source dataset is {info['fps']} FPS; --fps is {fps}")
-
-
-def git_commit() -> str:
-    try:
-        return subprocess.check_output(["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"],
-                                       text=True, stderr=subprocess.DEVNULL).strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
 
 
 def read_dr_ranges(task):
@@ -214,6 +183,8 @@ def _json_args(args) -> dict:
 def main(argv=None):
     parser = build_parser()
     args, _ = parser.parse_known_args(argv)
+    if not args.task:
+        raise SystemExit("dr_replay needs a task.")
     apply_selection(args)
 
     import torch
@@ -269,7 +240,7 @@ def main(argv=None):
                 replay_episode(replayer, writer, by_index[planned.src_index], planned, args.fps)
 
         write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json",
-                          build_manifest(plan, _json_args(args), git_commit()))
+                          build_manifest(plan, _json_args(args), git_commit(REPO_ROOT)))
         print(f"[INFO]: Wrote {len(plan)} episodes to {args.dst_root}")
     finally:
         if writer is not None:

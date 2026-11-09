@@ -138,9 +138,10 @@ def _split_link_mesh(root, *, link_name, mesh_name, axis, coordinate):
         remap = {int(index): position for position, index in enumerate(hull.vertices)}
         faces = hull.simplices.copy()
         # Qhull reports outward plane normals; orient every triangle accordingly.
-        for face, equation in zip(faces, hull.equations):
-            p, q, r = piece[face]
-            if np.dot(np.cross(q - p, r - p), equation[:3]) < 0:
+        normals = np.cross(piece[faces[:, 1]] - piece[faces[:, 0]],
+                           piece[faces[:, 2]] - piece[faces[:, 0]])
+        for face, normal, equation in zip(faces, normals, hull.equations):
+            if np.dot(normal, equation[:3]) < 0:
                 face[1], face[2] = face[2], face[1]
         local = [inverse.Transform(Gf.Vec3d(*map(float, point))) for point in vertices]
         path = source.GetPath().GetParentPath().AppendChild(name)

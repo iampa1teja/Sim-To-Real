@@ -1,11 +1,11 @@
 import json 
 import math 
-import hashlib
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from core.arms.spec import load_arm_spec
-from core.scenes import setup_path 
+from core.scenes import setup_path
+from core.utils.hashing import file_sha256
 
 _ARM, _ = load_arm_spec()
 _LEROBOT = _ARM["lerobot"]
@@ -21,7 +21,6 @@ GRIPPER_JOINT = _LEROBOT["gripper_joint"]
 FOLLOWER_CALIBRATION_DIR = _LEROBOT["follower_calibration_dir"]
 LEADER_CALIBRATION_DIR = _LEROBOT["leader_calibration_dir"]
 SETUP_PATH = setup_path()
-
 
 
 def follower_mapping_from_calibration(calibration, *, gripper_closed_degrees=None, gripper_contact_units=0.0, wrist_roll_zero_offset_degrees=0.0):
@@ -89,14 +88,6 @@ def sim_mapping_parameters(source=None):
         "wrist_roll_zero_offset_degrees": source.get("wrist_roll_zero_offset_degrees", 0.0)
     }
 
-def sim_gripper_closed_degrees():
-    return sim_mapping_parameters()["gripper_closed_degrees"]
-
-def sim_wrist_roll_zero_offset_degrees():
-    return sim_mapping_parameters()["wrist_roll_zero_offset_degrees"]
-
-def file_sha256(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def calibration_identity(path, *, required=True):
     if path is None:
@@ -208,7 +199,7 @@ def resolve_calibration(*, environ=None, setup=None, follower_id=None, leader_id
         if "joints" in source:
             derived = follower_mapping_from_calibration(source["joints"], **sim_mapping_parameters(source))
             if mapping != derived:
-                raise ValueError("Stale sim_joint_mapping; regenerate with scripts/update_sim_calibration.py")
+                raise ValueError("Stale sim_joint_mapping; regenerate it from the selected follower calibration before recording")
             mapping = derived
 
     selected = {

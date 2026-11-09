@@ -11,11 +11,11 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-import subprocess
 
 import numpy as np
 
 from core.arms.joint_calibration import calibration_identity
+from core.utils.provenance import git_identity
 from core.calibration.calibration_check import GAPS, gap_data, summarize
 
 ACTION_THRESHOLDS = {"real_tracking_deg": 3., "sim_mean_deg": 1., "sim_angle_correlation": .8,
@@ -44,17 +44,6 @@ def recommended_actions(tracking):
             actions.append(dict(joint=name, rule="limit_mismatch", action=f"Limit mismatch on {name}: inspect runtime limits.",
                                 evidence={"fraction_at_limit": fraction}))
     return actions
-
-
-def git_identity(root):
-    command = ["git", "-c", f"safe.directory={root}", "-C", str(root)]
-    try:
-        return {"git_commit": subprocess.check_output(command + ["rev-parse", "HEAD"], text=True,
-                                                      stderr=subprocess.DEVNULL).strip(),
-                "git_dirty": bool(subprocess.check_output(command + ["status", "--porcelain"], text=True,
-                                                          stderr=subprocess.DEVNULL).strip())}
-    except (OSError, subprocess.SubprocessError):
-        return {"git_commit": None, "git_dirty": None}
 
 
 def make_plots(output, gap_path):

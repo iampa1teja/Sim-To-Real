@@ -143,6 +143,14 @@ def main():
                     "condim": int(mj.geom_condim[geom]), "solimp": mj.geom_solimp[geom].tolist(),
                     "solref": mj.geom_solref[geom].tolist(),
                 })
+        # The 20 mm spawn fixture needs an open jaw; closed-jaw overlap is not
+        # a valid way to profile normal recording physics.
+        opening = as_torch(robot.data.joint_pos).clone()
+        jaw = robot.find_joints("Jaw")[0][0]
+        opening[:, jaw] = 0.6
+        for _ in range(30):
+            obs, *_ = env.step(opening)
+        assert float(as_torch(robot.data.joint_pos)[0, jaw]) > 0.5
         spawner = ObjectSpawner(e, task=envs.TASK, port=0)
         spawner.spawn("blue_cube")
         cameras = {"realsense_rgb": {"height": 480, "width": 640},
@@ -209,6 +217,7 @@ def main():
                 result["ticks"].append(row)
                 if tick in (0, 9, args.warmup - 1, args.warmup + args.frames - 1):
                     print("PROFILE_TICK " + json.dumps(row), flush=True)
+        assert torch.isfinite(as_torch(robot.data.joint_pos)).all(), "Nonfinite recording joint state"
         profiler.current = None
         result["runtime"]["viewport_windows_after_recording"] = [
             {"render_product": str(window.viewport_api.render_product_path),

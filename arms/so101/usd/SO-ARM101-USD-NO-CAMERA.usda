@@ -1,0 +1,120 @@
+#usda 1.0
+# Share the CAD meshes while retaining every legacy no-camera pose and setting.
+(
+    customLayerData = {
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (5, 0, 0)
+                double radius = 5
+            }
+            dictionary Perspective = {
+                double3 position = (0.2906734279202774, 0.4138578789280124, 0.421891178137979)
+                double3 target = (0.20291794906801094, -0.005953009897695316, 0.20401197513471492)
+            }
+            dictionary Right = {
+                double3 position = (0, -5, 0)
+                double radius = 5
+            }
+            dictionary Top = {
+                double3 position = (0, 0, 5)
+                double radius = 5
+            }
+            string boundCamera = "/OmniverseKit_Persp"
+        }
+        dictionary metricsAssembler = {
+            dictionary "/so101_new_calib/BlackandBrassBowl_Large" = {
+            }
+            dictionary "/so101_new_calib/BlackandBrassBowl_Small" = {
+            }
+            dictionary "/so101_new_calib/DecorativeBowl" = {
+            }
+            dictionary "/so101_new_calib/Lychee01" = {
+            }
+            int version = 1
+        }
+        dictionary omni_layer = {
+            string authoring_layer = "./SO-ARM101-USD.usd"
+            dictionary locked = {
+            }
+            dictionary muteness = {
+            }
+        }
+        int refinementOverrideImplVersion = 0
+        dictionary renderSettings = {
+        }
+    }
+    defaultPrim = "so101_new_calib"
+    doc = "Blender v4.5.3 LTS"
+    endTimeCode = 1000000
+    metersPerUnit = 1
+    startTimeCode = 0
+    subLayers = [
+        @SO-ARM101-USD.usd@
+    ]
+    timeCodesPerSecond = 60
+    upAxis = "Z"
+)
+
+over "Render"
+{
+    over "OmniverseKit"
+    {
+        over "HydraTextures"
+        {
+            over "omni_kit_widget_viewport_ViewportTexture_0"
+            {
+                bool omni:rtx:material:db:nonVisualMaterialCSV:enabled = 0
+                token omni:rtx:post:dlss:execMode = "performance"
+                uniform int2 resolution = (2025, 1080)
+            }
+        }
+    }
+}
+
+over "colliders"
+{
+    over "gripper"
+    {
+        over "camera_mount" (
+            active = false
+        )
+        {
+        }
+    }
+}
+
+over "so101_new_calib"
+{
+    over "gripper"
+    {
+        quatd xformOp:orient = (0.5000019669532776, -0.49999964237213135, -0.5000036358833313, -0.4999951124191284)
+        double3 xformOp:translate = (0.02061525173485279, -0.2774733006954193, 0.2668520510196686)
+    }
+
+    over "jaw"
+    {
+        quatd xformOp:orient = (0.7071079611778259, 0.0000029206275939941406, -0.7071058750152588, 0.0000073015689849853516)
+        double3 xformOp:translate = (0.03941557556390762, -0.3008729815483093, 0.2870521545410156)
+    }
+
+    over "joints"
+    {
+        over "Wrist_Roll"
+        {
+            quatf physics:localRot1 = (1, 0, 0, 0)
+        }
+    }
+}
+
+over "visuals"
+{
+    over "gripper"
+    {
+        over "camera_mount" (
+            active = false
+        )
+        {
+        }
+    }
+}
+

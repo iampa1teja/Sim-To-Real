@@ -17,7 +17,8 @@ from sim.recording.recording_setup import (
     real_camera_specs,
     validate_serial_ports
 )
-from sim.teleop.config import AgentConfig, apply_selection, parse_config
+from sim.app import apply_selection
+from sim.teleop.config import AgentConfig, parse_config
 
 def _prepare(cfg: AgentConfig):
     from core.arms.joint_calibration import resolve_calibration

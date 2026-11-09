@@ -1,6 +1,5 @@
 import hashlib
 import json 
-import math 
 from pathlib import Path
 
 from ..arms.spec import load_arm_spec
@@ -69,11 +68,3 @@ def mark_recording_root(root, contract):
     path = Path(root) / MARKER
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(contract, indent=2) + "\n")
-
-
-def synced_start_pose(mapped_follower):
-    if len(mapped_follower) != 6:
-        raise ValueError("Episode alignment needs six joints")
-    if not all(math.isfinite(float(v)) for v in mapped_follower):
-        raise ValueError("Follower start state must be finite")
-    return mapped_follower.clone() if hasattr(mapped_follower, "clone") else mapped_follower.copy()

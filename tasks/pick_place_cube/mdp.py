@@ -207,20 +207,31 @@ def set_cube_color(env, env_ids, rgb: tuple[float, float, float], name):
 
     for index in env_ids.tolist():
         path = _env_prim_path(env, asset, index)  # v1: asset.root_physx_view.prim_paths[index]
-        root = stage.GetPrimAtPath(path)
-        shaders = {}
-        for prim in Usd.PrimRange(root):
-            material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
-            if material:
-                shader, _, _ = material.ComputeSurfaceSource()
-                if shader:
-                    shaders[str(shader.GetPath())] = shader
-        if not shaders:
-            raise RuntimeError(f"No bound surface shader found for cube at {path}")
-        for shader in shaders.values():
-            diffuse = shader.GetInput("diffuseColor")
-            if not diffuse:
-                raise RuntimeError(f"Cube shader {shader.GetPath()} has no diffuseColor input")
+        # Newton's scene topology and material bindings are fixed after startup.
+        # Cache the resolved inputs on the env, not globally across USD stages.
+        cache_stage, inputs = getattr(env, "_cube_color_inputs", (None, {}))
+        if cache_stage != stage:
+            inputs = {}
+            env._cube_color_inputs = (stage, inputs)
+        if path not in inputs:
+            root = stage.GetPrimAtPath(path)
+            shaders = {}
+            for prim in Usd.PrimRange(root):
+                material, _ = UsdShade.MaterialBindingAPI(prim).ComputeBoundMaterial()
+                if material:
+                    shader, _, _ = material.ComputeSurfaceSource()
+                    if shader:
+                        shaders[str(shader.GetPath())] = shader
+            if not shaders:
+                raise RuntimeError(f"No bound surface shader found for cube at {path}")
+            resolved = []
+            for shader in shaders.values():
+                diffuse = shader.GetInput("diffuseColor")
+                if not diffuse:
+                    raise RuntimeError(f"Cube shader {shader.GetPath()} has no diffuseColor input")
+                resolved.append(diffuse)
+            inputs[path] = tuple(resolved)
+        for diffuse in inputs[path]:
             diffuse.Set(Gf.Vec3f(*rgb))
         env._pick_place_cube_color[index] = name
 

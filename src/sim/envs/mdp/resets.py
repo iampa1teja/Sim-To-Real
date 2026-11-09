@@ -34,10 +34,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sim import get_current_stage
 
-def as_torch(x):
-    """Return a torch view of 3.0 data (a ProxyArray with a zero-copy ``.torch``); plain tensors pass through."""
-    return x if isinstance(x, torch.Tensor) else x.torch
-
+from ._common import as_torch
 
 def env_indices(env, env_ids):
     """Any env_ids an event can receive (None, slice, list, tensor) as a 1-D index tensor.

@@ -31,6 +31,7 @@ from sim.envs.mdp import apply_runtime_joint_limits, image_raw, image_rgb_raw
 from sim.scene.calibrated_camera import CalibratedPinholeCameraCfg, CalibratedTiledCamera, apply_opencv_intrinsics
 from sim.scene.calibrated_viewport_cfg import CalibratedKitVisualizerCfg
 from sim.scene.contact_materials import bind_contact_material
+from sim.scene.gripper_geometry import cache_scene_geometry
 from sim.scene.real_setup import (
     DEFAULT_SETUP_USDZ, SETUP, apply_robot_appearance, apply_room_appearance, apply_room_lighting,
     camera_rotation, quaternion_tuple, robot_rotation,
@@ -192,6 +193,7 @@ def _set_real_robot_materials(env, env_ids):
 
 @configclass
 class RpdMeetingRoomEventsCfg(BaseEventsCfg):
+    cache_static_geometry = EventTerm(func=cache_scene_geometry, mode="startup")
     runtime_joint_limits = EventTerm(func=apply_runtime_joint_limits, mode="startup")
     configure_scene_updates = EventTerm(func=_configure_scene_updates, mode="startup")
     set_robot_visual_material = EventTerm(func=_set_real_robot_materials, mode="startup")

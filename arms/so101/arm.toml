@@ -72,7 +72,7 @@ damping = 0.3
 activate_contact_sensors = true
 
 [arm.variants.no_camera]
-usd_path = "usd/SO-ARM101-USD-NO-CAMERA.usd"
+usd_path = "usd/SO-ARM101-USD-NO-CAMERA.usda"
 
 [arm.lerobot]
 follower_type = "so101_follower"

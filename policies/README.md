@@ -44,4 +44,8 @@ until you fill them in.
 4. Check it: `pytest tests/policies/test_conformance.py -k <name>`.
 5. Serve and evaluate with `--policy <name>`.
 
+The template, example and GR00T clients share `core.policy_client.default.DefaultClientPolicy`;
+subclass it when a policy uses the standard joint-state/image request and absolute-joint action response.
+Model-specific request formats can still implement `ClientPolicy` directly.
+
 Folders starting with `_` and manifests with `enabled = false` are skipped.

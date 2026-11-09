@@ -10,7 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 import re
 
-TRAIN_COMMANDS = ("prepare", "train", "verify")
+from core.policy_client.discovery import TRAIN_COMMANDS
+
 IMAGE_ROLES = ("sim", "serve", "train")
 # role -> (Dockerfile, build target). serve and train share every layer of docker/policy/Dockerfile.
 DOCKERFILES = {"sim": ("docker/sim/Dockerfile", ""), "serve": ("docker/policy/Dockerfile", "serve"),

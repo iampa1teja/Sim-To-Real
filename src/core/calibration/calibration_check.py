@@ -60,16 +60,6 @@ def _bounds(values, size):
     return bounds
 
 
-def units_to_degrees(values, mapping, joint_order):
-    """Decode follower-normalized units without the sim's runtime clamp."""
-    values = _vector(values, len(joint_order))
-    fraction = np.asarray([(v / 100 if name == "gripper" else (v + 100) / 200)
-                           for name, v in zip(joint_order, values)])
-    low = np.asarray([mapping[name]["joint_min"] for name in joint_order])
-    high = np.asarray([mapping[name]["joint_max"] for name in joint_order])
-    return low + fraction * (high - low)
-
-
 def _still(history, thresholds, size):
     if len(history) < 3 or (history[-1][0] - history[0][0]) / 1e9 < thresholds.static_window_s:
         return np.zeros(size, dtype=bool)
@@ -287,29 +277,3 @@ def write_markdown(summary, path):
     text.extend(summary["notes"])
     text.extend(["", "## Provenance", "", "```json", json.dumps(summary["provenance"], indent=2), "```", ""])
     Path(path).write_text("\n".join(text), encoding="utf-8")
-
-
-def reference_poses(joint_order, runtime_limits, path=None):
-    """Read the versioned, previewed operator reference poses."""
-    from .calibration_poses import POSE_SET_PATH, load_pose_set
-    return load_pose_set(joint_order, runtime_limits, path or POSE_SET_PATH)[0]
-
-
-def pose_measurement(name, target_deg, samples, mapping, joint_order, runtime_limits):
-    """Return a measurement and an additive candidate; never apply an offset."""
-    observations = np.asarray(samples["observations"], dtype=float)
-    if observations.shape != (30, len(joint_order)) or not np.isfinite(observations).all():
-        raise ValueError("Each pose needs 30 finite observations")
-    target = _vector(target_deg, len(joint_order))
-    real = units_to_degrees(np.median(observations, axis=0), mapping, joint_order)
-    bounds = _bounds(runtime_limits, len(joint_order))
-    std = observations.std(axis=0, ddof=1)
-    gap = real - target
-    return dict(name=name, accepted=bool(all(std[i] <= .3 for i, joint in enumerate(joint_order) if joint != "gripper")),
-                joint_accepted={joint: bool(std[i] <= .3) for i, joint in enumerate(joint_order)}, samples=samples,
-                target_deg=target.tolist(), real_deg=real.tolist(), real_minus_target_deg=gap.tolist(),
-                suspected_branch_error=(abs(gap) > 180).tolist(),
-                offsets_degrees={joint: float(-gap[i]) for i, joint in enumerate(joint_order) if joint != "gripper"},
-                at_limit={joint: bool(min(real[i], target[i]) <= bounds[i, 0] + .05
-                                      or max(real[i], target[i]) >= bounds[i, 1] - .05)
-                          for i, joint in enumerate(joint_order)}, applied=False)

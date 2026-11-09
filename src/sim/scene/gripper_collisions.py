@@ -164,9 +164,10 @@ def _author_cad_support(root, link, name, points):
 
     hull = ConvexHull(points)
     faces = hull.simplices.copy()
-    for face, plane in zip(faces, hull.equations):
-        p, q, r = points[face]
-        if np.dot(np.cross(q - p, r - p), plane[:3]) < 0:
+    normals = np.cross(points[faces[:, 1]] - points[faces[:, 0]],
+                       points[faces[:, 2]] - points[faces[:, 0]])
+    for face, normal, plane in zip(faces, normals, hull.equations):
+        if np.dot(normal, plane[:3]) < 0:
             face[1], face[2] = face[2], face[1]
     vertices = points[hull.vertices]
     remap = {int(index): position for position, index in enumerate(hull.vertices)}

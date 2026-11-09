@@ -246,13 +246,18 @@ class EvalSetStarts:
         available = {s['split'] for s in self.data['starts']}
         if repeats < 1 or (splits is not None and (len(splits) != len(set(splits)) or not set(splits) <= available)):
             raise ValueError('repeats must be positive; splits must be unique names present in eval set')
-        self.starts = [s for s in self.data['starts'] if splits is None or s['split'] in splits]
+        indexed_starts = [(index, start) for index, start in enumerate(self.data['starts'])
+                          if splits is None or start['split'] in splits]
+        self.starts = [start for _, start in indexed_starts]
         if not self.starts:
             raise ValueError('No selected eval starts')
-        self.schedule = [dict(s, repeat=r, policy_seed=int(np.random.SeedSequence([seed, r, self.data['starts'].index(s)]).generate_state(1)[0]))
-                         for r in range(repeats) for s in self.starts]
+        # validate_eval_set guarantees unique start IDs, so enumerate preserves the
+        # original list.index seed while avoiding a scan for every scheduled trial.
+        self.schedule = [dict(start, repeat=repeat, policy_seed=int(
+            np.random.SeedSequence([seed, repeat, index]).generate_state(1)[0]))
+            for repeat in range(repeats) for index, start in indexed_starts]
         if selection == 'one_per_zone':
-            from .eval_smoke import one_per_zone
+            from core.results.eval_smoke import one_per_zone
             self.schedule = one_per_zone(self.schedule)
         elif selection != 'all':
             raise ValueError('Benchmark selection must be all or one_per_zone')

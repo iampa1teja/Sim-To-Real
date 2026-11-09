@@ -3,9 +3,9 @@ import argparse
 from collections import Counter
 import json
 from pathlib import Path
-import subprocess
 from core.paths import repo_dir
 from core.tasks.loader import load_task_module
+from core.utils.provenance import git_commit
 
 
 def main(argv=None):
@@ -29,7 +29,7 @@ def main(argv=None):
     scene_json = args.scene_json or repo_dir('tasks') / args.task / 'eval_sets/pick_place_scene.json'
     scene = json.loads(scene_json.read_text())
     generate_eval_set = load_task_module('benchmark', args.task).generate_eval_set
-    commit = subprocess.check_output(['git', '-C', str(Path(__file__).resolve().parent), 'rev-parse', 'HEAD'], text=True).strip()
+    commit = git_commit(Path(__file__).resolve().parent, required=True)
     data = generate_eval_set(args.dataset, scene, seed=args.seed, n_id=args.n_id, n_ood=args.n_ood,
                              n_yaw=args.n_yaw, min_dist_m=args.min_dist_m, ood_margin_m=args.ood_margin_m,
                              yaw_mode=args.yaw_mode, reach_envelope=args.reach_envelope, git_commit=commit)
