@@ -157,3 +157,8 @@ Docs and tests mention things that are not in this checkout: `docs/` (e.g. `docs
 `src/sim/app.py`, `tools/code_explorer/`. `tasks/pick_place_cube/benchmark.py` imports `one_per_zone` from
 `.eval_smoke`, but that module is `core.results.eval_smoke`. `src/s2r.egg-info/` and `.env` (device ports/ids, read by
 `compose.hardware.yaml`) are tracked.
+
+## Planned restructure
+
+`docs/restructure-plan.md` is the agreed plan for making arms, scenes, tasks and policies pluggable (target layout,
+file formats, file-by-file changes, phases). Check it before moving files or adding abstractions.
