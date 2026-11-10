@@ -8,6 +8,7 @@ import pytest
 import torch
 
 from core.tasks.loader import load_task
+from core.tasks.base import Pose, StepState
 from sim.datagen.mimic import MimicSpec, episode_from_annotations
 
 
@@ -87,13 +88,16 @@ def test_subtasks_declare_objects_and_nonfinal_stage_boundaries():
     (2, False, 'max_steps', False),
     (100, False, 'physical_step_error', True),
 ])
-def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, accepted, reason, step_error):
+@pytest.mark.parametrize('diagnostic_trace', [False, True])
+def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(
+        max_steps, accepted, reason, step_error, diagnostic_trace, tmp_path, monkeypatch):
     from isaaclab.envs import MimicEnvCfg
     from isaaclab.managers import RecorderManager
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
     from sim.datagen.mimic import generate_attempt
 
     task = load_task('pick_place_cube')
+    monkeypatch.setattr(task, 'signals', lambda env: pytest.fail('diagnostics must reuse existing task signals'))
     cfg = MimicEnvCfg()
     MimicSpec.from_task(task).configure(cfg, 'tool', 1984)
     cube, box = torch.eye(4)[None], torch.eye(4)[None]
@@ -126,6 +130,7 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, acc
         def __init__(self):
             self.steps, self.closed = 0, False
             self.trace = SimpleNamespace(stages={'success': False})
+            self.annotations = []
 
         def finish(self, **kwargs):
             assert_synchronous('finish')
@@ -139,6 +144,13 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, acc
     class Rollout:
         def __init__(self):
             self.recorder = Buffer()
+            self.joint_ids = [1, 3, 0, 2]
+            self.robot = SimpleNamespace(data=SimpleNamespace(joint_pos=torch.tensor([[30., 10., 40., 20.]])))
+            self.last_state = None
+
+        def snapshot(self):
+            assert_synchronous('initial_snapshot')
+            return StepState({'object': Pose((1, 2, 3))}, Pose((0, 0, 1)), 0., {})
 
         def step(self, target, **kwargs):
             assert_synchronous('step')
@@ -147,12 +159,25 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, acc
                 raise RuntimeError('physical_step_error')
             self.recorder.steps += 1
             self.recorder.trace.stages['success'] = self.recorder.steps >= 7
+            self.robot.data.joint_pos[0, self.joint_ids] = target - .05
+            self.last_state = StepState({'object': Pose((1, 2, self.recorder.steps))}, Pose((0, 0, 1)), 0.,
+                                        {'holding': False, 'success': self.recorder.steps >= 7,
+                                         'physical_steps': self.recorder.steps})
+            self.recorder.annotations.append({'eef_pose': torch.eye(4).tolist(),
+                'target_eef_pose': env.s2r_last_target.tolist(),
+                'subtask_term_signals': dict(self.recorder.trace.stages)})
 
     def begin_attempt(seed):
         assert_synchronous('reset')
         return Rollout()
 
-    context = SimpleNamespace(raw=env, task=task, args=SimpleNamespace(max_steps=max_steps),
+    arm = SimpleNamespace(joint_names=('first', 'slide', 'third', 'grip'),
+        joints=[SimpleNamespace(type=kind) for kind in ('revolute', 'prismatic', 'revolute', 'revolute')])
+    report_path = tmp_path / 'mimic.json'
+    diagnostic_path = tmp_path / 'mimic-diagnostics/attempt_0000.json'
+    context = SimpleNamespace(raw=env, task=task, arm=arm,
+                              args=SimpleNamespace(max_steps=max_steps, diagnostic_trace=diagnostic_trace,
+                                  report=report_path, destination=tmp_path / 'dataset'),
                               begin_attempt=begin_attempt)
     pool = DataGenInfoPool(env, cfg, 'cpu')
     asyncio.run(pool.add_episode(episode_from_annotations(np.zeros((12, 4)), source_frames(), eef_name='tool')))
@@ -173,6 +198,26 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, acc
     finally:
         loop.close()
     assert env.s2r_rollout.recorder.closed
+    if diagnostic_trace:
+        import json
+        data = json.loads(diagnostic_path.read_text())
+        assert data['initial_state']['objects']['object']['position'] == [1., 2., 3.]
+        assert data['initial_joint_positions_sim'] == [10., 20., 30., 40.]
+        assert data['sim_joint_units'] == ['rad', 'm', 'rad', 'rad']
+        assert len(data['steps']) == len(data['annotations']) == env.s2r_rollout.recorder.steps
+        assert lifecycle.count('initial_snapshot') == 1
+        for index, row in enumerate(data['steps']):
+            assert row['frame_index'] == index and row['task_signals']['physical_steps'] == index + 1
+            np.testing.assert_allclose(row['measured_joint_positions_sim'],
+                                       np.asarray(row['commanded_joint_positions_sim']) - .05, atol=1e-7)
+        assert data['annotations'] == env.s2r_rollout.recorder.annotations
+        if step_error:
+            assert data['error'] == {'type': 'RuntimeError', 'message': 'physical_step_error'}
+        else:
+            assert data['result']['diagnostic_trace'] == str(diagnostic_path)
+    else:
+        assert not diagnostic_path.exists() and 'initial_snapshot' not in lifecycle
+    assert not (tmp_path / 'dataset').exists()
     assert not torch.cuda._initialized
 
 
@@ -227,3 +272,9 @@ mimic_options:
     assert args.source == 'mimic' and args.source_dataset == source
     assert args.mimic_options == {'select_source_per_subtask': False}
     assert args.unit == 'rpd_robot' and args.headless
+    assert not args.diagnostic_trace
+    traced = parse_args(['--config_path', str(config), '--diagnostic_trace', '--report', str(tmp_path / 'run.json')])
+    assert traced.diagnostic_trace
+    with pytest.raises(SystemExit):
+        parse_args(['--config_path', str(config), '--diagnostic_trace', '--report',
+                    str(tmp_path / 'generated/run.json')])

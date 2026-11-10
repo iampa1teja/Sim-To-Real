@@ -218,6 +218,8 @@ def parse_args(argv=None):
     parser.add_argument('--source_dataset', type=Path, help='Successful S2R dataset with datagen_meta annotations')
     parser.add_argument('--input_file', type=Path, help='Alternatively, an SDK-annotated Mimic HDF5 source')
     parser.add_argument('--mimic_options', default='{}', help='JSON object overriding task.mimic options')
+    parser.add_argument('--diagnostic_trace', action='store_true',
+                        help='Save existing frame annotations, post-step signals and joint buffers beside --report')
     args = scripted.parse_args(argv, parser=parser)
     args.mimic_options = json.loads(args.mimic_options) if isinstance(args.mimic_options, str) else args.mimic_options
     if not isinstance(args.mimic_options, dict):
@@ -232,6 +234,11 @@ def parse_args(argv=None):
     destination = args.destination.resolve()
     if destination == source.resolve() or destination.is_relative_to(source.resolve()):
         parser.error('Mimic destination must be independent of its source')
+    if args.diagnostic_trace:
+        if args.report is None:
+            parser.error('diagnostic_trace requires --report outside the dataset destination')
+        if args.report.resolve().is_relative_to(destination):
+            parser.error('diagnostic_trace report must be outside the dataset destination')
     return args
 
 
@@ -289,6 +296,52 @@ def _success(env):
     return torch.tensor([success], dtype=torch.bool, device=env.device)
 
 
+class _DiagnosticTrace:
+    """Copy buffers already observed by the shared executor; never step or evaluate a task."""
+
+    def __init__(self, context, attempt, seed):
+        report = Path(context.args.report)
+        self.path = report.with_name(report.stem + '-diagnostics') / f'attempt_{attempt:04d}.json'
+        if self.path.resolve().is_relative_to(Path(context.args.destination).resolve()):
+            raise ValueError('Mimic diagnostic traces must be outside the dataset destination')
+        self.data = {'schema_version': 1, 'source': 'isaaclab_mimic', 'attempt': attempt, 'seed': seed,
+                     'joint_names': list(context.arm.joint_names),
+                     'sim_joint_units': ['rad' if joint.type == 'revolute' else 'm' for joint in context.arm.joints],
+                     'alignment': 'annotations are pre-action; states, signals and measured joints are post-step',
+                     'initial_state': None, 'initial_joint_positions_sim': None, 'steps': []}
+
+    @staticmethod
+    def _joints(rollout):
+        from sim.datagen.rollout import LiveRollout
+
+        return LiveRollout._numpy(rollout.robot.data.joint_pos)[0, rollout.joint_ids].copy().tolist()
+
+    def begin(self, rollout):
+        from sim.datagen.rollout import _json_state
+
+        self.data['initial_state'] = _json_state(rollout.snapshot())
+        self.data['initial_joint_positions_sim'] = self._joints(rollout)
+
+    def append(self, rollout, target):
+        from sim.datagen.rollout import LiveRollout, _json_state
+
+        state = _json_state(rollout.last_state)
+        self.data['steps'].append({
+            'frame_index': rollout.recorder.steps - 1,
+            'commanded_joint_positions_sim': LiveRollout._numpy(target).reshape(-1).copy().tolist(),
+            'measured_joint_positions_sim': self._joints(rollout),
+            'task_signals': deepcopy(state['signals']), 'state': state,
+            'latched_stages': dict(rollout.recorder.trace.stages),
+        })
+
+    def write(self, rollout, result, error):
+        from sim.datagen.rollout import write_json
+
+        self.data['annotations'] = [] if rollout is None else deepcopy(rollout.recorder.annotations)
+        self.data['result'], self.data['error'] = result, error
+        write_json(self.path, self.data)
+
+
 def generate_attempt(context, pool, *, attempt, seed, event_loop):
     """Pump SDK generation, then execute reset/render/physics outside asyncio.
 
@@ -309,12 +362,14 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
     else:
         raise RuntimeError('Mimic physics must run synchronously outside an asyncio coroutine')
 
+    diagnostic = (_DiagnosticTrace(context, attempt, seed)
+                  if getattr(context.args, 'diagnostic_trace', False) else None)
     env = context.raw
     reset_queue, action_queue = asyncio.Queue(), asyncio.Queue()
     generator = DataGenerator(env, src_demo_datagen_info_pool=pool)
     future = event_loop.create_task(generator.generate(0, TerminationTermCfg(func=_success),
         env_reset_queue=reset_queue, env_action_queue=action_queue, export_demo=False))
-    rollout, reason = None, 'mimic_trajectory_finished'
+    rollout, reason, result, error = None, 'mimic_trajectory_finished', None, None
     try:
         with torch.inference_mode():
             while not future.done():
@@ -328,6 +383,8 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
                         raise ValueError('Mimic shared recorder supports one environment')
                     rollout = context.begin_attempt(seed)
                     env.s2r_rollout = rollout
+                    if diagnostic is not None:
+                        diagnostic.begin(rollout)
                     reset_queue.task_done()
                 while not action_queue.empty():
                     env_id, target = action_queue.get_nowait()
@@ -354,26 +411,36 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
                     requested = Pose.from_lists(world, quaternion_multiply(q, base_pose.quat_xyzw))
                     rollout.step(target, target_eef_pose=requested, gripper_action=env.s2r_last_gripper,
                                  phase='isaaclab_mimic')
+                    if diagnostic is not None:
+                        diagnostic.append(rollout, target)
                     action_queue.task_done()
             if future.cancelled():
                 if reason != 'max_steps':
                     raise asyncio.CancelledError()
             else:
-                result = future.result()
-                if result['success'] != context.task.is_success(rollout.recorder.trace.stages):
+                sdk_result = future.result()
+                if sdk_result['success'] != context.task.is_success(rollout.recorder.trace.stages):
                     raise RuntimeError('SDK Mimic success disagrees with the shared task trace')
         if rollout is None:
             raise RuntimeError('Mimic did not begin a rollout')
-        return rollout.recorder.finish(attempt=attempt, seed=seed, reason=reason)
-    except BaseException:
+        result = rollout.recorder.finish(attempt=attempt, seed=seed, reason=reason)
+        if diagnostic is not None:
+            result['diagnostic_trace'] = str(diagnostic.path)
+        return result
+    except BaseException as exc:
+        error = {'type': type(exc).__name__, 'message': str(exc)}
         if rollout is not None and not rollout.recorder.closed:
             rollout.recorder.abort()
         raise
     finally:
         if not future.done():
             future.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            event_loop.run_until_complete(future)
+        try:
+            with contextlib.suppress(asyncio.CancelledError):
+                event_loop.run_until_complete(future)
+        finally:
+            if diagnostic is not None:
+                diagnostic.write(rollout, result, error)
 
 
 def main(argv=None):
