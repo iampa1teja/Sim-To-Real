@@ -14,8 +14,9 @@ Phase 4's full CPU suite, host checks, three simulator compositions and producti
 The renamed evaluator reproduced the example policy's nine-episode schedule; live GR00T and Molmo also
 served and evaluated with finite joint commands. Phase 4 is complete. Scripted generation has produced a
 physically successful pick-place episode without a post-pickup wrist roll; dataset validation and real GR00T
-preparation/verification pass. Mimic physical success and generated-data optimizer training remain pending,
-along with second-arm hardware checks and final documentation/conformance.
+preparation/verification pass. A Mimic episode also passes physical and dataset validation at the source start.
+Changed-start Mimic acceptance and generated-data optimizer training remain pending, along with second-arm
+hardware checks and final documentation/conformance.
 
 ## Layout
 
@@ -128,7 +129,7 @@ Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides t
 | `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.benchmark.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
 | `s2r datagen --source dr_replay ...` | `python -m sim.datagen.dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
 | `s2r datagen --config_path configs/datagen/scripted.yaml` | `cli.datagen` selects `sim.datagen.scripted` | Task-owned waypoints, bounded IK and successful episodes only |
-| `s2r datagen --config_path configs/datagen/mimic.yaml` | `cli.datagen` selects `sim.datagen.mimic` | Isaac Lab Mimic retargets annotated source demonstrations; live acceptance pending |
+| `s2r datagen --config_path configs/datagen/mimic.yaml` | `cli.datagen` selects `sim.datagen.mimic` | Isaac Lab Mimic retargets annotated source demonstrations; successful episodes only |
 | `s2r calibration-replay ...` | `python -m sim.datagen.calibration_replay` | Method B calibration replay (physics, keeps successes) |
 | `s2r calibration-report --gap ...` | `python -m core.calibration.report` | Tracking-gap report |
 | `s2r calibrate leader\|follower --port ...` | `python -m core.calibration.calibrate` | LeRobot calibration saved where `arm.toml` expects it |

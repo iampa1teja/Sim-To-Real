@@ -15,7 +15,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
-| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | In progress — CPU implementation; GPU acceptance pending |
+| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | In progress — scripted and Mimic episodes pass; training pending |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
@@ -231,8 +231,8 @@ parameters are also captured, with a deterministic CPU response replay for check
   `scripted-noroll-fast1.json` and its independent validation now pass: 391 frames, held through transport,
   deliberate gripper opening over the box, and final settled task success. The corresponding two-camera
   preview is `outputs/v2/phase5/no-roll-episode.mp4`.
-- Latest full CPU suite: **378 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
-  ignores; see `outputs/v2/phase5/cpu-tests-noroll.log`. All eight host static plugin checks pass in `static-check.log`.
+- Latest full CPU suite: **394 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
+  ignores; see `outputs/v2/phase5/cpu-tests-mimic-precise.log`. All eight host static plugin checks pass in `static-check.log`.
   SDK Mimic tests exercise actual source segmentation, retargeting, async action/reset queues and bounded
   cancellation. Its config wrapper preserves measured mounts and task fields through copying/export.
 - Arm manifests can declare a TCP offset and the orientation components their IK controls. The native Jacobian
@@ -279,6 +279,12 @@ parameters are also captured, with a deterministic CPU response replay for check
 - The live Mimic path exposed two integration issues: config dispatch must preserve Python module identity, and
   Kit rendering must occur outside the private asyncio coroutine. Both now have CPU regression coverage;
   the latter follows the installed SDK's synchronous environment loop around asynchronous generator queues.
-  Live generation now completes but has not produced a successful episode: four attempts failed and were
-  discarded, as did a separate trial without integral bias. Live Mimic success and a generated-data optimizer
-  update remain unverified; Phase 5 is not complete.
+  Source annotations encode executed joint commands, so Mimic now recovers them with a bounded local kinematic
+  inverse instead of reapplying feedback compensation. Contact-sensitive grasps require tighter inversion:
+  32 iterations with 1e-8 m / 1e-7 rad tolerances recover all 391 float32 source targets within 0.000028 degrees
+  in the CPU check (`mimic-tight-inverse-fidelity.json`). The adapter's 14 tests pass after this precision change.
+- The actual SDK Mimic path now produces a successful 402-frame episode at source seed 101, including its
+  subtask interpolation frames. `mimic-precise1-validation.json` independently passes final physical success,
+  all six stages, both decoded camera streams, object poses, action codec and annotation alignment. Dataset:
+  `datasets/v2_phase5_mimic_precise1`; preview: `outputs/v2/phase5/mimic-episode.mp4`.
+  Changed-start retargeting and a generated-data optimizer update remain unverified; Phase 5 is not complete.

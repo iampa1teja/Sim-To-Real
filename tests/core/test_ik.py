@@ -275,6 +275,46 @@ def test_local_inverse_ignores_undeclared_orientation_and_rejects_invalid_inputs
         kinematics.inverse(malformed, measured)
 
 
+def test_local_inverse_rank_deficient_unreachable_pose_stays_finite_and_bounded(synthetic_arm):
+    arm = replace(synthetic_arm, ik=IKSpec(('x', 'y', 'z')))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    measured = np.array([0., .013, .199, .027])
+    target = kinematics.fk(measured)
+    target[:3, 3] += [.1, 0., .2]  # The planar chain has no world-Z motion at any configuration.
+    result = kinematics.inverse(target, measured, max_iterations=32)
+    command = result.joint_positions[0].numpy()
+    assert np.isfinite(command).all() and not result.converged.item()
+    assert abs(command[0] - measured[0]) <= .08 + 1e-12
+    assert measured[2] <= command[2] <= .2
+    assert result.position_error.item() >= .2
+    np.testing.assert_array_equal(command[[1, 3]], measured[[1, 3]])
+
+
+def test_mimic_actual_inverse_handles_native_permutation_and_two_gripper_roles(synthetic_arm):
+    from sim.datagen.mimic import S2RMimicEnv
+
+    arm = replace(synthetic_arm, ik=IKSpec(('z',)))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    measured = np.array([0., .013, 0., .027])
+    desired = np.array([.03, .013, .003, .027])
+    native = torch.as_tensor(measured[[3, 2, 0, 1]][None], dtype=torch.float32)
+    before = native.clone()
+    options = IKOptions()
+    ik = SimpleNamespace(options=options, joint_ids=[2, 3, 1, 0],
+                         robot=SimpleNamespace(data=SimpleNamespace(joint_pos=native)),
+                         solve=lambda *args, **kwargs: pytest.fail('Command inversion must not advance PI'))
+    env = SimpleNamespace(num_envs=1, device='cpu', s2r_arm=arm, s2r_ik=ik, s2r_fk=kinematics)
+    target = torch.as_tensor(kinematics.fk(desired), dtype=torch.float32)
+    grip = torch.tensor([.005, .035])
+    action = S2RMimicEnv.target_eef_pose_to_action(env, {'tool': target}, {'tool': grip})
+    torch.testing.assert_close(action[0, [1, 3]], grip, atol=0, rtol=0)
+    np.testing.assert_allclose(action[0, [0, 2]], desired[[0, 2]], atol=1e-6, rtol=0)
+    torch.testing.assert_close(native, before, atol=0, rtol=0)
+    assert action.dtype == native.dtype and action.shape == (1, 4)
+    assert abs(action[0, 0].item() - measured[0]) <= options.max_joint_step_rad
+    assert abs(action[0, 2].item() - measured[2]) <= options.max_joint_step_m
+
+
 # Saved physical no-roll episode: datasets/v2_phase5_scripted_noroll_fast1,
 # frames 190 (lift) and 334 (fast arc, worst one-step recovery). Values are decoded
 # simulator radians. Keep these small real-command regressions independent of an

@@ -89,5 +89,6 @@ The arm, declarative scene and generic task phases have passed their acceptance 
 for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording,
 example evaluation and live GR00T/Molmo serving/evaluation pass. Phase 5 CPU implementation passes, including
 real SDK Mimic configuration/retargeting and schema-2 GR00T preparation. A no-roll scripted episode now passes
-physical success, dataset validation and real GR00T preparation/verification. Mimic physical success, optimizer
-training and the subsequent second-arm/conformance phases remain pending; their gates must pass before advancing.
+physical success, dataset validation and real GR00T preparation/verification. Mimic passes physical success and
+dataset validation at the source start; changed-start acceptance, optimizer training and the subsequent
+second-arm/conformance phases remain pending. Their gates must pass before advancing.
