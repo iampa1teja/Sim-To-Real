@@ -37,7 +37,7 @@ def build_parser():
     parser.add_argument("--report", type=Path)
     parser.add_argument("--attempts", type=int, default=10)
     parser.add_argument("--episodes", type=int, default=1, help="Stop after this many accepted episodes; zero runs all attempts")
-    parser.add_argument("--max_steps", type=int, default=900)
+    parser.add_argument("--max_steps", type=int, default=1500)
     parser.add_argument("--warmup_steps", type=int, default=30)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--seed", type=int, default=1984)
@@ -47,6 +47,7 @@ def build_parser():
     parser.add_argument("--ik_integral_gain", type=float, default=1.0, help="Bounded servo-error correction per second; zero disables")
     parser.add_argument("--ik_max_integral_bias_rad", type=float, default=.08)
     parser.add_argument("--ik_max_integral_bias_m", type=float, default=.005)
+    parser.add_argument("--diagnostic_images", action="store_true", help="Save RGB at waypoint boundaries beside the report")
     parser.add_argument("--disable_fabric", action="store_true")
     add_generation_launch_arguments(parser)
     return parser
@@ -256,9 +257,51 @@ def execute_expert(context, rollout, expert):
     a, b, _ = geometry["table_plane_world"]
     normal = np.array([-a, -b, 1.])
     normal /= np.linalg.norm(normal)
-    waypoints = expert.plan(ExpertContext(initial, rollout.control_pose(initial), tuple(normal), context.args.expert_options))
+    w, x, y, z = geometry["base_quaternion_wxyz"]
+    arm_base = Pose.from_lists(geometry["base_position_world"], (x, y, z, w))
+    waypoints = expert.plan(ExpertContext(initial, rollout.control_pose(initial), tuple(normal),
+                                        context.args.expert_options, arm_base=arm_base))
     dt = 1 / context.args.fps
     steps = 0
+    rollout.waypoint_trace = []
+
+    def boundary(event, waypoint, elapsed):
+        state = rollout.last_state or initial
+        actual = rollout.control_pose(state)
+        record = {
+            "event": event, "waypoint": waypoint.name, "step": steps, "elapsed_s": elapsed,
+            "actual_tcp_pose": {"position": list(actual.position), "quat_xyzw": list(actual.quat_xyzw)},
+            "desired_tcp_pose": {"position": list(waypoint.pose.position), "quat_xyzw": list(waypoint.pose.quat_xyzw)},
+            "objects": {name: {"position": list(pose.position), "quat_xyzw": list(pose.quat_xyzw)}
+                        for name, pose in state.objects.items()},
+            "signals": dict(state.signals), "stages": dict(rollout.recorder.trace.stages),
+        }
+        if getattr(context.args, "diagnostic_images", False):
+            import re
+            from PIL import Image
+            from sim.recording.lerobot_recorder import split_visual_obs
+
+            report_path = context.args.report or Path(str(context.args.destination) + ".report.json")
+            directory = report_path.parent / (report_path.stem + "-diagnostics") / f"attempt_{getattr(rollout, 'attempt', 0):04d}"
+            if directory.resolve().is_relative_to(Path(context.args.destination).resolve()):
+                directory = Path(context.args.destination).parent / (Path(context.args.destination).name + "-diagnostics") / directory.name
+            directory.mkdir(parents=True, exist_ok=True)
+            # Rendering adds no physical steps or task-signal reads. Force the
+            # sensors current so the picture describes this exact boundary.
+            for _ in range(2):
+                context.raw.sim.render()
+            for sensor in context.raw.scene.sensors.values():
+                if "rgb" in getattr(sensor.cfg, "data_types", ()):
+                    sensor.update(0., force_recompute=True)
+            visual = context.raw.observation_manager.compute()["visual"]
+            images, _, _ = split_visual_obs(visual, context.cameras)
+            record["images"] = {}
+            for name, pixels in images.items():
+                label = re.sub(r"[^a-zA-Z0-9_-]", "_", waypoint.name + "_" + name)
+                path = directory / f"{len(rollout.waypoint_trace):02d}_{event}_{label}.png"
+                Image.fromarray(LiveRollout._numpy(pixels)[..., :3].astype(np.uint8)).save(path)
+                record["images"][name] = os.path.relpath(path, report_path.parent)
+        rollout.waypoint_trace.append(record)
 
     def failure_diagnostics(waypoint, requested_position, requested_quaternion, command, elapsed, phase_steps):
         from sim.envs.mdp._common import as_torch
@@ -292,6 +335,7 @@ def execute_expert(context, rollout, expert):
 
     for waypoint in waypoints:
         start = rollout.control_pose(rollout.last_state or initial)
+        boundary("start", waypoint, 0.)
         for tick in range(1, math.ceil(waypoint.timeout_s / dt) + 1):
             elapsed = tick * dt
             alpha = min(1., elapsed / waypoint.duration_s)
@@ -306,17 +350,21 @@ def execute_expert(context, rollout, expert):
             rollout.step(target, target_eef_pose=Pose.from_lists(position, quaternion), phase=waypoint.name)
             steps += 1
             if context.task.is_success(rollout.recorder.trace.stages):
+                boundary("task_success", waypoint, elapsed)
                 return "task_success"
             if steps >= context.args.max_steps:
                 failure_diagnostics(waypoint, position, quaternion, target, elapsed, tick)
+                boundary("max_steps", waypoint, elapsed)
                 return "max_steps"
             if elapsed >= waypoint.duration_s:
                 final = context.ik.solve(waypoint.pose.position, waypoint.pose.quat_xyzw, advance=False)
                 if (float(final.position_error[0]) <= waypoint.tolerance_m and
                         float(final.orientation_error[0]) <= context.ik.options.orientation_tolerance_rad):
+                    boundary("complete", waypoint, elapsed)
                     break
         else:
             failure_diagnostics(waypoint, position, quaternion, target, elapsed, tick)
+            boundary("timeout", waypoint, elapsed)
             return "waypoint_timeout:" + waypoint.name
     return "expert_finished_without_success"
 
@@ -340,11 +388,13 @@ def main(argv=None):
             for attempt in range(args.attempts):
                 seed = args.seed + attempt
                 rollout = context.begin_attempt(seed)
+                rollout.attempt = attempt
                 try:
                     reason = execute_expert(context, rollout, expert)
                     row = rollout.recorder.finish(attempt=attempt, seed=seed, reason=reason)
                     if hasattr(rollout, "diagnostics"):
                         row["diagnostics"] = rollout.diagnostics
+                    row["waypoint_trace"] = rollout.waypoint_trace
                 except BaseException:
                     rollout.recorder.abort()
                     raise

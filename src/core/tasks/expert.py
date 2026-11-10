@@ -11,6 +11,7 @@ class ExpertContext:
     control_pose: Pose
     table_normal: tuple[float, float, float]
     options: dict = field(default_factory=dict)
+    arm_base: Pose | None = None  # actual declared base-link pose in world coordinates
 
 
 @dataclass(frozen=True, slots=True)

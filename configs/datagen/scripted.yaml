@@ -11,7 +11,7 @@ fps: 30
 seed: 1984
 attempts: 10
 episodes: 1
-max_steps: 900
+max_steps: 1500
 warmup_steps: 30
 headless: true
 expert_options:

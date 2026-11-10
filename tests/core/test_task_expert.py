@@ -29,9 +29,64 @@ def test_task_waypoints_use_world_geometry_and_open_close_release():
     task = load_task("pick_place_cube")
     state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
                       Pose((0, 0, 1)), 0.)
-    points = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.)))
-    assert [point.name for point in points] == ["approach", "descend", "close", "lift", "transport", "lower", "release", "retreat", "settle"]
+    points = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.), arm_base=Pose((0., 0., .75))))
+    assert [point.name for point in points[:4]] == ["approach", "descend", "close", "lift"]
+    assert [point.name for point in points[-5:]] == ["transport", "lower", "release", "retreat", "settle"]
+    assert all(point.name.startswith("transport_arc_") for point in points[4:-5])
     np.testing.assert_allclose(points[1].pose.position, state.objects["blue_cube"].position)
-    assert points[2].gripper_open_fraction == 0 and points[6].gripper_open_fraction > 0
+    assert points[2].gripper_open_fraction == 0 and points[-3].gripper_open_fraction > 0
     assert points[3].pose.position[2] > points[1].pose.position[2] + .01
     assert all(point.pose.quat_xyzw == state.ee.quat_xyzw for point in points)
+
+
+def test_transport_arc_preserves_clearance_and_targets_container_center():
+    task = load_task("pick_place_cube")
+    base = Pose((.7, -.6, .77))
+    state = StepState({"blue_cube": Pose((.48, -.51, .80)), "white_box": Pose((.94, -.59, .795))},
+                      Pose((.55, -.55, .95)), 0.)
+    points = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.), arm_base=base))
+    lift = next(point for point in points if point.name == "lift")
+    transport = [point for point in points if point.name.startswith("transport")]
+    lower = next(point for point in points if point.name == "lower")
+    floor = task.spec.objects["white_box"].params["floor_z"]
+    np.testing.assert_allclose(lower.pose.position, [.94, -.59, .795 + floor + .0102], atol=1e-12)
+    np.testing.assert_allclose(transport[-1].pose.position, np.asarray(lower.pose.position) + [0., 0., .09])
+    path = [np.asarray(lift.pose.position)] + [np.asarray(point.pose.position) for point in transport]
+    endpoint_radius = min(np.linalg.norm((point - base.position)[:2]) for point in (path[0], path[-1]))
+    for left, right in zip(path, path[1:]):
+        for fraction in np.linspace(0., 1., 11):
+            point = left * (1 - fraction) + right * fraction
+            assert np.linalg.norm((point - base.position)[:2]) >= endpoint_radius - 1e-12
+    assert len(transport) > 2
+    assert all(point.gripper_open_fraction == 0 for point in transport)
+    # An explicit clear interior placement remains available.
+    custom = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.), {"place_xy": [.01, .01]}, base))
+    placed = next(point for point in custom if point.name == "lower")
+    np.testing.assert_allclose(np.asarray(placed.pose.position) - lower.pose.position, [.01, .01, 0.], atol=1e-12)
+
+
+def test_transport_arc_uses_rigid_world_geometry_on_a_tilted_table():
+    from core.scenes.anchors import quaternion_matrix
+
+    task = load_task("pick_place_cube")
+    base = Pose((0., 0., .75))
+    state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
+                      Pose((0., 0., 1.)), 0.)
+    original = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.), arm_base=base))
+    quaternion = (0., np.sin(.2), 0., np.cos(.2))
+    rotation, shift = quaternion_matrix(quaternion), np.array([2., -3., 1.])
+    def transformed(pose):
+        return Pose.from_lists(rotation @ pose.position + shift, quaternion)
+    moved = StepState({name: transformed(pose) for name, pose in state.objects.items()}, transformed(state.ee), 0.)
+    planned = task.expert().plan(ExpertContext(moved, moved.ee, tuple(rotation @ [0., 0., 1.]), arm_base=transformed(base)))
+    assert [point.name for point in planned] == [point.name for point in original]
+    for before, after in zip(original, planned):
+        np.testing.assert_allclose(after.pose.position, rotation @ before.pose.position + shift, atol=1e-12)
+
+
+def test_transport_requires_actual_base_pose():
+    task = load_task("pick_place_cube")
+    state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
+                      Pose((0., 0., 1.)), 0.)
+    with pytest.raises(ValueError, match="actual arm_base"):
+        task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.)))

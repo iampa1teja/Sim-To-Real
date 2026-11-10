@@ -165,7 +165,8 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
     from core.tasks.expert import Waypoint
     from sim.datagen.scripted import execute_expert
     import sim.eval.scene
-    monkeypatch.setattr(sim.eval.scene, "capture_scene", lambda *args: {"table_plane_world": [0., 0., 0.]})
+    monkeypatch.setattr(sim.eval.scene, "capture_scene", lambda *args: {
+        "table_plane_world": [0., 0., 0.], "base_position_world": [0., 0., 0.], "base_quaternion_wxyz": [1., 0., 0., 0.]})
     initial = StepState({}, Pose((0., 0., .1)), 0.)
     progress = SimpleNamespace(steps=0)
     controller_advances = []

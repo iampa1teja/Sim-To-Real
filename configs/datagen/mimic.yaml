@@ -11,7 +11,7 @@ repo_id: local/pick_place_mimic
 report: /workspace/s2r/outputs/datagen/mimic-report.json
 attempts: 10
 episodes: 1
-max_steps: 900
+max_steps: 1500
 warmup_steps: 30
 fps: 30
 seed: 1984
