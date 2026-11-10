@@ -223,7 +223,16 @@ def load_scene_spec(name: str | None = None) -> SceneSpec:
             raw = _table(tomllib.load(stream)["scene"], "scene")
         if raw["name"] != name or directory.name != name:
             raise ValueError(f"scene.name {raw['name']!r} must equal folder/selected name {name!r}")
-        room = _file(directory, raw["room_usd"], "scene.room_usd")
+        override = os.environ.get("S2R_ROOM_USD")
+        if override:
+            # Runtime overrides name files in the process filesystem. The
+            # CLI runs simulation commands at /workspace/s2r, so relative
+            # overrides are project-relative there, unlike manifest paths.
+            room = Path(override).expanduser().resolve()
+            if not room.is_file():
+                raise ValueError(f"S2R_ROOM_USD file not found: {room}")
+        else:
+            room = _file(directory, raw["room_usd"], "scene.room_usd")
         root = _text(raw.get("room_root", ""), "scene.room_root", empty=True)
         if root.startswith("/") or ".." in Path(root).parts:
             raise ValueError("scene.room_root must be a relative prim path")

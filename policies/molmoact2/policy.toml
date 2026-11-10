@@ -24,7 +24,7 @@ TRANSFORMERS_OFFLINE = "1"
 PYTHONDONTWRITEBYTECODE = "1"
 
 # LoRA fine-tuning. The training runtime adds the packages in train/requirements.txt on top of this
-# policy's environment. train/run_molmo_lora_pipeline.sh chains the three steps with export.
+# policy's environment. See docs/05-training.md for the separate prepare/train/GPU-probe commands.
 [train]
 dataset_format = "lerobot_v3"
 

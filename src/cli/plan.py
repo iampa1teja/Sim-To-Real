@@ -6,7 +6,7 @@ Paths given with a remote host are paths on that host: Docker resolves bind moun
 Images: `s2r-sim` (docker/sim/Dockerfile: Isaac Lab 3.0 + LeRobot, teleop/record/eval/rollout client)
 and `s2r-serve` / `s2r-train` (two targets of docker/policy/Dockerfile).
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 import re
 import sys
@@ -22,12 +22,16 @@ CONTAINER_REPO = "/workspace/repo"
 CONTAINER_POLICIES = "/policies"  # POLICIES_DIR in docker/policy/Dockerfile
 SIM_CONTAINER = "s2r-sim"          # running sim container (override with S2R_SIM_CONTAINER)
 SIM_REPO = "/workspace/s2r"        # repo path inside the sim image (docker/sim/Dockerfile WORKDIR)
+SIM_SELECTION_ENV = ("S2R_ARM", "S2R_SCENE", "S2R_TASK", "S2R_UNIT")
+SIM_RUNTIME_ENV = (*SIM_SELECTION_ENV, "S2R_ROOM_USD", "S2R_EVAL_STARTS",
+                   "S2R_FOLLOWER_CALIBRATION", "S2R_LEADER_CALIBRATION")
 SIM_PROGRAMS = {
     "record": "sim.teleop.agent", "eval": "sim.eval.run", "rollout": "core.rollout.real_rollout",
     "spawn": "cli.spawn", "envs": "cli.list_envs", "calibration-replay": "sim.datagen.calibration_replay",
     "calibration-report": "core.calibration.report", "eval-set": "core.benchmark.eval_set",
     "calibrate": "core.calibration.calibrate", "calibration-check": "core.calibration.check",
-    "calibration-stats": "core.calibration.stats",
+    "calibration-stats": "core.calibration.stats", "compare": "core.benchmark.compare",
+    "sweep": "core.benchmark.sweep",
 }
 DATAGEN_MODULES = {name: "sim.datagen." + name for name in ("scripted", "mimic", "dr_replay")}
 
@@ -121,11 +125,13 @@ def _train_inputs(command, dataset, output):
 
 
 def plan_train(command, manifest, repo, *, dataset="", output="", base_model="", extra=(), image="s2r-train:latest",
-               host="", remote_root="", hf_home="", host_uid=None, host_gid=None):
+               host="", remote_root="", hf_home="", host_uid=None, host_gid=None, verify_gpu=False):
     """Plan prepare / train / verify for one policy from its [train] table (train image, --env mode).
 
     The S2R_* variables are the contract the policies' train scripts and docker/policy/entrypoint.sh share.
     """
+    if verify_gpu and command != "verify":
+        raise CliError("--gpu is only supported for verify")
     if manifest.train is None:
         raise CliError(f"policy {manifest.name!r} has no [train] table in its policy.toml")
     script = manifest.train.commands.get(command)
@@ -138,7 +144,7 @@ def plan_train(command, manifest, repo, *, dataset="", output="", base_model="",
     if not remote and host_uid is not None and host_gid is not None:
         env.update(S2R_HOST_UID=str(host_uid), S2R_HOST_GID=str(host_gid))
     argv = ["docker", "run", "--rm", "--init", "--ipc", "host", "--shm-size", "8g", "--workdir", CONTAINER_REPO]
-    if command == "train":
+    if command == "train" or (command == "verify" and verify_gpu):
         # NVML reports host PIDs; a busy-GPU guard needs their names to recognize Xorg.
         argv += ["--gpus", "all", "--pid", "host"]
     argv += bind(root, CONTAINER_REPO, readonly=True)
@@ -207,12 +213,20 @@ def plan_pull(roles, *, registry, tag="latest"):
     return plans
 
 
-def plan_sim(program, args, container=SIM_CONTAINER, *, git_commit=""):
+def plan_sim(program, args, container=SIM_CONTAINER, *, git_commit="", selection_env=None):
     """Run a console script inside the running sim container through its entrypoint (Isaac env + PYTHONPATH).
 
     Always local: the simulator display and a real arm's USB devices live on the machine running the container.
+    Selectors are explicit planner inputs; only the CLI reads the host environment.
     """
-    return Plan(("docker", "exec", "-it", *(["-e", f"S2R_GIT_COMMIT={git_commit}"] if git_commit else []),
+    selection_env = selection_env or {}
+    if set(selection_env) - set(SIM_RUNTIME_ENV):
+        raise CliError("Unknown simulation runtime environment key")
+    if any(not isinstance(value, str) for value in selection_env.values()):
+        raise CliError("Simulation selector values must be strings")
+    selectors = [value for name in SIM_RUNTIME_ENV if name in selection_env
+                 for value in ("-e", f"{name}={selection_env[name]}")]
+    return Plan(("docker", "exec", "-it", *(["-e", f"S2R_GIT_COMMIT={git_commit}"] if git_commit else []), *selectors,
                  "-w", SIM_REPO, container, "s2r-entrypoint", "python", "-m", program, *args))
 
 
@@ -226,26 +240,40 @@ def plan_new(kind, name, repo):
 
 
 def plan_check(repo, *, arm=None, scene=None, task=None, policy=None, unit=None, variant="teleop",
-               static_only=False, container=SIM_CONTAINER, git_commit="", compositions=None):
+               static_only=False, container=SIM_CONTAINER, git_commit="", compositions=None, scene_json=None,
+               selection_env=None):
+    compositions = list(compositions or [(arm, scene, task)])
+    if scene_json is not None:
+        if static_only:
+            raise CliError("--scene-json needs a runtime check; omit --static")
+        if len(compositions) != 1 or not all(compositions[0]):
+            raise CliError("--scene-json needs one composition; select --arm, --scene and --task")
     selected = [item for key, value in (("arm", arm), ("scene", scene), ("task", task), ("policy", policy), ("unit", unit))
                 if value for item in ("--" + key, value)]
-    plans = [plan_host("cli.check", ("--repo", str(Path(repo).resolve()), "--static-only", *selected), repo)]
+    host = plan_host("cli.check", ("--repo", str(Path(repo).resolve()), "--static-only", *selected), repo)
+    if selection_env and "S2R_ROOM_USD" in selection_env:
+        # Host validation checks manifest assets; runtime overrides can name
+        # container-only paths and are validated in the headless composition.
+        host = replace(host, env={**host.env, "S2R_ROOM_USD": ""})
+    plans = [host]
     if not static_only:
-        for selected_arm, selected_scene, selected_task in compositions or [(arm, scene, task)]:
+        for selected_arm, selected_scene, selected_task in compositions:
             runtime = [item for key, value in (("arm", selected_arm), ("scene", selected_scene), ("task", selected_task))
                        if value for item in ("--" + key, value)]
-            plans.append(plan_sim("sim.check", (*runtime, "--variant", variant), container, git_commit=git_commit))
+            output = ("--scene-json", str(scene_json)) if scene_json is not None else ()
+            plans.append(plan_sim("sim.check", (*runtime, "--variant", variant, *output), container,
+                                  git_commit=git_commit, selection_env=selection_env))
     return plans
 
 
-def plan_datagen(source, args=(), container=SIM_CONTAINER, *, git_commit=""):
+def plan_datagen(source, args=(), container=SIM_CONTAINER, *, git_commit="", selection_env=None):
     if source is None:
         # YAML is read where the simulator/config files live. Host dry runs stay
         # dependency-free and faithfully show this dispatcher invocation.
-        return plan_sim("cli.datagen", args, container, git_commit=git_commit)
+        return plan_sim("cli.datagen", args, container, git_commit=git_commit, selection_env=selection_env)
     if source not in DATAGEN_MODULES:
         raise CliError(f"Unknown data source {source!r}; choose {', '.join(DATAGEN_MODULES)}")
-    return plan_sim(DATAGEN_MODULES[source], args, container, git_commit=git_commit)
+    return plan_sim(DATAGEN_MODULES[source], args, container, git_commit=git_commit, selection_env=selection_env)
 
 
 def plan_tunnel(host, port):

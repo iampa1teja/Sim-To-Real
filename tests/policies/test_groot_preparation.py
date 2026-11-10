@@ -1,8 +1,10 @@
 """GR00T preparation retains current and historical S2R object metadata."""
+import argparse
 import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 
 import numpy as np
@@ -59,3 +61,24 @@ def test_small_training_flags_reach_the_existing_recipe_without_starting_cuda(tm
     assert '--max-steps 1' in result.stdout and '--save-steps 1' in result.stdout
     assert 'Dry run only' in result.stdout
     assert not (tmp_path / 'out').exists()
+
+
+def test_download_command_preserves_every_hf_include_pattern(tmp_path):
+    spec = importlib.util.spec_from_file_location('groot_model_profiles', SCRIPTS / 'gr00t_model_profiles.py')
+    profiles = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(profiles)
+    destination = tmp_path / 'model folder $literal'
+    argv = shlex.split(profiles.download_command(destination))
+    assert argv[:2] == ['hf', 'download']
+    # Installed HF download uses nargs='*' with the default store action.
+    # Repeating --include overwrites earlier patterns rather than extending them.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('repo_id')
+    parser.add_argument('--revision')
+    parser.add_argument('--include', nargs='*')
+    parser.add_argument('--local-dir')
+    args = parser.parse_args(argv[2:])
+    assert args.repo_id == profiles.SO_ARM_REPO and args.revision == profiles.SO_ARM_REVISION
+    assert args.local_dir == str(destination)
+    assert args.include == ['config.json', 'processor_config.json', 'embodiment_id.json',
+                            'statistics.json', 'model-*.safetensors', 'model.safetensors.index.json']

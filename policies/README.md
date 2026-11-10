@@ -78,13 +78,15 @@ renumbered. Its existing SO-101 pick-place training recipe accepts `--batch`, `-
 and `--save-total-limit` after `s2r train ... --` for a bounded training check. This does not make that recipe
 arm- or task-independent.
 Preparation and verification have passed on a physically generated no-roll pick-place episode; the optimizer
-training gate passes with a verified two-step GR00T optimizer update (a pipeline check, not learned performance). See `docs/restructure-status.md` for the exact evidence and remaining checks.
+training gate passes with a verified two-step GR00T optimizer update (a pipeline check, not learned performance).
+See [training](../docs/05-training.md), [policy plugins](../docs/07-policy-plugins.md), and
+[verification status](../docs/restructure-status.md) for workflows and evidence.
 
 ## Add a policy
 
 1. `s2r new policy <name>` copies `_template/` to `policies/<name>/`.
 2. Fill `policy.toml`, list dependencies in `pyproject.toml`, run `uv lock` there, commit `uv.lock`.
-3. Implement the functions in `client.py` and `server.py` (see `docs/07-policy-plugins.md`), and fill the
+3. Implement the functions in `client.py` and `server.py` (see [the plugin guide](../docs/07-policy-plugins.md)), and fill the
    `train/` scripts or delete the `[train]` table.
 4. Check it: `pytest tests/policies/test_conformance.py -k <name>`.
 5. Serve and evaluate with `--policy <name>`.

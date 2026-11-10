@@ -25,8 +25,6 @@ from core.arms.spec import load_arm_spec
 
 # Standard deviations from the mean motion range before a joint is flagged.
 N_STD = 2.0
-# Warn when |homing_offset| exceeds this many raw counts (half a turn of the 4096-count encoder).
-HOMING_OFFSET_WARN = 2048
 
 
 # Folder LeRobot calibration files live under (same default as core.arms.calibration.resolve_calibration).
@@ -46,7 +44,9 @@ def load_calibration(path):
 
 
 # Compare each joint's motion range with mean +/- N_STD * std from the stats file.
-def static_check(calibration, stats):
+def static_check(calibration, stats, *, arm=None):
+    arm = arm or load_arm_spec()[0]
+    homing_offset_warn = arm.hardware.encoder_counts_per_turn / 2
     results = []
     for joint, calib in calibration.items():
         motion_range = abs(calib["range_max"] - calib["range_min"])
@@ -59,7 +59,7 @@ def static_check(calibration, stats):
             if abs(deviation_std) > N_STD:
                 issues.append(f"motion range {motion_range} deviates {deviation_std:+.1f}σ from mean "
                               f"(mean={mean:.0f}, std={std:.0f}, threshold=±{N_STD}σ)")
-        if abs(calib["homing_offset"]) > HOMING_OFFSET_WARN:
+        if abs(calib["homing_offset"]) > homing_offset_warn:
             issues.append(f"large homing_offset ({calib['homing_offset']}): "
                           "arm was likely not near the midpoint during calibration")
         results.append({

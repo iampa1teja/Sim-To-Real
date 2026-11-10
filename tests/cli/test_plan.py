@@ -22,6 +22,66 @@ def test_every_sim_command_uses_its_final_python_module(command, module):
     assert command != "dr-replay"
 
 
+def test_sim_planner_uses_only_explicit_selector_mapping(monkeypatch):
+    monkeypatch.setenv('S2R_ARM', 'ambient_arm')
+    assert plan_sim('core.calibration.calibrate', ('leader',)).argv == (
+        'docker', 'exec', '-it', '-w', '/workspace/s2r', 's2r-sim',
+        's2r-entrypoint', 'python', '-m', 'core.calibration.calibrate', 'leader')
+    selected = {'S2R_UNIT': 'robot_1', 'S2R_TASK': '', 'S2R_SCENE': 'blank_table', 'S2R_ARM': 'guide_arm'}
+    assert plan_sim('sim.teleop.agent', ('--arm', 'cli_arm'), git_commit='abc', selection_env=selected).argv == (
+        'docker', 'exec', '-it', '-e', 'S2R_GIT_COMMIT=abc', '-e', 'S2R_ARM=guide_arm',
+        '-e', 'S2R_SCENE=blank_table', '-e', 'S2R_TASK=', '-e', 'S2R_UNIT=robot_1',
+        '-w', '/workspace/s2r', 's2r-sim', 's2r-entrypoint', 'python', '-m', 'sim.teleop.agent', '--arm', 'cli_arm')
+    with pytest.raises(CliError, match='runtime environment key'):
+        plan_sim('sim.teleop.agent', (), selection_env={'UNRELATED_SECRET': 'not forwarded'})
+
+
+def test_runtime_file_overrides_are_explicit_container_environment(tmp_path, monkeypatch, capsys):
+    from cli.main import main
+
+    overrides = {'S2R_ROOM_USD': '/workspace/s2r/scenes/custom/room.usda',
+                 'S2R_EVAL_STARTS': '/workspace/datasets/starts',
+                 'S2R_FOLLOWER_CALIBRATION': '/calibration/follower.json',
+                 'S2R_LEADER_CALIBRATION': '/calibration/leader.json'}
+    plan = plan_sim('sim.eval.run', (), selection_env=overrides)
+    assert plan.argv[:11] == ('docker', 'exec', '-it', '-e', 'S2R_ROOM_USD=' + overrides['S2R_ROOM_USD'],
+                              '-e', 'S2R_EVAL_STARTS=' + overrides['S2R_EVAL_STARTS'],
+                              '-e', 'S2R_FOLLOWER_CALIBRATION=' + overrides['S2R_FOLLOWER_CALIBRATION'],
+                              '-e', 'S2R_LEADER_CALIBRATION=' + overrides['S2R_LEADER_CALIBRATION'])
+    checks = plan_check(tmp_path, arm='guide_arm', scene='guide_scene', task='guide_task', selection_env=overrides)
+    assert checks[0].env['S2R_ROOM_USD'] == ''  # Host validates manifest assets, not container-only overrides.
+    assert 'S2R_ROOM_USD=' + overrides['S2R_ROOM_USD'] in checks[1].argv
+    for key, value in overrides.items():
+        monkeypatch.setenv(key, value)
+    assert main(['--dry-run', 'eval', '--config_path', 'configs/eval/pick_place.yaml'], repo=tmp_path) == 0
+    output = capsys.readouterr().out
+    for key, value in overrides.items():
+        assert key + '=' + value in output
+    assert 'ROOM_USD_PATH=' not in output
+
+
+@pytest.mark.parametrize('command', [
+    ['calibrate', 'leader'], ['record', '--config_path', 'configs/record/sim_only.yaml', '--arm', 'cli_arm'],
+    ['datagen', '--source', 'scripted', '--arm', 'cli_arm'],
+    ['datagen', '--config_path', 'configs/datagen/mimic.yaml'],
+    ['check', '--arm', 'cli_arm', '--scene', 'cli_scene', '--task', 'cli_task'],
+])
+def test_cli_forwards_host_selectors_for_every_sim_dispatch_branch(command, tmp_path, monkeypatch, capsys):
+    from cli.main import main
+
+    for key, value in {'S2R_ARM': 'guide_arm', 'S2R_SCENE': 'blank_table',
+                       'S2R_TASK': 'guide_task', 'S2R_UNIT': 'robot_1'}.items():
+        monkeypatch.setenv(key, value)
+    assert main(['--dry-run', *command], repo=tmp_path) == 0
+    output = capsys.readouterr().out
+    assert ('-e S2R_ARM=guide_arm -e S2R_SCENE=blank_table -e S2R_TASK=guide_task '
+            '-e S2R_UNIT=robot_1') in output
+    if command[0] == 'calibrate':
+        assert 'python -m core.calibration.calibrate leader' in output
+    if '--arm' in command:
+        assert '--arm cli_arm' in output  # Explicit module flags remain intact and take precedence.
+
+
 @pytest.mark.parametrize("source,module", DATAGEN_MODULES.items())
 def test_every_data_source_maps_to_a_module(source, module):
     assert plan_datagen(source, ("--seed", "9")).argv[-5:] == ("python", "-m", module, "--seed", "9")
@@ -83,6 +143,37 @@ def test_host_new_check_migrate_plan_paths(tmp_path):
     assert len(plan_check(tmp_path, static_only=True)) == 1
 
 
+def test_scene_export_plan_targets_one_runtime_composition(tmp_path):
+    output = Path('/workspace/s2r/outputs/guide-scene.json')
+    plans = plan_check(tmp_path, arm='guide_arm', scene='guide_scene', task='guide_task', scene_json=output)
+    assert '--scene-json' not in plans[0].argv
+    assert plans[1].argv[-4:] == ('--variant', 'teleop', '--scene-json', str(output))
+    with pytest.raises(CliError, match='omit --static'):
+        plan_check(tmp_path, static_only=True, scene_json=output)
+    with pytest.raises(CliError, match='one composition'):
+        plan_check(tmp_path, compositions=[('a', 's', 't'), ('b', 's', 't')], scene_json=output)
+    with pytest.raises(CliError, match='one composition'):
+        plan_check(tmp_path, scene_json=output)
+
+
+def test_compare_front_door_preserves_results_and_comparison_options(tmp_path, capsys):
+    from cli.main import main
+
+    assert SIM_PROGRAMS['compare'] == 'core.benchmark.compare'
+    assert main(['--dry-run', 'compare', 'outputs/first.json', 'outputs/second.json',
+                 '--task', 'guide_task', '--repeat', '0'], repo=tmp_path) == 0
+    assert ('python -m core.benchmark.compare outputs/first.json outputs/second.json '
+            '--task guide_task --repeat 0') in capsys.readouterr().out
+
+
+def test_sweep_front_door_uses_existing_summary_entrypoint(tmp_path, capsys):
+    from cli.main import main
+
+    assert SIM_PROGRAMS['sweep'] == 'core.benchmark.sweep'
+    assert main(['--dry-run', 'sweep', 'outputs/policy-sweep'], repo=tmp_path) == 0
+    assert 'python -m core.benchmark.sweep outputs/policy-sweep' in capsys.readouterr().out
+
+
 def test_build_pull_tunnel_and_sync_plans(tmp_path):
     for role, (dockerfile, target) in DOCKERFILES.items():
         expected = ("docker", "build", *(("--target", target) if target else ()), "-t", f"s2r-{role}:latest", "-f", dockerfile, ".")
@@ -107,6 +198,24 @@ def test_serve_plan_and_train_environment_contract(tmp_path):
         assert "S2R_DATASET=/data/dataset" in plan.argv
         if command == "train":
             assert plan.argv[-3:] == ('exec "${S2R_PYTHON:-python3}" "$@"', "s2r", "/policies/demo/train/train.py")
+
+
+@pytest.mark.parametrize('gpu', [False, True])
+def test_verification_gpu_access_requires_explicit_opt_in(gpu, tmp_path, monkeypatch, capsys):
+    import cli.main as cli
+
+    plan = plan_train('verify', manifest(), tmp_path, dataset='/dataset', verify_gpu=gpu)
+    assert ('--gpus' in plan.argv) is gpu
+    assert ('--pid' in plan.argv) is gpu
+    if gpu:
+        index = plan.argv.index('--gpus')
+        assert plan.argv[index:index + 4] == ('--gpus', 'all', '--pid', 'host')
+    monkeypatch.setattr(cli, 'load_policies', lambda repo: {'demo': manifest()})
+    assert cli.main(['--dry-run', 'verify', '--policy', 'demo', '--dataset', '/dataset',
+                     *(['--gpu'] if gpu else [])], repo=tmp_path) == 0
+    assert ('--gpus all' in capsys.readouterr().out) is gpu
+    with pytest.raises(CliError, match='only supported for verify'):
+        plan_train('prepare', manifest(), tmp_path, dataset='/dataset', output='/output', verify_gpu=True)
 
 
 def test_invalid_plans_fail_before_execution(tmp_path):

@@ -7,8 +7,10 @@ import sys
 import torch
 
 from molmo_lora_support import install_training_correction
+from command_inputs import training_args
 
 if __name__ == "__main__":
+    sys.argv[1:] = training_args(sys.argv[1:])
     faulthandler.enable(all_threads=True)
     optimizer_offload = os.environ.get("MOLMO_OPTIMIZER_OFFLOAD", "none")
     if optimizer_offload not in ("none", "cpu"):

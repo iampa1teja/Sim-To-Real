@@ -14,6 +14,16 @@ from core.arms.mapping import JointMapping
 from core.datasets.alignment import recording_contract, validate_recording_root, RecordingAlignmentError, MARKER
 
 
+def test_homing_warning_uses_selected_encoder_resolution():
+    from core.calibration.check import static_check
+
+    calibration = {'joint': dict(range_min=0, range_max=1000, homing_offset=3000)}
+    low = SimpleNamespace(hardware=SimpleNamespace(encoder_counts_per_turn=4096))
+    high = SimpleNamespace(hardware=SimpleNamespace(encoder_counts_per_turn=8192))
+    assert static_check(calibration, {}, arm=low)[0]['status'] == 'WARN'
+    assert static_check(calibration, {}, arm=high)[0]['status'] == 'PASS'
+
+
 def test_production_units_preserve_distinct_measured_sources(monkeypatch):
     monkeypatch.delenv("S2R_ARMS_DIR", raising=False)
     arm, _ = load_arm_spec("so101")

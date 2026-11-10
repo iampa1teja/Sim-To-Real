@@ -56,6 +56,16 @@ def check(args):
             asset = raw.scene[name]
             if not torch.isfinite(as_torch(asset.data.root_pos_w)).all():
                 raise ValueError(f"Task object {name!r} has a nonfinite position")
+        if args.scene_json is not None:
+            if task is None:
+                raise ValueError("--scene-json needs a task with declared objects")
+            from sim.eval.scene import capture_scene
+
+            # Capture the instantiated geometry before closing its stage, and
+            # publish only after the composition has passed every check above.
+            encoded = json.dumps(capture_scene(raw, task), indent=2, allow_nan=False)
+            args.scene_json.parent.mkdir(parents=True, exist_ok=True)
+            args.scene_json.write_text(encoded + "\n")
         return dict(passed=True, arm=arm.name, scene=args.scene, task=task.name if task else None,
                     variant=args.variant, joints=names, bodies=sorted(bodies), cameras=rendered,
                     objects=list(task.spec.objects) if task else [], steps=args.steps)
@@ -72,6 +82,7 @@ def main(argv=None):
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--scene-json", type=Path, help="save live named-object geometry for s2r eval-set")
     args = parser.parse_args(argv)
     if args.steps < 1:
         parser.error("steps must be positive")

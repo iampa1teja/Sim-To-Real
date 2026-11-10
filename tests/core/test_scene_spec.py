@@ -84,7 +84,33 @@ def minimal_scene(tmp_path, monkeypatch):
     (directory / "scene.toml").write_text('[scene]\nname="example"\nroom_usd="room.usda"\n')
     monkeypatch.setenv("S2R_SCENES_DIR", str(directory.parent))
     monkeypatch.delenv("S2R_SCENE_DIR", raising=False)
+    monkeypatch.delenv("S2R_ROOM_USD", raising=False)
     return directory
+
+
+def test_room_override_is_read_at_call_time_and_old_variable_is_ignored(minimal_scene, monkeypatch, tmp_path):
+    monkeypatch.setenv('ROOM_USD_PATH', str(tmp_path / 'obsolete-does-not-exist.usda'))
+    original = load_scene_spec('example')
+    assert original.room_usd == minimal_scene / 'room.usda'
+    override = tmp_path / 'replacement.usda'
+    override.write_text('#usda 1.0\n(defaultPrim="Room")\ndef Xform "Room" {}\n')
+    monkeypatch.setenv('S2R_ROOM_USD', str(override))
+    assert load_scene_spec('example').room_usd == override
+    assert original.room_usd == minimal_scene / 'room.usda'
+
+
+def test_relative_room_override_uses_process_working_directory(minimal_scene, monkeypatch, tmp_path):
+    override = tmp_path / 'replacement.usda'
+    override.write_text('#usda 1.0\n(defaultPrim="Room")\ndef Xform "Room" {}\n')
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv('S2R_ROOM_USD', 'replacement.usda')
+    assert load_scene_spec('example').room_usd == override
+
+
+def test_missing_room_override_fails_with_its_environment_variable(minimal_scene, monkeypatch, tmp_path):
+    monkeypatch.setenv('S2R_ROOM_USD', str(tmp_path / 'missing.usda'))
+    with pytest.raises(ValueError, match='S2R_ROOM_USD file not found'):
+        load_scene_spec('example')
 
 
 def test_scene_selection_reads_environment_at_call_time(minimal_scene, monkeypatch):

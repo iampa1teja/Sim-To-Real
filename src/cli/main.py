@@ -9,7 +9,7 @@ import sys
 REPO = Path(__file__).resolve().parents[2]
 USAGE_NOTE = (
     "Sim commands (record, eval, rollout, spawn, envs, calibration-replay, calibration-report, eval-set, "
-    "calibrate, calibration-check, calibration-stats) "
+    "calibrate, calibration-check, calibration-stats, compare, sweep) "
     "pass every argument after the command to the program inside the running sim container; to only print the "
     "command put --dry-run first: 's2r --dry-run record --config_path configs/record/sim_only.yaml'. "
     "Remote GPU: run 's2r sync', then serve/train with --host user@box --remote-root /abs/path. To evaluate a "
@@ -38,6 +38,8 @@ def build_parser():
         sub.add_argument("--base-model", default="", help="checkpoint to start from")
         sub.add_argument("--hf-home", default="", help="Hugging Face cache (mounted read-only)")
         sub.add_argument("--image", default=default_image("train", os.environ))
+        if name == "verify":
+            sub.add_argument("--gpu", action="store_true", help="enable GPU access for a policy's verification probe")
         remote(sub)
         sub.add_argument("extra", nargs=argparse.REMAINDER, help="after --: passed to the policy's script unchanged")
 
@@ -85,11 +87,13 @@ def build_parser():
     check.add_argument("--policy")
     check.add_argument("--unit")
     check.add_argument("--variant", default="teleop")
+    check.add_argument("--scene-json", type=Path,
+                       help="save live geometry from one selected composition for s2r eval-set (container path)")
     check.add_argument("--static", "--static-only", dest="static_only", action="store_true",
                        help="validate every extension on the host without launching Isaac")
     check.add_argument("--dry-run", action="store_true")
     for name in ("record", "eval", "rollout", "spawn", "envs", "calibrate", "calibration-check",
-                 "calibration-stats", "calibration-report", "calibration-replay", "eval-set", "datagen", "migrate"):
+                 "calibration-stats", "calibration-report", "calibration-replay", "eval-set", "compare", "sweep", "datagen", "migrate"):
         commands.add_parser(name, help="run the corresponding Python module (arguments passed through)")
     return parser
 
@@ -113,9 +117,11 @@ def describe(policies):
 def make_plan(args, repo, policies):
     from . import plan as paths
 
+    selection_env = {name: os.environ[name] for name in paths.SIM_RUNTIME_ENV if name in os.environ}
     if args.command in paths.SIM_PROGRAMS:
         container = os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER)
-        return paths.plan_sim(paths.SIM_PROGRAMS[args.command], args.args, container, git_commit=source_revision(repo))
+        return paths.plan_sim(paths.SIM_PROGRAMS[args.command], args.args, container, git_commit=source_revision(repo),
+                               selection_env=selection_env)
     if args.command == "new":
         return paths.plan_new(args.kind, args.name, repo)
     if args.command == "check":
@@ -124,10 +130,10 @@ def make_plan(args, repo, policies):
         return paths.plan_check(repo, arm=arm, scene=scene, task=task, policy=args.policy, unit=args.unit,
                                 variant=args.variant, static_only=args.static_only,
                                 container=os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER), git_commit=source_revision(repo),
-                                compositions=compositions)
+                                compositions=compositions, scene_json=args.scene_json, selection_env=selection_env)
     if args.command == "datagen":
         return paths.plan_datagen(args.source, args.args, os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER),
-                                  git_commit=source_revision(repo))
+                                  git_commit=source_revision(repo), selection_env=selection_env)
     if args.command == "migrate":
         return paths.plan_host("core.datasets.task_meta", args.args, repo)
     if args.command in ("build", "pull"):
@@ -152,7 +158,8 @@ def make_plan(args, repo, policies):
                             base_model=args.base_model, extra=extra, image=args.image, host=args.host,
                             remote_root=args.remote_root, hf_home=args.hf_home,
                             host_uid=os.getuid() if hasattr(os, "getuid") else None,
-                            host_gid=os.getgid() if hasattr(os, "getgid") else None)
+                            host_gid=os.getgid() if hasattr(os, "getgid") else None,
+                            verify_gpu=getattr(args, "gpu", False))
 
 
 def source_revision(repo):
