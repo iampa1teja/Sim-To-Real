@@ -1,0 +1,48 @@
+# Compare MolmoAct2 on real and simulated starts
+
+Run from the v2 checkout with the sim container running and the existing local
+Molmo server listening on port 5005:
+
+```bash
+./s2r eval-sim-real
+```
+
+Open http://localhost:8765. This reuses the recording GUI. The follower uses its stable USB serial path, so ACM port renumbering does not select the leader. The default config is
+`configs/eval/sim_real.yaml`; it selects the calibrated `rpd_follower`, room and
+wrist cameras, and the local LeRobot Molmo server. It does not restart that server.
+
+1. Put the physical arm in the desired starting pose before launching. The preview
+   mirrors its measured joints into sim. No policy commands are sent before Start.
+2. Keep the gripper open. Place the physical cube beside the fixed jaw using the
+   same convention as paired recording, and click **Spawn object**. Compare the
+   room and wrist views. Real cube placement is manual: this does not measure its
+   pose or prove millimetre alignment.
+3. Click **Start real → sim**. The real policy trial runs for 300 seconds. The
+   physical follower then holds its final target. The simulator restores the saved
+   starting joints and object poses and runs its own 300-second trial, using its
+   own images and joint observations. Both use the same loaded policy server.
+4. **Stop evaluation** cancels the comparison, including the pending second trial.
+   Exit closes devices; the follower keeps torque enabled. Restart the command
+   for another comparison; a completed output is never overwritten by Start.
+
+Outputs are in `outputs/eval-sim-real/<timestamp>/`: `real.mp4` and `sim.mp4`
+(each with room and wrist side by side), their JSONL measured/commanded joint logs,
+and `report.json` with starts, calibration, timing, and termination reason.
+These are visual comparisons; real success is not automatically labelled.
+Inference runs in a worker so camera capture and Stop remain responsive. Both
+sides apply the same raw joint limits, maximum target offset, and initial-action
+check. Video uses the configured capture FPS and repeats the previous frame if capture falls behind; logs retain measured wall times.
+
+A nonmoving camera preview:
+
+```bash
+./s2r eval-sim-real --shadow --preview-seconds 10
+```
+
+For shorter manual trials, pass `--episode_seconds 30`. `--shadow` prevents real
+motor commands even when Start is pressed. To use a standard s2r policy server,
+pass `--backend s2r --policy_port 5556` (the checkpoint is chosen on the server).
+The default local server adapter uses loopback only and expects the existing
+LeRobot preprocessing/postprocessing protocol; its built-in joint-frame transform
+is applied once. The checkpoint field in the report is a configured label, not
+an independently verified hash from this custom server.

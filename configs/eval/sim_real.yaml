@@ -1,0 +1,20 @@
+# GUI Start runs real for five minutes, then sim from the saved starting pose.
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube
+variant: teleop
+unit: rpd_follower
+policy: molmoact2
+backend: local-lerobot
+policy_port: 5005
+checkpoint: lerobot/MolmoAct2-SO100_101-LeRobot
+policy_option: [input_joint_units=lerobot_normalized]
+follower_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AE6057392-if00
+follower_id: rpd_follower
+camera_gripper: /dev/video0
+camera_external: /dev/video6
+action_horizon: 30
+episode_seconds: 300
+fps: 30
+enable_motion: true
+headless: true

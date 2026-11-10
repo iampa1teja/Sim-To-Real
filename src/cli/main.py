@@ -92,7 +92,7 @@ def build_parser():
     check.add_argument("--static", "--static-only", dest="static_only", action="store_true",
                        help="validate every extension on the host without launching Isaac")
     check.add_argument("--dry-run", action="store_true")
-    for name in ("record", "eval", "rollout", "spawn", "envs", "calibrate", "calibration-check",
+    for name in ("record", "eval", "eval-sim-real", "rollout", "spawn", "envs", "calibrate", "calibration-check",
                  "calibration-stats", "calibration-report", "calibration-replay", "eval-set", "compare", "sweep", "datagen", "migrate"):
         commands.add_parser(name, help="run the corresponding Python module (arguments passed through)")
     return parser

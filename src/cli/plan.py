@@ -26,6 +26,7 @@ SIM_SELECTION_ENV = ("S2R_ARM", "S2R_SCENE", "S2R_TASK", "S2R_UNIT")
 SIM_RUNTIME_ENV = (*SIM_SELECTION_ENV, "S2R_ROOM_USD", "S2R_EVAL_STARTS",
                    "S2R_FOLLOWER_CALIBRATION", "S2R_LEADER_CALIBRATION")
 SIM_PROGRAMS = {
+    "eval-sim-real": "sim.eval.sim_real",
     "record": "sim.teleop.agent", "eval": "sim.eval.run", "rollout": "core.rollout.real_rollout",
     "spawn": "cli.spawn", "envs": "cli.list_envs", "calibration-replay": "sim.datagen.calibration_replay",
     "calibration-report": "core.calibration.report", "eval-set": "core.benchmark.eval_set",

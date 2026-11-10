@@ -179,7 +179,8 @@ function App() {
             disabled={!live || pending || state.busy || state.pending || !enabled(state)}
             onClick={() => onClick(cmd)}
           >
-            {label}
+            {state?.mode === "eval-sim-real" && cmd === "start" ? "Start real → sim" :
+              state?.mode === "eval-sim-real" && cmd === "stop" ? "Stop evaluation" : label}
           </button>
         ))}
         <button className="btn stop"

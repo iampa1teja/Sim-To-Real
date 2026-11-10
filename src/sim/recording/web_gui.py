@@ -111,7 +111,7 @@ class RecordingWebGui:
     def flush(self) -> None:
         """Push the current state (and last frames) to connected browsers now."""
         with self._cond:
-            self._payload = json.dumps({**self._state, "cameras": self._camera_names, "frames": self._frames})
+            self._payload = json.dumps({**self._state, "mode": getattr(self, "mode", "record"), "cameras": self._camera_names, "frames": self._frames})
             self._seq += 1
             self._cond.notify_all()
 

@@ -186,3 +186,5 @@ remain raw LeRobot values interpreted with the set's saved joint mapping. The th
 conversions retain their former hashes in `legacy_eval_set_id`; comparison accepts the shared identity.
 That conversion preserves geometry. The frozen pick-place sets still predate the existing mount correction,
 so their geometry guard rejects the corrected live mount until an explicit geometry decision is made.
+
+Compare the same policy on matched physical/simulation starts with `./s2r eval-sim-real`: five minutes on real, then five minutes in sim, with the existing camera GUI and separate videos. See [the comparison guide](docs/09-sim-real-comparison.md).
