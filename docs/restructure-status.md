@@ -15,7 +15,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
-| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | In progress — scripted and Mimic episodes pass; training pending |
+| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Complete |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Deferred by user on 2026-11-10; excluded from the current completion gate |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
@@ -225,7 +225,7 @@ parameters are also captured, with a deterministic CPU response replay for check
   one complete simulator episode with actual example-policy inference through `s2r eval --config_path`.
   Prepared GR00T/Molmo acceptance YAMLs both parse through the production parser; their live runs also passed as recorded above.
 
-## Phase 5 integration (not yet accepted)
+## Phase 5 integration
 
 - Updated user requirement: no deliberate wrist roll after pickup. Earlier rolled demonstrations are retained
   as diagnostic/format evidence only and must not be used as the final training dataset. The task expert now
@@ -298,4 +298,12 @@ parameters are also captured, with a deterministic CPU response replay for check
   retained, and the successful retry is `mimic-retarget2-retry.log`. Another nearby start (26348) retained the
   cube until deliberate release but settled tilted 0.528 mm beyond the inner box boundary. That failed attempt
   was discarded; neither physics nor success criteria were changed. These trials do not establish a broad
-  start-distribution success rate. The generated-data optimizer update remains unverified; Phase 5 is not complete.
+  start-distribution success rate. The generated-data optimizer update also passes, as recorded below; Phase 5 is complete.
+
+- The actual GR00T training command completed two optimizer steps on the validated no-roll generated dataset.
+  `training-validation.json` verifies global step 2, finite loss 1.133613348, all 81 Adam states at step 2 with
+  finite/nonzero moments, and a real projector weight change after accounting for the initial/saved dtype
+  difference. `training-source-integrity.json` preserves all 11 source hashes and all 18 prepared checksums.
+  This is a pipeline/optimizer acceptance check, not evidence of learned task performance. Checkpoint:
+  `outputs/v2/phase5/gr00t-training-check/checkpoint-2`. The training process exited successfully and released
+  the GPU. The latest full CPU gate remains 394 tests plus 22 subtests. Phase 7 can now begin.

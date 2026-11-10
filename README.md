@@ -15,7 +15,8 @@ The renamed evaluator reproduced the example policy's nine-episode schedule; liv
 served and evaluated with finite joint commands. Phase 4 is complete. Scripted generation has produced a
 physically successful pick-place episode without a post-pickup wrist roll; dataset validation and real GR00T
 preparation/verification pass. Mimic episodes pass physical and dataset validation at the source start and a
-nearby changed start. Generated-data optimizer training and final documentation/conformance remain pending.
+nearby changed start. A two-step GR00T training check verifies a real optimizer update on the generated data.
+Phase 5 is complete; final documentation/conformance remains in progress.
 Second-arm hardware work is deferred at the user's request.
 
 ## Layout
