@@ -11,8 +11,10 @@ Open http://localhost:8765. This reuses the recording GUI. The follower uses its
 `configs/eval/sim_real.yaml`; it selects the calibrated `rpd_follower`, room and
 wrist cameras, and the local LeRobot Molmo server. It does not restart that server.
 
-1. Put the physical arm in the desired starting pose before launching. The preview
-   mirrors its measured joints into sim. No policy commands are sent before Start.
+1. Move the leader to position the physical follower before Start. The sim mirrors
+   the follower’s measured joints. Positioning uses the same per-command limits as
+   rollout; Start stops leader control and hands control to the policy.
+   Both serial ports use stable USB identities. `--no-leader` disables this setup mode.
 2. Keep the gripper open. Place the physical cube beside the fixed jaw using the
    same convention as paired recording, and click **Spawn object**. Compare the
    room and wrist views. Real cube placement is manual: this does not measure its
@@ -23,7 +25,8 @@ wrist cameras, and the local LeRobot Molmo server. It does not restart that serv
    own images and joint observations. Both use the same loaded policy server.
 4. **Stop evaluation** cancels the comparison, including the pending second trial.
    Exit closes devices; the follower keeps torque enabled. Restart the command
-   for another comparison; a completed output is never overwritten by Start.
+   for another comparison; a completed output is never overwritten by Start. Stop
+   also works during leader positioning and leaves positioning disabled until relaunch.
 
 Outputs are in `outputs/eval-sim-real/<timestamp>/`: `real.mp4` and `sim.mp4`
 (each with room and wrist side by side), their JSONL measured/commanded joint logs,

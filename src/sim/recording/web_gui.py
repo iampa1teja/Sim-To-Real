@@ -78,7 +78,7 @@ class RecordingWebGui:
     def set_state(self, active: bool, can_start: bool, status: str, busy: bool = False,
                   *, recording: bool = False, pending_videos: int = 0,
                   encoding: bool = False, encode_progress: str = "",
-                  saved_episodes: int = 0, rerecord_episode: int | None = None) -> None:
+                  saved_episodes: int = 0, rerecord_episode: int | None = None, positioning: bool = False) -> None:
         """``active``: an episode is running (countdown or recording).
         ``can_start``: Start is allowed (e.g. a cube has been spawned)."""
         with self._cond:
@@ -93,7 +93,8 @@ class RecordingWebGui:
                            "pending": pending, "status": status, "recording": recording,
                            "pending_videos": pending_videos, "encoding": encoding,
                            "encode_progress": encode_progress, "closed": False,
-                           "saved_episodes": saved_episodes, "rerecord_episode": rerecord_episode}
+                           "saved_episodes": saved_episodes, "rerecord_episode": rerecord_episode,
+                           "positioning": positioning}
             if self._state != previous:
                 self.flush()
 
@@ -161,7 +162,7 @@ class RecordingWebGui:
             allowed = {
                 "start": state["can_start"] and not state["active"],
                 "spawn": not state["active"],
-                "stop": state["active"],
+                "stop": state["active"] or state.get("positioning", False),
                 "discard": state["active"] or state["rerecord_episode"] is not None,
                 "save": state["recording"],
                 "encode": state["pending_videos"] > 0 and not state["encoding"],

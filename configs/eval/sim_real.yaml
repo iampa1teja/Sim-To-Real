@@ -11,6 +11,8 @@ checkpoint: lerobot/MolmoAct2-SO100_101-LeRobot
 policy_option: [input_joint_units=lerobot_normalized]
 follower_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AE6057392-if00
 follower_id: rpd_follower
+leader_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AB0158158-if00
+leader_id: rpd_leader
 camera_gripper: /dev/video0
 camera_external: /dev/video6
 action_horizon: 30

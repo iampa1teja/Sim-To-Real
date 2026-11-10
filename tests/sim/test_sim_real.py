@@ -75,3 +75,37 @@ def test_video_preserves_wall_time_when_capture_drops_frames(tmp_path):
     assert reader.get(cv2.CAP_PROP_FRAME_COUNT) == 10
     assert reader.get(cv2.CAP_PROP_FPS) == 10
     reader.release()
+
+
+def test_leader_positions_before_start_and_is_not_read_when_control_hands_off():
+    from sim.eval.sim_real import position_with_leader
+    commands = []
+    reads = []
+    def read():
+        reads.append(True)
+        return {'a.pos': 50, 'b.pos': -50}
+    leader = SimpleNamespace(get_action=read)
+    follower = SimpleNamespace(send_action=commands.append)
+    kwargs = dict(leader=leader, follower=follower, measured=[0, 0], keys=['a.pos', 'b.pos'],
+                  ranges=[(-100, 100)] * 2, step_limit=10, motion=True)
+    np.testing.assert_equal(position_with_leader(**kwargs, enabled=True), [10, -10])
+    assert commands == [{'a.pos': 10, 'b.pos': -10}]
+    # Policy takes over at Start; Stop and completion also disable operator control.
+    np.testing.assert_equal(position_with_leader(**kwargs, enabled=False), [0, 0])
+    assert len(commands) == len(reads) == 1
+    kwargs['motion'] = False
+    np.testing.assert_equal(position_with_leader(**kwargs, enabled=True), [10, -10])
+    assert len(commands) == 1  # Shadow still lets the sim follow, without physical writes.
+
+
+def test_gui_can_stop_leader_positioning_before_a_trial():
+    from sim.recording.web_gui import RecordingWebGui
+    gui = RecordingWebGui([], port=0)
+    try:
+        gui.set_state(False, False, 'Positioning', positioning=True)
+        assert gui._command('stop')
+        assert gui.consume_requests()['stop']
+        gui.set_state(False, False, 'Holding', positioning=False)
+        assert not gui._command('stop')
+    finally:
+        gui.destroy()

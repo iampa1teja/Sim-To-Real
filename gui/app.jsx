@@ -8,7 +8,7 @@ const CAMERA_ORDER = { "Sim: realsense_rgb": 0, "Sim: wrist_cam": 1, "Real: exte
 // "active" = an episode is running, including its pre-recording countdown.
 const BUTTONS = [
   { cmd: "start", label: "Start recording", tone: "start", enabled: (s) => s.can_start && !s.active },
-  { cmd: "stop", label: "Stop recording", tone: "stop", enabled: (s) => s.active },
+  { cmd: "stop", label: "Stop recording", tone: "stop", enabled: (s) => s.active || s.positioning },
   { cmd: "discard", label: "Discard recording", tone: "discard", enabled: (s) => s.active || s.rerecord_episode != null },
   // Teleporting the object mid-episode would corrupt the recording.
   { cmd: "spawn", label: "Spawn object", tone: "spawn", enabled: (s) => !s.active },

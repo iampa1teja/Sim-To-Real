@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import time
 
@@ -20,6 +21,17 @@ def limited_target(action, state, keys, ranges, *, first, start_limit, step_limi
     return np.clip(target, state - step_limit, state + step_limit)
 
 
+def position_with_leader(leader, follower, measured, keys, ranges, *, enabled, motion, step_limit):
+    """Operator positioning only; never read/send leader targets during a policy trial or after Stop."""
+    if not enabled or leader is None:
+        return np.asarray(measured, dtype=np.float32)
+    values = limited_target(leader.get_action(), measured, keys, ranges,
+                            first=False, start_limit=0, step_limit=step_limit)
+    if motion:
+        follower.send_action(dict(zip(keys, map(float, values))))
+    return values
+
+
 def parse_args(argv=None):
     from core.rollout.real_rollout import build_parser
     from core.utils.config import parse_yaml_args
@@ -28,13 +40,16 @@ def parse_args(argv=None):
 
     parser = build_parser()
     parser.description = __doc__
+    parser.add_argument('--leader-port', default=os.getenv('TELEOP_PORT'))
+    parser.add_argument('--leader-id', default=os.getenv('TELEOP_ID'))
+    parser.add_argument('--no-leader', action='store_true', help='Disable operator positioning through the leader')
     parser.add_argument('--headless', action='store_true')
     parser.add_argument('--shadow', action='store_true', help='Preview/infer without sending real arm commands')
     parser.add_argument('--backend', choices=('s2r', 'local-lerobot'), default='s2r')
     parser.add_argument('--gui-host', default='127.0.0.1')
     parser.add_argument('--gui-port', type=int, default=8765)
     parser.add_argument('--preview-seconds', type=float, default=0,
-                        help='Exit after a camera preview; never automatically starts motion')
+                        help='Exit after a preview; combine with --shadow to prevent physical motion')
     add_launch_arguments(parser)
     if argv is None:
         import sys
@@ -97,7 +112,7 @@ def run(args, app):
     from sim.recording.recording_setup import cleanup, disconnect
     from sim.envs.mdp._common import as_torch
 
-    env = follower = gui = spawner = video = log = None
+    env = follower = leader = gui = spawner = video = log = None
     policies = []
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='paired-policy')
     future = None
@@ -124,6 +139,10 @@ def run(args, app):
         sim_cameras = _sim_cameras(env)
         real_cameras = camera_specs(args)
         follower = connect_follower(args)
+        if not args.no_leader:
+            from sim.teleop.devices import connect_device
+            leader = connect_device('leader', args.leader_port, args.leader_id, cameras={}, fps=args.fps,
+                                    selection=args.calibration_selection, calibrate=False)
         keys = list(arm.feature_names)
         ranges = joint_ranges(arm, args.calibration_selection.mapping)
         real_names = json.loads(args.rename_map)
@@ -134,12 +153,14 @@ def run(args, app):
         print('[eval-sim-real] Place the real cube beside the OPEN fixed jaw, Spawn, then Start. '
               'Real runs first, then sim. Stop cancels both. Physical arm holds after its trial.', flush=True)
         phase = 'idle'
+        positioning = leader is not None
         ready = False
         start_raw = start_objects = None
         phase_started = 0.0
         steps = 0
         began = time.monotonic()
-        status = 'Position real arm and cube with open jaw, then Spawn object. No policy motion before Start.'
+        status = 'Leader positioning: move the leader, open the gripper, then Spawn and Start.' if positioning else (
+            'Read-only positioning: place the real arm/cube, then Spawn and Start.')
 
         def mirror(raw):
             target = mapping.to_sim(torch.as_tensor(raw, device=env.unwrapped.device)).unsqueeze(0)
@@ -149,7 +170,7 @@ def run(args, app):
             return target
 
         def finish(reason):
-            nonlocal video, log, phase, ready
+            nonlocal video, log, phase, ready, positioning
             if phase in ('real', 'sim'):
                 report['trials'].append({'side': phase, 'status': reason, 'steps': steps,
                                         'wall_seconds': time.monotonic() - phase_started})
@@ -160,7 +181,7 @@ def run(args, app):
                 log.close()
                 log = None
             (output / 'report.json').write_text(json.dumps(report, indent=2))
-            phase, ready = 'idle', False
+            phase, ready, positioning = 'idle', False, False
 
         def begin(side):
             nonlocal phase, phase_started, steps, video, log
@@ -183,7 +204,12 @@ def run(args, app):
                 real_state = np.asarray([observation[key] for key in keys], dtype=np.float32)
                 real_images = {real_names[name]: observation[name] for name in real_cameras}
                 if phase == 'idle':
-                    target = mirror(real_state)
+                    positioned = position_with_leader(
+                        leader, follower, real_state, keys, ranges,
+                        enabled=positioning and not requests.get('start'), motion=args.enable_motion,
+                        step_limit=args.max_relative_target)
+                    # Physical readback is authoritative when moving the real arm.
+                    target = mirror(real_state if args.enable_motion or not positioning else positioned)
                     if requests.get('spawn'):
                         if any(real_state[i] < 40 for i, joint in enumerate(arm.joints) if joint.role == 'gripper'):
                             status = 'Open the gripper before spawning; the cube needs jaw clearance.'
@@ -197,6 +223,9 @@ def run(args, app):
                             status = 'This comparison is saved. Exit and relaunch to start another without overwriting it.'
                             ready = False
                         else:
+                            positioning = False
+                            if args.enable_motion:
+                                follower.send_action(dict(zip(keys, map(float, real_state))))
                             start_raw = real_state.copy()
                             roundtrip = mapping.to_raw(mapping.to_sim(start_raw)).cpu().numpy()
                             if not np.allclose(roundtrip, start_raw, atol=0.1):
@@ -287,7 +316,7 @@ def run(args, app):
                 if not torch.isfinite(obs['policy']['joint_pos_obs']).all():
                     raise RuntimeError('Simulation joints became non-finite; comparison stopped')
                 gui.update_images(gui_frames(obs.get('visual'), sim_cameras, observation, real_cameras))
-                gui.set_state(phase != 'idle', ready and not report['trials'], status)
+                gui.set_state(phase != 'idle', ready and not report['trials'], status, positioning=positioning)
                 if args.preview_seconds and time.monotonic() - began >= args.preview_seconds:
                     import cv2
                     frames = gui_frames(obs.get('visual'), sim_cameras, observation, real_cameras)
@@ -315,6 +344,7 @@ def run(args, app):
                 cleanup('Policy close', policy.close)
         if gui:
             cleanup('GUI close', gui.destroy)
+        cleanup('Leader disconnect', lambda: disconnect(leader, 'physical leader'))
         cleanup('Follower disconnect', lambda: disconnect(follower, 'physical follower'))
         if spawner:
             cleanup('Spawner close', spawner.close)
@@ -329,8 +359,17 @@ def main(argv=None):
     args = parse_args(argv)
     apply_selection(args)
     errors = validate(args)
+    if not args.no_leader:
+        if not args.leader_port or not args.leader_id:
+            errors.append('Leader positioning requires --leader-port and --leader-id; or use --no-leader')
+        elif os.path.realpath(args.leader_port) == os.path.realpath(args.follower_port):
+            errors.append('Leader and follower must use different serial devices')
     if errors:
         raise ValueError('; '.join(errors))
+    if not args.no_leader:
+        from core.arms.calibration import resolve_calibration
+        args.calibration_selection = resolve_calibration(
+            args.arm_spec, unit=args.unit, follower_id=args.follower_id, leader_id=args.leader_id)
     app = launch(args, enable_cameras=True)
     try:
         run(args, app)
