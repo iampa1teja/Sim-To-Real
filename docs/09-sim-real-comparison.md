@@ -48,3 +48,24 @@ pass `--backend s2r --policy_port 5556` (the checkpoint is chosen on the server)
 The optional `--backend local-lerobot` adapter is only for the separate custom
 LeRobot TCP server; it must never be pointed at an s2r server. The default uses
 the standard s2r transport and policy plugin.
+
+The prepared remote server on `rpuser1@192.168.29.76` serves the same source
+checkpoint through local SSH-forwarded port **5556**. Its model files are under
+`/media/rpuser1/New Volume/s2r/models/molmoact2-so101`; keep that volume mounted.
+The local server remains on **5005**. To choose remote inference for a new run:
+
+```bash
+./s2r eval-sim-real --policy_port 5556
+```
+
+If the tunnel is not already running, keep this in another terminal:
+
+```bash
+./s2r tunnel --host rpuser1@192.168.29.76 --port 5556
+```
+
+Check the remote server with:
+
+```bash
+ssh rpuser1@192.168.29.76 'docker logs --tail 20 s2r-serve-molmoact2-5556'
+```

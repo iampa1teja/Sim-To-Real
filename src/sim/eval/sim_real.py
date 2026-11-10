@@ -376,7 +376,8 @@ def run(args, app):
                                                      {key: value.copy() for key, value in images.items()})
                             future_side = side
                         status = f'{side.upper()} trial: {elapsed:.1f}/{args.episode_seconds:.0f}s; '
-                        status += 'real motion enabled' if args.enable_motion else 'SHADOW: real motion disabled'
+                        status += ('physical arm holding; sim running' if side == 'sim' else
+                                   'real motion enabled' if args.enable_motion else 'SHADOW: real motion disabled')
                     except Exception as error:
                         finish(f'error: {error}')
                         status = f'Stopped: {error}'
