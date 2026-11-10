@@ -168,9 +168,11 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
     monkeypatch.setattr(sim.eval.scene, "capture_scene", lambda *args: {"table_plane_world": [0., 0., 0.]})
     initial = StepState({}, Pose((0., 0., .1)), 0.)
     progress = SimpleNamespace(steps=0)
+    controller_advances = []
     class IK:
         options = SimpleNamespace(orientation_tolerance_rad=.03)
-        def solve(self, *args):
+        def solve(self, *args, **kwargs):
+            controller_advances.append(kwargs.get("advance", True))
             return SimpleNamespace(joint_positions=torch.zeros(1, 4), position_error=[0.],
                                    orientation_error=[.2 if progress.steps < 2 else 0.])
     class Rollout:
@@ -187,6 +189,7 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
         args=SimpleNamespace(expert_options={}, fps=1, max_steps=10), ik=IK(), gripper_target=lambda target, fraction: target)
     assert execute_expert(context, Rollout(), expert) == "expert_finished_without_success"
     assert progress.steps == 2  # Position was satisfied on tick one; orientation was not.
+    assert controller_advances == [True, False, True, False]
 
 
 def test_live_step_records_before_action_and_observes_success_after_it(tmp_path):
@@ -265,3 +268,28 @@ def test_live_step_records_before_action_and_observes_success_after_it(tmp_path)
     np.testing.assert_allclose(np.array(annotation["requested_eef_pose"])[:3, 3], [1., 1., 1.], atol=1e-6)
     assert annotation["subtask_term_signals"] == {"positioned": True, "success": True}
     assert recorder.finish()["accepted"]
+
+
+def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monkeypatch):
+    from core.arms.mapping import JointMapping
+    from core.arms.spec import load_arm_spec
+    import sim.datagen.scripted
+    arm = load_arm_spec()[0]
+    events = []
+    robot = SimpleNamespace(
+        find_joints=lambda names, **kwargs: (list(range(len(names))), list(names)),
+        find_bodies=lambda name: ([0 if name == arm.links.base else 1], [name]),
+        data=SimpleNamespace(joint_pos=torch.zeros(1, len(arm.joints))),
+    )
+    env = SimpleNamespace(num_envs=1, device="cpu", cfg=SimpleNamespace(seed=0), scene={"robot": robot},
+                          reset=lambda: events.append("reset"), step=lambda action: events.append("warmup"))
+    ik = SimpleNamespace(position_offset_m=np.zeros(3), reset=lambda: events.append("controller_reset"))
+    task = load_task("stack_two_cubes")
+    args = SimpleNamespace(expert_options={}, warmup_steps=2, fps=30)
+    context = GenerationContext(args, env, task, arm, JointMapping.from_arm(arm, device="cpu"), None,
+                                {}, Writer(tmp_path), ik, None)
+    monkeypatch.setattr(sim.datagen.scripted, "reset_task_tracking", lambda raw: events.append("tracking_reset"))
+    context.begin_attempt(101)
+    assert events == ["reset", "warmup", "warmup", "tracking_reset", "controller_reset"]
+    context.begin_attempt(102, reset=False, warmup=False)
+    assert events[-1] == "controller_reset" and events.count("controller_reset") == 2

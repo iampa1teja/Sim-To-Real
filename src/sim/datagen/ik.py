@@ -21,9 +21,13 @@ class IKOptions:
     max_joint_step_m: float = 0.005
     position_tolerance_m: float = 0.001
     orientation_tolerance_rad: float = 0.03
+    integral_gain: float = 1.0  # per second; zero disables physical PD-load compensation
+    max_integral_bias_rad: float = 0.08
+    max_integral_bias_m: float = 0.005
 
     def __post_init__(self):
-        if any(not math.isfinite(value) or value <= 0 for value in vars(self).values()):
+        if any(not math.isfinite(value) or value <= 0 for key, value in vars(self).items()
+               if key != 'integral_gain') or not math.isfinite(self.integral_gain) or self.integral_gain < 0:
             raise ValueError('IK options must be finite and positive')
 
 
@@ -156,9 +160,13 @@ def solve_damped_step(arm, joint_positions, position, orientation, jacobian, tar
 class ArticulationIK:
     """Read Newton/Isaac Lab's native link-origin Jacobian without changing simulation state."""
 
-    def __init__(self, robot, arm, *, position_offset_m=None, options=None):
+    def __init__(self, robot, arm, *, position_offset_m=None, options=None, control_dt=1 / 30):
         self.robot, self.arm = robot, arm
         self.options = options or IKOptions()
+        if not math.isfinite(control_dt) or control_dt <= 0:
+            raise ValueError('IK control_dt must be finite and positive')
+        self.control_dt = control_dt
+        self._integral_bias = None
         self.position_offset_m = np.asarray(arm.ik.position_offset_m if position_offset_m is None
                                             else position_offset_m, dtype=float)
         if self.position_offset_m.shape != (3,) or not np.isfinite(self.position_offset_m).all():
@@ -181,7 +189,22 @@ class ArticulationIK:
         offset = positions.new_tensor(self.position_offset_m).expand_as(positions)
         return positions + _rotate(orientations, offset), orientations
 
-    def solve(self, position_world, orientation_xyzw=None):
+    def reset(self):
+        """Clear learned command bias after an episode reset/warmup."""
+        self._integral_bias = None
+
+    @property
+    def integral_bias(self):
+        return None if self._integral_bias is None else self._integral_bias.clone()
+
+    def solve(self, position_world, orientation_xyzw=None, *, advance=True):
+        """Produce a bounded position command, retaining a slow integral load bias.
+
+        ``advance=False`` previews a command/error without updating controller state.
+        Only a command that will be physically dispatched should advance the integral.
+        Bias is encoded in the returned joint target, so recorded actions replay it
+        without an additional hidden effort controller.
+        """
         position, orientation = self.current_pose()
         joint_positions = _tensor(self.robot.data.joint_pos)[:, self.joint_ids]
         columns = [index + self.robot.num_base_dofs for index in self.joint_ids]
@@ -190,9 +213,48 @@ class ArticulationIK:
         jacobian[:, :3] += torch.cross(jacobian[:, 3:].transpose(1, 2),
                                       offset[:, None, :].expand(-1, len(columns), -1), dim=-1).transpose(1, 2)
         base_orientation = _tensor(self.robot.data.body_link_quat_w)[:, self.base_id]
-        return solve_damped_step(self.arm, joint_positions, position, orientation, jacobian,
-                                 position_world, orientation_xyzw, base_orientation=base_orientation,
-                                 options=self.options)
+        solved = solve_damped_step(self.arm, joint_positions, position, orientation, jacobian,
+                                   position_world, orientation_xyzw, base_orientation=base_orientation,
+                                   options=self.options)
+        if self.options.integral_gain == 0:
+            return solved
+        return self._compensate_load(solved, joint_positions, advance=advance)
+
+    def _compensate_load(self, solved, measured, *, advance):
+        ids = [index for index, joint in enumerate(self.arm.joints) if joint.role == 'arm']
+        delta = solved.joint_positions[:, ids] - measured[:, ids]
+        previous = (torch.zeros_like(measured) if self._integral_bias is None
+                    else self._integral_bias.to(measured))
+        bias = previous[:, ids]
+        step_caps = measured.new_tensor([self.options.max_joint_step_rad if self.arm.joints[index].type == 'revolute'
+                                        else self.options.max_joint_step_m for index in ids])
+        bias_caps = measured.new_tensor([self.options.max_integral_bias_rad if self.arm.joints[index].type == 'revolute'
+                                        else self.options.max_integral_bias_m for index in ids])
+        lower = measured.new_tensor([math.radians(self.arm.joints[index].limits[0])
+                                     if self.arm.joints[index].type == 'revolute'
+                                     else self.arm.joints[index].limits[0] for index in ids])
+        upper = measured.new_tensor([math.radians(self.arm.joints[index].limits[1])
+                                     if self.arm.joints[index].type == 'revolute'
+                                     else self.arm.joints[index].limits[1] for index in ids])
+        if advance:
+            proposed = (bias + self.options.integral_gain * self.control_dt * delta).clamp(-bias_caps, bias_caps)
+            increment = proposed - bias
+            total = delta + proposed
+            # Freeze integration that would drive an already lead-limited command farther outward.
+            blocked = ((total > step_caps) & (increment > 0)) | ((total < -step_caps) & (increment < 0))
+            bias = torch.where(blocked, bias, proposed)
+            # Back-project at hard runtime limits; retained bias must not wind up beyond a stop.
+            bias = bias.clamp(lower - measured[:, ids] - delta, upper - measured[:, ids] - delta)
+            stored = torch.zeros_like(measured)
+            stored[:, ids] = bias
+            self._integral_bias = stored.detach().clone()
+        total = delta + bias
+        bounded = total.clamp(-step_caps, step_caps)
+        command = (measured[:, ids] + bounded).clamp(lower, upper)
+        result = measured.clone()
+        result[:, ids] = command
+        limited = solved.limited | (bounded != total).any(dim=-1) | (command != measured[:, ids] + bounded).any(dim=-1)
+        return IKResult(result, solved.position_error, solved.orientation_error, solved.converged, limited)
 
 
 class ArmKinematics:

@@ -97,7 +97,7 @@ def test_native_adapter_accounts_for_tcp_offset_joint_permutation_and_base_dofs(
     robot = SimpleNamespace(data=data, is_fixed_base=False, num_base_dofs=6,
         find_joints=lambda names, preserve_order: (ids, list(synthetic_arm.usd_joint_names)),
         find_bodies=lambda name: ([1 if name == synthetic_arm.links.ee else 0], [name]))
-    solver = ArticulationIK(robot, synthetic_arm, position_offset_m=[0., .1, 0.])
+    solver = ArticulationIK(robot, synthetic_arm, position_offset_m=[0., .1, 0.], options=IKOptions(integral_gain=0))
     current, quaternion = solver.current_pose()
     torch.testing.assert_close(current[0], position + position.new_tensor([0., .1, 0.]), atol=0, rtol=0)
     target = current + current.new_tensor([0., .01, 0.])
@@ -150,3 +150,59 @@ def test_so101_fk_zero_pose_matches_authored_frames_without_simulator(monkeypatc
     pose = fk.fk(np.zeros(len(arm.joints)))
     assert pose.shape == (4, 4) and np.isfinite(pose).all()
     assert abs(np.linalg.det(pose[:3, :3]) - 1) < 1e-12
+
+
+def biased_prismatic_servo(arm, *, gain=1.):
+    """A CPU position servo with constant load: equilibrium is command minus 2 mm."""
+    measured = torch.tensor([[0., .013, 0., .027]], dtype=torch.float64)
+    positions = torch.zeros((1, 2, 3), dtype=torch.float64)
+    rotations = torch.tensor([[[0., 0., 0., 1.], [0., 0., 0., 1.]]], dtype=torch.float64)
+    jacobian = torch.zeros((1, 1, 6, len(arm.joints)), dtype=torch.float64)
+    jacobian[0, 0, 0, 2] = 1.
+    data = SimpleNamespace(joint_pos=measured, body_link_pos_w=positions,
+                            body_link_quat_w=rotations, body_link_jacobian_w=jacobian)
+    robot = SimpleNamespace(data=data, is_fixed_base=True, num_base_dofs=0,
+        find_joints=lambda names, preserve_order: (list(range(len(arm.joints))), list(arm.usd_joint_names)),
+        find_bodies=lambda name: ([1 if name == arm.links.ee else 0], [name]))
+    solver = ArticulationIK(robot, arm, options=IKOptions(integral_gain=gain), control_dt=1 / 30)
+    return solver, measured, positions
+
+
+def test_integral_bias_removes_pd_load_residual_without_changing_physics_or_grippers(synthetic_arm):
+    errors = []
+    for gain in (0., 1.):
+        solver, measured, positions = biased_prismatic_servo(synthetic_arm, gain=gain)
+        for _ in range(360):
+            positions[0, 1, 0] = measured[0, 2]
+            result = solver.solve([.05, 0., 0.])
+            torch.testing.assert_close(result.joint_positions[:, [1, 3]], measured[:, [1, 3]], atol=0, rtol=0)
+            assert abs(result.joint_positions[0, 2] - measured[0, 2]) <= .005 + 1e-12
+            # Same fixed servo/load model in both runs. Only the encoded joint target changes.
+            measured[0, 2] += .35 * (result.joint_positions[0, 2] - measured[0, 2] - .002)
+        errors.append(abs(measured[0, 2].item() - .05))
+    assert .002 < errors[0] < .0022
+    assert errors[1] < 1e-5 and errors[1] < errors[0] / 100
+    assert solver.integral_bias[0, 2] == pytest.approx(.002, abs=1e-5)
+
+
+def test_integral_preview_reset_and_antiwindup_at_lead_and_joint_limits(synthetic_arm):
+    solver, measured, positions = biased_prismatic_servo(synthetic_arm)
+    for _ in range(30):
+        solver.solve([1., 0., 0.])  # A blocked servo must not integrate beyond the allowed command lead.
+    torch.testing.assert_close(solver.integral_bias, torch.zeros_like(measured), atol=0, rtol=0)
+    for _ in range(20):
+        solver.solve([.001, 0., 0.])
+    before = solver.integral_bias
+    assert before[0, 2] > 0
+    for _ in range(10):
+        solver.solve([.001, 0., 0.], advance=False)
+    torch.testing.assert_close(solver.integral_bias, before, atol=0, rtol=0)
+    measured[0, 2] = .2
+    positions[0, 1, 0] = .2
+    command = solver.solve([1., 0., 0.])
+    assert command.joint_positions[0, 2] == .2
+    assert solver.integral_bias[0, 2] == 0  # Hard-stop projection unwinds retained outward bias.
+    solver.reset()
+    assert solver.integral_bias is None
+    solver.solve([.1, 0., 0.], advance=False)
+    assert solver.integral_bias is None

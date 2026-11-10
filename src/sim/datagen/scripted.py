@@ -44,6 +44,9 @@ def build_parser():
     parser.add_argument("--starts_dir", type=Path)
     parser.add_argument("--expert_options", default="{}", help="Task-specific expert options as a JSON object")
     parser.add_argument("--control_offset", default=None, help="Optional EE-local TCP offset in metres, JSON vector")
+    parser.add_argument("--ik_integral_gain", type=float, default=1.0, help="Bounded servo-error correction per second; zero disables")
+    parser.add_argument("--ik_max_integral_bias_rad", type=float, default=.08)
+    parser.add_argument("--ik_max_integral_bias_m", type=float, default=.005)
     parser.add_argument("--disable_fabric", action="store_true")
     add_generation_launch_arguments(parser)
     return parser
@@ -61,6 +64,9 @@ def parse_args(argv=None, *, parser=None):
         args.control_offset = json.loads(args.control_offset)
     if args.control_offset is not None and (np.shape(args.control_offset) != (3,) or not np.isfinite(args.control_offset).all()):
         parser.error("control_offset must contain three finite metres")
+    correction = (args.ik_integral_gain, args.ik_max_integral_bias_rad, args.ik_max_integral_bias_m)
+    if not np.isfinite(correction).all() or correction[0] < 0 or min(correction[1:]) <= 0:
+        parser.error("IK correction gain must be nonnegative and its radian/metre caps positive and finite")
     return args
 
 
@@ -136,6 +142,7 @@ class GenerationContext:
             for _ in range(self.args.warmup_steps):
                 self.env.step(hold)
             reset_task_tracking(self.raw)
+        self.ik.reset()
         sizes = {name: self.task.spec.objects[name].size or self.task.spec.objects[name].params.get("size_outer")
                  for name in self.task.spec.tracked_objects}
         recorder = SuccessRecorder(self.writer, self.task, self.arm, sizes, self.args.fps,
@@ -163,7 +170,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from sim.envs.mdp.starts import reset_from_starts
     from sim.envs.scene_builder import drop_unused_camera_outputs
     from sim.datagen.dr_replay import discover_sim_cameras
-    from sim.datagen.ik import ArticulationIK, ArmKinematics
+    from sim.datagen.ik import ArticulationIK, ArmKinematics, IKOptions
     from sim.recording.lerobot_recorder import LeRobotRecorder
 
     if Path(args.destination).exists():
@@ -200,7 +207,11 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
                         note="Generated actions and observations use the selected device codec; no relative teleop wrist shift.")
         mark_recording_root(args.destination, contract)
         offset = getattr(args, "control_offset", None)
-        ik = ArticulationIK(raw.scene["robot"], arm, position_offset_m=offset)
+        options = IKOptions(integral_gain=getattr(args, "ik_integral_gain", 1.0),
+                            max_integral_bias_rad=getattr(args, "ik_max_integral_bias_rad", .08),
+                            max_integral_bias_m=getattr(args, "ik_max_integral_bias_m", .005))
+        ik = ArticulationIK(raw.scene["robot"], arm, position_offset_m=offset,
+                            control_dt=cfg.decimation * cfg.sim.dt, options=options)
         kinematics = ArmKinematics.from_arm(arm, position_offset_m=ik.position_offset_m)
         return GenerationContext(args, env, task, arm, mapping, calibration, cameras, writer, ik, kinematics, producer)
     except BaseException:
@@ -213,6 +224,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
 
 
 def make_report(context, *, source_provenance=None):
+    from dataclasses import asdict
     from core.utils.provenance import git_commit
     arm, args = context.arm, context.args
     return {"schema_version": 1, "source": context.source, "dataset": str(Path(args.destination).resolve()),
@@ -221,6 +233,7 @@ def make_report(context, *, source_provenance=None):
             "joint_units": [joint.unit for joint in arm.joints], "joint_roles": [joint.role for joint in arm.joints],
             "joint_mapping": context.calibration.mapping, "calibration": context.calibration.provenance,
             "control_offset_m": np.asarray(context.ik.position_offset_m).tolist(),
+            "ik_controller": {"control_dt_s": 1 / args.fps, "options": asdict(context.ik.options)},
             "seed": args.seed, "git_commit": git_commit(Path(__file__).resolve().parents[3]),
             "source_provenance": source_provenance or {}, "episodes": [], "accepted_episodes": 0,
             "requested_episodes": getattr(args, "episodes", None),
@@ -246,6 +259,37 @@ def execute_expert(context, rollout, expert):
     waypoints = expert.plan(ExpertContext(initial, rollout.control_pose(initial), tuple(normal), context.args.expert_options))
     dt = 1 / context.args.fps
     steps = 0
+
+    def failure_diagnostics(waypoint, requested_position, requested_quaternion, command, elapsed, phase_steps):
+        from sim.envs.mdp._common import as_torch
+
+        actual = rollout.control_pose(rollout.last_state)
+        final = context.ik.solve(waypoint.pose.position, waypoint.pose.quat_xyzw, advance=False)
+        robot = context.raw.scene["robot"]
+        ids = robot.find_joints(list(context.arm.usd_joint_names), preserve_order=True)[0]
+        measured = LiveRollout._numpy(as_torch(robot.data.joint_pos)[:, ids])[0]
+        commanded = LiveRollout._numpy(command).reshape(-1)
+        rollout.diagnostics = {
+            "waypoint": waypoint.name, "elapsed_s": elapsed, "phase_steps": phase_steps, "total_steps": steps,
+            "actual_tcp_pose": {"position": list(actual.position), "quat_xyzw": list(actual.quat_xyzw)},
+            "desired_tcp_pose": {"position": list(waypoint.pose.position), "quat_xyzw": list(waypoint.pose.quat_xyzw)},
+            "last_requested_tcp_pose": {"position": np.asarray(requested_position).tolist(),
+                                        "quat_xyzw": np.asarray(requested_quaternion).tolist()},
+            "position_error_m": float(final.position_error[0]),
+            "position_error_vector_world_m": (np.asarray(waypoint.pose.position) - actual.position).tolist(),
+            "orientation_error_rad": float(final.orientation_error[0]),
+            "orientation_axes": list(context.arm.ik.orientation_axes),
+            "position_tolerance_m": waypoint.tolerance_m,
+            "orientation_tolerance_rad": context.ik.options.orientation_tolerance_rad,
+            "joint_names": list(context.arm.joint_names),
+            "sim_joint_units": ["rad" if joint.type == "revolute" else "m" for joint in context.arm.joints],
+            "measured_joint_positions_sim": measured.tolist(),
+            "last_commanded_joint_positions_sim": commanded.tolist(),
+            "joint_command_error_sim": (commanded - measured).tolist(),
+            "integral_bias_sim": LiveRollout._numpy(context.ik.integral_bias).reshape(-1).tolist(),
+            "final_ik_limited": bool(final.limited[0]),
+        }
+
     for waypoint in waypoints:
         start = rollout.control_pose(rollout.last_state or initial)
         for tick in range(1, math.ceil(waypoint.timeout_s / dt) + 1):
@@ -264,13 +308,15 @@ def execute_expert(context, rollout, expert):
             if context.task.is_success(rollout.recorder.trace.stages):
                 return "task_success"
             if steps >= context.args.max_steps:
+                failure_diagnostics(waypoint, position, quaternion, target, elapsed, tick)
                 return "max_steps"
             if elapsed >= waypoint.duration_s:
-                final = context.ik.solve(waypoint.pose.position, waypoint.pose.quat_xyzw)
+                final = context.ik.solve(waypoint.pose.position, waypoint.pose.quat_xyzw, advance=False)
                 if (float(final.position_error[0]) <= waypoint.tolerance_m and
                         float(final.orientation_error[0]) <= context.ik.options.orientation_tolerance_rad):
                     break
         else:
+            failure_diagnostics(waypoint, position, quaternion, target, elapsed, tick)
             return "waypoint_timeout:" + waypoint.name
     return "expert_finished_without_success"
 
@@ -297,6 +343,8 @@ def main(argv=None):
                 try:
                     reason = execute_expert(context, rollout, expert)
                     row = rollout.recorder.finish(attempt=attempt, seed=seed, reason=reason)
+                    if hasattr(rollout, "diagnostics"):
+                        row["diagnostics"] = rollout.diagnostics
                 except BaseException:
                     rollout.recorder.abort()
                     raise
