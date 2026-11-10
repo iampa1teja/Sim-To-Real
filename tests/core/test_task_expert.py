@@ -128,3 +128,20 @@ def test_transport_roll_is_relative_to_the_pickup_tool_frame():
     np.testing.assert_allclose(after[:, 1], -before[:, 0], atol=1e-12)
     with pytest.raises(ValueError, match="not both"):
         task.expert().plan(replace(context, options={**context.options, "transport_orientation_xyzw": orientation}))
+
+
+def test_raised_release_opens_without_extra_closed_hold_over_container():
+    task = load_task("pick_place_cube")
+    state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
+                      Pose((0., 0., 1.)), 0.)
+    options = {"transport_roll_degrees": 90., "release_height_m": .09, "final_transport_seconds": .5}
+    context = ExpertContext(state, state.ee, (0., 0., 1.), options, Pose((0., 0., .75)))
+    points = task.expert().plan(context)
+    names = [point.name for point in points]
+    assert "orient_place" not in names and "lower" not in names
+    transport, release = points[names.index("transport"):names.index("transport") + 2]
+    assert release.name == "release" and release.gripper_open_fraction > 0
+    assert release.pose == transport.pose and transport.duration_s == .5
+    assert points[-2].pose.position[2] >= release.pose.position[2]
+    with pytest.raises(ValueError, match="release_height_m"):
+        task.expert().plan(replace(context, options={"release_height_m": -.01}))

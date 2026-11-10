@@ -74,6 +74,9 @@ class PickPlaceExpert:
         placed = np.asarray(box.position) + rotation @ local
         approach = float(options.get("approach_height_m", .06))
         lift = float(options.get("lift_height_m", .09))
+        release_height = float(options.get("release_height_m", 0.))
+        if not math.isfinite(release_height) or not 0 <= release_height <= lift:
+            raise ValueError("release_height_m must be between zero and lift_height_m")
         duration = float(options.get("move_seconds", 2.0))
         opened = float(options.get("gripper_open_fraction", .45))
         closed = float(options.get("gripper_closed_fraction", 0.0))
@@ -90,13 +93,18 @@ class PickPlaceExpert:
                             float(options.get("position_tolerance_m", .004)), max(timeout, seconds))
 
         # A retention orientation may be unsafe beside the table with an open
-        # jaw. Rotate only after lifting; restore the pickup orientation above
-        # the container before lowering and opening the fingers.
+        # jaw. Rotate only after lifting. Floor-level placement restores the
+        # pickup orientation; a raised release keeps the carry pose until open.
         turn_out = ()
         turn_back = ()
         if transport_orientation != orientation:
             turn_out = (point("orient_transport", source, closed, quaternion=transport_orientation),)
-            turn_back = (point("orient_place", destination, closed),)
+            if release_height == 0:
+                turn_back = (point("orient_place", destination, closed),)
+        release_pose = placed + normal * release_height
+        release_orientation = transport_orientation if release_height > 0 else orientation
+        lower = (() if release_height == lift else
+                 (point("lower", release_pose, closed, quaternion=release_orientation),))
         return (
             point("approach", cube + normal * approach, opened),
             point("descend", cube, opened),
@@ -105,12 +113,15 @@ class PickPlaceExpert:
             *turn_out,
             *(point(f"transport_arc_{index}", position, closed, quaternion=transport_orientation)
               for index, position in enumerate(route)),
-            point("transport", destination, closed, quaternion=transport_orientation),
+            point("transport", destination, closed, float(options.get("final_transport_seconds", duration)),
+                  quaternion=transport_orientation),
             *turn_back,
-            point("lower", placed, closed),
-            point("release", placed, opened, float(options.get("release_seconds", .8))),
-            point("retreat", placed + normal * approach, opened),
-            point("settle", placed + normal * approach, opened, float(options.get("settle_seconds", 1.5))),
+            *lower,
+            point("release", release_pose, opened, float(options.get("release_seconds", .8)),
+                  quaternion=release_orientation),
+            point("retreat", placed + normal * max(approach, release_height), opened),
+            point("settle", placed + normal * max(approach, release_height), opened,
+                  float(options.get("settle_seconds", 1.5))),
         )
 
 
