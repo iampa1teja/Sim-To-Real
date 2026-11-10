@@ -4,7 +4,8 @@ The s2r restructure of the SO-101 sim-to-real platform: Isaac Lab 3.0 (Newton / 
 LeRobot v0.6.1 for teleop and datasets, and pluggable policy servers (GR00T N1.7, MolmoAct2).
 The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
-The `v2` restructure is in progress. [Phase status and verification](docs/restructure-status.md) records the
+The `v2` restructure has passed Phases 0–5 and 7; Phase 6 is deferred. A contact-solver numerical fix passes motion replay and CPU regressions; the user’s paired-recording retry
+is the remaining follow-up. [Phase status and verification](docs/restructure-status.md) records the
 acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion order and import boundaries.
 Copy `.env.example` to `.env` for local device settings. The arm, declarative scene and generic task phases passed
 their CPU, recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
@@ -16,8 +17,21 @@ served and evaluated with finite joint commands. Phase 4 is complete. Scripted g
 physically successful pick-place episode without a post-pickup wrist roll; dataset validation and real GR00T
 preparation/verification pass. Mimic episodes pass physical and dataset validation at the source start and a
 nearby changed start. A two-step GR00T training check verifies a real optimizer update on the generated data.
-Phase 5 is complete; final documentation/conformance remains in progress.
+Eight workflow guides and their folder-extension conformance checks are complete.
 Second-arm hardware work is deferred at the user's request.
+
+## Guides
+
+| Workflow | Guide |
+| --- | --- |
+| Install, launch, create a first dataset | [Getting started](docs/01-getting-started.md) |
+| Arm manifest, USD, mapping and calibration | [Add an arm](docs/02-add-an-arm.md) |
+| Room, anchors, cameras and mounts | [Add a scene](docs/03-add-a-scene.md) |
+| Objects, starts, stages and success | [Add a task](docs/04-add-a-task.md) |
+| Prepare, verify and train a policy | [Training](docs/05-training.md) |
+| Capture geometry, freeze starts and compare results | [Evaluation](docs/06-evaluation.md) |
+| Implement a client/server plugin | [Policy plugins](docs/07-policy-plugins.md) |
+| Scripted experts, Mimic and replay | [Data generation](docs/08-data-generation.md) |
 
 ## Layout
 
@@ -35,7 +49,7 @@ policies/<name>/        policy.toml, client.py, server.py, train/   (see policie
 docker/sim/             s2r-sim image: Isaac Lab 3.0 + LeRobot (teleop, record, eval, replay)
 docker/policy/          s2r-serve / s2r-train images: one uv venv per policy
 src/core/               no Isaac: arms, scenes, calibration, tasks (spec + stages), benchmark, datasets,
-                        policy_client, policy_server, rollout, utils, scripts
+                        policy_client, policy_server, rollout, utils
 src/sim/                Isaac only: envs (+ mdp), scene, teleop, recording, datagen, eval
 src/cli/                the s2r CLI (plans docker commands)
 tests/                  CPU-only tests
@@ -148,11 +162,11 @@ s2r policies                             list policies and their train commands
 s2r tunnel --host user@box --port N      reach a remote policy server from the local sim
 ```
 
-Host-side helpers: `python -m core.benchmark.compare`, `python -m core.benchmark.sweep`, and `s2r new policy <name>`.
+Use `s2r compare` for paired results, `s2r sweep` for sweep summaries, and `s2r new policy <name>` for a policy scaffold.
 
 ## Recording
 
-`python -m sim.teleop.agent` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
+`s2r record` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
 Newton builds its model once, so spawnable task objects are declared up front and parked off the table;
 `spawn --object <name>` (or `sim_reset_object_name` in the config, at each episode start) teleports one beside
 the fixed-jaw tip. Every object declared in `task.tracked_objects` is written per frame to
@@ -165,7 +179,7 @@ recording without a saved mapping needs an explicit `--unit` to establish its ac
 
 ## Evaluation
 
-`python -m sim.eval.run` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
+`s2r eval` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
 the checkpoints you compare; `compare_eval_results` runs paired McNemar tests on the results JSONs.
 Schema-2 eval sets declare the task, arm, joint order and named object poses for each start. Saved robot states
 remain raw LeRobot values interpreted with the set's saved joint mapping. The three approved frozen-set

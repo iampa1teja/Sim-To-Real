@@ -278,6 +278,11 @@ def run_loop(cfg, simulation_app, ctx: LoopResources):
                 obs, _, _, _, _ = env.step(actions)
             except Exception as exc:
                 raise RuntimeError(f'Isaac Sim action application failed: {exc}') from exc
+            if not torch.isfinite(obs['policy']['joint_pos_obs']).all():
+                raise RuntimeError(
+                    'Simulation physics produced nonfinite joint positions; stopping teleop and discarding '
+                    'the uncommitted episode. This is a simulation-state failure, not a camera or dataset error.'
+                )
             previous_target, previous_leader_action = target.clone(), dict(leader_action)
             remaining = (1.0 / cfg.fps) - (time.perf_counter() - loop_start)
             if remaining > 0:

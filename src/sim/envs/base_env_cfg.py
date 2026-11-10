@@ -106,6 +106,9 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
     terminations = None
 
     def __post_init__(self):
+        from sim.solver_numerics import install_mjwarp_precision_guard
+
+        install_mjwarp_precision_guard()
         arm = self.arm_spec or load_arm_spec()[0]
         self.arm_spec = arm
         self.scene.robot = load_arm_cfg(arm).replace(prim_path="{ENV_REGEX_NS}/Robot")

@@ -1,6 +1,6 @@
 # Repository conventions
 
-The active restructure is on branch `v2`. See `docs/restructure-status.md` for phase gates and verified evidence.
+The restructure is on branch `v2`; Phases 0–5 and 7 are complete, with Phase 6 deferred. See `docs/restructure-status.md` for phase gates and verified evidence.
 Do not start the next phase until the current phase's CPU suite and simulator checks pass.
 
 - `src/core/` must not import Isaac Sim, Isaac Lab, Kit, or `pxr`. Simulator-specific code belongs in `src/sim/`.
@@ -91,5 +91,15 @@ example evaluation and live GR00T/Molmo serving/evaluation pass. Phase 5 CPU imp
 real SDK Mimic configuration/retargeting and schema-2 GR00T preparation. A no-roll scripted episode now passes
 physical success, dataset validation and real GR00T preparation/verification. Mimic passes physical success and
 dataset validation at the source start and a nearby changed start. A two-step GR00T optimizer update and source
-integrity check pass; Phase 5 is complete. Final documentation/conformance remains pending. The user deferred Phase 6 on 2026-11-10: proceed from accepted Phase 5 to Phase 7 without
-claiming second-arm or hardware validation.
+integrity check pass; Phase 5 is complete. Phase 7 guides were exercised through new folders, headless
+composition, policy serving/evaluation and paired comparison. The user deferred Phase 6 on 2026-11-10;
+second-arm hardware validation remains outstanding. Training recipes and the retained visual DR recipe still
+have their documented SO-101/pick-place scope; do not claim arbitrary-model training or learned task performance.
+
+
+The paired-motion follow-up isolated a float32 MJWarp Cholesky failure during table contact. The same replay
+fails identically on an isolated copy of main in the current container. `sim.solver_numerics` repairs only
+failed Newton search directions: double-precision factorization, then positive-diagonal descent if needed.
+The existing contact objective/line search and every physical parameter remain unchanged. Install before
+CUDA graph capture; do not edit installed SDK files. Captured-matrix CPU tests and a 1,140-step contact/retreat
+replay pass. Teleop rejects invalid simulation joints immediately, including outside active recording.

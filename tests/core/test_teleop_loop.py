@@ -78,3 +78,30 @@ def test_spawn_then_start_uses_declared_object_and_offset(session):
     events.clear()
     controller.handle({'start': True})
     assert events == [('spawn', 'cube_a', (0.01, 0., 0.)), ('recording', True)]
+
+
+def test_buffer_motion_stops_at_first_invalid_simulation_step():
+    import torch
+    from sim.teleop.loop import run_loop
+
+    commands = []
+    action = {'shoulder.pos': 10., 'finger.pos': 50.}
+    state = {'policy': {'joint_pos_obs': torch.zeros((1, 2))}}
+    invalid = {'policy': {'joint_pos_obs': torch.full((1, 2), float('nan'))}}
+    env = SimpleNamespace(
+        action_space=SimpleNamespace(shape=(1, 2)),
+        unwrapped=SimpleNamespace(device='cpu', observation_manager=SimpleNamespace(compute=lambda: state)),
+        step=lambda actions: (invalid, None, None, None, None),
+    )
+    resources = LoopResources(
+        env=env, env_id='fixture', leader=SimpleNamespace(get_action=lambda: action),
+        mapping=SimpleNamespace(raw_from_actions=lambda _: torch.tensor([10., 50.]), to_sim=lambda x: x),
+        arm=SimpleNamespace(wrist_roll=None), task=None,
+        controls=SimpleNamespace(consume_requests=lambda: {}),
+        spawner=SimpleNamespace(poll=lambda: False, hold=lambda: None), sim_cameras={}, real_cameras={},
+        follower=SimpleNamespace(send_action=commands.append),
+    )
+    cfg = SimpleNamespace(fps=30, sim_reset_object_name=None, sim_reset_object_offset=(0., 0., 0.))
+    with pytest.raises(RuntimeError, match='Simulation physics produced nonfinite'):
+        run_loop(cfg, SimpleNamespace(is_running=lambda: True), resources)
+    assert commands == [action]

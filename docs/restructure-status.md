@@ -17,7 +17,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Complete |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Deferred by user on 2026-11-10; excluded from the current completion gate |
-| 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
+| 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Complete |
 
 The stage-logic deduplication in section 2.3 is explicitly assigned to Phase 3 by the plan. The large agent/eval
 splits listed in section 2.4 were completed in Phase 4.
@@ -307,3 +307,82 @@ parameters are also captured, with a deterministic CPU response replay for check
   This is a pipeline/optimizer acceptance check, not evidence of learned task performance. Checkpoint:
   `outputs/v2/phase5/gr00t-training-check/checkpoint-2`. The training process exited successfully and released
   the GPU. The latest full CPU gate remains 394 tests plus 22 subtests. Phase 7 can now begin.
+
+
+## Phase 7 integration
+
+- Eight workflow guides cover setup, arms, scenes, tasks, training, evaluation, policies and generation. README
+  and policy documentation link to these guides. Complete templates and CPU conformance checks exercise
+  mixed joint types, parallel grippers, dynamic/fixed policy dimensions and actual client/server serialization.
+- The documented `s2r new` commands created `guide_arm`, `guide_scene`, `guide_task` and `echo_policy`.
+  The combined arm/scene/task passed the real headless `s2r check`: two joints, two tracked cubes, a rendered
+  640×480 RGB camera and three finite simulation steps (`guide-composition.log`). The policy was implemented
+  from the guide's exact code blocks and successfully served through its own locked environment.
+- `folder-reproduction.json` records an independent repeat of those folder instructions: all 122 source files
+  stayed unchanged, and every generated plugin file exactly matches the files used in the live checks.
+  The reproduced policy's CPU factory/wire conformance passed. Both sets of temporary plugin folders are
+  archived under `outputs/v2/phase7/guide-extensions-*`, outside production discovery.
+- `s2r check --scene-json` exports live geometry only after checks pass. The SO-101/meeting-room check passed
+  with the forwarded `S2R_ROOM_USD` override and both cameras (`meeting-room-check.log`). The actual `s2r eval-set`
+  command built a schema-2, one-start integration benchmark from the validated no-roll dataset and exported
+  geometry (`guide-eval-set.log`). This small fixture is not a performance benchmark.
+- The new echo policy completed two 30-step evaluations against that same start. Both correctly failed the
+  task while holding state; `guide-results-a.json` and `guide-results-b.json` retain the reports. Actual
+  `s2r compare` paired the episode successfully (`guide-compare.log`). `s2r sweep` exposes the existing sweep
+  summarizer. Planner tests cover these commands and whitelisted runtime environment forwarding.
+- Retained Molmo preparation now reads saved arm mapping instead of deleted scene JSON, honors container
+  inputs, copies portable videos and sidecars, and records the transformed action codec. Actual `s2r prepare`
+  passed on the 391-frame no-roll dataset: maximum physical conversion error 5.98e-6 degrees, all 11 source
+  hashes unchanged, videos and named-object sidecars byte-identical (`molmo-prepare-validation.json`).
+  Its training/probe argument adapters are CPU-tested; no Molmo optimizer run is claimed here. The Phase 5
+  optimizer gate is the real GR00T two-step run. `s2r verify --gpu` explicitly opts into GPU-dependent probes.
+- The GR00T download command now passes all include patterns in one argument group. Calibration homing warnings
+  use half the selected arm's encoder resolution. Both fixes have focused regressions.
+- Final CPU gate: **421 passed, 22 subtests passed**, 131 dependency warnings, no skips/ignores.
+  All eight installed extensions pass static checks. Logs are `cpu-tests-release.log` and `static-final.log`. No GPU process was launched after
+  the user began paired recording. The owned echo server was stopped; unrelated servers were left running.
+
+## Remaining boundaries
+
+- Phase 6 (OMX assets, simulator proof and paired hardware recording) is explicitly deferred. The template arm
+  establishes composition, not physical second-arm compatibility; jaw-relative spawning retains documented
+  USD mesh/axis conventions that must be checked for a future arm.
+- Task-specific policy preparation/training was explicitly left for a later pass by section 7 of the plan.
+  The retained visual DR replay recipe also uses pick-place color/language hooks; generic scripted/Mimic
+  generation and named-object pose recording do not depend on that recipe.
+- Successful generation trials demonstrate physical success and valid datasets, not a measured success rate
+  over every start. The short optimizer check establishes training integration, not learned-policy quality.
+- Renderer repeatability and intermittent native startup failures remain documented above. The GUI and Git LFS
+  decision remain outside this restructure. Main was not modified, and no changes were pushed.
+
+
+## Paired-recording contact failure and fix
+
+- The user's motion-only paired run produced nonfinite simulated joints before spawning. Both simulation
+  camera views became nearly blank while real images remained available. Joint telemetry recorded 701 valid
+  observations before the invalid state; commands and physical follower readings remained finite.
+- The 700 available commands reproduce the measured trajectory within 0.000005 degrees. A 30-step linear
+  continuation enters gripper/table contact and deterministically fails at replay step 724. An isolated archive
+  of `main` at `637ea11` fails at exactly the same step, with bitwise-identical finite joint positions/velocities.
+  This comparison uses the current simulator container and does not claim every earlier main run failed.
+  Evidence: `paired-recording-debug/main-v2-comparison.json` and `replay-main/` under Phase 7 outputs.
+- Instrumentation isolates `_cholesky_factorize_solve`: finite contact Hessian and gradient enter the installed
+  MJWarp float32 factorization, but its search direction becomes NaN. The captured Hessian is positive definite
+  in double precision and its arm block has a condition number above 1e8. The original failure matrix is retained
+  as a CPU regression fixture. Later contact steps also need a descent fallback when the assembled Hessian
+  cannot be factorized even in double precision.
+- `sim.solver_numerics` first retries failed small-system searches in float64, then uses the positive Hessian
+  diagonal as a gradient preconditioner if necessary. The existing objective, line search and convergence
+  criteria still choose the update. Successful original searches, geometry, masses, friction, gains, timesteps,
+  contact settings and joint commands are unchanged. Invalid gradients/diagonals are not silently repaired.
+  The hook is installed before Newton captures its GPU graph, without modifying installed dependencies.
+- The repaired 820-step replay preserves every finite pre-failure state bitwise. The integrated production
+  path passes **1,140 steps**, including continued contact, a six-second hold and retreat. Both camera streams
+  render normal images afterward (`paired-recording-debug/replay-production/`). This reproducer opens no
+  hardware or datasets. Teleop now also stops immediately on invalid simulation state during buffer motion.
+- The final full CPU suite passes **426 tests plus 22 subtests**, with 131 dependency warnings and no ignores
+  or skips (`cpu-tests-contact-fix.log`). Actual CPU Warp kernels exercise the captured matrix, valid/no-op
+  searches, indefinite-Hessian descent, invalid inputs and idempotent installation.
+- The user has been given the normal paired-recording command for a physical retry. That retry is pending;
+  it is separate from the successful hardware-free reproduction and fix verification. Test datasets were
+  not deleted again, and no hardware was commanded by the diagnostic replays.
