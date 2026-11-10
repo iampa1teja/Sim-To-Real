@@ -14,9 +14,9 @@ Phase 4's full CPU suite, host checks, three simulator compositions and producti
 The renamed evaluator reproduced the example policy's nine-episode schedule; live GR00T and Molmo also
 served and evaluated with finite joint commands. Phase 4 is complete. Scripted generation has produced a
 physically successful pick-place episode without a post-pickup wrist roll; dataset validation and real GR00T
-preparation/verification pass. A Mimic episode also passes physical and dataset validation at the source start.
-Changed-start Mimic acceptance and generated-data optimizer training remain pending, along with second-arm
-hardware checks and final documentation/conformance.
+preparation/verification pass. Mimic episodes pass physical and dataset validation at the source start and a
+nearby changed start. Generated-data optimizer training and final documentation/conformance remain pending.
+Second-arm hardware work is deferred at the user's request.
 
 ## Layout
 

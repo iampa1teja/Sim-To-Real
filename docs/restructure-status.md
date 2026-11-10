@@ -16,11 +16,13 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | In progress — scripted and Mimic episodes pass; training pending |
-| 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
+| 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Deferred by user on 2026-11-10; excluded from the current completion gate |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
 The stage-logic deduplication in section 2.3 is explicitly assigned to Phase 3 by the plan. The large agent/eval
 splits listed in section 2.4 were completed in Phase 4.
+The user explicitly requested skipping Phase 6 for now. After Phase 5 passes, proceed to Phase 7;
+this deferral does not constitute second-arm or hardware validation.
 
 ## Phase 0 evidence and remaining work
 
@@ -287,4 +289,13 @@ parameters are also captured, with a deterministic CPU response replay for check
   subtask interpolation frames. `mimic-precise1-validation.json` independently passes final physical success,
   all six stages, both decoded camera streams, object poses, action codec and annotation alignment. Dataset:
   `datasets/v2_phase5_mimic_precise1`; preview: `outputs/v2/phase5/mimic-episode.mp4`.
-  Changed-start retargeting and a generated-data optimizer update remain unverified; Phase 5 is not complete.
+  A changed-start run at seed 24716 also passes all six stages and independent 402-frame dataset validation
+  (`mimic-retarget2-validation.json`). Preview: `outputs/v2/phase5/mimic-retargeted-episode.mp4`.
+  `mimic-retarget2-augmentation-proof.json` verifies a 4.42 mm / -0.25 degree initial cube shift, all 402
+  actual SDK target transforms within 0.2 micrometres of reconstruction, 25 consecutive placement frames,
+  and unchanged hashes for all 11 source files.
+  The first launch of this run crashed during scene construction before creating a dataset; the crash log is
+  retained, and the successful retry is `mimic-retarget2-retry.log`. Another nearby start (26348) retained the
+  cube until deliberate release but settled tilted 0.528 mm beyond the inner box boundary. That failed attempt
+  was discarded; neither physics nor success criteria were changed. These trials do not establish a broad
+  start-distribution success rate. The generated-data optimizer update remains unverified; Phase 5 is not complete.
