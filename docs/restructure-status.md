@@ -225,8 +225,8 @@ parameters are also captured, with a deterministic CPU response replay for check
 
 ## Phase 5 integration (not yet accepted)
 
-- Full CPU suite: **366 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
-  ignores; see `outputs/v2/phase5/cpu-tests.log`. All eight host static plugin checks pass in `static-check.log`.
+- Latest full CPU suite: **373 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
+  ignores; see `outputs/v2/phase5/cpu-tests-stagedroll.log`. All eight host static plugin checks pass in `static-check.log`.
   SDK Mimic tests exercise actual source segmentation, retargeting, async action/reset queues and bounded
   cancellation. Its config wrapper preserves measured mounts and task fields through copying/export.
 - Arm manifests can declare a TCP offset and the orientation components their IK controls. The native Jacobian
@@ -234,7 +234,8 @@ parameters are also captured, with a deterministic CPU response replay for check
   supplies the actual executed target pose for Mimic annotations without changing simulator state.
 - `outputs/v2/phase5/ik-reachability.json` records CPU kinematic solutions for all 36 expert waypoints across a
   recorded scene and three sampled starts. This does not establish collision clearance, grasping or task success.
-  A live native-Jacobian/FK comparison is prepared but has not run.
+  The live native-Jacobian/FK comparison now passes across five physical states: maximum TCP position error
+  0.286 micrometres, linear-Jacobian error 2.94e-7 and angular-Jacobian error 1.85e-6 (`live-kinematics.json`).
 - Scripted generation and calibration replay share one physical rollout and success-filtered LeRobot recorder.
   Failed attempts and episodes that lose success before their final frame are excluded. Recorded observations,
   actions, cameras and named-object poses describe the same pre-action frame; success observes the resulting
@@ -245,5 +246,10 @@ parameters are also captured, with a deterministic CPU response replay for check
   files. This is a format-compatibility check, not the required generated-data training gate.
   The actual `s2r verify` command also passed prepared checksums and first/middle/last images from both cameras
   against independent PyAV decoding, with zero RGB difference (`verify-fixture.log`).
-- The GPU was released after Phase 4. Phase 5 work so far uses CPU checks with CUDA hidden; another GPU session
-  must be coordinated with the user before live IK, successful generated episodes, Mimic or training acceptance.
+- The user authorized the Phase 5 GPU session. Physical trials exposed steady load-induced servo error; bounded
+  integral compensation now reaches the pickup and completes a grasp/lift without changing production physics.
+  The task expert routes transport around the arm base and targets the container centre. All arc waypoints finish,
+  but the cube slips sideways across the narrow finger pads during transport (`scripted-arc1.json`). No successful
+  generated episode has been saved yet. A rotated pickup collided before reaching the cube (`scripted-roll90.json`);
+  the next candidate preserves the pickup pose and changes orientation only above the table.
+- Successful scripted data, live Mimic generation and generated-data preparation/training remain unverified.

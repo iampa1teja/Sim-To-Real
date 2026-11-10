@@ -90,3 +90,23 @@ def test_transport_requires_actual_base_pose():
                       Pose((0., 0., 1.)), 0.)
     with pytest.raises(ValueError, match="actual arm_base"):
         task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.)))
+
+
+def test_transport_orientation_changes_only_after_table_clearance():
+    task = load_task("pick_place_cube")
+    state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
+                      Pose((0., 0., 1.)), 0.)
+    rotated = (0., 0., np.sin(np.pi / 4), np.cos(np.pi / 4))
+    points = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.),
+                                            {"transport_orientation_xyzw": rotated}, Pose((0., 0., .75))))
+    named = {point.name: point for point in points}
+    for name in ("approach", "descend", "close", "lift", "lower", "release", "retreat"):
+        assert named[name].pose.quat_xyzw == state.ee.quat_xyzw
+    assert named["orient_transport"].pose.position == named["lift"].pose.position
+    assert named["orient_place"].pose.position == named["transport"].pose.position
+    for point in points:
+        if point.name.startswith("transport") or point.name == "orient_transport":
+            np.testing.assert_allclose(point.pose.quat_xyzw, rotated)
+            assert point.gripper_open_fraction == 0
+    assert named["orient_place"].pose.quat_xyzw == state.ee.quat_xyzw
+    assert named["orient_place"].gripper_open_fraction == 0

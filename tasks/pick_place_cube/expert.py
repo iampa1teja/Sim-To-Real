@@ -48,6 +48,7 @@ class PickPlaceExpert:
         normal = np.asarray(context.table_normal, dtype=float)
         normal /= np.linalg.norm(normal)
         orientation = tuple(options.get("orientation_xyzw", context.control_pose.quat_xyzw))
+        transport_orientation = tuple(options.get("transport_orientation_xyzw", orientation))
         size = self.task.spec.objects["blue_cube"].size
         container = self.task.spec.objects["white_box"].params
         # The circular support bound admits any cube yaw. Centre placement keeps
@@ -76,17 +77,28 @@ class PickPlaceExpert:
         route = _transport_arc(source, destination, np.asarray(context.arm_base.position), normal,
                                float(options.get("transport_arc_margin_m", .01)))
 
-        def point(name, position, opening, seconds=duration):
-            return Waypoint(name, Pose.from_lists(position, orientation), opening, seconds,
+        def point(name, position, opening, seconds=duration, quaternion=orientation):
+            return Waypoint(name, Pose.from_lists(position, quaternion), opening, seconds,
                             float(options.get("position_tolerance_m", .004)), max(timeout, seconds))
 
+        # A retention orientation may be unsafe beside the table with an open
+        # jaw. Rotate only after lifting; restore the pickup orientation above
+        # the container before lowering and opening the fingers.
+        turn_out = ()
+        turn_back = ()
+        if transport_orientation != orientation:
+            turn_out = (point("orient_transport", source, closed, quaternion=transport_orientation),)
+            turn_back = (point("orient_place", destination, closed),)
         return (
             point("approach", cube + normal * approach, opened),
             point("descend", cube, opened),
             point("close", cube, closed, float(options.get("grasp_seconds", .8))),
             point("lift", source, closed),
-            *(point(f"transport_arc_{index}", position, closed) for index, position in enumerate(route)),
-            point("transport", destination, closed),
+            *turn_out,
+            *(point(f"transport_arc_{index}", position, closed, quaternion=transport_orientation)
+              for index, position in enumerate(route)),
+            point("transport", destination, closed, quaternion=transport_orientation),
+            *turn_back,
             point("lower", placed, closed),
             point("release", placed, opened, float(options.get("release_seconds", .8))),
             point("retreat", placed + normal * approach, opened),
