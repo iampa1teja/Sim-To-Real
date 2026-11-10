@@ -2,7 +2,7 @@
 
 Only for what the scene (materials, lights) cannot reproduce: vignetting, exposure/white balance,
 tone curve, blur and sensor noise. Fitted separately per camera; parameters live in
-real_setup.json under each camera's "response" key. Every field is optional (identity default).
+the arm camera manifest or scene appearance.json under "camera_response". Every field is optional (identity default).
 
 Order of operations on an H x W x 3 uint8 frame:
   0) x = srgb_to_linear(rgb / 255)                          (IEC 61966-2-1)

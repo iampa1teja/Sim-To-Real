@@ -14,8 +14,9 @@ rigid = true
 size_outer = [0.135, 0.085, 0.045]
 inner_half_size = [0.065625, 0.04064896]
 floor_z = 0.0018
-right_offset = 0.247172813204101
-front_edge_clearance = 0.0
+frame = "table"
+position = [-0.247171785265209, -0.042505977873273204, 0.000999999999999829]
+rotation_euler_degrees = [0.0, 0.0, 0.0]
 
 [task.objects.blue_cube]
 size = [0.02, 0.02, 0.02]

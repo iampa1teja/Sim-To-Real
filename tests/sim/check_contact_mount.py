@@ -38,9 +38,11 @@ def main():
         from isaaclab_newton.physics import NewtonManager
         import sim.envs as envs
         from sim.envs.mdp import as_torch
-        from sim.scene.gripper_geometry import table_plane
+        from sim.scene.geometry import table_plane
         from sim.scene.contact_materials import CONTACT_FRICTION, GRASP_FRICTION
-        from sim.scene.real_setup import SETUP, robot_rotation
+        from core.arms.spec import load_arm_spec
+        from core.scenes import load_scene_spec, load_mount_spec
+        from core.scenes.anchors import mount_pose
 
         env_id = envs.TASK.gym_id("teleop")
         cfg = parse_env_cfg(env_id, device="cuda:0", num_envs=1, use_fabric=True)
@@ -49,12 +51,15 @@ def main():
         e = env.unwrapped
         env.reset()
         robot, cube = e.scene["robot"], e.scene["blue_cube"]
-        base = robot.find_bodies("base")[0][0]
+        arm = load_arm_spec()[0]
+        scene = load_scene_spec()
+        mount = load_mount_spec(scene, arm)
+        base = robot.find_bodies(arm.links.base)[0][0]
         base_pos = as_torch(robot.data.body_link_pos_w)[0, base].cpu().numpy().copy()
         origin = as_torch(e.scene.env_origins)[0].cpu().numpy()
-        nominal = np.asarray(SETUP["robot"]["position"]) + origin
-        correction = np.asarray(SETUP["robot"].get("mount_translation_correction_m", [0., 0., 0.]))
-        expected = nominal + correction
+        correction = np.asarray(mount.translation_correction_m)
+        expected = np.asarray(mount_pose(scene, mount, arm).position) + origin
+        nominal = expected - correction
         root = e.sim.stage.GetPrimAtPath(e.scene.env_prim_paths[0])
         plane = np.asarray(table_plane(e.sim.stage, root))
         height = float(plane[:2] @ base_pos[:2] + plane[2])
@@ -117,7 +122,7 @@ def main():
         xy = np.asarray([0.65, -0.40]) + origin[:2]
         normal = np.asarray([-plane[0], -plane[1], 1.0])
         pos = np.r_[xy, plane[:2] @ xy + plane[2] + 0.01 * np.linalg.norm(normal) + 0.0002]
-        pose = torch.tensor([list(pos) + list(robot_rotation())], device=e.device, dtype=torch.float32)
+        pose = torch.tensor([list(pos) + list(mount_pose(scene, mount, arm).orientation_xyzw)], device=e.device, dtype=torch.float32)
         env_ids = torch.tensor([0], device=e.device)
         cube.write_root_pose_to_sim_index(root_pose=pose, env_ids=env_ids)
         cube.write_root_velocity_to_sim_index(

@@ -36,6 +36,13 @@ from isaaclab.sim import get_current_stage
 
 from ._common import as_torch
 
+
+def _arm_spec(env):
+    from core.arms.spec import load_arm_spec
+
+    return getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]
+
+
 def env_indices(env, env_ids):
     """Any env_ids an event can receive (None, slice, list, tensor) as a 1-D index tensor.
 
@@ -93,9 +100,7 @@ def _env_prim_path(env, asset, index):
 
 def _ee_body(env, robot):
     """(ee body index, ee prim path in env 0) for the arm's end-effector link from arm.toml."""
-    from core.arms.spec import load_arm_spec
-
-    ee_link = load_arm_spec()[0].links.ee
+    ee_link = _arm_spec(env).links.ee
     ids, _ = robot.find_bodies(ee_link)
     if len(ids) != 1:
         raise ValueError(f"Expected exactly one robot body named {ee_link!r}")
@@ -119,9 +124,7 @@ def set_robot_color(env, rgb: tuple[float, float, float]):
     """Set color of the arm to a desired RGB value (USD material edit, independent of physics backend)."""
     with Sdf.ChangeBlock():
         robot = env.scene["robot"]
-        from core.arms.spec import load_arm_spec
-
-        material_path = load_arm_spec()[0].appearance.get("body_material")
+        material_path = _arm_spec(env).appearance.get("body_material")
         if not material_path:
             return
         material_prim_path = robot.cfg.prim_path + "/" + material_path.lstrip("/")
@@ -155,7 +158,8 @@ def reset_object_pose(
     ``half_extents`` (metres, object frame) sizes any object; when None it comes from a
     cuboid spawn's ``size`` (USD objects pass it from task.toml ``size``).
     """
-    from sim.scene.gripper_geometry import gripper_tip_local_offset, table_plane
+    from sim.scene.geometry import gripper_tip_local_offset, table_plane
+    from core.scenes import load_scene_spec
 
     env_ids = env_indices(env, env_ids)
     if len(env_ids) == 0:
@@ -178,8 +182,11 @@ def reset_object_pose(
     # The widest half-extent keeps any face clear of the jaw.
     half_size = max(float(v) for v in half_extents)
     stage = get_current_stage()
+    gripper = _arm_spec(env).gripper
+    if gripper is None or not gripper.tip_mesh:
+        raise ValueError("Jaw-relative placement needs [arm.gripper] tip_mesh")
     local_offset = eef_pos_w.new_tensor(
-        gripper_tip_local_offset(stage, half_size, side_clearance_m, ee_path)
+        gripper_tip_local_offset(stage, half_size, side_clearance_m, ee_path, gripper.tip_mesh)
     ).unsqueeze(0).repeat(len(env_ids), 1)
 
     world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
@@ -195,7 +202,12 @@ def reset_object_pose(
         cube_quat_w = math_utils.quat_mul(cube_quat_w, jitter_quat)
 
     # Fit each environment's tabletop in world metres; raising Z alone keeps the cube beside the gripper.
-    planes = [table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index])) for index in env_ids.tolist()]
+    scene = getattr(env.cfg, "scene_spec", None) or load_scene_spec()
+    table = scene.anchors.get("table")
+    if table is None:
+        raise ValueError("Jaw-relative placement needs a scene table anchor")
+    planes = [table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]), table)
+              for index in env_ids.tolist()]
     plane = cube_pos_w.new_tensor(np.array(planes))
     normal = torch.cat((-plane[:, :2], torch.ones_like(plane[:, 2:])), dim=-1)
     rotation = math_utils.matrix_from_quat(cube_quat_w)
@@ -237,21 +249,6 @@ def park_object(
 
 # Cache for storing default poses read from USD
 _default_poses_cache = {}
-
-
-def sync_pick_place_camera_intrinsics(env, env_ids):
-    """Make focal-length changes affect the OpenCV RTX lens model too."""
-    for name in ("camera_realsense_rgb", "camera_wrist_cam", "realsense_depth"):
-        if name not in env.scene.sensors:  # None cfgs (e.g. realsense_depth in eval) are never spawned
-            continue
-        camera = env.scene[name]
-        calibration = camera.cfg.spawn.intrinsics
-        if calibration is None:
-            continue
-        for prim in sim_utils.find_matching_prims(camera.cfg.prim_path):
-            scale = prim.GetAttribute("focalLength").Get() / camera.cfg.spawn.focal_length
-            for axis in ("fx", "fy"):
-                prim.GetAttribute("omni:lensdistortion:opencvPinhole:" + axis).Set(calibration[axis] * scale)
 
 
 def get_camera_base_pose(env, prim_path_pattern):
@@ -318,9 +315,7 @@ def set_camera_focal_length(env, asset_cfg: SceneEntityCfg, focal_length):
 
 def apply_runtime_joint_limits(env, env_ids):
     """Apply per-joint arm limits: revolute degrees become radians; prismatic limits stay metres."""
-    from core.arms.spec import load_arm_spec
-
-    arm, _ = load_arm_spec()
+    arm = _arm_spec(env)
     robot = env.scene["robot"]
     missing = [joint.usd for joint in arm.joints if joint.usd not in robot.joint_names]
     if missing:

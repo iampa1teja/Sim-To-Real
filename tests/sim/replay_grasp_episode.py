@@ -134,7 +134,7 @@ def main():
 
         import sim.envs as envs
         from sim.envs.mdp import as_torch
-        from sim.scene.gripper_geometry import table_plane
+        from sim.scene.geometry import table_plane
         from core.arms.mapping import JointMapping
         from core.arms.calibration import resolve_calibration
         from core.arms.spec import load_arm_spec

@@ -75,7 +75,7 @@ def _relative_file(directory, value, label):
     return path.resolve()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class JointSpec:
     name: str
     usd: str
@@ -89,13 +89,13 @@ class JointSpec:
         return "deg" if self.type == "revolute" else "m"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LinksSpec:
     base: str
     ee: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GripperSpec:
     kind: str
     joints: tuple[str, ...]
@@ -104,13 +104,13 @@ class GripperSpec:
     tip_mesh: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WristRollSpec:
     joint: str
     relative_in_teleop: bool = True
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CameraSpec:
     parent_link: str
     position: tuple[float, float, float]
@@ -125,13 +125,13 @@ class CameraSpec:
     data_types: tuple[str, ...] = ("rgb",)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class InitialStateSpec:
     position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     rotation_euler_degrees: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LeRobotSpec:
     follower_type: str
     leader_type: str
@@ -142,14 +142,14 @@ class LeRobotSpec:
     leader_calibration_dir: str = ""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class HardwareSpec:
     motor: str
     encoder_counts_per_turn: int
     zero_count: float
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ArmSpec:
     name: str
     directory: Path

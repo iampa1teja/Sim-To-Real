@@ -1,108 +1,19 @@
-"""Shared placement for the packaged scene and every MyRoom launcher."""
+"""Measured meeting-room material edits that do not belong to generic scene code.
+
+The imported mesh/material names and the fitted photographic coordinates are
+owned by this scene. Camera, lighting, mount and solver data remain declarative.
+"""
 import json
+from pathlib import Path
 
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade
-
-from core.paths import repo_dir as _repo_dir  # noqa: F401  (kept for existing imports)
-from core.scenes import SCENE_NAME, load_setup, scene_dir  # noqa: F401
-
-# Measured room: real_setup.json, textures/ and usd/digital_twin.usdz live in scenes/<scene>/.
-ASSET_DIR = scene_dir()
-SETUP = load_setup()
-DEFAULT_SETUP_USDZ = str(ASSET_DIR / "usd" / "digital_twin.usdz")
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
-def quaternion_tuple(rotation):
-    """Return (x, y, z, w): Isaac Lab 3.0 configs take XYZW (USD Gf stores the real part first)."""
-    q = rotation.GetQuat()
-    return (*q.GetImaginary(), q.GetReal())
-
-
-def robot_rotation():
-    tilt = Gf.Rotation(Gf.Vec3d(0, 0, 1), Gf.Vec3d(*SETUP["robot"]["table_normal"]))
-    yaw = Gf.Rotation(Gf.Vec3d(0, 0, 1), SETUP["robot"]["yaw_degrees"])
-    return quaternion_tuple(yaw * tilt)
-
-
-def camera_rotation():
-    camera = SETUP["realsense"]
-    if "euler_degrees" in camera:
-        # USD/OpenGL camera convention: -Z forward, +Y up; XYZ degrees.
-        x, y, z = camera["euler_degrees"]
-        rotation = (Gf.Rotation(Gf.Vec3d(1, 0, 0), x)
-                    * Gf.Rotation(Gf.Vec3d(0, 1, 0), y)
-                    * Gf.Rotation(Gf.Vec3d(0, 0, 1), z))
-        return quaternion_tuple(rotation)
-    forward = (Gf.Vec3d(*camera['target']) - Gf.Vec3d(*camera['position'])).GetNormalized()
-    # Match the nearly horizontal table edge in the Cheese reference.
-    table_long = Gf.Vec3d(0.996801706, 0.079914694, 0.00263459).GetNormalized()
-    right = (-table_long + Gf.Dot(table_long, forward) * forward).GetNormalized()
-    up = Gf.Cross(right, forward).GetNormalized()
-    transform = Gf.Matrix4d().SetLookAt(
-        Gf.Vec3d(*camera["position"]), Gf.Vec3d(*camera["target"]), up
-    ).GetInverse()
-    return quaternion_tuple(transform.ExtractRotation())
-
-
-def apply_room_lighting(stage, room_root="/RealSetup/Room"):
-    """Apply the fitted tube light and optional broad window reflection."""
-    room = stage.GetPrimAtPath(room_root)
-    for prim in reversed(list(Usd.PrimRange(room))):
-        if prim.HasAPI(UsdLux.LightAPI):
-            stage.RemovePrim(prim.GetPath())
-    values = SETUP["lighting"]
-    stage.DefinePrim(room_root + "/Lighting", "Xform")
-    light = UsdLux.RectLight.Define(stage, room_root + "/Lighting/Tubelight")
-    light.CreateWidthAttr(values["length"])
-    light.CreateHeightAttr(values["diffuser_width"])
-    light.CreateIntensityAttr(values["intensity"])
-    light.CreateNormalizeAttr(False)
-    light.CreateColorAttr(Gf.Vec3f(*values["color"]))
-    light.CreateEnableColorTemperatureAttr(False)
-    transform = Gf.Matrix4d().SetLookAt(
-        Gf.Vec3d(*values["position"]), Gf.Vec3d(*values["target"]), Gf.Vec3d(0, 0, 1)
-    ).GetInverse()
-    xform = UsdGeom.Xformable(light)
-    xform.ClearXformOpOrder()
-    xform.AddTransformOp().Set(transform)
-    fill = values.get("soft_fill")
-    if fill:
-        window = UsdLux.RectLight.Define(stage, room_root + "/Lighting/SoftFill")
-        window.CreateWidthAttr(fill["width"])
-        window.CreateHeightAttr(fill["height"])
-        window.CreateIntensityAttr(fill["intensity"])
-        window.CreateNormalizeAttr(False)
-        window.CreateColorAttr(Gf.Vec3f(*fill["color"]))
-        matrix = Gf.Matrix4d().SetLookAt(
-            Gf.Vec3d(*fill["position"]), Gf.Vec3d(*fill["target"]), Gf.Vec3d(0, 0, 1)
-        ).GetInverse()
-        xf = UsdGeom.Xformable(window)
-        xf.ClearXformOpOrder()
-        xf.AddTransformOp().Set(matrix)
-    for extra in values.get("extra_lights", []):
-        rect = UsdLux.RectLight.Define(stage, room_root + "/Lighting/" + extra["name"])
-        rect.CreateWidthAttr(extra["width"])
-        rect.CreateHeightAttr(extra["height"])
-        rect.CreateIntensityAttr(extra["intensity"])
-        rect.CreateNormalizeAttr(extra.get("normalize", False))
-        rect.CreateColorAttr(Gf.Vec3f(*extra["color"]))
-        rect.CreateEnableColorTemperatureAttr(extra.get("enableColorTemperature", False))
-        # A straight-down light needs its own up vector; SetLookAt with +Z is degenerate.
-        matrix = Gf.Matrix4d().SetLookAt(
-            Gf.Vec3d(*extra["position"]), Gf.Vec3d(*extra["target"]), Gf.Vec3d(*extra.get("up", (0, 0, 1)))
-        ).GetInverse()
-        xf = UsdGeom.Xformable(rect)
-        xf.ClearXformOpOrder()
-        xf.AddTransformOp().Set(matrix)
-    return light
-
-
-def apply_room_appearance(stage, room_root="/RealSetup/Room"):
+def apply_room_appearance(stage, room_root, look, asset_dir):
     """Author the fitted albedo before packaging its texture into the USDZ."""
-    look = SETUP["appearance"]
     material_root = room_root + "/Materials"
     texture = UsdShade.Shader(stage.GetPrimAtPath(material_root + "/RealWalnut/Texture"))
-    texture.GetInput("file").Set(Sdf.AssetPath(str(ASSET_DIR / look["table_texture"])))
+    texture.GetInput("file").Set(Sdf.AssetPath(str(asset_dir / look["table_texture"])))
     texture.GetInput("scale").Set(Gf.Vec4f(*look["table_albedo_scale"]))
     texture.CreateInput("bias", Sdf.ValueTypeNames.Float4).Set(
         Gf.Vec4f(*look.get("table_albedo_bias", [0, 0, 0, 0]))
@@ -114,7 +25,7 @@ def apply_room_appearance(stage, room_root="/RealSetup/Room"):
     uv = UsdShade.Shader(stage.GetPrimAtPath(material_root + "/RealWalnut/UV"))
     uv.GetInput("varname").Set("photo_st" if "table_photo_camera" in look else "st")
     if "table_photo_camera" in look:
-        apply_table_photo_projection(stage, room_root)
+        apply_table_photo_projection(stage, room_root, look)
         texture.CreateInput("wrapS", Sdf.ValueTypeNames.Token).Set("mirror")
         texture.CreateInput("wrapT", Sdf.ValueTypeNames.Token).Set("mirror")
     transform = UsdShade.Shader.Define(stage, material_root + "/RealWalnut/GrainScale")
@@ -132,7 +43,7 @@ def apply_room_appearance(stage, room_root="/RealSetup/Room"):
     wall.GetInput("bias").Set(Gf.Vec4f(*look["backdrop_texture_bias"]))
     if "wall_texture" in look:
         from pxr import Vt
-        wall.GetInput("file").Set(Sdf.AssetPath(str(ASSET_DIR / look["wall_texture"])))
+        wall.GetInput("file").Set(Sdf.AssetPath(str(asset_dir / look["wall_texture"])))
         # Clean per-corner UVs: s along the wall base, t = 0 at the wall base.
         wall_mesh = stage.GetPrimAtPath(room_root + "/Visual/Architecture/SouthWall_0")
         st = UsdGeom.PrimvarsAPI(wall_mesh).CreatePrimvar(
@@ -142,6 +53,7 @@ def apply_room_appearance(stage, room_root="/RealSetup/Room"):
         prim = stage.GetPrimAtPath(room_root + path)
         if prim.IsValid():
             UsdGeom.Imageable(prim).MakeInvisible()
+
 
 
 def apply_table_planar_uv(stage, room_root, frame):
@@ -173,46 +85,8 @@ def apply_table_planar_uv(stage, room_root, frame):
         bindingStrength=UsdShade.Tokens.weakerThanDescendants)
 
 
-def apply_robot_appearance(stage, robot_root, arm_color=None):
-    """Apply the selected arm's optional appearance hook using the scene look."""
-    from core.arms.spec import load_arm_spec, load_arm_utils
 
-    arm, _ = load_arm_spec()
-    utilities = load_arm_utils(arm)
-    apply = getattr(utilities, "apply_appearance", None)
-    if apply is None:
-        return
-    look = {**SETUP.get("appearance", {}), **arm.appearance}
-    if arm_color is not None:
-        look["robot_beige"] = arm_color
-    apply(stage, robot_root, look)
-
-
-def apply_opencv_intrinsics(prim, intrinsics):
-    """Use RTX's native OpenCV model; USD aperture offsets alone are ignored."""
-    # Isaac Lab's USD registry may omit this renderer schema. Author its
-    # schema token and typed properties explicitly;
-    # this is the same USD representation used by the native camera API.
-    prim.AddAppliedSchema("OmniLensDistortionOpenCvPinholeAPI")
-    prim.CreateAttribute("omni:lensdistortion:model", Sdf.ValueTypeNames.Token).Set("opencvPinhole")
-    prefix = "omni:lensdistortion:opencvPinhole:"
-    # RTX samples at half-integer raster coordinates; RealSense/OpenCV uses
-    # integer pixel centers. Offset the lens center, not the measured K.
-    prim.CreateAttribute("calibration:pixelCenterOffset", Sdf.ValueTypeNames.Float).Set(0.5)
-    for key in ("fx", "fy", "cx", "cy"):
-        value = float(intrinsics[key]) + (0.5 if key in ("cx", "cy") else 0.0)
-        prim.CreateAttribute(prefix + key, Sdf.ValueTypeNames.Float).Set(value)
-    prim.CreateAttribute(prefix + "imageSize", Sdf.ValueTypeNames.Int2).Set(Gf.Vec2i(intrinsics["width"], intrinsics["height"]))
-    # The connected D435I color stream reports zero distortion. Do not silently
-    # reinterpret inverse Brown-Conrady coefficients as the forward OpenCV model.
-    coefficients = intrinsics.get("coeffs", [0.0] * 5)
-    if any(coefficients) and intrinsics.get("model") == "distortion.inverse_brown_conrady":
-        raise ValueError("Nonzero inverse Brown-Conrady distortion requires conversion before use.")
-    for index, key in enumerate(("k1", "k2", "p1", "p2", "k3", "k4", "k5", "k6")):
-        prim.CreateAttribute(prefix + key, Sdf.ValueTypeNames.Float).Set(float(coefficients[index]) if index < len(coefficients) else 0.0)
-
-
-def apply_table_photo_projection(stage, room_root):
+def apply_table_photo_projection(stage, room_root, look):
     """Project a cleaned real photograph onto the existing table surface.
 
     Subdivide only the visual mesh so ordinary perspective-correct UV
@@ -223,7 +97,7 @@ def apply_table_photo_projection(stage, room_root):
     import numpy as np
     from pxr import Vt
 
-    photo = SETUP['appearance'].get('table_photo_camera')
+    photo = look.get('table_photo_camera')
     if not photo:
         return
     prim = stage.GetPrimAtPath(room_root + '/Visual/Furniture/Tabletop')
@@ -296,3 +170,30 @@ def apply_table_photo_projection(stage, room_root):
     UsdShade.MaterialBindingAPI.Apply(prim).Bind(
         UsdShade.Material(stage.GetPrimAtPath(room_root+'/Materials/RealWalnut')),
         bindingStrength=UsdShade.Tokens.weakerThanDescendants)
+
+
+
+def configure_scene_updates(env, env_ids, scene_spec):
+    """Preserve the measured scene's startup order: views, appearance, lighting."""
+    from sim.envs.scene_builder import hide_default_viewports
+    from sim.envs.mdp.resets import _env_prim_path
+    from sim.scene.appearance import apply_scene_lighting, scene_content_root
+
+    hide_default_viewports(env.sim.stage)
+    if Path(env.cfg.scene.room.spawn.usd_path).resolve() != scene_spec.room_usd:
+        return
+    room = env.scene["room"]
+    look = scene_spec.appearance.get("appearance", {})
+    for index in range(env.num_envs):
+        root = scene_content_root(_env_prim_path(env, room, index), scene_spec.room_root)
+        apply_room_appearance(env.sim.stage, root, look, scene_spec.directory)
+        apply_scene_lighting(env.sim.stage, root, scene_spec.lighting)
+
+
+def customize(env_cfg, scene_spec):
+    """Keep the scene-specific UV/material hook at its established startup event."""
+    from isaaclab.managers import EventTermCfg
+
+    env_cfg.events.configure_scene_updates = EventTermCfg(
+        func=configure_scene_updates, mode="startup", params={"scene_spec": scene_spec},
+    )

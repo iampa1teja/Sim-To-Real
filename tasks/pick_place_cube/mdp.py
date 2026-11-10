@@ -57,7 +57,7 @@ def reset_cube_from_recorded_starts(
     )
     from . import TASK
     from core.arms.spec import load_arm_spec
-    from sim.scene.gripper_geometry import table_plane
+    from sim.scene.geometry import table_plane
 
     arm = load_arm_spec()[0]
 
@@ -177,7 +177,7 @@ def check_pick_place_eval_event_order(env, env_ids):
 
 
 # ---------------------------------------------------------------------------
-# Cube colour and room light DR
+# Cube colour DR
 # ---------------------------------------------------------------------------
 
 
@@ -234,29 +234,6 @@ def set_cube_color(env, env_ids, rgb: tuple[float, float, float], name):
         for diffuse in inputs[path]:
             diffuse.Set(Gf.Vec3f(*rgb))
         env._pick_place_cube_color[index] = name
-
-
-def randomize_pick_place_room_light(env, env_ids, exposure_range):
-    """Randomize the exposure of the room's measured tube light."""
-    exposure = math_utils.sample_uniform(*exposure_range, (1,), device="cpu").item()
-    set_pick_place_room_light(env, env_ids, exposure)
-    return float(exposure)
-
-
-def set_light_exposure_at(stage, prim_path, exposure):
-    """Set ``inputs:exposure`` on one light prim if it exists."""
-    prim = stage.GetPrimAtPath(prim_path)
-    if prim.IsValid():
-        prim.GetAttribute("inputs:exposure").Set(exposure)
-
-
-def set_pick_place_room_light(env, env_ids, exposure):
-    """Set exposure on each measured room tube light that exists."""
-    env_ids = env_indices(env, env_ids)
-    stage = get_current_stage()
-    room = env.scene["room"]
-    for index in env_ids.tolist():
-        set_light_exposure_at(stage, _env_prim_path(env, room, index) + "/Room/Lighting/Tubelight", exposure)
 
 
 # ---------------------------------------------------------------------------

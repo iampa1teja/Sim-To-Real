@@ -1,10 +1,134 @@
-# Photo-matched digital twin of the RPD meeting room ("MyRoom" in v1).
-# Paths are relative to this file.
+# Declarative calibrated room; paths are relative to this folder.
 
 [scene]
 name = "rpd_meeting_room"
-description = "Measured table, calibrated RealSense room camera and wrist camera, fitted lighting and textures."
-setup = "real_setup.json"                     # measured geometry, cameras, lighting, appearance
-room_usd = "usd/digital_twin.usdz"            # scanned room
-env_cfg = "sim.envs.rpd_meeting_room_env_cfg:RpdMeetingRoomEnvCfg"  # scene env cfg class (sim.envs registers S2R-<scene>)
-room_usd_runtime = "usd/digital_twin_room.usda"  # wrapper the env actually spawns (references the usdz)
+description = "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up."
+room_usd = "usd/digital_twin_room.usda"
+room_root = "Room"
+appearance = "appearance.json"
+hook = "scene.py:customize"
+
+[scene.anchors]
+
+[scene.anchors.table]
+contact_prim_pattern = "C_Tabletop_.*"
+prim_name = "Tabletop"
+contact_material = true
+position = [0.7010595470832047, -0.6560733750851641, 0.7927327158972449]
+up = [-0.001159014, -0.01850508, 0.9998281]
+yaw_degrees = 184.583662
+
+[scene.anchors.table.metadata]
+survey_right = [0.996801706, 0.079914694, 0.00263459]
+source = "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates."
+reference_point = [0.65, -0.4, 0.797413]
+front_edge_coordinate = -0.6953624951871441
+
+[scene.anchors.mount]
+position = [0.697253387506893, -0.6076356057211214, 0.7635429149057084]
+yaw_degrees = 184.583662
+up = [-0.001159014, -0.01850508, 0.9998281]
+
+[scene.cameras]
+
+[scene.cameras.realsense_rgb]
+position = [0.6556803347125415, 0.007151182884697911, 1.2960657471564023]
+target = [0.6834827335143593, -0.38741113186690607, 0.7878442333770308]
+focal_length = 20.0
+horizontal_aperture = 21.126721118736548
+vertical_aperture = 15.84504083905241
+width = 640
+height = 480
+euler_degrees = [37.89536558302176, 1.179900948119167, -176.32444041612325]
+orientation_convention = "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+data_types = ["rgb", "instance_id_segmentation_fast"]
+depth_sensor = true
+prim_name = "realsense_camera_rgb"
+depth_prim_name = "realsense_camera_depth"
+depth_sensor_name = "realsense_depth"
+
+[scene.cameras.realsense_rgb.calibration]
+source = "Connected RealSense color stream, 640x480, 2026-09-24"
+fx = 606.0668334960938
+fy = 605.6687622070312
+cx = 330.6416015625
+cy = 253.326904296875
+note = "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences."
+coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
+model = "distortion.inverse_brown_conrady"
+extrinsics_source = "2026-10-02: data-solved (visual_matching/work/ext_cam2/native/r1a): 6-DoF pose with SDK factory intrinsics locked; objective = edge-snapped real arm masks (112 frames, 14 eps, real-state FK + separate joint-offset nuisance params) + IMU pitch/roll prior (sigma 0.3 deg) + wall-base line vs SouthWall_0 base; box excluded. Previous: Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
+
+[scene.viewer]
+eye = [1.8, -1.8, 1.85]
+lookat = [0.48, -0.27, 1.02]
+camera = "realsense_rgb"
+
+[scene.physics]
+use_mujoco_contacts = false
+cone = "elliptic"
+impratio = 1000.0
+tolerance = 1e-08
+num_substeps = 4
+collision_decimation = 1
+
+[scene.renderer]
+antialiasing_mode = "DLAA"
+enable_ambient_occlusion = true
+enable_global_illumination = true
+enable_dlssg = false
+ambient_light_intensity = 0.3875
+
+[scene.renderer.carb_settings]
+"/rtx/post/histogram/enabled" = false
+
+[scene.lighting]
+root = "Lighting"
+replace = true
+description = "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry."
+
+[scene.lighting.lights]
+
+[scene.lighting.lights.Tubelight]
+type = "rect"
+width = 1.2
+height = 0.06
+intensity = 197160.0
+color = [0.82, 0.93, 1.0]
+normalize = false
+enable_color_temperature = false
+position = [0.44, 1.85, 2.915]
+target = [0.7, -0.3, 0.77]
+up = [0, 0, 1]
+exposure_dr = true
+
+[scene.lighting.lights.OverheadPanel]
+position = [0.7, -1.0, 3.15]
+target = [0.7, -1.0, 0.8]
+up = [0, 1, 0]
+width = 2.0
+height = 1.2
+intensity = 4389.3
+color = [1.0, 1.0, 1.0]
+normalize = false
+type = "rect"
+enable_color_temperature = false
+
+[scene.lighting.lights.SideFillNegX]
+position = [-0.4, -0.4, 1.4]
+target = [0.8, -0.5, 0.85]
+up = [0, 0, 1]
+width = 1.2
+height = 1.2
+intensity = 448.25
+color = [1.0, 1.0, 1.0]
+normalize = false
+type = "rect"
+enable_color_temperature = false
+
+[scene.metadata]
+source_file = "real_setup.json"
+source_sha256 = "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+
+[scene.cameras.realsense_rgb.metadata]
+display_name = "realsense_camera-rgb"
+depth_display_name = "realsense_camera-depth"

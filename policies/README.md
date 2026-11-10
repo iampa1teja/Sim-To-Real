@@ -27,6 +27,10 @@ recording `follower.unit` or evaluation/rollout/replay `--unit`; they live under
 `arms/<arm>/calibration/units/`. Clients should keep camera and joint ordering explicit and preserve the action units
 used to train their checkpoint. The standard client shares `DefaultClientPolicy` request/response handling.
 
+Camera names come from the scene's fixed-camera declarations and the arm's mounted-camera declarations.
+The meeting room retains `realsense_rgb` and `wrist_cam`; the plain table uses `room` and `wrist_cam`.
+Configure the policy camera mapping for the scene used to record or evaluate its checkpoint.
+
 The `configure(ArmInfo)` hook, action-dimension validation, generic task engine, and complete conformance command
 are scheduled for later phases. The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
 a generic arm loader alone does not make those model recipes embodiment-independent. See

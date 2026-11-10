@@ -12,7 +12,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | --- | --- | --- |
 | 0 Cleanup | Section 2 cleanup; CPU tests; record/eval/serve/train dry runs unchanged | Complete |
 | 1 Arm | Typed arm contract and per-unit calibration; SO-101 utilities; synthetic four-joint arm; sim-only recorded episode, smoke eval, identical replay joint targets | Complete |
-| 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Pending |
+| 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Pending |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Pending |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Pending |
@@ -103,3 +103,31 @@ Both launches use the same exact frozen robot/object poses, optics and renderer 
 mean absolute differences of 0.156–0.172 uint8 levels and p99 of 1. The pixel tolerances were recorded before any
 scene edits in `acceptance.json`; `frozen-repeat-noise.json` records the measured baseline. Actual fitted response
 parameters are also captured, with a deterministic CPU response replay for checking policy-facing images.
+
+## Phase 2 integration
+
+- Scene and mount specifications now drive the generic builder; fitted meeting-room data is split into
+  `scene.toml`, `appearance.json`, and `mounts/so101.toml`. The old setup JSON and scene-specific source builder
+  are removed. The meeting-room hook owns its material/photo treatment.
+- Core tests preserve the measured data hashes and exact float32 mount/box poses. Contact checks select the
+  same 49 meeting-room colliders and the blank table's single solid collider. Both scenes construct every
+  existing task variant through the actual Isaac Lab config classes.
+- Final CPU suite: **234 passed, 22 subtests passed**, with 89 dependency deprecation warnings and no skips.
+  `outputs/v2/phase2/cpu-tests-final.log` records this run after the runtime fixes.
+- The first post-change simulator reference capture completed. Exact physics state, authored camera optics,
+  renderer settings and room-camera pixels pass the predeclared comparison. Wrist pixels exceed the measured
+  noise bound slightly. A fresh isolated copy of unchanged Phase 1 reproduced the same residual, establishing
+  that it was not introduced by this restructure.
+- `outputs/v2/phase2/blank-record-3/validation.json` passes the production record entry point with
+  `S2R_SCENE=blank_table` and no mount file: 45 parquet frames, 45 decoded frames in each of the `room` and
+  `wrist_cam` videos, finite joint values, and matching object sidecar poses. Only leader input and UI requests
+  were deterministic test fixtures; no physical device was opened.
+- `reference-control-acceptance-a.json` passes all 110 checks against that fresh Phase 1 control, using the
+  original thresholds for raw and response-processed RGB, exact frozen physics, optics and renderer settings.
+  `runtime-stage-diff.json` finds zero composed differences across all 512 runtime prims, including task objects.
+  Separate authoring comparisons also preserve 5,337 room and 4,898 arm prim/property entries.
+- Renderer repeatability is limited: another repeat had one processed room-channel error of 21 against a
+  maximum bound of 20, and capture with a USD snapshot read changed the wrist residual. These diagnostic failures
+  are retained in `reference-control-acceptance-b.json` and `reference-control-acceptance-stage.json`; no limits
+  were relaxed and no production camera parameters were changed to fit them. The direct controlled comparison
+  passes, while exact pixel repeatability across launches/timing remains unestablished.

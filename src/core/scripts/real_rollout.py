@@ -63,18 +63,18 @@ def joint_ranges(arm, mapping):
     return tuple(bounds[name] for name in arm.joint_names)
 
 
-def sim_start_roll_units(mapping, setup=None, arm=None):
+def sim_start_roll_units(mapping, mount=None, arm=None):
     """Optional sim-start roll expressed in the selected unit's raw convention."""
     from core.arms.spec import load_arm_spec
     from core.arms.mapping import physical_to_units
-    from core.scenes import load_setup
+    from core.scenes import load_scene_spec, load_mount_spec
 
     arm = arm or load_arm_spec()[0]
     if arm.wrist_roll is None:
         return None
     joint = next(joint for joint in arm.joints if joint.name == arm.wrist_roll.joint)
-    setup = load_setup() if setup is None else setup
-    initial = setup.get("robot", {}).get("joint_positions", {}).get(joint.usd, joint.initial)
+    mount = load_mount_spec(load_scene_spec(), arm) if mount is None else mount
+    initial = mount.start_joint_positions.get(joint.name, joint.initial)
     physical = math.degrees(initial) if joint.type == "revolute" else initial
     return float(physical_to_units([physical], {joint.name: mapping[joint.name]}, [joint.name],
                                    gripper_joints=arm.gripper_joint_names)[0])

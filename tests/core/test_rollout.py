@@ -53,7 +53,7 @@ def test_degree_mode_wrist_start_is_encoded_with_calibrated_zero(monkeypatch):
     arm, _ = load_arm_spec("so101")
     arm = replace(arm, lerobot=replace(arm.lerobot, use_degrees=True))
     selection = resolve_calibration(arm, unit="rpd_robot", environ={})
-    raw = sim_start_roll_units(selection.mapping, setup={"robot": {"joint_positions": {"Wrist_Roll": 0.0}}}, arm=arm)
+    raw = sim_start_roll_units(selection.mapping, mount=SimpleNamespace(start_joint_positions={"wrist_roll": 0.0}), arm=arm)
     # SDK zero is encoder-range midpoint (2047.5), physical zero is encoder2048.
     assert raw != 0.0
     joint = arm.wrist_roll.joint

@@ -156,10 +156,10 @@ def make_writer(args, sim_cameras, device, *, arm=None):
 
 def replay_episode(replayer, writer, src, planned, fps) -> None:
     """Render one planned episode from its source episode and save it with its cube sidecar."""
-    from sim.generate.dr_variants import COLORS
+    from sim.generate.dr_variants import cube_colors
     from sim.recording.episode_metadata import save_cube_trajectory
 
-    replayer.apply(COLORS[planned.color], planned.color, planned.draw)
+    replayer.apply(cube_colors()[planned.color], planned.color, planned.draw)
     for i in range(src.length):
         replayer.pose_frame(src.states[i], src.poses_base[i])
         images = replayer.render_images()
@@ -194,13 +194,13 @@ def main(argv=None):
 
     import torch
 
-    from sim.generate.dr_variants import COLORS, build_manifest, parse_csv, plan_episodes, write_json_atomic
+    from sim.generate.dr_variants import cube_colors, build_manifest, parse_csv, plan_episodes, write_json_atomic
     from sim.recording.replay_source import load_source, replay_joint_mapping
     from core.arms.spec import load_arm_spec
 
     arm, _ = load_arm_spec(args.arm)
 
-    colors = parse_csv(args.colors, COLORS)
+    colors = parse_csv(args.colors, cube_colors())
     terms = parse_dr_terms(args.dr)
     exclude = parse_episode_list(args.exclude_episodes)
     check_source_fps(args.src_root, args.fps)

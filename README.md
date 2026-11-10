@@ -6,9 +6,10 @@ The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
 The `v2` restructure is in progress. [Phase status and verification](docs/restructure-status.md) records the
 acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion order and import boundaries.
-Copy `.env.example` to `.env` for local device settings. The arm contract passed its Phase 1 CPU, recording, replay-target and simulator acceptance checks;
-the evidence is tracked in the status file. Declarative scenes, the generic task engine, `s2r check`,
-module-only commands, data generation, and the second-arm hardware checks remain pending.
+Copy `.env.example` to `.env` for local device settings. The arm and declarative scene phases passed their CPU,
+recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
+The generic task engine, `s2r check`, module-only commands, data generation, and the second-arm hardware checks
+remain pending.
 
 ## Layout
 
@@ -16,7 +17,7 @@ module-only commands, data generation, and the second-arm hardware checks remain
 s2r                     CLI launcher (PYTHONPATH=src python3 -m cli)
 pyproject.toml          packages cli, core, sim (src/) and the console scripts
 arms/<arm>/             typed arm.toml, optional <arm>_utils.py, usd/, calibration/units/<id>.json
-scenes/<scene>/         scene.toml (env_cfg entry point), real_setup.json (measured room + cameras), usd/
+scenes/<scene>/         declarative scene.toml, optional appearance.json, mounts/<arm>.toml, scene.py, usd/
 tasks/<task>/           task.toml, __init__.py (TASK), env_cfg.py (variants), mdp.py, eval.py, benchmark.py,
                         eval_sets/*.json
 configs/teleop/         lerobot_agent YAMLs (sim_only, paired_real)
@@ -70,6 +71,20 @@ other driver conventions. Calibration spans and runtime limits are physical degr
 for prismatic joints. `JointMapping.to_sim()` applies calibration, clamps
 to runtime limits, and converts revolute joints to radians; `to_raw()` reverses the unit conversion without a
 runtime clamp. Recorded actions and policy requests retain device units in manifest joint order.
+
+## Scene selection
+
+`core.scenes.load_scene_spec()` reads the selected scene at call time. A scene manifest declares its room USD,
+anchors, fixed cameras, lighting, renderer settings and physics overrides. Arm-mounted cameras remain in
+`arm.toml`. Fitted room materials and camera response live in the scene's optional `appearance.json`.
+The meeting room uses an optional `scene.py:customize` hook for its measured material and table-photo treatment.
+
+An optional `mounts/<arm>.toml` selects the mount anchor, a world-space translation correction, and initial
+joint positions in radians/metres. Without that file, the builder uses the scene's mount anchor and the arm's
+declared initial joints. `scenes/blank_table/` exercises this path with a flat table and one fixed camera.
+Choose it with `S2R_SCENE=blank_table` or `scene: blank_table` in a recording YAML. Explicit YAML values take
+precedence over environment defaults. The production recorder has been exercised on this scene without a mount
+file; see the status file for the reference-image comparison and recording evidence.
 
 ## Commands
 

@@ -1,0 +1,50 @@
+#usda 1.0
+(
+    defaultPrim = "Room"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Room"
+{
+    def Scope "Looks"
+    {
+        def Material "Table"
+        {
+            token outputs:surface.connect = </Room/Looks/Table/Surface.outputs:surface>
+            def Shader "Surface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.42, 0.32, 0.22)
+                float inputs:roughness = 0.7
+                float inputs:metallic = 0
+                token outputs:surface
+            }
+        }
+    }
+
+    def Mesh "Tabletop" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        uniform bool doubleSided = true
+        uniform token subdivisionScheme = "none"
+        point3f[] points = [(-0.6, -0.4, 0.75), (0.6, -0.4, 0.75), (0.6, 0.4, 0.75), (-0.6, 0.4, 0.75)]
+        int[] faceVertexCounts = [4]
+        int[] faceVertexIndices = [0, 1, 2, 3]
+        rel material:binding = </Room/Looks/Table>
+
+        # Keep the measured anchor planar; the child supplies a solid static collider.
+        def Cube "Support" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            double size = 1
+            double3 xformOp:translate = (0, 0, 0.735)
+            double3 xformOp:scale = (1.2, 0.8, 0.03)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+            bool physics:collisionEnabled = true
+            token visibility = "invisible"
+        }
+    }
+}

@@ -114,7 +114,7 @@ def main():
         import isaaclab.utils.math as math_utils
         import sim.envs as envs
         from sim.envs.mdp import as_torch
-        from sim.scene.gripper_geometry import gripper_tip_local_offset, table_plane
+        from sim.scene.geometry import gripper_tip_local_offset, table_plane
 
         env_id = envs.TASK.gym_id("teleop")
         cfg = parse_env_cfg(env_id, device="cuda:0", num_envs=1, use_fabric=True)

@@ -2,6 +2,7 @@
 
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -14,13 +15,14 @@ except ImportError:
 @unittest.skipUnless(Usd is not None, "Requires USD from s2r-sim")
 class GeometryCacheTests(unittest.TestCase):
     def setUp(self):
-        from sim.scene import gripper_geometry
-        self.geometry = gripper_geometry
+        from sim.scene import geometry
+        self.geometry = geometry
+        self.anchor = SimpleNamespace(prim_name="Surface", position=(0, 0, 0), up=(0, 0, 1))
 
     def table(self, stage, path, height):
         root = UsdGeom.Xform.Define(stage, path)
         root.AddTranslateOp().Set((0, 0, height))
-        mesh = UsdGeom.Mesh.Define(stage, path + "/Tabletop")
+        mesh = UsdGeom.Mesh.Define(stage, path + "/Surface")
         mesh.CreatePointsAttr([(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)])
         return root.GetPrim()
 
@@ -34,7 +36,7 @@ class GeometryCacheTests(unittest.TestCase):
         with patch.object(self.geometry, "_measure_table_plane", wraps=self.geometry._measure_table_plane) as fit:
             for _ in range(3):
                 for height, (stage, root) in enumerate(roots, 1):
-                    plane = self.geometry.table_plane(stage, root)
+                    plane = self.geometry.table_plane(stage, root, self.anchor)
                     np.testing.assert_allclose(plane, [0, 0, height], atol=1e-12)
                     plane[:] = 100  # A caller must not mutate the cached measurement.
             self.assertEqual(fit.call_count, 3)
@@ -43,10 +45,10 @@ class GeometryCacheTests(unittest.TestCase):
         stage = Usd.Stage.CreateInMemory()
         UsdGeom.SetStageMetersPerUnit(stage, 1.0)
         root = self.table(stage, "/env0", 1)
-        self.geometry.table_plane(stage, root)
+        self.geometry.table_plane(stage, root, self.anchor)
         UsdGeom.Xform(root).GetOrderedXformOps()[0].Set((0, 0, 2))
         self.geometry.clear_geometry_cache(stage)
-        np.testing.assert_allclose(self.geometry.table_plane(stage, root), [0, 0, 2], atol=1e-12)
+        np.testing.assert_allclose(self.geometry.table_plane(stage, root, self.anchor), [0, 0, 2], atol=1e-12)
 
     def test_jaw_vertices_cached_without_caching_object_size_or_clearance(self):
         stage = Usd.Stage.CreateInMemory()

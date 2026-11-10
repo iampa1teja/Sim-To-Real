@@ -163,9 +163,12 @@ def main():
         from isaaclab_tasks.utils import parse_env_cfg
         import sim.envs as envs
         from sim.envs.mdp import as_torch
-        from sim.envs.rpd_meeting_room_env_cfg import drop_unused_camera_outputs
+        from sim.envs.scene_builder import drop_unused_camera_outputs
         from sim.recording.replay_scene import SceneReplayer
-        from sim.scene.real_setup import SETUP
+        from core.arms.spec import load_arm_spec
+        from core.scenes import load_scene_spec, load_mount_spec
+
+        mount = load_mount_spec(load_scene_spec(), load_arm_spec()[0])
 
         env_id = envs.TASK.gym_id("teleop")
         cfg = parse_env_cfg(env_id, device="cuda:0", num_envs=1, use_fabric=True)
@@ -174,8 +177,8 @@ def main():
         base_position = cfg.scene.robot.init_state.pos
         cfg.scene.robot.init_state.pos = tuple(np.asarray(base_position) + base_offset)
         report["configured_robot_base_position_m"] = list(cfg.scene.robot.init_state.pos)
-        report["configured_mount_correction_m"] = SETUP["robot"].get("mount_translation_correction_m", [0., 0., 0.])
-        report["configured_mount_correction_source"] = SETUP["robot"].get("mount_translation_source")
+        report["configured_mount_correction_m"] = list(mount.translation_correction_m)
+        report["configured_mount_correction_source"] = mount.source
         drop_unused_camera_outputs(cfg, depth=False, instance_id_seg=False)
         env = gym.make(env_id, cfg=cfg)
         env.reset()

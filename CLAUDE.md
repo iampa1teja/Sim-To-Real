@@ -5,8 +5,9 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 
 - `src/core/` must not import Isaac Sim, Isaac Lab, Kit, or `pxr`. Simulator-specific code belongs in `src/sim/`.
 - The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
-  for their lifetime. Scene/task modules still read selectors at import time; choose them before importing those
-  modules. Shared selection and Kit argument helpers live in `sim.app` and are safe before Kit startup.
+  for their lifetime. Scene loaders also resolve selectors at call time; the Gym registry and task modules still
+  select registrations at import time, so choose selectors before importing them. Shared selection and Kit
+  argument helpers live in `sim.app` and are safe before Kit startup.
 - `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
   optional `.gripper`/`.wrist_roll`, and the declared wrist cameras. No arm-specific names or motor indices belong
   in generic source. Optional spawn/appearance hooks are loaded from the arm's `<arm>_utils.py`.
@@ -38,6 +39,13 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   do not add rigid bodies during a running episode.
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
   `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.
+- Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `mounts/<arm>.toml`
+  owns the arm/scene combination; missing mounts use the anchor and arm initial joints. Mount translation
+  corrections are world-space metres. Anchor positions and rotations use the same rigid frame transform;
+  surveyed vectors kept as metadata must not silently replace that frame's basis.
+- Scene-specific visual treatments belong in the optional scene-folder hook. A contact anchor may declare
+  `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
+  static materials before Newton imports the stage; visual-only lighting retains startup event order.
 - Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.
 - `gui/` and `src/sim/recording/web_gui.py` are outside this restructure. The local untracked code explorer is also
   outside the repository; its files are preserved.
@@ -47,6 +55,6 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 - Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
 
-The Phase 1 arm implementation does not establish completion of its acceptance checks. Consult the status file.
-Declarative scene construction, generic task stages/metadata, new/check/migrate commands, policy `configure(ArmInfo)`,
-and the remaining data-generation/second-arm/conformance phases are pending.
+The arm and declarative scene phases have passed their acceptance checks; consult the status file for evidence
+and the observed renderer variability. Generic task stages/metadata, new/check/migrate commands, policy
+`configure(ArmInfo)`, and the data-generation/second-arm/conformance phases are pending.

@@ -8,14 +8,16 @@ from pathlib import Path
 import random
 import tempfile
 
-from core.scenes import load_setup
+from core.scenes import load_scene_spec
 
 
-COLORS: dict[str, tuple[float, float, float]] = {
-    # Measured real cube colour; follows any recalibration of real_setup.json.
-    "blue": tuple(load_setup()["object_materials"]["blue_cube"]["color"]),
-    "red": (0.8, 0.05, 0.05),
-}
+def cube_colors(scene=None) -> dict[str, tuple[float, float, float]]:
+    """Current scene's fitted task colour, resolved after scene selection."""
+    scene = scene or load_scene_spec()
+    blue = scene.appearance.get("object_materials", {}).get("blue_cube", {}).get("color", (0.0, 0.0, 1.0))
+    return {"blue": tuple(blue), "red": (0.8, 0.05, 0.05)}
+
+
 DR_TERMS = ("light", "robot_color", "camera_external", "camera_wrist")
 # Cameras are calibrated to the real setup, so the default keeps camera views fixed.
 DEFAULT_DR = ("light", "robot_color")

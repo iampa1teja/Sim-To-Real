@@ -63,13 +63,6 @@ def _env_id(cfg: AgentConfig):
         return sim.envs.scene_gym_id()
     return sim.envs.TASK.gym_id(cfg.variant)
 
-def _camera_dropper():
-    from importlib import import_module 
-    from sim.envs import scene_entry_point 
-
-    module = import_module(scene_entry_point().split(":",1)[0])
-    return getattr(module, "drop_unused_camera_outputs", None)
-
 def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     from isaaclab_tasks.utils import parse_env_cfg
 
@@ -88,9 +81,9 @@ def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     env_cfg.decimation = round(physics_steps)
     env_cfg.sim.render_interval = env_cfg.decimation 
 
-    dropper = _camera_dropper()
-    if dropper is not None:
-        dropper(env_cfg, depth=cfg.dataset.depth, instance_id_seg=cfg.dataset.instance_id_seg)
+    from sim.envs.scene_builder import drop_unused_camera_outputs
+
+    drop_unused_camera_outputs(env_cfg, depth=cfg.dataset.depth, instance_id_seg=cfg.dataset.instance_id_seg)
     return env_cfg
 
 def _sim_cameras(env):

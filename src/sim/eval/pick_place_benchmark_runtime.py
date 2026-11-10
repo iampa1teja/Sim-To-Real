@@ -25,7 +25,7 @@ def capture_scene(env):
 
     base_link = load_arm_spec()[0].links.base
     from sim.envs.mdp.resets import _wxyz
-    from sim.scene.gripper_geometry import table_plane
+    from sim.scene.geometry import table_plane
 
     eval_helpers = load_task_module("eval", TASK)
     benchmark = load_task_module("benchmark", TASK)
@@ -81,7 +81,7 @@ def install_stage_tracking(env):
         import isaaclab.utils.math as math_utils
         from isaaclab.sim import get_current_stage
         from sim.envs.mdp.resets import _ee_body
-        from sim.scene.gripper_geometry import gripper_tip_local_offset
+        from sim.scene.geometry import gripper_tip_local_offset
 
         robot = raw.scene["robot"]
         ee_id, ee_path = _ee_body(raw, robot)

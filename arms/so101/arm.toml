@@ -70,7 +70,8 @@ relative_in_teleop = true
 
 [arm.cameras]
 
-[arm.cameras.wrist]
+[arm.cameras.wrist_cam]
+data_types = ["rgb", "depth", "instance_id_segmentation_fast"]
 parent_link = "gripper"
 position = [0.00499998298523849, 0.07067375346625575, -0.00024107978488254345]
 euler_degrees = [-25.016428530741678, -2.250973161482275, 2.1533965014050986]
@@ -80,7 +81,7 @@ vertical_aperture = 15.71625
 width = 640
 height = 480
 
-[arm.cameras.wrist.calibration]
+[arm.cameras.wrist_cam.calibration]
 source = "User manual tuner pick visual_matching/work/wrist-cam/manual_20261002T090057_786875Z.json (fov 60 deg, cx 315.6, cy 230.2, k1 0.164; pose = CAD seat + [2.5,-0.9,-3.0] mm, local [0,-2.95,1] deg). Geometry frozen by user; jaw-IoU gate waived (gripper sim/real calibration mismatch)."
 fx = 554.2562584220408
 fy = 554.2562584220408
@@ -90,17 +91,17 @@ coeffs = [0.16400000000000003, 0.0, 0.0, 0.0, 0.0]
 model = "opencv_forward_brown_conrady"
 convention = "OpenCV forward radial rd = ru*(1 + k1*ru^2), integer pixel centres (apply_opencv_intrinsics adds the RTX +0.5)"
 
-[arm.cameras.wrist.response]
+[arm.cameras.wrist_cam.response]
 gain = [0.8883, 1.0643, 1.2356]
 offset = [0.0117, -0.001, 0.0054]
 blur_sigma_px = 0.0
 source = "visual_matching/work/cam_response (data-fitted per-camera residual response)"
 
-[arm.cameras.wrist.response.vignette]
+[arm.cameras.wrist_cam.response.vignette]
 k1 = -0.3804
 k2 = 0.0
 
-[arm.cameras.wrist.response.noise]
+[arm.cameras.wrist_cam.response.noise]
 a = 0.005
 b = 0.02
 seed = 202

@@ -1,0 +1,46 @@
+[scene]
+name = "blank_table"
+description = "A plain tabletop with one fixed RGB camera and neutral lighting."
+room_usd = "usd/table.usda"
+
+[scene.anchors.table]
+prim_name = "Tabletop"
+contact_material = true
+position = [0.0, 0.0, 0.75]
+right = [1.0, 0.0, 0.0]
+up = [0.0, 0.0, 1.0]
+
+[scene.anchors.mount]
+position = [0.0, 0.0, 0.75]
+yaw_degrees = 0.0
+up = [0.0, 0.0, 1.0]
+
+[scene.anchors.workspace]
+xy_min = [-0.55, -0.35]
+xy_max = [0.55, 0.35]
+
+[scene.cameras.room]
+position = [0.65, -0.75, 1.4]
+target = [0.05, 0.0, 0.8]
+up = [0.0, 0.0, 1.0]
+width = 640
+height = 480
+focal_length = 24.0
+horizontal_aperture = 32.0
+vertical_aperture = 24.0
+data_types = ["rgb"]
+
+[scene.lighting]
+root = "Lighting"
+replace = true
+
+[scene.lighting.lights.Sky]
+type = "dome"
+intensity = 1000.0
+color = [1.0, 1.0, 1.0]
+exposure_dr = true
+
+[scene.viewer]
+eye = [0.65, -0.75, 1.4]
+lookat = [0.05, 0.0, 0.8]
+camera = "room"

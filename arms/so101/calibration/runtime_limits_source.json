@@ -1,0 +1,35 @@
+{
+  "dataset": "datasets/pick_place_v1-real",
+  "frames": 16448,
+  "source_hash_manifest": "/tmp/so101-camera-gripper-recording/source_hashes_before.json",
+  "source_hash_manifest_sha256": "3097b681816a0852f44adbd2776452e395b1867915a4871358b090d4be5346e8",
+  "observed_degrees": {
+    "shoulder_pan": {
+      "min": -111.88476679176092,
+      "max": 96.15234246253968
+    },
+    "shoulder_lift": {
+      "min": -106.69922143220901,
+      "max": 99.93164121173322
+    },
+    "elbow_flex": {
+      "min": -74.44336034059523,
+      "max": 92.37304708957672
+    },
+    "wrist_flex": {
+      "min": -19.160155872814357,
+      "max": 103.79882776625453
+    },
+    "wrist_roll": {
+      "min": -117.07031281851232,
+      "max": 39.550780177116394
+    },
+    "gripper": {
+      "min": -8.154300676600542,
+      "max": 104.43359043821692
+    }
+  },
+  "margin_degrees": 1.0,
+  "jaw_below_anchor_margin_degrees": 5.0,
+  "method": "Union of original USD bounds and observed follower angle extrema + 1 deg; jaw lower extends 5 deg below retained anchor. Roll uses the full calibrated encoder span (0..4095 counts = -180..+179.912 deg), matching the real servo's position-mode range. Runtime PhysX and interface clamp only; immutable USD unchanged."
+}

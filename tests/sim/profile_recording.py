@@ -57,7 +57,7 @@ def main():
         from core.arms.spec import load_arm_spec
         from core.arms.calibration import resolve_calibration
         from sim.envs.mdp import as_torch
-        from sim.envs.rpd_meeting_room_env_cfg import drop_unused_camera_outputs
+        from sim.envs.scene_builder import drop_unused_camera_outputs
         from sim.generate.object_spawner import ObjectSpawner
         from sim.recording.lerobot_recorder import LeRobotRecorder, split_visual_obs
         from sim.teleop.profiling import TickProfiler

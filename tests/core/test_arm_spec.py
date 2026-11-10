@@ -14,7 +14,7 @@ def test_so101_owns_order_limits_and_optional_mount_camera(monkeypatch):
     assert arm.name == "so101"
     assert arm.joint_name_pairs[0] == ("shoulder_pan", "Rotation")
     assert arm.gripper_joint_names == ("gripper",)
-    assert arm.cameras["wrist"].parent_link == arm.links.ee
+    assert arm.cameras["wrist_cam"].parent_link == arm.links.ee
     assert arm.feature_names[-1] == "gripper.pos"
     assert arm.initial_joint_positions["Pitch"] == -0.6109
     assert arm.runtime_joint_limits["shoulder_pan"]["joint_min"] == -112.88476679176092

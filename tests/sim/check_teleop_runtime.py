@@ -54,8 +54,8 @@ def main():
         from sim.envs.mdp.resets import _env_prim_path
         from sim.generate.object_spawner import ObjectSpawner
         from sim.recording.lerobot_recorder import LeRobotRecorder
-        from sim.scene.calibrated_viewport import CalibratedKitVisualizer
-        from sim.scene.gripper_geometry import table_plane
+        from sim.scene.viewport import CalibratedKitVisualizer
+        from sim.scene.geometry import table_plane
 
         camera_path = "/World/envs/env_0/realsense_camera_rgb"
 
