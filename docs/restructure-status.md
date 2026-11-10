@@ -249,7 +249,14 @@ parameters are also captured, with a deterministic CPU response replay for check
 - The user authorized the Phase 5 GPU session. Physical trials exposed steady load-induced servo error; bounded
   integral compensation now reaches the pickup and completes a grasp/lift without changing production physics.
   The task expert routes transport around the arm base and targets the container centre. All arc waypoints finish,
-  but the cube slips sideways across the narrow finger pads during transport (`scripted-arc1.json`). No successful
-  generated episode has been saved yet. A rotated pickup collided before reaching the cube (`scripted-roll90.json`);
-  the next candidate preserves the pickup pose and changes orientation only above the table.
-- Successful scripted data, live Mimic generation and generated-data preparation/training remain unverified.
+  but the cube initially slipped sideways across the narrow finger pads during transport (`scripted-arc1.json`).
+  A rotated pickup collided before reaching the cube (`scripted-roll90.json`). Staging that rotation after lift
+  now produces a successful 753-frame episode (`scripted-stagedroll90.json`): the cube survives the arc, then
+  slips into the box near the end of transport and passes the unchanged settling/success check. This is a passing
+  task outcome, not yet a controlled expert release. The independent validator checks both 753-frame videos,
+  parquet feature/timestamp alignment, all object sidecars, device codec and Mimic annotations. A repeatability
+  batch is running; the saved first-episode preview is `outputs/v2/phase5/first-generated-episode.mp4`.
+- Actual GR00T preparation and verification pass on this generated episode: all 1,506 camera frames decode,
+  prepared data loads in the real pinned model reader and sampled video frames match exactly. See
+  `prepare-generated.log` and `verify-generated.log`. Live Mimic generation and generated-data optimizer
+  training remain unverified; Phase 5 is not complete.

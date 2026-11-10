@@ -110,3 +110,21 @@ def test_transport_orientation_changes_only_after_table_clearance():
             assert point.gripper_open_fraction == 0
     assert named["orient_place"].pose.quat_xyzw == state.ee.quat_xyzw
     assert named["orient_place"].gripper_open_fraction == 0
+
+
+def test_transport_roll_is_relative_to_the_pickup_tool_frame():
+    from core.scenes import quaternion_matrix
+
+    task = load_task("pick_place_cube")
+    orientation = (np.sin(.3), 0., 0., np.cos(.3))
+    state = StepState({"blue_cube": Pose((.1, -.1, .76)), "white_box": Pose((-.1, -.1, .75))},
+                      Pose((0., 0., 1.), orientation), 0.)
+    context = ExpertContext(state, state.ee, (0., 0., 1.), {"transport_roll_degrees": 90.}, Pose((0., 0., .75)))
+    points = {point.name: point for point in task.expert().plan(context)}
+    before = quaternion_matrix(orientation)
+    after = quaternion_matrix(points["orient_transport"].pose.quat_xyzw)
+    np.testing.assert_allclose(after[:, 2], before[:, 2], atol=1e-12)
+    np.testing.assert_allclose(after[:, 0], before[:, 1], atol=1e-12)
+    np.testing.assert_allclose(after[:, 1], -before[:, 0], atol=1e-12)
+    with pytest.raises(ValueError, match="not both"):
+        task.expert().plan(replace(context, options={**context.options, "transport_orientation_xyzw": orientation}))

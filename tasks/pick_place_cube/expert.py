@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from core.benchmark.geometry import rotation_matrix
+from core.scenes import quaternion_multiply
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint
 
@@ -49,6 +50,13 @@ class PickPlaceExpert:
         normal /= np.linalg.norm(normal)
         orientation = tuple(options.get("orientation_xyzw", context.control_pose.quat_xyzw))
         transport_orientation = tuple(options.get("transport_orientation_xyzw", orientation))
+        if "transport_roll_degrees" in options:
+            if "transport_orientation_xyzw" in options:
+                raise ValueError("Choose transport_roll_degrees or transport_orientation_xyzw, not both")
+            angle = math.radians(float(options["transport_roll_degrees"])) / 2
+            if not math.isfinite(angle):
+                raise ValueError("transport_roll_degrees must be finite")
+            transport_orientation = tuple(quaternion_multiply(orientation, (0., 0., math.sin(angle), math.cos(angle))))
         size = self.task.spec.objects["blue_cube"].size
         container = self.task.spec.objects["white_box"].params
         # The circular support bound admits any cube yaw. Centre placement keeps

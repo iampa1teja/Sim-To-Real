@@ -18,5 +18,7 @@ expert_options:
   approach_height_m: 0.06
   lift_height_m: 0.09
   move_seconds: 2.0
+  # Rotate about the tool's long axis after lifting to retain the cube in transit.
+  transport_roll_degrees: 90.0
   gripper_open_fraction: 0.45
   gripper_closed_fraction: 0.0
