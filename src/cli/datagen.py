@@ -37,8 +37,14 @@ def main(argv=None):
     if importlib.util.find_spec(module) is None:
         raise SystemExit(f"Data source {source!r} is not implemented yet ({module}).")
     import sys
-    sys.argv = [module, *extra]
-    runpy.run_module(module, run_name="__main__")
+    previous_argv = sys.argv
+    try:
+        sys.argv = [module, *extra]
+        # Match python -m: lazy module attributes and class lookups must resolve
+        # against the executing source module, not this dispatcher's __main__.
+        runpy.run_module(module, run_name="__main__", alter_sys=True)
+    finally:
+        sys.argv = previous_argv
 
 
 if __name__ == "__main__":

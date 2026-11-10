@@ -52,6 +52,27 @@ def test_datagen_rejects_invalid_yaml_source(tmp_path, content):
     assert error.value.code == 2
 
 
+def test_datagen_dispatch_preserves_python_m_module_identity(tmp_path, monkeypatch, capsys):
+    from cli import datagen
+
+    (tmp_path / "lazy_source.py").write_text('''import sys
+def __getattr__(name):
+    if name == "RuntimeEnv":
+        return "resolved lazily"
+    raise AttributeError(name)
+assert getattr(sys.modules[__name__], "RuntimeEnv") == "resolved lazily"
+assert sys.modules[__name__].__dict__ is globals()
+assert sys.argv[1:] == ["--seed", "7"]
+print("source module identity passed")
+''')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(datagen, "DATAGEN_MODULES", {"example": "lazy_source"})
+    original_main, original_argv = sys.modules["__main__"], sys.argv
+    datagen.main(["--source", "example", "--seed", "7"])
+    assert sys.modules["__main__"] is original_main and sys.argv is original_argv
+    assert "source module identity passed" in capsys.readouterr().out
+
+
 def test_host_new_check_migrate_plan_paths(tmp_path):
     assert plan_host("core.datasets.task_meta", ("dataset",), tmp_path).argv == (sys.executable, "-m", "core.datasets.task_meta", "dataset")
     assert plan_new("arm", "sample", tmp_path).argv == (sys.executable, "-m", "cli.scaffold", "arm", "sample", "--repo", str(tmp_path))
