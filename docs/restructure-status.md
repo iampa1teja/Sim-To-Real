@@ -225,8 +225,14 @@ parameters are also captured, with a deterministic CPU response replay for check
 
 ## Phase 5 integration (not yet accepted)
 
-- Latest full CPU suite: **373 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
-  ignores; see `outputs/v2/phase5/cpu-tests-stagedroll.log`. All eight host static plugin checks pass in `static-check.log`.
+- Updated user requirement: no deliberate wrist roll after pickup. Earlier rolled demonstrations are retained
+  as diagnostic/format evidence only and must not be used as the final training dataset. The task expert now
+  keeps one requested pickup orientation throughout transport and refuses the removed roll overrides.
+  `scripted-noroll-fast1.json` and its independent validation now pass: 391 frames, held through transport,
+  deliberate gripper opening over the box, and final settled task success. The corresponding two-camera
+  preview is `outputs/v2/phase5/no-roll-episode.mp4`.
+- Latest full CPU suite: **378 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
+  ignores; see `outputs/v2/phase5/cpu-tests-noroll.log`. All eight host static plugin checks pass in `static-check.log`.
   SDK Mimic tests exercise actual source segmentation, retargeting, async action/reset queues and bounded
   cancellation. Its config wrapper preserves measured mounts and task fields through copying/export.
 - Arm manifests can declare a TCP offset and the orientation components their IK controls. The native Jacobian
@@ -247,16 +253,24 @@ parameters are also captured, with a deterministic CPU response replay for check
   The actual `s2r verify` command also passed prepared checksums and first/middle/last images from both cameras
   against independent PyAV decoding, with zero RGB difference (`verify-fixture.log`).
 - The user authorized the Phase 5 GPU session. Physical trials exposed steady load-induced servo error; bounded
-  integral compensation now reaches the pickup and completes a grasp/lift without changing production physics.
-  The task expert routes transport around the arm base and targets the container centre. All arc waypoints finish,
-  but the cube initially slipped sideways across the narrow finger pads during transport (`scripted-arc1.json`).
-  A rotated pickup collided before reaching the cube (`scripted-roll90.json`). Staging that rotation after lift
-  now produces a successful 753-frame episode (`scripted-stagedroll90.json`): the cube survives the arc, then
-  slips into the box near the end of transport and passes the unchanged settling/success check. This is a passing
-  task outcome, not yet a controlled expert release. The independent validator checks both 753-frame videos,
-  parquet feature/timestamp alignment, all object sidecars, device codec and Mimic annotations. A repeatability
-  batch is running; the saved first-episode preview is `outputs/v2/phase5/first-generated-episode.mp4`.
-- Actual GR00T preparation and verification pass on this generated episode: all 1,506 camera frames decode,
-  prepared data loads in the real pinned model reader and sampled video frames match exactly. See
-  `prepare-generated.log` and `verify-generated.log`. Live Mimic generation and generated-data optimizer
-  training remain unverified; Phase 5 is not complete.
+  integral compensation now reaches the pickup without changing production physics. The task expert routes
+  transport around the arm base and targets the container centre. Two-second arc segments allowed the cube
+  to slip; shortening them to half a second retains the original pickup orientation and reaches the box while
+  still holding the cube. The successful 391-frame no-roll demonstration opens deliberately at step 363 and
+  reaches settled success at step 391. Every saved video frame, feature/timestamp, object sidecar, device codec
+  and Mimic annotation passes the independent validator (`scripted-noroll-fast1-validation.json`).
+- Earlier rolled prototypes remain in ignored output folders but are superseded by the user's no-roll constraint.
+  A seven-attempt batch using that older trajectory had one success; the remaining failures involved unreachable
+  fixed-orientation starts or grasp loss. It was stopped deliberately and is not a completed acceptance batch.
+  General success rates across the full start distribution are not established.
+- Real GR00T preparation and verification pass on the no-roll source: 391 frames, all 782 camera frames decoded,
+  unchanged parquet/video content and all 11 source hashes, preserved schema-2 object sidecars, and zero RGB
+  difference at sampled frames. Evidence: `prepare-noroll-fast1-validation.json`, `prepare-noroll-fast1.log` and
+  `verify-noroll-fast1.log`. `noroll-fast1-orientation-proof.json` confirms all 28 waypoint goal quaternions are
+  identical; after grasp, commanded wrist-roll span is 0.943 degrees and measured span is 0.908 degrees.
+- The live Mimic path exposed two integration issues: config dispatch must preserve Python module identity, and
+  Kit rendering must occur outside the private asyncio coroutine. Both now have CPU regression coverage;
+  the latter follows the installed SDK's synchronous environment loop around asynchronous generator queues.
+  Live generation now completes but has not produced a successful episode: four attempts failed and were
+  discarded, as did a separate trial without integral bias. Live Mimic success and a generated-data optimizer
+  update remain unverified; Phase 5 is not complete.

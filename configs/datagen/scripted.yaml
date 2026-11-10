@@ -18,6 +18,7 @@ expert_options:
   approach_height_m: 0.06
   lift_height_m: 0.09
   move_seconds: 2.0
+  transport_seconds: 0.5
   # Open above the box while the cube is still held, then let it settle.
   release_height_m: 0.09
   final_transport_seconds: 0.5

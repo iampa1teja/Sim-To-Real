@@ -44,6 +44,8 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 - Newton imports scene topology once. Declare objects before model construction, then park/reposition them;
   do not add rigid bodies during a running episode.
 - Data generation uses task-folder `expert.py` waypoints and arm-declared `ik` TCP/orientation constraints.
+  The pick-place expert must not add a deliberate wrist roll after pickup. Preserve its pickup orientation
+  through transport; earlier rolled diagnostic datasets are not approved final training sources.
   Scripted generation, Mimic and calibration replay share `sim.datagen.rollout`: capture pre-action frames,
   execute physical actions, then observe task signals. Commit only confirmed successes still valid at the final
   frame. Generated actions are absolute simulator targets encoded through the selected device mapping; they
@@ -86,5 +88,6 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 The arm, declarative scene and generic task phases have passed their acceptance checks; consult the status file
 for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording,
 example evaluation and live GR00T/Molmo serving/evaluation pass. Phase 5 CPU implementation passes, including
-real SDK Mimic configuration/retargeting and schema-2 GR00T preparation. Its GPU acceptance and the subsequent
-second-arm/conformance phases remain pending; their acceptance checks must pass before advancing.
+real SDK Mimic configuration/retargeting and schema-2 GR00T preparation. A no-roll scripted episode now passes
+physical success, dataset validation and real GR00T preparation/verification. Mimic physical success, optimizer
+training and the subsequent second-arm/conformance phases remain pending; their gates must pass before advancing.

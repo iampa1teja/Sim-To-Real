@@ -77,6 +77,8 @@ GR00T preparation preserves schema-2 `task_meta` and legacy `pick_place_meta` si
 renumbered. Its existing SO-101 pick-place training recipe accepts `--batch`, `--max-steps`, `--save-steps`
 and `--save-total-limit` after `s2r train ... --` for a bounded training check. This does not make that recipe
 arm- or task-independent.
+Preparation and verification have passed on a physically generated no-roll pick-place episode; the optimizer
+training gate is still pending. See `docs/restructure-status.md` for the exact evidence and remaining checks.
 
 ## Add a policy
 
