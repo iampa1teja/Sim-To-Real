@@ -4,8 +4,8 @@ The s2r restructure of the SO-101 sim-to-real platform: Isaac Lab 3.0 (Newton / 
 LeRobot v0.6.1 for teleop and datasets, and pluggable policy servers (GR00T N1.7, MolmoAct2).
 The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
-The `v2` restructure has passed Phases 0–5 and 7; Phase 6 is deferred. A contact-solver numerical fix passes motion replay and CPU regressions; the user’s paired-recording retry
-is the remaining follow-up. [Phase status and verification](docs/restructure-status.md) records the
+The `v2` restructure has passed Phases 0–5 and 7; Phase 6 is deferred. The contact-solver fix passes motion replay and CPU regressions, and paired real/sim motion and camera
+updates have been confirmed on hardware. [Phase status and verification](docs/restructure-status.md) records the
 acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion order and import boundaries.
 Copy `.env.example` to `.env` for local device settings. The arm, declarative scene and generic task phases passed
 their CPU, recording and simulator checks; the evidence and renderer limitations are tracked in the status file.

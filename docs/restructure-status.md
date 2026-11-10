@@ -383,6 +383,9 @@ parameters are also captured, with a deterministic CPU response replay for check
 - The final full CPU suite passes **426 tests plus 22 subtests**, with 131 dependency warnings and no ignores
   or skips (`cpu-tests-contact-fix.log`). Actual CPU Warp kernels exercise the captured matrix, valid/no-op
   searches, indefinite-Hessian descent, invalid inputs and idempotent installation.
-- The user has been given the normal paired-recording command for a physical retry. That retry is pending;
-  it is separate from the successful hardware-free reproduction and fix verification. Test datasets were
-  not deleted again, and no hardware was commanded by the diagnostic replays.
+- The user restarted the normal paired recorder and confirmed: “Yes, motion and cameras work.” This
+  establishes the physical motion/camera retry; it does not claim a newly saved paired dataset episode. Test
+  datasets were not deleted again, and no hardware was commanded by the diagnostic replays.
+- Closeout: Phases 0–5 and 7 are complete. Phase 6 remains explicitly deferred. Implementation and guides
+  are saved on `v2` in `701ce0b`; the contact fix and regressions are saved in `04b10f7`. Main remains unchanged
+  and no commits were pushed.

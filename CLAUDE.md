@@ -103,3 +103,6 @@ failed Newton search directions: double-precision factorization, then positive-d
 The existing contact objective/line search and every physical parameter remain unchanged. Install before
 CUDA graph capture; do not edit installed SDK files. Captured-matrix CPU tests and a 1,140-step contact/retreat
 replay pass. Teleop rejects invalid simulation joints immediately, including outside active recording.
+
+The user confirmed the restarted paired real/sim recorder now keeps motion and both simulation cameras working.
+Phases 0–5 and 7 are complete; Phase 6 remains deferred. Do not infer a saved hardware episode from this motion check.
