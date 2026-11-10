@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import contextlib
 import os
-import random
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from policy_server.contract import ServerPolicy
+from policy_server.seeding import seed_everything
 
 DEFAULT_EMBODIMENT_TAG = "NEW_EMBODIMENT"
 LANGUAGE_KEY = "annotation.human.task_description"
@@ -39,19 +39,6 @@ def decode_action(action: dict[str, Any]) -> np.ndarray:
     arm = np.asarray(action["single_arm"])[0]
     gripper = np.asarray(action["gripper"])[0]
     return np.concatenate([arm, gripper], axis=-1).astype(np.float32)
-
-
-def seed_everything(seed: int) -> None:
-    if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
-        raise ValueError("seed must be a uint32 integer")
-    import torch
-
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
 
 
 class Gr00tN17ServerPolicy(ServerPolicy):
@@ -92,7 +79,7 @@ class Gr00tN17ServerPolicy(ServerPolicy):
 
     def reset(self, seed: int | None = None) -> dict:
         if seed is not None:
-            seed_everything(seed)
+            seed_everything(seed, deterministic_cudnn=True)
         if self.policy is not None:
             self.policy.reset()
         return {"seed": seed}

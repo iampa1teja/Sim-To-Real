@@ -21,13 +21,13 @@ from __future__ import annotations
 
 import json
 import os
-import random
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from policy_server.contract import ServerPolicy
+from policy_server.seeding import seed_everything
 
 DEFAULT_NORM_TAG = "so100_so101_molmoact2"
 DEFAULT_DTYPE = "bfloat16"
@@ -239,17 +239,6 @@ def capture_action_range_diagnostics(model: Any, record: Any) -> None:
         return original(action, norm_tag)
 
     stats.unnormalize_action = unnormalize_action
-
-
-def seed_everything(seed: int) -> None:
-    if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
-        raise ValueError("seed must be a uint32 integer")
-    import torch
-
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
 
 
 class MolmoAct2ServerPolicy(ServerPolicy):

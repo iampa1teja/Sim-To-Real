@@ -1,0 +1,350 @@
+{
+  "appearance": {
+    "table_texture_scale": [
+      0.74,
+      0.84,
+      0.94,
+      1.0
+    ],
+    "table_texture_bias": [
+      0.022,
+      0.026,
+      0.022,
+      0.0
+    ],
+    "wall_texture_scale": [
+      0.8,
+      0.82,
+      0.84,
+      1.0
+    ],
+    "wall_texture_bias": [
+      0.045,
+      0.041,
+      0.033,
+      0.0
+    ],
+    "table_roughness": 0.65,
+    "table_clearcoat": 0.02,
+    "robot_beige": [
+      0.63,
+      0.72,
+      0.58
+    ],
+    "motor_charcoal": [
+      0.028,
+      0.03,
+      0.032
+    ],
+    "wrist_mount_yellow": [
+      0.95,
+      0.64,
+      0.018
+    ],
+    "table_albedo_scale": [
+      0.597,
+      0.532,
+      0.54,
+      1.0
+    ],
+    "ambient_intensity": 0.3875,
+    "table_texture": "textures/table_albedo_v4.png",
+    "backdrop_texture_scale": [
+      2.0,
+      2.0,
+      2.0,
+      1
+    ],
+    "backdrop_texture_bias": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "robot_plastic_roughness": 0.68,
+    "motor_roughness": 0.72,
+    "wrist_mount_roughness": 0.6,
+    "table_uv_scale": [
+      1.0,
+      1.0
+    ],
+    "table_albedo_bias": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "table_uv_frame": {
+      "origin": [
+        0.04949999999999999,
+        -0.09450000000000001,
+        0.80225
+      ],
+      "u_axis": [
+        0.996794766632841,
+        0.07995679946252736,
+        0.0026652266487508913
+      ],
+      "v_axis": [
+        -0.07999240724504292,
+        0.9966259945244995,
+        0.018380473911063334
+      ],
+      "size_u": 2.4388157,
+      "size_v": 1.2241358
+    },
+    "table_texture_wrap": "mirror",
+    "wall_texture": "textures/wall_albedo_v2.png",
+    "wall_st_faceVarying": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "hide_room_prims": [
+      "/Visual/Furniture/Observed_primary_Furniture"
+    ],
+    "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights."
+  },
+  "object_materials": {
+    "blue_cube": {
+      "color": [
+        0.005,
+        0.07,
+        0.26
+      ],
+      "roughness": 0.62,
+      "metallic": 0.0
+    },
+    "white_box": {
+      "color": [
+        0.95,
+        0.95,
+        0.95
+      ],
+      "roughness": 0.7,
+      "metallic": 0.0,
+      "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only."
+    }
+  },
+  "camera_response": {
+    "realsense_rgb": {
+      "gain": [
+        1.3576,
+        1.2715,
+        1.3222
+      ],
+      "offset": [
+        0.006,
+        0.0126,
+        0.0039
+      ],
+      "lut": {
+        "knots": null,
+        "per_channel": [
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9654,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9942,
+            1.0,
+            1.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0625,
+            0.125,
+            0.1875,
+            0.25,
+            0.3125,
+            0.375,
+            0.4375,
+            0.5,
+            0.5625,
+            0.625,
+            0.6875,
+            0.75,
+            0.9395,
+            1.0,
+            1.0,
+            1.0
+          ]
+        ]
+      },
+      "blur_sigma_px": 0.0,
+      "noise": {
+        "a": 0.0,
+        "b": 0.0,
+        "seed": 101
+      },
+      "vignette": {
+        "k1": 0.0,
+        "k2": 0.0,
+        "cx": null,
+        "cy": null
+      },
+      "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)"
+    },
+    "wrist_cam": {
+      "gain": [
+        0.8883,
+        1.0643,
+        1.2356
+      ],
+      "offset": [
+        0.0117,
+        -0.001,
+        0.0054
+      ],
+      "vignette": {
+        "k1": -0.3804,
+        "k2": 0.0,
+        "cx": null,
+        "cy": null
+      },
+      "blur_sigma_px": 0.0,
+      "noise": {
+        "a": 0.005,
+        "b": 0.02,
+        "seed": 202
+      },
+      "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)"
+    }
+  },
+  "provenance": {
+    "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+    "lighting": {
+      "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+      "position": [
+        0.44,
+        1.85,
+        2.915
+      ],
+      "target": [
+        0.7,
+        -0.3,
+        0.77
+      ],
+      "length": 1.2,
+      "diffuser_width": 0.06,
+      "intensity": 197160.0,
+      "color": [
+        0.82,
+        0.93,
+        1.0
+      ],
+      "extra_lights": [
+        {
+          "name": "OverheadPanel",
+          "type": "RectLight",
+          "position": [
+            0.7,
+            -1.0,
+            3.15
+          ],
+          "target": [
+            0.7,
+            -1.0,
+            0.8
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ],
+          "width": 2.0,
+          "height": 1.2,
+          "intensity": 4389.3,
+          "color": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "normalize": false,
+          "enableColorTemperature": false
+        },
+        {
+          "name": "SideFillNegX",
+          "type": "RectLight",
+          "position": [
+            -0.4,
+            -0.4,
+            1.4
+          ],
+          "target": [
+            0.8,
+            -0.5,
+            0.85
+          ],
+          "up": [
+            0,
+            0,
+            1
+          ],
+          "width": 1.2,
+          "height": 1.2,
+          "intensity": 448.25,
+          "color": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "normalize": false,
+          "enableColorTemperature": false
+        }
+      ]
+    },
+    "source_file": "real_setup.json",
+    "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+  }
+}

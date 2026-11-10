@@ -14,27 +14,10 @@ from datetime import datetime
 import numpy as np
 
 from .adapter import build_plugin_client, check_server
+from .contract import ArmInfo
+from .discovery import get_manifest
 from .smoothing import SimulationSmoother, SmoothingConfig, TimingLog
 
-MOLMO = "molmoact2"
-
-
-def molmo_joint_options(options: dict, mapping) -> dict:
-    """Molmo's old joint frame: degrees per raw unit and the calibrated zero, from a JointMapping.
-
-    Recovers physical USD degrees from the shared normalized interface before the plugin applies Molmo's
-    joint frame; the fixed calibrated zero is independent of the simulator's asymmetric range midpoints.
-    """
-    options = dict(options)
-    options.setdefault("input_joint_units", "usd_normalized")
-    if mapping is not None and options["input_joint_units"] in ("lerobot_normalized", "usd_normalized"):
-        mins, maxs = mapping.mins.detach().cpu(), mapping.maxs.detach().cpu()
-        scales = (maxs - mins)[:5] / 200
-        options.setdefault("arm_degrees_per_unit", ",".join(str(v) for v in scales.tolist()))
-        if options["input_joint_units"] == "usd_normalized":
-            zeros = (maxs + mins)[:5] / 2
-            options.setdefault("arm_zero_degrees", ",".join(str(v) for v in zeros.tolist()))
-    return options
 
 
 class RemotePolicy:
@@ -46,7 +29,7 @@ class RemotePolicy:
         policy_name: str = "groot_n17",
         host: str = "localhost",
         port: int | None = None,
-        action_horizon: int = 8,
+        action_horizon: int | None = None,
         lang_instruction: str = "",
         prefetch_steps: int = 0,
         blend_steps: int = 0,
@@ -64,16 +47,23 @@ class RemotePolicy:
         api_token: str | None = None,
         timeout_ms: int = 15000,
         action_repeat: int = 1,
-        mapping=None,
+        arm_info: ArmInfo | None = None,
     ):
         if not isinstance(action_repeat, int) or isinstance(action_repeat, bool) or action_repeat < 1:
             raise ValueError("action_repeat must be a positive integer")
         self.joint_keys = list(joint_keys)
+        self.arm_info = arm_info
+        if arm_info is not None and tuple(self.joint_keys) != arm_info.feature_names:
+            raise ValueError('Remote policy joint order differs from ArmInfo')
+        action_horizon = get_manifest(policy_name).default_horizon if action_horizon is None else action_horizon
+        if type(action_horizon) is not int or action_horizon < 1:
+            raise ValueError('action_horizon must be a positive integer')
+        gripper_indices = arm_info.gripper_indices if arm_info is not None else ()
         self.grasp = None
         if grasp_config is not None and grasp_config.enabled:
             from .grasp import GraspController
 
-            self.grasp = GraspController(grasp_config, self.joint_keys, control_dt)
+            self.grasp = GraspController(grasp_config, self.joint_keys, control_dt, arm_info=arm_info)
             self.grasp.episode = -1  # the first reset starts episode zero
         self._seed_per_episode = seed_per_episode
         self._episode_seed = episode_seed
@@ -81,8 +71,6 @@ class RemotePolicy:
         self._port = port
         self._policy_name = policy_name
         self._policy_options = dict(policy_options or {})
-        if policy_name == MOLMO:
-            self._policy_options = molmo_joint_options(self._policy_options, mapping)
         self._api_token = api_token
         self._timeout_ms = timeout_ms
         self._action_horizon = action_horizon
@@ -100,9 +88,10 @@ class RemotePolicy:
         self._timing = None
         if log_timing:
             path = timing_csv or f"outputs/timing/policy_{datetime.now():%Y%m%d_%H%M%S_%f}.csv"
-            self._timing = TimingLog(path, self.joint_keys)
+            self._timing = TimingLog(path, self.joint_keys, gripper_indices=gripper_indices)
         self._smoothing = (SimulationSmoother(options, self._effective_action_horizon, self.joint_keys,
-                                              self._timing, grasp=self.grasp) if options.enabled else None)
+                                              self._timing, grasp=self.grasp, gripper_indices=gripper_indices)
+                           if options.enabled else None)
 
     @property
     def client(self):
@@ -112,10 +101,11 @@ class RemotePolicy:
         """Connect to the policy server and check it serves the configured policy."""
         self._client = build_plugin_client(
             self._policy_name, self.joint_keys, host=self._host, port=self._port,
-            timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=self._policy_options)
-        if self._policy_name == MOLMO:
-            self.policy_cameras = list(self._client.policy.cameras)
-            print(f"[INFO]: Molmo camera inputs: {self.policy_cameras}", flush=True)
+            timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=self._policy_options,
+            arm_info=self.arm_info)
+        cameras = getattr(self._client.policy, 'cameras', self._client.manifest.cameras)
+        self.policy_cameras = list(cameras)
+        print(f"[INFO]: Policy camera inputs: {self.policy_cameras}", flush=True)
         self.joint_transform = getattr(self._client.policy, "joint_transform", None)
         if self.joint_transform is not None:
             print(f"[INFO]: Policy joint transform: {self.joint_transform}")

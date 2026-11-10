@@ -22,7 +22,8 @@ class GripperCollisionTests(unittest.TestCase):
     def setUpClass(cls):
         import numpy as np
         from sim.scene.contact_materials import enable_collision_meshes
-        from sim.scene.gripper_collisions import apply_primitive_pads
+        from core.arms.spec import load_arm_spec, load_arm_utils
+        apply_primitive_pads = load_arm_utils(load_arm_spec("so101")[0]).apply_primitive_pads
 
         cls.digest = hashlib.sha256(ASSET.read_bytes()).hexdigest()
         cls.stage = Usd.Stage.Open(str(ASSET))
@@ -109,7 +110,8 @@ class GripperCollisionTests(unittest.TestCase):
                 self.assertLess(abs(after - before), .00005, (link, normal, before, after))
 
     def test_original_visuals_masses_and_joints_remain_intact(self):
-        from sim.scene.gripper_collisions import apply_primitive_pads
+        from core.arms.spec import load_arm_spec, load_arm_utils
+        apply_primitive_pads = load_arm_utils(load_arm_spec("so101")[0]).apply_primitive_pads
 
         self.assertEqual(self.original, self.immutable_attributes())
         self.assertEqual(hashlib.sha256(ASSET.read_bytes()).hexdigest(), self.digest)

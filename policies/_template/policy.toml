@@ -1,4 +1,4 @@
-# Copy this folder to policies/<name>/ (or run `new_policy <name>`), then fill in every field.
+# Copy this folder to policies/<name>/ (or run `s2r new policy <name>`), then fill in every field.
 # Folders whose name starts with "_" are ignored by discovery.
 
 [policy]
@@ -28,7 +28,7 @@ representation = "absolute_joint"   # what parse_response returns; the shared cl
 
 # Optional. Leave this whole table out when the policy cannot be trained here (it then serves only).
 # Each command is a script path inside this folder. The train container runs it with the repo mounted
-# and these variables set by `s2r`: SO101_POLICY_DIR, SO101_DATASET, SO101_OUTPUT, SO101_BASE_MODEL.
+# and these variables set by `s2r`: S2R_POLICY_DIR, S2R_DATASET, S2R_OUTPUT, S2R_BASE_MODEL.
 # Arguments after the command name on the `s2r` line are passed to the script unchanged.
 [train]
 dataset_format = "lerobot_v2.1"   # lerobot_v2.1 or lerobot_v3: what `prepare` must hand to `train`

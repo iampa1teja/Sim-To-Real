@@ -14,11 +14,8 @@ import torch
 from lerobot.datasets.feature_utils import validate_episode_buffer
 from lerobot.utils.constants import DEFAULT_FEATURES
 
-from core.arms.joint_calibration import FOLLOWER_JOINTS
-from core.arms.spec import load_arm_spec
+from core.arms.spec import ArmSpec, load_arm_spec
 from .recording_dataset import RecordingDataset
-
-JOINT_FEATURE_NAMES = [f"{name}.pos" for name in FOLLOWER_JOINTS]
 
 
 def split_visual_obs(visual_obs: dict, cameras) -> tuple[dict, dict, dict]:
@@ -47,6 +44,7 @@ class LeRobotRecorder:
         *,
         features: dict | None = None,
         robot_type: str | None = None,
+        arm: ArmSpec | None = None,
         image_writer_threads_per_camera: int = 4,
     ):
         self.task_name = task_name
@@ -55,7 +53,9 @@ class LeRobotRecorder:
         self.fps = fps
         self.device = device
         self.cameras = cameras or {}
-        self.robot_type = robot_type or load_arm_spec()[0]["lerobot"]["follower_type"]
+        self.arm = arm or load_arm_spec()[0]
+        self.joint_feature_names = list(self.arm.feature_names)
+        self.robot_type = robot_type or self.arm.lerobot.follower_type
         self.save_mp4 = save_mp4
         self.depth = depth
         self.instance_id_seg = instance_id_seg
@@ -68,11 +68,10 @@ class LeRobotRecorder:
         self._frame_count = 0
         self._aux_frames: dict[str, dict[str, list[np.ndarray]]] = {"rgb": {}, "depth": {}, "instance_id_seg": {}}
 
-    @staticmethod
-    def _make_sim_features(cameras: dict) -> dict:
-        joints = len(JOINT_FEATURE_NAMES)
+    def _make_sim_features(self, cameras: dict) -> dict:
+        joints = len(self.joint_feature_names)
         features = {
-            "observation.state": {"dtype": "float32", "shape": (joints,), "names": JOINT_FEATURE_NAMES.copy()},
+            "observation.state": {"dtype": "float32", "shape": (joints,), "names": self.joint_feature_names.copy()},
         }
         for camera_name, camera in cameras.items():
             features[f"observation.images.{camera_name}"] = {
@@ -80,7 +79,7 @@ class LeRobotRecorder:
                 "shape": (camera["height"], camera["width"], 3),
                 "names": ["height", "width", "channels"],
             }
-        features["action"] = {"dtype": "float32", "shape": (joints,), "names": JOINT_FEATURE_NAMES.copy()}
+        features["action"] = {"dtype": "float32", "shape": (joints,), "names": self.joint_feature_names.copy()}
         return features
 
     @staticmethod
@@ -155,12 +154,16 @@ class LeRobotRecorder:
         return array.astype(dtype, copy=True) if dtype is not None else array.copy()
 
     def make_sim_frame(self, action: torch.Tensor, observation: torch.Tensor, visual_buffers: dict) -> dict:
-        """One simulation frame. ``action``/``observation`` are in LeRobot range units (JointMapping.to_raw)."""
+        """One simulation frame in the arm's declared LeRobot device units (JointMapping.to_raw)."""
         frame = {
             "action": self._as_numpy(action, dtype=np.float32),
             "observation.state": self._as_numpy(observation, dtype=np.float32),
             "task": self.task_name,
         }
+        for name in ("action", "observation.state"):
+            if frame[name].shape != (len(self.joint_feature_names),) or not np.isfinite(frame[name]).all():
+                raise ValueError(f"{name} must contain {len(self.joint_feature_names)} finite values "
+                                 f"in arm {self.arm.name!r} action order")
         for camera_name in self.cameras:
             frame[f"observation.images.{camera_name}"] = self._as_numpy(visual_buffers[camera_name], dtype=np.uint8)
         return frame

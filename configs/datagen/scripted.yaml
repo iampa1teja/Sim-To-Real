@@ -1,0 +1,26 @@
+source: scripted
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube
+variant: teleop
+unit: rpd_robot
+destination: /workspace/datasets/pick_place_scripted
+repo_id: local/pick_place_scripted
+report: /workspace/s2r/outputs/datagen/scripted-report.json
+fps: 30
+seed: 1984
+attempts: 10
+episodes: 1
+max_steps: 1500
+warmup_steps: 30
+headless: true
+expert_options:
+  approach_height_m: 0.06
+  lift_height_m: 0.09
+  move_seconds: 2.0
+  transport_seconds: 0.5
+  # Open above the box while the cube is still held, then let it settle.
+  release_height_m: 0.09
+  final_transport_seconds: 0.5
+  gripper_open_fraction: 0.45
+  gripper_closed_fraction: 0.0

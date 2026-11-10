@@ -27,7 +27,8 @@ RUN uv pip install --python $PYTHON --override /tmp/overrides.txt \
 
 RUN $PYTHON -c "import numpy, cv2, torch, torchcodec, datasets, rerun, zmq, lerobot"
 
-RUN uv pip install --python "$PYTHON" "imageio-ffmpeg>=0.6,<0.7"
+RUN uv pip install --python "$PYTHON" "imageio-ffmpeg>=0.6,<0.7" "msgpack==1.2.4"
+RUN $PYTHON -c "import msgpack"
 RUN $PYTHON -c "import robomimic"
 
 WORKDIR /workspace/s2r

@@ -1,3 +1,4 @@
+unit: rpd_robot
 # MolmoAct2 workshop LoRA with real-arm joint units. Smoke: s2r eval --config_path <this> --smoke-test
 arm: so101
 scene: rpd_meeting_room
@@ -7,7 +8,7 @@ variant: eval
 policy:
   name: molmoact2
   checkpoint: molmoact2_so101_workshop_lora
-  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by lerobot_eval
+  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by sim.eval.run
   options:
     norm_tag: workshop_pick_place_v1_as_real
     dtype: bfloat16

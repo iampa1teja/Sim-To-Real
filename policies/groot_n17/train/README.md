@@ -13,5 +13,5 @@ See [05 — Training](../../../docs/05-training.md) for the complete workflow:
 validation checks. `--exclude_episodes` filters source IDs and renumbers the
 training copy. Filtered stats are recomputed; reports preserve the mapping.
 `--resume` requires unchanged source hashes and the same selection.
-`verify_pick_place_training.py` checks checksums and actual GR00T/PyAV frame reads.
+`verify_pick_place_training.py` checks checksums and actual GR00T video-reader first/middle/last frames. Preparation decodes every video frame.
 Neither script trains a model or requires a GPU.

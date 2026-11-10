@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
-if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+if [[ ${S2R_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" sim "$@"
 fi
 export GROOT="${GROOT:-$HOME/Isaac-GR00T}"

@@ -2,15 +2,15 @@
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # Started by `s2r train` in the train container (entrypoint --env mode): use its variables and its venv.
-if [[ -n ${SO101_PYTHON:-} ]]; then
-    export SO101_TRAIN_IN_CONTAINER=1
-    GROOT="${GROOT:-${SO101_PROJECT_DIR:-}}"
-    DATASET="${DATASET:-${SO101_DATASET:-}}"
-    OUT="${OUT:-${SO101_OUTPUT:-}}"
-    BASE_MODEL="${BASE_MODEL:-${SO101_BASE_MODEL:-}}"
-    GROOT_PYTHON="$SO101_PYTHON"
+if [[ -n ${S2R_PYTHON:-} ]]; then
+    export S2R_TRAIN_IN_CONTAINER=1
+    GROOT="${GROOT:-${S2R_PROJECT_DIR:-}}"
+    DATASET="${DATASET:-${S2R_DATASET:-}}"
+    OUT="${OUT:-${S2R_OUTPUT:-}}"
+    BASE_MODEL="${BASE_MODEL:-${S2R_BASE_MODEL:-}}"
+    GROOT_PYTHON="$S2R_PYTHON"
 fi
-if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+if [[ ${S2R_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" train "$@"
 fi
 GROOT="${GROOT:-$HOME/Isaac-GR00T-N1.7}"
@@ -47,12 +47,29 @@ export PYTHONDONTWRITEBYTECODE=1
 unset GROOT_SKIP_HF_MODEL_WEIGHTS GROOT_HF_LOCAL_FIRST PYTEST_CURRENT_TEST
 
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
-case "${1:-}" in
-    --dry_run) DRY_RUN=1; shift ;;
-    --preflight_only) PREFLIGHT_ONLY=1; shift ;;
-    --help|-h) printf 'Usage: bash policies/groot_n17/train/train_pick_place.sh [--dry_run|--preflight_only]\nConfigure BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, MILESTONE_STEPS, MILESTONE_KEEP, MILESTONE_DIR, EXTRA_DATASETS, LEARNING_RATE, RESUME and DATALOADER_NUM_WORKERS as environment variables.\n'; exit 0 ;;
-esac
-[[ $# == 0 ]] || die 'Unknown argument; use --help.'
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry_run|--dry-run) DRY_RUN=1; shift ;;
+        --preflight_only|--preflight-only) PREFLIGHT_ONLY=1; shift ;;
+        --batch|--max-steps|--save-steps|--save-total-limit|--base-model-path)
+            [[ $# -ge 2 ]] || die "$1 requires a value."
+            case "$1" in
+                --batch) BATCH=$2 ;;
+                --max-steps) MAX_STEPS=$2 ;;
+                --save-steps) SAVE_STEPS=$2 ;;
+                --save-total-limit) SAVE_TOTAL_LIMIT=$2 ;;
+                --base-model-path) BASE_MODEL=$2 ;;
+            esac
+            shift 2
+            ;;
+        --help|-h)
+            printf 'Usage: s2r train --policy groot_n17 ... -- [--batch N] [--max-steps N] [--save-steps N] [--save-total-limit N] [--base-model-path PATH] [--dry-run|--preflight-only]\n'
+            printf 'Defaults can also be set with BASE_MODEL, GROOT, DATASET, OUT, BATCH, MAX_STEPS, SAVE_STEPS, SAVE_TOTAL_LIMIT, MILESTONE_STEPS, MILESTONE_KEEP, MILESTONE_DIR, EXTRA_DATASETS, LEARNING_RATE, RESUME and DATALOADER_NUM_WORKERS.\n'
+            exit 0
+            ;;
+        *) die "Unknown argument: $1; use --help." ;;
+    esac
+done
 for setting in BATCH MAX_STEPS SAVE_STEPS SAVE_TOTAL_LIMIT; do
     [[ "${!setting}" =~ ^[1-9][0-9]*$ ]] || die "$setting must be a positive integer."
 done

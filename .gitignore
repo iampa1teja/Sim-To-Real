@@ -1,7 +1,12 @@
 s2r-data/
 outputs/
-datasets/
+/datasets/
 __pycache__/
 *.pyc
 .venv/
-tools
+
+.env
+*.egg-info/
+.pytest_cache/
+# Local code explorer is outside the s2r project.
+tools/code_explorer/

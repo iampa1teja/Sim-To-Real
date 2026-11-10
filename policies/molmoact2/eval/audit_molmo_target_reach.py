@@ -22,13 +22,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "src"))
-from core.tasks.loader import load_task_module  # noqa: E402
-from sim.eval.grasp_diagnostics import _tip_offsets  # noqa: E402
+from core.benchmark.eval_set import EvalSetStarts, start_objects  # noqa: E402
+from core.benchmark.geometry import resting_pose, rotation_matrix, upright_orientation  # noqa: E402
+from core.arms.spec import load_arm_spec, load_arm_utils  # noqa: E402
 
-EvalSetStarts = load_task_module("benchmark", "pick_place_cube").EvalSetStarts
-_task_eval = load_task_module("eval", "pick_place_cube")
-resting_pose, rotation_matrix, upright_orientation = (
-    _task_eval.resting_pose, _task_eval.rotation_matrix, _task_eval.upright_orientation)
 
 
 def rotation_z(angle):
@@ -51,16 +48,20 @@ def transform(quaternion, position):
 
 def stored_target(start, scene):
     """Mirror the reset's train/non-train orientation rule in the stored scene."""
-    quaternion = start.get("orientation_wxyz", [math.cos(start["yaw"] / 2), 0, 0,
-                                                math.sin(start["yaw"] / 2)])
+    pose = start_objects(start, task="pick_place_cube")["blue_cube"]
+    quaternion = pose["orientation_wxyz"]
     if start["split"] != "train":
         quaternion = upright_orientation(scene["base_quaternion_wxyz"],
                                          scene["table_plane_world"], quaternion)
-    world, _ = resting_pose([start["x"], start["y"], 0], quaternion,
+    world, _ = resting_pose(pose["position"], quaternion,
                             scene["base_position_world"], scene["base_quaternion_wxyz"],
-                            scene["table_plane_world"], scene["cube_size_m"])
+                            scene["table_plane_world"], cube_size(scene))
     return rotation_matrix(scene["base_quaternion_wxyz"]).T @ (
         world - scene["base_position_world"])
+
+
+def cube_size(scene):
+    return scene.get("objects", {}).get("blue_cube", {}).get("size", scene.get("cube_size_m"))
 
 
 class Chain:
@@ -85,7 +86,8 @@ class Chain:
         self.first = anchors[0]
         self.links = [inverses[i] @ anchors[i + 1] for i in range(4)]
         self.final_inverse = inverses[-1]
-        self.tip = _tip_offsets(stage, root, "gripper", cube_size / 2)[0] + [cube_size / 2, 0, 0]
+        arm = load_arm_spec("so101")[0]
+        self.tip = load_arm_utils(arm).grasp_tip_offsets(stage, root, arm, cube_size / 2)[0] + [cube_size / 2, 0, 0]
         self.tail = inverses[-1] @ np.r_[self.tip, 1]
         self.radius = sum(np.linalg.norm(self.links[i][:3, 3]) for i in (2, 3))
         self.radius += np.linalg.norm(self.tail[:3])
@@ -201,10 +203,10 @@ def main():
     stats = stats_file["metadata_by_tag"][options["norm_tag"]]["action_stats"]
     schedule = EvalSetStarts(local_path(cfg["eval"]["eval_set"]), seed=1984, selection="one_per_zone")
     data = schedule.data
-    if len(set(data["scene"]["cube_size_m"])) != 1:
+    if len(set(cube_size(data["scene"]))) != 1:
         raise ValueError("Diagnostic point assumes a cube")
     stage = Usd.Stage.Open(str(local_path(cfg["eval"].get("robot_usd", str(ROOT / "arms/so101/usd/SO-ARM101-USD.usd")))))
-    chain = Chain(stage, data["scene"]["cube_size_m"][0])
+    chain = Chain(stage, cube_size(data["scene"])[0])
     bounds = np.asarray([stats["q01"][:5], stats["q99"][:5]]).T.copy()
     pan_scale = float(options.get("pan_model_scale", 1))
     pan_offset = float(options.get("pan_model_offset", 0))
@@ -229,8 +231,8 @@ def main():
         raise ValueError("Downstream-ball inclusion check failed")
     source_paths = [args.config, stats_path, local_path(cfg["eval"]["eval_set"]), Path(__file__)]
     source_paths += [Path(layer.realPath) for layer in stage.GetUsedLayers() if layer.realPath]
-    source_paths += [ROOT / "src/sim/eval/grasp_diagnostics.py", ROOT / "tasks/pick_place_cube/eval.py",
-                     ROOT / "tasks/pick_place_cube/benchmark.py"]
+    source_paths += [ROOT / "tools/diagnostics/grasp_diagnostics.py", ROOT / "src/core/benchmark/geometry.py",
+                     ROOT / "src/core/benchmark/eval_set.py"]
     report = dict(scope=__doc__, eval_set_id=data["eval_set_id"],
                   source_sha256={str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                                  for path in source_paths},
@@ -261,8 +263,7 @@ def main():
                              target_base_m=targets[index].tolist(), lower_mm=float(lower[index] * 1000),
                              found_error_mm=best_error * 1000, found_joint_degrees=best_angles.tolist()))
             if args.check_orientation:
-                quaternion = start.get("orientation_wxyz", [math.cos(start["yaw"] / 2), 0, 0,
-                                                            math.sin(start["yaw"] / 2)])
+                quaternion = start_objects(start, task="pick_place_cube")["blue_cube"]["orientation_wxyz"]
                 if start["split"] != "train":
                     quaternion = upright_orientation(data["scene"]["base_quaternion_wxyz"],
                                                      data["scene"]["table_plane_world"], quaternion)

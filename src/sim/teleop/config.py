@@ -12,20 +12,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal
 
-def rendering_kit_args(existing: str = "") -> str:
-    """Enable the installed material context-menu dependency before Kit starts.
-
-    The material library initializes its menus asynchronously during startup.
-    Enabling this extension after app creation can miss that initialization.
-    """
-    extension = "omni.kit.context_menu"
-    words = existing.split()
-    for index, word in enumerate(words):
-        if word == f"--enable={extension}" or (
-            word == "--enable" and words[index + 1:index + 2] == [extension]
-        ):
-            return existing
-    return f"{existing} --enable {extension}".strip()
+from sim.app import add_launch_arguments
 
 
 def _env(name: str, default: str | None = None):
@@ -44,7 +31,7 @@ class FollowerConfig:
     enabled: bool = False
     port: str = _env("ROBOT_PORT", "/dev/ttyACM1")
     id: str = _env("ROBOT_ID", "follower_arm_1")
-    calibration_path: str | None = None
+    unit: str | None = _env("S2R_UNIT")
     # name -> OpenCV index or /dev/video path. Opened only when recording a real dataset.
     cameras: dict[str, str] = field(default_factory=lambda: {
         name: value for name, value in (("gripper", os.getenv("CAMERA_GRIPPER")),
@@ -95,9 +82,9 @@ class GuiConfig:
 
 @dataclass
 class AgentConfig:
-    arm: str = "so101"
-    scene: str = "rpd_meeting_room"
-    task: str = "pick_place_cube"
+    arm: str = _env("S2R_ARM", "so101")
+    scene: str = _env("S2R_SCENE", "rpd_meeting_room")
+    task: str = _env("S2R_TASK", "pick_place_cube")
     variant: str | None = None
     num_envs: int | None = None
     use_fabric: bool = True
@@ -153,10 +140,8 @@ def parse_config(argv: list[str] | None = None) -> tuple[AgentConfig, argparse.N
     draccus, which also handles ``--config_path``.
     """
     import draccus
-    from isaaclab.app import AppLauncher
-
     parser = argparse.ArgumentParser(add_help=False)
-    AppLauncher.add_app_launcher_args(parser)
+    add_launch_arguments(parser)
     isaac_args, rest = parser.parse_known_args(argv)
     config_path = None
     if "--config_path" in rest:
@@ -172,22 +157,4 @@ def parse_config(argv: list[str] | None = None) -> tuple[AgentConfig, argparse.N
     cfg = draccus.parse(config_class=AgentConfig, config_path=config_path, args=rest)
     # Every teleop agent renders the cameras it records or streams.
     isaac_args.enable_cameras = True
-    isaac_args.kit_args = rendering_kit_args(isaac_args.kit_args)
     return cfg, isaac_args
-
-
-def apply_selection(cfg: AgentConfig) -> None:
-    from core.paths import repo_dir
-
-    for kind, name in (("arms", cfg.arm), ("scenes", cfg.scene)):
-        if not (repo_dir(kind) / name).is_dir():
-            available = sorted(p.name for p in repo_dir(kind).iterdir() if p.is_dir())
-            raise ValueError(f"Unknown {kind[:-1]} {name!r}; available: {available}")
-    if cfg.task and not (repo_dir("tasks") / cfg.task / "task.toml").is_file():
-        available = sorted(p.name for p in repo_dir("tasks").iterdir() if (p / "task.toml").is_file())
-        raise ValueError(f"Unknown task {cfg.task!r}; available: {available}")
-    if cfg.variant and not cfg.task:
-        raise ValueError("variant needs a task.")
-    os.environ["S2R_ARM"] = cfg.arm
-    os.environ["S2R_SCENE"] = cfg.scene
-    os.environ["S2R_TASK"] = cfg.task

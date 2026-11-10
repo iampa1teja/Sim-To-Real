@@ -5,10 +5,7 @@ from isaaclab.envs import ManagerBasedEnv
 from isaaclab.managers import SceneEntityCfg
 
 
-def as_torch(x):
-    """Return a torch view of 3.0 data (a ProxyArray with a zero-copy ``.torch``); plain tensors pass through."""
-    return x if isinstance(x, torch.Tensor) else x.torch
-
+from ._common import as_torch
 
 def ee_frame_state(env: ManagerBasedEnv, robot_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """End-effector pose in the base-link frame: pos (3) + quat xyzw (4).

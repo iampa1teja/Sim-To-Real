@@ -75,9 +75,6 @@ class PolicyClient:
         except (TimeoutError, zmq.ZMQError):
             return False
 
-    def kill_server(self) -> None:
-        self.call_endpoint("kill", requires_input=False)
-
     def call_endpoint(self, endpoint: str, data: dict | None = None, requires_input: bool = True) -> Any:
         request = {
             "endpoint": endpoint

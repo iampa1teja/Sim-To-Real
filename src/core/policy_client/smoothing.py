@@ -6,11 +6,8 @@ control-step indices, so stale prefixes and temporal overlaps share one clock.
 
 from dataclasses import dataclass
 import csv
-import logging
 import math
 from pathlib import Path
-from queue import Empty, Queue
-import threading
 import time
 
 import numpy as np
@@ -65,10 +62,10 @@ def blend_actions(old, new, steps):
 
 
 class JointEMA:
-    def __init__(self, alpha=1.0, smooth_gripper=False, gripper_index=-1):
+    def __init__(self, alpha=1.0, smooth_gripper=False, gripper_indices=()):
         self.alpha = alpha
         self.smooth_gripper = smooth_gripper
-        self.gripper_index = gripper_index
+        self.gripper_indices = tuple(gripper_indices)
         self.reset()
 
     def reset(self):
@@ -80,7 +77,7 @@ class JointEMA:
         else:
             sent = self.alpha * action + (1 - self.alpha) * self.previous
             if not self.smooth_gripper:
-                sent[self.gripper_index] = action[self.gripper_index]
+                sent[list(self.gripper_indices)] = action[list(self.gripper_indices)]
         self.previous = sent.copy()
         return sent
 
@@ -106,14 +103,13 @@ class ActionSmoother:
     tail remains available for a cross-fade. Ensemble mode uses all T rows.
     """
 
-    def __init__(self, config, action_horizon, joint_keys, grasp=None):
+    def __init__(self, config, action_horizon, joint_keys, grasp=None, *, gripper_indices=()):
         config.validate(action_horizon)
         self.config = config
         self.grasp = grasp
         self.horizon = action_horizon
         self.joint_keys = tuple(joint_keys)
-        gripper = next((i for i, key in enumerate(joint_keys) if key == "gripper.pos"), -1)
-        self.ema = JointEMA(config.ema_alpha, config.smooth_gripper, gripper)
+        self.ema = JointEMA(config.ema_alpha, config.smooth_gripper, gripper_indices)
         self.reset()
 
     def reset(self, initial_target=None):
@@ -198,12 +194,12 @@ class ActionSmoother:
 class TimingLog:
     """Write CSV per tick and aggregate latency/jerk without retaining the rollout."""
 
-    def __init__(self, path, joint_keys):
+    def __init__(self, path, joint_keys, *, gripper_indices=()):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.file = self.path.open("w", newline="")
         self.joint_keys = tuple(joint_keys)
-        self.arm_indices = [i for i, k in enumerate(joint_keys) if k != "gripper.pos"]
+        self.arm_indices = [i for i in range(len(joint_keys)) if i not in gripper_indices]
         self.writer = csv.writer(self.file)
         self.writer.writerow(["step", "chunk_id", "inference_latency_s", "overrun", "held",
                               *[f"raw_{k}" for k in joint_keys], *[f"sent_{k}" for k in joint_keys]])
@@ -246,9 +242,9 @@ class SimulationSmoother:
     clock or thread affects actions. The initial query is delivered immediately.
     """
 
-    def __init__(self, config, action_horizon, joint_keys, timing=None, grasp=None):
+    def __init__(self, config, action_horizon, joint_keys, timing=None, grasp=None, *, gripper_indices=()):
         self.config = config
-        self.smoother = ActionSmoother(config, action_horizon, joint_keys, grasp=grasp)
+        self.smoother = ActionSmoother(config, action_horizon, joint_keys, grasp=grasp, gripper_indices=gripper_indices)
         self.timing = timing
         self.total_steps = 0
         self.reset()
@@ -296,100 +292,3 @@ class SimulationSmoother:
         self.step += 1
         self.total_steps += 1
         return self.smoother.as_dict(sent)
-
-
-@dataclass
-class InferenceResult:
-    observation_step: int
-    actions: object
-    latency: float
-    chunk_id: int
-    error: BaseException | None = None
-
-
-class InferenceWorker:
-    """One persistent daemon thread owns observation capture and policy requests.
-
-    At most one request is outstanding. Polling and submission never wait for
-    inference; slow requests cannot build a queue of obsolete observations.
-    """
-
-    def __init__(self, observe, query, current_step, clock=time.monotonic):
-        self.observe = observe
-        self.query = query
-        self.current_step = current_step
-        self.clock = clock
-        self.requests = Queue()
-        self.results = Queue()
-        self.busy = False
-        self.closed = False
-        self.chunk_id = 0
-        self.thread = threading.Thread(target=self._run, name="gr00t-inference", daemon=True)
-        self.thread.start()
-
-    def submit(self):
-        if self.busy or self.closed:
-            return False
-        self.busy = True
-        self.requests.put(self.chunk_id)
-        self.chunk_id += 1
-        return True
-
-    def _run(self):
-        while True:
-            chunk_id = self.requests.get()
-            if chunk_id is None or self.closed:
-                return
-            origin = self.current_step()
-            started = self.clock()
-            try:
-                obs = self.observe()
-                origin = self.current_step()
-                started = self.clock()
-                actions = self.query(obs)
-                result = InferenceResult(origin, actions, self.clock() - started, chunk_id)
-            except BaseException as error:
-                result = InferenceResult(origin, None, self.clock() - started, chunk_id, error)
-            self.results.put(result)
-
-    def poll(self):
-        try:
-            result = self.results.get_nowait()
-        except Empty:
-            return None
-        self.busy = False
-        if result.error is not None:
-            raise result.error
-        return result
-
-    def close(self):
-        self.closed = True
-        self.requests.put(None)
-        # Never wait for an unresponsive server at shutdown. The worker never
-        # sends motor commands and won't capture another observation after close.
-
-
-class FixedRateScheduler:
-    def __init__(self, hz=30.0, clock=time.monotonic, sleep=time.sleep):
-        self.period = 1.0 / hz
-        self.clock = clock
-        self.sleep = sleep
-        self.next_tick = clock()
-        self.overruns = 0
-
-    def finish_tick(self):
-        self.next_tick += self.period
-        remaining = self.next_tick - self.clock()
-        overrun = remaining < 0
-        if overrun:
-            self.overruns += 1
-        elif remaining > 0:
-            self.sleep(remaining)
-        return overrun
-
-
-def log_late(result, step, horizon):
-    elapsed = step - result.observation_step
-    logging.info("Chunk %s inference %.3fs, dropping %s stale actions%s", result.chunk_id,
-                 result.latency, min(elapsed, len(result.actions)),
-                 " (past execution horizon)" if elapsed >= horizon else "")

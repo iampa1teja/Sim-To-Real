@@ -76,7 +76,7 @@ def prepare_recording_roots(roots: list[str], contract: dict, *, on_mismatch: st
     Selection never creates directories or rewrites alignment markers. The recorder owns
     initialization, and a repeated launch with the same contract selects the same pair.
     """
-    from core.utils.recording_alignment import RecordingAlignmentError, validate_recording_root
+    from core.datasets.alignment import RecordingAlignmentError, validate_recording_root
     from .rerecording import recover_replacement
 
     if on_mismatch not in ("error", "new"):
@@ -153,6 +153,7 @@ def make_recorders(
     depth: bool = False,
     instance_id_seg: bool = False,
     image_writer_threads_per_camera: int = 4,
+    arm=None,
 ):
     """Build the synchronized recorders; the caller calls ``init_datasets()``.
 
@@ -161,11 +162,15 @@ def make_recorders(
     None when there is no physical follower.
     """
     from .lerobot_recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
+    from core.arms.spec import load_arm_spec
+
+    arm = arm or load_arm_spec()[0]
 
     common = {
         "task_name": task_name,
         "fps": fps,
         "device": device,
+        "arm": arm,
         "image_writer_threads_per_camera": image_writer_threads_per_camera,
     }
     recorders = {"sim": LeRobotRecorder(
@@ -180,7 +185,6 @@ def make_recorders(
 
     real_pipeline = None
     if follower is not None:
-        from core.arms.spec import load_arm_spec
         from sim.teleop.devices import real_recording_features
 
         real_root = real_repo_root or derived_real_root(repo_root)
@@ -193,7 +197,7 @@ def make_recorders(
             cameras=real_cameras or {},
             features=real_pipeline.features,
             # LeRobot 0.6.1 names every SO follower "so_follower"; keep the arm.toml type (v1: so101_follower).
-            robot_type=load_arm_spec()[0]["lerobot"]["follower_type"],
+            robot_type=arm.lerobot.follower_type,
             **common,
         )
     return SynchronizedLeRobotRecorders(recorders), real_pipeline

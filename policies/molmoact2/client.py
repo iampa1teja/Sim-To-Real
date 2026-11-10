@@ -17,11 +17,36 @@ coordinates for experiments in simulation; they do not change calibration.
 from __future__ import annotations
 
 from typing import Any
+from types import SimpleNamespace
 
 import numpy as np
 
-from core.policy_client.contract import ClientPolicy
+from core.policy_client.contract import ArmInfo, ClientPolicy
 from core.policy_client.discovery import PolicyManifest
+
+MODEL_JOINTS = ('shoulder_pan', 'shoulder_lift', 'elbow_flex', 'wrist_flex', 'wrist_roll', 'gripper')
+
+
+def molmo_joint_options(options: dict, arm: ArmInfo) -> dict:
+    """Derive this model's physical joint frame from the selected device codec."""
+    options = dict(options)
+    options.setdefault('input_joint_units', 'usd_normalized')
+    if options['input_joint_units'] in ('lerobot_normalized', 'usd_normalized'):
+        spans = [arm.joint_mapping[name] for name in MODEL_JOINTS[:-1]]
+        lows = np.asarray([span['joint_min'] for span in spans], dtype=np.float32)
+        highs = np.asarray([span['joint_max'] for span in spans], dtype=np.float32)
+        raw_lows = np.asarray([span.get('raw_min', -100) for span in spans], dtype=np.float32)
+        raw_highs = np.asarray([span.get('raw_max', 100) for span in spans], dtype=np.float32)
+        scales = (highs - lows) / (raw_highs - raw_lows)
+        options.setdefault('arm_degrees_per_unit', ','.join(str(value) for value in scales.tolist()))
+        if options['input_joint_units'] == 'usd_normalized':
+            # Use the original midpoint arithmetic for the conventional codec,
+            # retaining the exact pre-configure transform on the SO-101.
+            zeros = np.where((raw_lows == -100) & (raw_highs == 100),
+                             (highs + lows) / 2, lows - scales * raw_lows)
+            options.setdefault('arm_zero_degrees', ','.join(str(value) for value in zeros.tolist()))
+            options.setdefault('wrist_roll_model_offset', -90.0)
+    return options
 
 
 def _include_original_room(value: Any) -> bool:
@@ -44,6 +69,15 @@ class MolmoAct2ClientPolicy(ClientPolicy):
         if include_original_room and "original_room" not in self.cameras:
             self.cameras += ("original_room",)
         self.language = language
+        self._manifest = SimpleNamespace(cameras=tuple(cameras), language=language)
+        self._options = dict(input_joint_units=input_joint_units, arm_degrees_per_unit=arm_degrees_per_unit,
+                             include_original_room=include_original_room, arm_zero_degrees=arm_zero_degrees,
+                             pan_model_scale=pan_model_scale, pan_model_offset=pan_model_offset,
+                             wrist_roll_model_offset=wrist_roll_model_offset)
+        self._options = {key: value for key, value in self._options.items() if value is not None}
+        self._to_model = None
+        self._configured_features = None
+        self._needs_arm = False
         if input_joint_units not in ("lerobot_degrees", "lerobot_normalized", "usd_normalized", "model"):
             raise ValueError("input_joint_units must be lerobot_degrees, lerobot_normalized, usd_normalized, or model")
         # Official LeRobot joint-frame correction for the released checkpoint:
@@ -131,13 +165,46 @@ class MolmoAct2ClientPolicy(ClientPolicy):
                 raise ValueError("pan_model_scale and pan_model_offset must be provided together")
             if any(options[key] is None for key in pan_keys):
                 raise ValueError("pan_model_scale must be finite and positive; pan_model_offset must be finite")
-        return cls(manifest.cameras, manifest.language,
-                   options.get("input_joint_units", "lerobot_degrees"),
-                   options.get("arm_degrees_per_unit", ""),
+        materialized = dict(options)
+        materialized.setdefault('input_joint_units', 'usd_normalized')
+        deferred = materialized['input_joint_units'] in ('lerobot_normalized', 'usd_normalized') and (
+            'arm_degrees_per_unit' not in options or
+            (materialized['input_joint_units'] == 'usd_normalized' and 'arm_zero_degrees' not in options))
+        # configure() supplies measured codec values before the first request.
+        if deferred:
+            materialized.setdefault('arm_degrees_per_unit', '1,1,1,1,1')
+            materialized.setdefault('arm_zero_degrees', '0,0,0,0,0')
+        result = cls(manifest.cameras, manifest.language,
+                   materialized['input_joint_units'],
+                   materialized.get("arm_degrees_per_unit", ""),
                    _include_original_room(options.get("include_original_room", False)),
-                   options.get("arm_zero_degrees", ""),
+                   materialized.get("arm_zero_degrees", ""),
                    options.get("pan_model_scale"), options.get("pan_model_offset"),
                    options.get("wrist_roll_model_offset", 0.0))
+        result._manifest, result._options, result._needs_arm = manifest, dict(options), deferred
+        return result
+
+    def configure(self, arm: ArmInfo) -> None:
+        if set(arm.joint_names) != set(MODEL_JOINTS):
+            raise ValueError('MolmoAct2 SO-100/101 requires joints ' + ', '.join(MODEL_JOINTS))
+        for name, role, kind in zip(arm.joint_names, arm.roles, arm.types):
+            if kind != 'revolute' or role != ('gripper' if name == 'gripper' else 'arm'):
+                raise ValueError('MolmoAct2 SO-100/101 requires five revolute arm joints and one revolute gripper')
+        options = molmo_joint_options(getattr(self, '_options', {}), arm)
+        configured = type(self).from_manifest(self._manifest, options)
+        configured._needs_arm = False
+        configured._to_model = [arm.joint_names.index(name) for name in MODEL_JOINTS]
+        configured._configured_features = arm.feature_names
+        if options['input_joint_units'] != 'model':
+            span = arm.joint_mapping['gripper']
+            low, high = span.get('raw_min', 0), span.get('raw_max', 100)
+            configured.scale[5] *= 100 / (high - low)
+            configured.offset[5] -= configured.scale[5] * low
+        configured.joint_transform.update(scale=configured.scale.tolist(), offset=configured.offset.tolist(),
+                                          joint_names=list(MODEL_JOINTS))
+        original = dict(getattr(self, '_options', {}))
+        self.__dict__.update(configured.__dict__)
+        self._options = original
 
     def build_request(
         self, joint_positions: np.ndarray, images: dict[str, np.ndarray], instruction: str
@@ -146,8 +213,12 @@ class MolmoAct2ClientPolicy(ClientPolicy):
         if missing:
             raise KeyError(f"missing cameras {missing}; got {sorted(images)}")
         state = np.asarray(joint_positions, dtype=np.float32)
+        if self._needs_arm:
+            raise ValueError('MolmoAct2 must be configured with ArmInfo before inference')
         if state.shape != (6,) or not np.isfinite(state).all():
             raise ValueError("joint state must contain six finite joint values")
+        if self._to_model is not None:
+            state = state[self._to_model]
         return {
             "state": state * self.scale + self.offset,
             "images": {c: np.asarray(images[c], dtype=np.uint8) for c in self.cameras},
@@ -160,7 +231,12 @@ class MolmoAct2ClientPolicy(ClientPolicy):
             raise ValueError(f"expected (T, {len(joint_order)}) actions, got {actions.shape}")
         if actions.shape[1] != 6 or not np.isfinite(actions).all():
             raise ValueError("actions must contain six finite joint values per step")
-        return (actions - self.offset) / self.scale
+        decoded = (actions - self.offset) / self.scale
+        if self._configured_features is not None:
+            if tuple(joint_order) != self._configured_features:
+                raise ValueError('MolmoAct2 response joint order differs from configured ArmInfo')
+            decoded = decoded[:, [MODEL_JOINTS.index(name.removesuffix('.pos')) for name in joint_order]]
+        return decoded
 
     def reset(self) -> None:
         """No per-episode state."""

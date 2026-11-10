@@ -1,0 +1,82 @@
+# Copy this folder to arms/<name>, rename name/utils, and supply the referenced USD.
+# Joint tables define the complete action order. Limits use degrees or metres;
+# initial uses radians or metres. No joint count or gripper index is assumed.
+[arm]
+name = "new_arm"
+usd_path = "usd/arm.usda"
+utils = "_utils.py"
+
+[arm.links]
+base = "base"
+ee = "tool"
+
+# Optional IK tool point in the ee-link frame, in metres. Rotation errors are projected
+# onto declared arm-base axes; a low-DOF arm should omit constraints it cannot control.
+# [arm.ik]
+# position_offset_m = [0.0, 0.0, 0.0]
+# orientation_axes = ["x", "y"]
+
+[[arm.joints]]
+name = "shoulder"
+usd = "Shoulder"
+type = "revolute"
+role = "arm"
+limits = [-180.0, 180.0]
+initial = 0.0
+
+[[arm.joints]]
+name = "finger"
+usd = "Finger"
+type = "prismatic"
+role = "gripper"
+limits = [0.0, 0.04]
+initial = 0.02
+
+[arm.gripper]
+kind = "jaw"
+joints = ["finger"]
+contact_bodies = ["finger_link"]
+friction_bodies = ["tool", "finger_link"]
+# tip_mesh = "tool_mesh"   # optional: a mesh in the end-effector visual subtree
+
+# Omit wrist_roll entirely on arms without an independently controllable roll.
+# [arm.wrist_roll]
+# joint = "roll"
+# relative_in_teleop = true
+
+[arm.initial_state]
+position = [0.0, 0.0, 0.0]
+rotation_euler_degrees = [0.0, 0.0, 0.0]
+
+[arm.actuators.arm]
+joint_names_expr = ["Shoulder"]
+effort_limit_sim = 10.0
+stiffness = 20.0
+damping = 1.0
+
+[arm.actuators.gripper]
+joint_names_expr = ["Finger"]
+effort_limit_sim = 5.0
+stiffness = 100.0
+damping = 2.0
+
+[arm.spawn]
+activate_contact_sensors = false
+[arm.spawn.articulation_props]
+self_collision_enabled = false
+
+[arm.lerobot]
+follower_type = "your_follower_type"
+leader_type = "your_leader_type"
+modules = []                 # modules registering those LeRobot config classes
+use_degrees = false
+calibration = "factory"       # or per_unit with calibration/units/<id>.json
+follower_calibration_dir = "robots/your_arm"
+leader_calibration_dir = "teleoperators/your_arm"
+
+[arm.hardware]
+motor = "your_motor"
+encoder_counts_per_turn = 4096
+zero_count = 2048
+# Factory revolute mapping uses the entire encoder count range. A factory
+# prismatic joint's declared limits are its full physical stroke in metres.

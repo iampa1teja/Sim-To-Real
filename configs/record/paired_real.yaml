@@ -1,0 +1,41 @@
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube
+variant: teleop
+fps: 30
+seed: 101
+calibrate: true
+control_input: terminal
+
+leader:
+  id: rpd_leader
+
+follower:
+  enabled: true
+  id: rpd_follower
+  unit: rpd_follower
+  cameras:
+    gripper: /dev/video0
+    external: /dev/video6
+  camera_width: 640
+  camera_height: 480
+
+dataset:
+  repo_id: local/test
+  root: /workspace/datasets/test
+  task_name: Pick up the blue cube and place it in the white box.
+  real_repo_id: local/test-real
+  real_root: /workspace/datasets/test-real
+  on_alignment_mismatch: new
+  save_mp4: false
+  depth: false
+  instance_id_seg: false
+
+telemetry:
+  joint_angle_log: null
+
+gui:
+  enabled: true
+  host: 127.0.0.1
+  port: 8765
+  fps: 15.0

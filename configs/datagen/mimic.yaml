@@ -1,0 +1,22 @@
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube
+variant: teleop
+unit: rpd_robot
+source: mimic
+# First generate successful annotated episodes with the scripted source.
+source_dataset: /workspace/datasets/pick_place_scripted
+destination: /workspace/datasets/pick_place_mimic
+repo_id: local/pick_place_mimic
+report: /workspace/s2r/outputs/datagen/mimic-report.json
+attempts: 10
+episodes: 1
+max_steps: 1500
+warmup_steps: 30
+fps: 30
+seed: 1984
+headless: true
+# Must match source meta/datagen.json control_offset_m. With no override,
+# both producers use the selected arm's declared TCP offset.
+mimic_options:
+  select_source_per_subtask: true

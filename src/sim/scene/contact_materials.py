@@ -35,7 +35,7 @@ def contact_properties():
         condim=6, solref=CONTACT_SOLREF, solimp=CONTACT_SOLIMP)]
 
 
-def enable_collision_meshes(root):
+def enable_collision_meshes(root, arm=None):
     """Move inherited collision intent from legacy Xform containers onto actual meshes.
 
     The arm USD puts CollisionAPI on instanceable ``collisions`` Xforms. Newton only
@@ -66,94 +66,18 @@ def enable_collision_meshes(root):
             container.RemoveAppliedSchema(schema)
         container.RemoveAPI(UsdPhysics.MeshCollisionAPI)
         container.RemoveAPI(UsdPhysics.CollisionAPI)
-    for split in (_split_fixed_finger, _split_moving_finger):
-        replaced, pieces = split(root)
-        if replaced in authored:
-            authored.remove(replaced)
-        authored.extend(pieces)
-    from sim.scene.gripper_collisions import apply_primitive_pads
+    from core.arms.spec import load_arm_spec, load_arm_utils
 
-    replaced, pieces = apply_primitive_pads(root)
-    authored = [path for path in authored if path not in replaced]
-    authored.extend(pieces)
+    arm = arm or load_arm_spec()[0]
+    utilities = load_arm_utils(arm)
+    prepare = getattr(utilities, "prepare_collisions", None)
+    if prepare is not None:
+        changes = prepare(root)
+        if changes is not None:
+            replaced, pieces = changes
+            authored = [path for path in authored if path not in replaced]
+            authored.extend(pieces)
     return tuple(authored)
-
-
-def _split_fixed_finger(root):
-    """Keep the SO101 finger opening out of the proximal body's convex hull.
-
-    The CAD finger face is x=-0.0079 m below local z=-0.04 m. A hull of
-    the entire L-shaped part fills that opening and overlaps a valid cube
-    placement by several millimetres. Two hulls retain that contact face.
-    """
-    return _split_link_mesh(root, link_name="gripper", mesh_name="wrist_roll_follower_so101_v1",
-                            axis=2, coordinate=-0.04)
-
-
-def _split_moving_finger(root):
-    """Keep the moving finger's proximal body out of its distal contact hull."""
-    return _split_link_mesh(root, link_name="jaw", mesh_name="moving_jaw_so101_v1",
-                            axis=1, coordinate=-0.04)
-
-
-def _split_link_mesh(root, *, link_name, mesh_name, axis, coordinate):
-    """Clip the source CAD at a link-local plane and cook two convex pieces."""
-    import numpy as np
-    from scipy.spatial import ConvexHull
-    from pxr import Gf, Vt
-
-    link = root.GetStage().GetPrimAtPath(root.GetPath().AppendChild(link_name))
-    if not link:
-        return None, ()
-    source = next((prim for prim in Usd.PrimRange(link)
-                   if prim.IsA(UsdGeom.Mesh) and
-                   f"/collisions/{mesh_name}/" in str(prim.GetPath())), None)
-    if source is None or not source.HasAPI(UsdPhysics.CollisionAPI) or not (
-            UsdPhysics.CollisionAPI(source).GetCollisionEnabledAttr().Get()):
-        return None, ()
-    mesh = UsdGeom.Mesh(source)
-    transform, _ = UsdGeom.XformCache().ComputeRelativeTransform(source, link)
-    points = np.asarray([transform.Transform(Gf.Vec3d(*map(float, point)))
-                         for point in mesh.GetPointsAttr().Get()])
-    indices = np.asarray(mesh.GetFaceVertexIndicesAttr().Get())
-    intersections, offset = [], 0
-    for count in mesh.GetFaceVertexCountsAttr().Get():
-        face = indices[offset:offset + count]
-        offset += count
-        for index in range(count):
-            p, q = points[face[index]], points[face[(index + 1) % count]]
-            if (p[axis] - coordinate) * (q[axis] - coordinate) < 0:
-                intersections.append(p + (coordinate - p[axis]) / (q[axis] - p[axis]) * (q - p))
-    if not intersections:
-        raise ValueError(f"Split plane does not cross collision mesh {source.GetPath()}")
-    intersections = np.asarray(intersections)
-    inverse, created = transform.GetInverse(), []
-    for name, mask in (("finger_contact", points[:, axis] <= coordinate),
-                       ("body_contact", points[:, axis] >= coordinate)):
-        piece = np.unique(np.round(np.vstack((points[mask], intersections)), 10), axis=0)
-        if np.linalg.matrix_rank(piece - piece.mean(axis=0), tol=1e-10) < 3:
-            raise ValueError(f"Split creates a planar collision part at {source.GetPath()}/{name}")
-        hull = ConvexHull(piece)
-        vertices = piece[hull.vertices]
-        remap = {int(index): position for position, index in enumerate(hull.vertices)}
-        faces = hull.simplices.copy()
-        # Qhull reports outward plane normals; orient every triangle accordingly.
-        for face, equation in zip(faces, hull.equations):
-            p, q, r = piece[face]
-            if np.dot(np.cross(q - p, r - p), equation[:3]) < 0:
-                face[1], face[2] = face[2], face[1]
-        local = [inverse.Transform(Gf.Vec3d(*map(float, point))) for point in vertices]
-        path = source.GetPath().GetParentPath().AppendChild(name)
-        part = UsdGeom.Mesh.Define(root.GetStage(), path)
-        part.CreatePointsAttr(Vt.Vec3fArray([Gf.Vec3f(*point) for point in local]))
-        part.CreateFaceVertexCountsAttr([3] * len(faces))
-        part.CreateFaceVertexIndicesAttr([remap[int(index)] for index in faces.reshape(-1)])
-        part.CreateVisibilityAttr("invisible")
-        UsdPhysics.CollisionAPI.Apply(part.GetPrim()).CreateCollisionEnabledAttr(True)
-        UsdPhysics.MeshCollisionAPI.Apply(part.GetPrim()).CreateApproximationAttr("convexHull")
-        created.append(str(path))
-    UsdPhysics.CollisionAPI(source).CreateCollisionEnabledAttr(False)
-    return str(source.GetPath()), tuple(created)
 
 
 def bind_contact_material(root, predicate, *, friction=CONTACT_FRICTION, rolling_friction=None):

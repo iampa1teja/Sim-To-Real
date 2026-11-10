@@ -33,14 +33,14 @@ class GraspConfig:
         return self.gripper_latch or self.log_gripper
 
 
-def training_bounds(dataset):
+def training_bounds(dataset, feature_name):
     """Read gripper action extrema and named column from LeRobot training metadata."""
     root = Path(dataset).expanduser()
     info = json.loads((root / 'meta/info.json').read_text())
     names = info['features']['action']['names']
     if isinstance(names, dict):
         names = names['motors']
-    index = names.index('gripper.pos')
+    index = names.index(feature_name)
     stats = json.loads((root / 'meta/stats.json').read_text())['action']
     closed, opened = float(stats['min'][index]), float(stats['max'][index])
     if not math.isfinite(closed) or not math.isfinite(opened) or closed >= opened:
@@ -141,12 +141,19 @@ def seed_query(client, seed):
 
 
 class GraspController:
-    def __init__(self, config, joint_keys, dt=1/30):
+    def __init__(self, config, joint_keys, dt=1/30, *, arm_info=None):
         self.config, self.keys, self.dt = config, tuple(joint_keys), dt
-        self.gripper_index = self.keys.index('gripper.pos')
-        self.arm_indices = [i for i in range(len(self.keys)) if i != self.gripper_index]
-        dataset = config.latch_dataset or str(Path(__file__).resolve().parents[3] / 'datasets/pick_place_sim')
-        closed, opened = training_bounds(dataset)
+        if arm_info is None or self.keys != arm_info.feature_names:
+            raise ValueError('Grasp control requires ArmInfo matching the action order')
+        if len(arm_info.gripper_indices) != 1:
+            raise ValueError('Grasp latch/logging requires exactly one gripper-role joint')
+        self.gripper_index = arm_info.gripper_indices[0]
+        self.arm_indices = list(arm_info.arm_indices)
+        feature = self.keys[self.gripper_index]
+        dataset = config.latch_dataset
+        if not dataset:
+            raise ValueError('Set latch_dataset explicitly for grasp latch or gripper logging')
+        closed, opened = training_bounds(dataset, feature)
         self.latch = GripperLatch(closed, opened, config)
         if config.gripper_empty_closed is None:
             info = json.loads((Path(dataset).expanduser() / 'meta/info.json').read_text())
@@ -154,7 +161,7 @@ class GraspController:
             if isinstance(names, dict):
                 names = names['motors']
             state_stats = json.loads((Path(dataset).expanduser() / 'meta/stats.json').read_text())
-            self.latch.empty_closed = float(state_stats['observation.state']['min'][names.index('gripper.pos')])
+            self.latch.empty_closed = float(state_stats['observation.state']['min'][names.index(feature)])
         if not math.isfinite(self.latch.empty_closed):
             raise ValueError('gripper_empty_closed must be finite')
         print(f'Empty-closed measured gripper={self.latch.empty_closed:.9g}; '

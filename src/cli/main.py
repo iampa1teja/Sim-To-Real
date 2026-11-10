@@ -8,17 +8,17 @@ import sys
 
 REPO = Path(__file__).resolve().parents[2]
 USAGE_NOTE = (
-    "Sim commands (record, eval, rollout, spawn, envs, dr-replay, calibration-replay, calibration-report, eval-set, "
-    "calibrate, calibration-check, calibration-stats) "
+    "Sim commands (record, eval, rollout, spawn, envs, calibration-replay, calibration-report, eval-set, "
+    "calibrate, calibration-check, calibration-stats, compare, sweep) "
     "pass every argument after the command to the program inside the running sim container; to only print the "
-    "command put --dry-run first: 's2r --dry-run record --config_path configs/teleop/sim_only.yaml'. "
+    "command put --dry-run first: 's2r --dry-run record --config_path configs/record/sim_only.yaml'. "
     "Remote GPU: run 's2r sync', then serve/train with --host user@box --remote-root /abs/path. To evaluate a "
     "remote server from a local simulator: 's2r tunnel --host user@box --port N', then 's2r eval ...'."
 )
 
 
 def build_parser():
-    from .paths import IMAGE_ROLES, TRAIN_COMMANDS, default_image
+    from .plan import IMAGE_ROLES, TRAIN_COMMANDS, default_image
 
     parser = argparse.ArgumentParser(prog="s2r", description=__doc__, epilog=USAGE_NOTE)
     commands = parser.add_subparsers(dest="command", required=True, metavar="command")
@@ -38,6 +38,8 @@ def build_parser():
         sub.add_argument("--base-model", default="", help="checkpoint to start from")
         sub.add_argument("--hf-home", default="", help="Hugging Face cache (mounted read-only)")
         sub.add_argument("--image", default=default_image("train", os.environ))
+        if name == "verify":
+            sub.add_argument("--gpu", action="store_true", help="enable GPU access for a policy's verification probe")
         remote(sub)
         sub.add_argument("extra", nargs=argparse.REMAINDER, help="after --: passed to the policy's script unchanged")
 
@@ -69,11 +71,30 @@ def build_parser():
     tunnel.add_argument("--host", required=True)
     tunnel.add_argument("--port", type=int, required=True)
 
-    sync = commands.add_parser("sync", help="rsync policies, configs and tasks to the remote repo copy")
+    sync = commands.add_parser("sync", help="rsync arms, scenes, tasks, policies and configs to the remote repo copy")
     sync.add_argument("--host", required=True)
     sync.add_argument("--remote-root", required=True)
     sync.add_argument("--path", action="append", default=[], help="extra repo-relative path (e.g. datasets/x)")
     sync.add_argument("--dry-run", action="store_true")
+    new = commands.add_parser("new", help="create an arm, scene, task or policy from its template")
+    new.add_argument("kind", choices=("arm", "scene", "task", "policy"))
+    new.add_argument("name")
+    new.add_argument("--dry-run", action="store_true")
+    check = commands.add_parser("check", help="validate all extensions, then spawn the selected composition headlessly")
+    check.add_argument("--arm")
+    check.add_argument("--scene")
+    check.add_argument("--task")
+    check.add_argument("--policy")
+    check.add_argument("--unit")
+    check.add_argument("--variant", default="teleop")
+    check.add_argument("--scene-json", type=Path,
+                       help="save live geometry from one selected composition for s2r eval-set (container path)")
+    check.add_argument("--static", "--static-only", dest="static_only", action="store_true",
+                       help="validate every extension on the host without launching Isaac")
+    check.add_argument("--dry-run", action="store_true")
+    for name in ("record", "eval", "rollout", "spawn", "envs", "calibrate", "calibration-check",
+                 "calibration-stats", "calibration-report", "calibration-replay", "eval-set", "compare", "sweep", "datagen", "migrate"):
+        commands.add_parser(name, help="run the corresponding Python module (arguments passed through)")
     return parser
 
 
@@ -94,11 +115,27 @@ def describe(policies):
 
 
 def make_plan(args, repo, policies):
-    from . import paths
+    from . import plan as paths
 
+    selection_env = {name: os.environ[name] for name in paths.SIM_RUNTIME_ENV if name in os.environ}
     if args.command in paths.SIM_PROGRAMS:
         container = os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER)
-        return paths.plan_sim(paths.SIM_PROGRAMS[args.command], args.args, container)
+        return paths.plan_sim(paths.SIM_PROGRAMS[args.command], args.args, container, git_commit=source_revision(repo),
+                               selection_env=selection_env)
+    if args.command == "new":
+        return paths.plan_new(args.kind, args.name, repo)
+    if args.command == "check":
+        compositions = check_compositions(repo, args.arm, args.scene, args.task)
+        arm, scene, task = compositions[0]
+        return paths.plan_check(repo, arm=arm, scene=scene, task=task, policy=args.policy, unit=args.unit,
+                                variant=args.variant, static_only=args.static_only,
+                                container=os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER), git_commit=source_revision(repo),
+                                compositions=compositions, scene_json=args.scene_json, selection_env=selection_env)
+    if args.command == "datagen":
+        return paths.plan_datagen(args.source, args.args, os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER),
+                                  git_commit=source_revision(repo), selection_env=selection_env)
+    if args.command == "migrate":
+        return paths.plan_host("core.datasets.task_meta", args.args, repo)
     if args.command in ("build", "pull"):
         roles = paths.IMAGE_ROLES if args.images == "all" else (args.images,)
         if args.command == "pull":
@@ -121,7 +158,28 @@ def make_plan(args, repo, policies):
                             base_model=args.base_model, extra=extra, image=args.image, host=args.host,
                             remote_root=args.remote_root, hf_home=args.hf_home,
                             host_uid=os.getuid() if hasattr(os, "getuid") else None,
-                            host_gid=os.getgid() if hasattr(os, "getgid") else None)
+                            host_gid=os.getgid() if hasattr(os, "getgid") else None,
+                            verify_gpu=getattr(args, "gpu", False))
+
+
+def source_revision(repo):
+    result = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True, capture_output=True)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def check_compositions(repo, arm=None, scene=None, task=None):
+    base = (arm or os.environ.get("S2R_ARM", "so101"), scene or os.environ.get("S2R_SCENE", "rpd_meeting_room"),
+            task or os.environ.get("S2R_TASK", "pick_place_cube"))
+    rows = [base]
+    if not any((arm, scene, task)):
+        for index, (folder, marker) in enumerate((("arms", "arm.toml"), ("scenes", "scene.toml"), ("tasks", "task.toml"))):
+            for path in sorted((Path(repo) / folder).iterdir()):
+                if not path.name.startswith("_") and (path / marker).is_file():
+                    row = list(base)
+                    row[index] = path.name
+                    if tuple(row) not in rows:
+                        rows.append(tuple(row))
+    return rows
 
 
 def execute(plan, dry_run, environ=None):
@@ -149,7 +207,7 @@ def main(argv=None, repo=REPO):
     if sys.version_info < (3, 11):
         print(f"s2r needs Python 3.11 or newer (found {sys.version.split()[0]}).", file=sys.stderr)
         return 2
-    from .paths import SIM_PROGRAMS, CliError
+    from .plan import SIM_PROGRAMS, CliError
 
     argv = list(sys.argv[1:] if argv is None else argv)
     leading_dry_run = argv[:1] == ["--dry-run"]
@@ -157,7 +215,18 @@ def main(argv=None, repo=REPO):
         argv = argv[1:]
     # Sim commands hand every argument, flags included, to the wrapped program; argparse's REMAINDER
     # rejects a first argument that starts with a dash, so they bypass the parser.
-    if argv and argv[0] in SIM_PROGRAMS:
+    if argv and argv[0] == "datagen":
+        parser = argparse.ArgumentParser(prog="s2r datagen")
+        parser.add_argument("--source", choices=("scripted", "mimic", "dr_replay"))
+        parsed, extra = parser.parse_known_args(argv[1:])
+        if parsed.source is None and not any(arg == "--config_path" or arg.startswith("--config_path=") for arg in extra):
+            parser.error("provide --source or --config_path with a source field")
+        args = argparse.Namespace(command="datagen", source=parsed.source, args=extra, dry_run=leading_dry_run)
+        policies = {}
+    elif argv and argv[0] == "migrate":
+        args = argparse.Namespace(command="migrate", args=argv[1:], dry_run=leading_dry_run)
+        policies = {}
+    elif argv and argv[0] in SIM_PROGRAMS:
         args = argparse.Namespace(command=argv[0], args=argv[1:], dry_run=leading_dry_run)
         policies = {}
     else:
@@ -171,4 +240,9 @@ def main(argv=None, repo=REPO):
     except CliError as error:
         print(f"s2r: error: {error}", file=sys.stderr)
         return 2
+    if args.command == "datagen" and args.source is not None and not leading_dry_run:
+        module = Path(repo) / "src" / "sim" / "datagen" / (args.source + ".py")
+        if not module.is_file():
+            print(f"s2r: data source {args.source!r} is not implemented yet ({module.name}).", file=sys.stderr)
+            return 2
     return execute(plan, getattr(args, "dry_run", False) or leading_dry_run)

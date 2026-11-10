@@ -23,9 +23,9 @@ def download_command(destination):
     import shlex
     patterns = ('config.json', 'processor_config.json', 'embodiment_id.json',
                 'statistics.json', 'model-*.safetensors', 'model.safetensors.index.json')
-    includes = ' '.join(f'--include {shlex.quote(pattern)}' for pattern in patterns)
+    includes = ' '.join(shlex.quote(pattern) for pattern in patterns)
     return (f'hf download {SO_ARM_REPO} --revision {SO_ARM_REVISION} '
-            f'{includes} --local-dir {shlex.quote(str(destination))}')
+            f'--include {includes} --local-dir {shlex.quote(str(destination))}')
 
 
 def _inspect_safetensors(path, indexed_keys=()):

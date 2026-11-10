@@ -1,13 +1,11 @@
 """Run real MolmoAct2 LoRA forward/backward/AdamW updates before full training."""
 from __future__ import annotations
 
-import argparse
 from collections import Counter
 import hashlib
 import importlib.metadata
 import json
 import math
-from pathlib import Path
 import time
 
 import torch
@@ -20,17 +18,11 @@ from lerobot.policies.molmoact2.modeling_molmoact2 import MolmoAct2Policy
 from lerobot.policies.molmoact2 import processor_molmoact2
 
 from molmo_lora_support import install_training_correction
+from command_inputs import probe_args
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, required=True)
-    parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--batch-size", type=int, default=1)
-    parser.add_argument("--accumulation", type=int, default=16)
-    parser.add_argument("--updates", type=int, default=2)
-    args = parser.parse_args()
+    args = probe_args()
     args.report.parent.mkdir(parents=True, exist_ok=True)
     report = {"status": "starting", "batch_size": args.batch_size,
               "gradient_accumulation": args.accumulation, "optimizer_updates": 0,

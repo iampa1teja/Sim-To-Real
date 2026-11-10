@@ -1,8 +1,9 @@
+unit: rpd_robot
 # Pick-and-place evaluation. Start the server first, then run (inside s2r-sim):
 #   s2r serve --policy groot_n17 --checkpoint stage_2_main/checkpoint-60000 --models-dir /external_storage/gr00t_20261011_130632 \
 #       --option embodiment_tag=NEW_EMBODIMENT
 #   s2r eval --config_path configs/eval/pick_place.yaml
-# Any flag of lerobot_eval overrides this file. Paths are inside the s2r-sim container.
+# Any flag of sim.eval.run overrides this file. Paths are inside the s2r-sim container.
 
 arm: so101
 scene: rpd_meeting_room
@@ -12,7 +13,7 @@ variant: eval               # eval | eval_dr (domain randomisation)
 policy:
   name: groot_n17           # folder under policies/
   checkpoint: stage_2_main/checkpoint-60000          # label in the results; the server loads it (s2r serve)
-  models_dir: /external_storage/gr00t_20261011_130632   # for s2r serve --models-dir; ignored by lerobot_eval
+  models_dir: /external_storage/gr00t_20261011_130632   # for s2r serve --models-dir; ignored by sim.eval.run
   # host: localhost
   # port: 5555              # default: default_port from policies/<name>/policy.toml
   options:                  # client options (--policy_option); pass the same ones to s2r serve --option
