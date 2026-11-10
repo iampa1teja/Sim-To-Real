@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import json
 import os
+import subprocess
 from pathlib import Path
 import time
 
@@ -90,9 +91,37 @@ class TrialVideo:
         import cv2
         self.cv2 = cv2
         self.fps, self.frames, self.last_frame = fps, 0, None
-        self.writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*'mp4v'), fps, (1280, 480))
-        if not self.writer.isOpened():
-            raise RuntimeError(f'Cannot create video {path}')
+        self.path = Path(path)
+        if self.path.exists():
+            raise FileExistsError(f'Video already exists: {self.path}')
+        self.error_path = self.path.with_suffix('.ffmpeg.log')
+        self.error_log = self.error_path.open('wb')
+        # Kit's OpenCV lacks a usable MP4 writer. Encode in the system FFmpeg
+        # process, isolated from Kit's loaded codec libraries.
+        environment = dict(os.environ)
+        environment.pop('LD_LIBRARY_PATH', None)
+        environment.pop('LD_PRELOAD', None)
+        try:
+            self.writer = subprocess.Popen([
+                '/usr/bin/ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin', '-n',
+                '-f', 'rawvideo', '-pixel_format', 'bgr24', '-video_size', '1280x480',
+                '-framerate', str(fps), '-i', 'pipe:0', '-an', '-c:v', 'libx264',
+                '-preset', 'ultrafast', '-crf', '23', '-threads', '2', '-pix_fmt', 'yuv420p',
+                '-movflags', '+faststart', str(self.path),
+            ], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=self.error_log,
+                env=environment, bufsize=1024 * 1024)
+        except BaseException:
+            self.error_log.close()
+            raise
+        self.closed = False
+
+    def _write_frame(self, frame):
+        try:
+            self.writer.stdin.write(np.ascontiguousarray(frame, dtype=np.uint8).tobytes())
+        except (BrokenPipeError, OSError) as error:
+            self.writer.wait(timeout=10)
+            detail = self.error_path.read_text(errors='replace').strip()
+            raise RuntimeError(f'FFmpeg failed for {self.path}: {detail}') from error
 
     def write(self, images, label, elapsed):
         cv2 = self.cv2
@@ -102,18 +131,36 @@ class TrialVideo:
         cv2.putText(frame, label, (12, 28), cv2.FONT_HERSHEY_SIMPLEX, .7, (0, 255, 255), 2)
         expected = int(elapsed * self.fps)
         while self.frames < expected:
-            self.writer.write(self.last_frame if self.last_frame is not None else frame)
+            self._write_frame(self.last_frame if self.last_frame is not None else frame)
             self.frames += 1
-        self.writer.write(frame)
+        self._write_frame(frame)
         self.frames += 1
         self.last_frame = frame
 
     def close(self, elapsed=None):
+        if self.closed:
+            return
         if elapsed is not None and self.last_frame is not None:
             while self.frames < round(elapsed * self.fps):
-                self.writer.write(self.last_frame)
+                self._write_frame(self.last_frame)
                 self.frames += 1
-        self.writer.release()
+        self.closed = True
+        try:
+            try:
+                self.writer.stdin.close()
+            except BrokenPipeError:
+                pass
+            try:
+                code = self.writer.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                self.writer.kill()
+                self.writer.wait()
+                raise RuntimeError(f'FFmpeg did not finish {self.path}')
+            if code:
+                detail = self.error_path.read_text(errors='replace').strip()
+                raise RuntimeError(f'FFmpeg failed for {self.path}: {detail}')
+        finally:
+            self.error_log.close()
 
 
 def run(args, app):
@@ -358,7 +405,7 @@ def run(args, app):
     finally:
         executor.shutdown(wait=True, cancel_futures=True)
         if video:
-            video.close()
+            cleanup('Trial video close', video.close)
         if log:
             log.close()
         (output / 'report.json').write_text(json.dumps(report, indent=2))
