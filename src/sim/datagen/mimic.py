@@ -13,6 +13,11 @@ from pathlib import Path
 
 import numpy as np
 
+# Contact-rich demonstrations need command recovery well below the squeeze
+# clearance. These are local FK iterations, without advancing physics or PI.
+COMMAND_INVERSE_OPTIONS = dict(max_iterations=32, position_tolerance_m=1e-8,
+                               orientation_tolerance_rad=1e-7)
+
 
 @dataclass(frozen=True)
 class MimicSpec:
@@ -179,7 +184,7 @@ def __getattr__(name):
             # would add that compensation again and distort the demonstration.
             measured = _tensor(self.s2r_ik.robot.data.joint_pos)[:, self.s2r_ik.joint_ids]
             solved = self.s2r_fk.inverse(target.detach().cpu().numpy(), measured[0].detach().cpu().numpy(),
-                                         options=self.s2r_ik.options)
+                                         options=self.s2r_ik.options, **COMMAND_INVERSE_OPTIONS)
             action = solved.joint_positions.to(dtype=measured.dtype, device=self.device)
             indices = [index for index, joint in enumerate(self.s2r_arm.joints) if joint.role == 'gripper']
             grip = torch.as_tensor(gripper_action_dict[eef_name], dtype=action.dtype, device=action.device).flatten()
@@ -479,6 +484,7 @@ def main(argv=None):
                               sdk_version=importlib.metadata.version('isaaclab_mimic'),
                               subtasks=list(spec.subtasks))
             report = make_report(context, source_provenance=provenance)
+            report['ik_controller']['command_inverse'] = dict(COMMAND_INVERSE_OPTIONS)
             publish_report(context, report)
             with torch.inference_mode():
                 for attempt in range(args.attempts):

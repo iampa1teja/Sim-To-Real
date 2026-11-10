@@ -92,8 +92,11 @@ def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
     options = IKOptions()
     calls = []
 
-    def inverse(pose, measured, *, options):
+    def inverse(pose, measured, *, options, max_iterations, position_tolerance_m, orientation_tolerance_rad):
         calls.append(options)
+        assert max_iterations == 32
+        assert position_tolerance_m == 1e-8
+        assert orientation_tolerance_rad == 1e-7
         np.testing.assert_array_equal(pose, target.numpy())
         np.testing.assert_array_equal(measured, [3., 1., 4., 2.])
         return SimpleNamespace(joint_positions=torch.tensor([[3.01, 1., 4.02, 2.003]], dtype=torch.float64))
