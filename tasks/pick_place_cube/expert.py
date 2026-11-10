@@ -3,7 +3,6 @@ import math
 import numpy as np
 
 from core.benchmark.geometry import rotation_matrix
-from core.scenes import quaternion_multiply
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint
 
@@ -49,14 +48,8 @@ class PickPlaceExpert:
         normal = np.asarray(context.table_normal, dtype=float)
         normal /= np.linalg.norm(normal)
         orientation = tuple(options.get("orientation_xyzw", context.control_pose.quat_xyzw))
-        transport_orientation = tuple(options.get("transport_orientation_xyzw", orientation))
-        if "transport_roll_degrees" in options:
-            if "transport_orientation_xyzw" in options:
-                raise ValueError("Choose transport_roll_degrees or transport_orientation_xyzw, not both")
-            angle = math.radians(float(options["transport_roll_degrees"])) / 2
-            if not math.isfinite(angle):
-                raise ValueError("transport_roll_degrees must be finite")
-            transport_orientation = tuple(quaternion_multiply(orientation, (0., 0., math.sin(angle), math.cos(angle))))
+        if {"transport_orientation_xyzw", "transport_roll_degrees"} & options.keys():
+            raise ValueError("The expert keeps its pickup orientation during transport; remove transport roll overrides")
         size = self.task.spec.objects["blue_cube"].size
         container = self.task.spec.objects["white_box"].params
         # The circular support bound admits any cube yaw. Centre placement keeps
@@ -78,6 +71,7 @@ class PickPlaceExpert:
         if not math.isfinite(release_height) or not 0 <= release_height <= lift:
             raise ValueError("release_height_m must be between zero and lift_height_m")
         duration = float(options.get("move_seconds", 2.0))
+        transport_duration = float(options.get("transport_seconds", duration))
         opened = float(options.get("gripper_open_fraction", .45))
         closed = float(options.get("gripper_closed_fraction", 0.0))
         timeout = float(options.get("waypoint_timeout_seconds", max(8., duration * 3)))
@@ -88,37 +82,23 @@ class PickPlaceExpert:
         route = _transport_arc(source, destination, np.asarray(context.arm_base.position), normal,
                                float(options.get("transport_arc_margin_m", .01)))
 
-        def point(name, position, opening, seconds=duration, quaternion=orientation):
-            return Waypoint(name, Pose.from_lists(position, quaternion), opening, seconds,
+        def point(name, position, opening, seconds=duration):
+            return Waypoint(name, Pose.from_lists(position, orientation), opening, seconds,
                             float(options.get("position_tolerance_m", .004)), max(timeout, seconds))
 
-        # A retention orientation may be unsafe beside the table with an open
-        # jaw. Rotate only after lifting. Floor-level placement restores the
-        # pickup orientation; a raised release keeps the carry pose until open.
-        turn_out = ()
-        turn_back = ()
-        if transport_orientation != orientation:
-            turn_out = (point("orient_transport", source, closed, quaternion=transport_orientation),)
-            if release_height == 0:
-                turn_back = (point("orient_place", destination, closed),)
         release_pose = placed + normal * release_height
-        release_orientation = transport_orientation if release_height > 0 else orientation
         lower = (() if release_height == lift else
-                 (point("lower", release_pose, closed, quaternion=release_orientation),))
+                 (point("lower", release_pose, closed),))
         return (
             point("approach", cube + normal * approach, opened),
             point("descend", cube, opened),
             point("close", cube, closed, float(options.get("grasp_seconds", .8))),
             point("lift", source, closed),
-            *turn_out,
-            *(point(f"transport_arc_{index}", position, closed, quaternion=transport_orientation)
+            *(point(f"transport_arc_{index}", position, closed, transport_duration)
               for index, position in enumerate(route)),
-            point("transport", destination, closed, float(options.get("final_transport_seconds", duration)),
-                  quaternion=transport_orientation),
-            *turn_back,
+            point("transport", destination, closed, float(options.get("final_transport_seconds", transport_duration))),
             *lower,
-            point("release", release_pose, opened, float(options.get("release_seconds", .8)),
-                  quaternion=release_orientation),
+            point("release", release_pose, opened, float(options.get("release_seconds", .8))),
             point("retreat", placed + normal * max(approach, release_height), opened),
             point("settle", placed + normal * max(approach, release_height), opened,
                   float(options.get("settle_seconds", 1.5))),
