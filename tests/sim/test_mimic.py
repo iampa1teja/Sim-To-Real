@@ -82,8 +82,12 @@ def test_subtasks_declare_objects_and_nonfinal_stage_boundaries():
         MimicSpec.from_task(task, {'subtasks': rows})
 
 
-@pytest.mark.parametrize('max_steps,accepted,reason', [(100, True, 'mimic_trajectory_finished'), (2, False, 'max_steps')])
-def test_actual_sdk_async_queue_execution_and_bounded_cancellation(max_steps, accepted, reason):
+@pytest.mark.parametrize('max_steps,accepted,reason,step_error', [
+    (100, True, 'mimic_trajectory_finished', False),
+    (2, False, 'max_steps', False),
+    (100, False, 'physical_step_error', True),
+])
+def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(max_steps, accepted, reason, step_error):
     from isaaclab.envs import MimicEnvCfg
     from isaaclab.managers import RecorderManager
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
@@ -102,6 +106,14 @@ def test_actual_sdk_async_queue_execution_and_bounded_cancellation(max_steps, ac
         actions_to_gripper_actions=lambda actions: {'tool': actions[..., -1:]},
         _base=lambda: (torch.zeros((1, 3)), torch.tensor([[0., 0., 0., 1.]])))
     env.recorder_manager = RecorderManager(None, env)
+    lifecycle = []
+
+    def assert_synchronous(operation):
+        # Kit updates its own asyncio engine while rendering. A physical call
+        # under the generator's running loop caused its nested-loop assertion.
+        with pytest.raises(RuntimeError, match='no running event loop'):
+            asyncio.get_running_loop()
+        lifecycle.append(operation)
 
     def target_to_action(target_eef_pose_dict, gripper_action_dict, action_noise_dict=None, env_id=0):
         env.s2r_last_target = target_eef_pose_dict['tool']
@@ -116,10 +128,12 @@ def test_actual_sdk_async_queue_execution_and_bounded_cancellation(max_steps, ac
             self.trace = SimpleNamespace(stages={'success': False})
 
         def finish(self, **kwargs):
+            assert_synchronous('finish')
             self.closed = True
             return {'steps': self.steps, 'accepted': self.trace.stages['success'], **kwargs}
 
         def abort(self):
+            assert_synchronous('abort')
             self.closed = True
 
     class Rollout:
@@ -127,23 +141,49 @@ def test_actual_sdk_async_queue_execution_and_bounded_cancellation(max_steps, ac
             self.recorder = Buffer()
 
         def step(self, target, **kwargs):
+            assert_synchronous('step')
             assert target.shape == (4,) and torch.isfinite(target).all()
+            if step_error and self.recorder.steps == 1:
+                raise RuntimeError('physical_step_error')
             self.recorder.steps += 1
             self.recorder.trace.stages['success'] = self.recorder.steps >= 7
 
+    def begin_attempt(seed):
+        assert_synchronous('reset')
+        return Rollout()
+
     context = SimpleNamespace(raw=env, task=task, args=SimpleNamespace(max_steps=max_steps),
-                              begin_attempt=lambda seed: Rollout())
+                              begin_attempt=begin_attempt)
     pool = DataGenInfoPool(env, cfg, 'cpu')
     asyncio.run(pool.add_episode(episode_from_annotations(np.zeros((12, 4)), source_frames(), eef_name='tool')))
 
-    async def run():
-        return await asyncio.wait_for(generate_attempt(context, pool, attempt=0, seed=1984), timeout=5)
-
-    result = asyncio.run(run())
-    assert result['accepted'] is accepted and result['reason'] == reason
-    assert result['steps'] <= max_steps
+    loop = asyncio.new_event_loop()
+    try:
+        if step_error:
+            with pytest.raises(RuntimeError, match='physical_step_error'):
+                generate_attempt(context, pool, attempt=0, seed=1984, event_loop=loop)
+            assert lifecycle[-1] == 'abort'
+        else:
+            result = generate_attempt(context, pool, attempt=0, seed=1984, event_loop=loop)
+            assert result['accepted'] is accepted and result['reason'] == reason
+            assert result['steps'] <= max_steps
+            assert lifecycle[-1] == 'finish'
+        assert lifecycle.count('reset') == 1
+        assert not asyncio.all_tasks(loop)
+    finally:
+        loop.close()
     assert env.s2r_rollout.recorder.closed
     assert not torch.cuda._initialized
+
+
+def test_mimic_attempt_refuses_physics_from_a_running_coroutine():
+    from sim.datagen.mimic import generate_attempt
+
+    async def nested():
+        with pytest.raises(RuntimeError, match='synchronously outside an asyncio coroutine'):
+            generate_attempt(None, None, attempt=0, seed=1984, event_loop=asyncio.get_running_loop())
+
+    asyncio.run(nested())
 
 
 def test_source_raw_units_are_decoded_before_sdk_gripper_extraction():

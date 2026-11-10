@@ -289,24 +289,39 @@ def _success(env):
     return torch.tensor([success], dtype=torch.bool, device=env.device)
 
 
-async def generate_attempt(context, pool, *, attempt, seed):
-    """Run the actual SDK coroutine while the shared executor owns all physics steps."""
+def generate_attempt(context, pool, *, attempt, seed, event_loop):
+    """Pump SDK generation, then execute reset/render/physics outside asyncio.
+
+    This follows Isaac Lab Mimic's synchronous ``generation.env_loop``. Kit
+    ticks its own async engine during rendering, so environment operations
+    cannot run inside a different loop's coroutine.
+    """
     import contextlib
     import torch
     from isaaclab.managers import TerminationTermCfg
     from isaaclab_mimic.datagen.data_generator import DataGenerator
     from sim.datagen.scripted import _matrix_pose
 
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('Mimic physics must run synchronously outside an asyncio coroutine')
+
     env = context.raw
     reset_queue, action_queue = asyncio.Queue(), asyncio.Queue()
     generator = DataGenerator(env, src_demo_datagen_info_pool=pool)
-    future = asyncio.create_task(generator.generate(0, TerminationTermCfg(func=_success),
+    future = event_loop.create_task(generator.generate(0, TerminationTermCfg(func=_success),
         env_reset_queue=reset_queue, env_action_queue=action_queue, export_demo=False))
     rollout, reason = None, 'mimic_trajectory_finished'
     try:
         with torch.inference_mode():
             while not future.done():
-                await asyncio.sleep(0)
+                # Only SDK selection/retargeting and queue waits run here.
+                # run_until_complete returns before any operation that can
+                # update Kit (including reset warmup and recorder teardown).
+                event_loop.run_until_complete(asyncio.sleep(0))
                 while not reset_queue.empty():
                     env_id = reset_queue.get_nowait()
                     if env_id != 0:
@@ -315,7 +330,9 @@ async def generate_attempt(context, pool, *, attempt, seed):
                     env.s2r_rollout = rollout
                     reset_queue.task_done()
                 while not action_queue.empty():
-                    _env_id, target = action_queue.get_nowait()
+                    env_id, target = action_queue.get_nowait()
+                    if env_id != 0:
+                        raise ValueError('Mimic shared recorder supports one environment')
                     if rollout is None:
                         raise RuntimeError('Mimic requested an action before reset')
                     if rollout.recorder.steps >= context.args.max_steps:
@@ -338,9 +355,11 @@ async def generate_attempt(context, pool, *, attempt, seed):
                     rollout.step(target, target_eef_pose=requested, gripper_action=env.s2r_last_gripper,
                                  phase='isaaclab_mimic')
                     action_queue.task_done()
-                await asyncio.sleep(0)
-            if not future.cancelled():
-                result = await future
+            if future.cancelled():
+                if reason != 'max_steps':
+                    raise asyncio.CancelledError()
+            else:
+                result = future.result()
                 if result['success'] != context.task.is_success(rollout.recorder.trace.stages):
                     raise RuntimeError('SDK Mimic success disagrees with the shared task trace')
         if rollout is None:
@@ -354,7 +373,7 @@ async def generate_attempt(context, pool, *, attempt, seed):
         if not future.done():
             future.cancel()
         with contextlib.suppress(asyncio.CancelledError):
-            await future
+            event_loop.run_until_complete(future)
 
 
 def main(argv=None):
@@ -392,7 +411,8 @@ def main(argv=None):
             publish_report(context, report)
             with torch.inference_mode():
                 for attempt in range(args.attempts):
-                    row = loop.run_until_complete(generate_attempt(context, pool, attempt=attempt, seed=args.seed + attempt))
+                    row = generate_attempt(context, pool, attempt=attempt, seed=args.seed + attempt,
+                                           event_loop=loop)
                     report['episodes'].append(row)
                     publish_report(context, report)
                     print('[MIMIC_ATTEMPT] ' + json.dumps(row), flush=True)
