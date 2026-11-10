@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 import numpy as np
 import torch
 from pxr import Gf, Usd, UsdShade
@@ -27,153 +25,6 @@ from isaaclab.sensors import ContactSensor
 from isaaclab.sim import get_current_stage
 
 from sim.envs.mdp.resets import _env_prim_path, _wxyz, _xyzw, as_torch, env_indices
-
-
-# ---------------------------------------------------------------------------
-# Recorded-start resets and eval checks (from resets.py)
-# ---------------------------------------------------------------------------
-
-
-def _robot_states_root(starts_dir, reset_robot):
-    """Recorded robot starts live in the dataset that owns <dataset>/pick_place_meta."""
-    from pathlib import Path
-
-    return str(Path(starts_dir).parent) if reset_robot and starts_dir else None
-
-
-def reset_cube_from_recorded_starts(
-    env, env_ids, asset_cfg, starts_dir, mode="cycle", random_fraction=0.0, seed=None, reset_robot=True,
-    eval_set=None, splits=None, repeats=1, start_offset=0, selection="all",
-):
-    """Evaluation-only placement from base-link frame trajectory starts.
-
-    With reset_robot, the arm is also put at the recorded first-frame state of the same
-    episode (the mean recorded state for random starts), so the policy starts from the
-    same initial conditions it was trained on.
-    """
-    from .eval import (
-        RecordedStarts, dataset_state_to_radians, resting_pose, rotation_matrix,
-        footprint, footprints_overlap, upright_orientation,
-    )
-    from . import TASK
-    from core.arms.spec import load_arm_spec
-    from sim.scene.geometry import table_plane
-
-    arm = load_arm_spec()[0]
-
-    env_ids = env_indices(env, env_ids)
-    if not len(env_ids):
-        return
-    starts_dir = starts_dir or os.environ.get("PICK_PLACE_EVAL_STARTS")
-    seed = seed if seed is not None else env.cfg.seed
-    key = (starts_dir, mode, random_fraction, seed, bool(reset_robot))
-    if eval_set:
-        key += (eval_set, splits, repeats, start_offset, selection)
-    if getattr(env, "_pick_place_starts_key", None) != key:
-        if eval_set:
-            from .benchmark import EvalSetStarts
-
-            env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset,
-                                                   selection=selection, arm=arm)
-        else:
-            env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
-                                                    robot_states_root=_robot_states_root(starts_dir, reset_robot), arm=arm)
-        env._pick_place_starts_key = key
-    sampler = env._pick_place_starts
-    asset, robot, box = env.scene[asset_cfg.name], env.scene["robot"], env.scene["white_box"]
-    env.sim.forward()
-    base_ids, _ = robot.find_bodies(arm.links.base)
-    if len(base_ids) != 1:
-        raise ValueError(f"Recorded starts require exactly one robot base body named {arm.links.base!r}")
-    base_id = base_ids[0]
-    size = asset.cfg.spawn.size
-    stage = get_current_stage()
-    body_pos = as_torch(robot.data.body_link_pos_w)
-    body_quat = as_torch(robot.data.body_link_quat_w)
-    box_pos = as_torch(box.data.root_pos_w)
-    box_quat = as_torch(box.data.root_quat_w)
-    if not hasattr(env, "_pick_place_start_index"):
-        env._pick_place_start_index = [-1] * env.num_envs
-        env._pick_place_start_zone = [None] * env.num_envs
-        env._pick_place_cube_color = ["blue"] * env.num_envs
-    positions, orientations, joint_starts = [], [], []
-    for index in env_ids.tolist():
-        base_p = body_pos[index, base_id].detach().cpu().numpy()
-        # Geometry helpers and recorded starts are WXYZ; convert the live XYZW poses.
-        base_q = _wxyz(body_quat[index, base_id].detach().cpu().numpy())
-        plane = table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]))
-        box_p = box_pos[index].detach().cpu().numpy()
-        box_q = _wxyz(box_quat[index].detach().cpu().numpy())
-        box_polygon = footprint(box_p, rotation_matrix(box_q), tuple(TASK.spec.objects["white_box"].params["size_outer"]), bottom_origin=True)
-
-        def accepts_random(p, q):
-            q = upright_orientation(base_q, plane, q)
-            world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
-            return not footprints_overlap(footprint(world, rotation, size), box_polygon)
-
-        start, p, q, zone = sampler.sample(accepts_random)
-        if start == -1 or (eval_set and sampler.current["split"] != "train"):
-            q = upright_orientation(base_q, plane, q)
-        world, rotation = resting_pose(p, q, base_p, base_q, plane, size)
-        if start != -1 and footprints_overlap(footprint(world, rotation, size), box_polygon):
-            raise ValueError(f"Recorded start {start} overlaps the live white box; verify the dataset and box pose")
-        positions.append(world)
-        # World orientation = base (XYZW) * base-relative start (WXYZ on disk -> XYZW).
-        orientations.append(math_utils.quat_mul(
-            body_quat[index, base_id],
-            torch.as_tensor(_xyzw(q), device=env.device, dtype=body_quat.dtype),
-        ))
-        env._pick_place_start_index[index] = start
-        env._pick_place_start_zone[index] = zone
-        if eval_set:
-            env._benchmark_start = dict(sampler.current)
-        if reset_robot:
-            start_mapping = getattr(env.cfg, "sim_joint_mapping", None)
-            if eval_set:
-                # Frozen benchmark arm units belong to their saved mapping.
-                # Preserve the physical start when the active command mapping changes.
-                start_mapping = sampler.data.get("scene", {}).get("joint_mapping", start_mapping)
-            joint_starts.append(dataset_state_to_radians(sampler.robot_state(start), start_mapping, arm=arm))
-    if reset_robot:
-        joint_ids, _ = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)
-        joint_dtype = as_torch(robot.data.joint_pos).dtype
-        joint_pos = torch.as_tensor(np.array(joint_starts), device=env.device, dtype=joint_dtype)
-        robot.write_joint_state_to_sim_index(
-            position=joint_pos, velocity=torch.zeros_like(joint_pos), joint_ids=joint_ids, env_ids=env_ids
-        )
-        # Hold the pose until the first policy action (otherwise the old targets pull the arm away).
-        robot.set_joint_position_target_index(target=joint_pos, joint_ids=joint_ids, env_ids=env_ids)
-    pose = torch.cat((torch.as_tensor(np.array(positions), device=env.device, dtype=box_pos.dtype),
-                      torch.stack(orientations)), dim=-1)
-    asset.write_root_pose_to_sim_index(root_pose=pose, env_ids=env_ids)
-    asset.write_root_velocity_to_sim_index(
-        root_velocity=torch.zeros((len(env_ids), 6), device=env.device), env_ids=env_ids
-    )
-    reset_pick_place_state(env, env_ids, asset_cfg.name)
-    env.scene["contact_grasp"].reset(env_ids)
-
-
-def check_pick_place_eval_event_order(env, env_ids):
-    """Check the actual manager's prepared reset order at environment creation."""
-    from .eval import RecordedStarts
-
-    params = env.event_manager.get_term_cfg("spawn_cube").params
-    directory = params["starts_dir"] or os.environ.get("PICK_PLACE_EVAL_STARTS")
-    seed = params["seed"] if params["seed"] is not None else env.cfg.seed
-    reset_robot = bool(params.get("reset_robot", True))
-    params["starts_dir"], params["seed"] = directory, seed
-    if not params.get("eval_set"):
-        env._pick_place_starts = RecordedStarts(directory, params["mode"], params["random_fraction"], seed,
-                                                robot_states_root=_robot_states_root(directory, reset_robot))
-        env._pick_place_starts_key = (directory, params["mode"], params["random_fraction"], seed, reset_robot)
-    names = env.event_manager.active_terms["reset"]
-    if not names.index("reset_robot_position") < names.index("spawn_cube") < names.index("reset_tracking"):
-        raise RuntimeError(f"Invalid pick-place reset order: {names}")
-    if "eval_robot_color" in names and not names.index("reset_set_robot_visual_material") < names.index(
-        "eval_robot_color"
-    ):
-        raise RuntimeError(f"Robot colour DR would be overwritten: {names}")
-    print(f"[Pick-place eval] Reset event order: {names}")
 
 
 # ---------------------------------------------------------------------------
@@ -436,3 +287,31 @@ def object_placed_in_container_termination(
     env._pick_place_placed_steps[update] = steps[update]
     env._pick_place_placed_step[update] = env.common_step_counter
     return env._pick_place_placed_steps >= confirm_steps
+
+
+def stage_signals(env):
+    """Task-owned live measurements used by the generic episode tracer."""
+    from sim.scene.geometry import gripper_tip_local_offset
+    from sim.envs.mdp.resets import _ee_body
+
+    params = env.termination_manager.get_term_cfg("success").params
+    observation = {key: value for key, value in params.items() if key != "confirm_steps"}
+    grasp = {key: value for key, value in observation.items() if not key.startswith("container_")}
+    grasped = object_grasped(env, **grasp).squeeze(-1).bool()
+    placed = object_placed_in_container(env, **observation).squeeze(-1).bool()
+    obj = env.scene[params["object_name"]]
+    position = as_torch(obj.data.root_pos_w)
+    robot = env.scene["robot"]
+    ee_index, ee_path = _ee_body(env, robot)
+    ee_position = as_torch(robot.data.body_link_pos_w)[:, ee_index]
+    ee_quaternion = as_torch(robot.data.body_link_quat_w)[:, ee_index]
+    if not hasattr(env, "_pick_place_grasp_offset"):
+        half = float(obj.cfg.spawn.size[0]) / 2
+        arm = env.cfg.arm_spec
+        env._pick_place_grasp_offset = ee_position.new_tensor(gripper_tip_local_offset(
+            get_current_stage(), half, 0.0, ee_path, arm.gripper.tip_mesh,
+        ))
+    point = ee_position + math_utils.quat_apply(ee_quaternion, env._pick_place_grasp_offset.expand_as(ee_position))
+    return {"grasped": grasped, "placed": placed, "holding": env._pick_place_holding,
+            "lifted": (position[:, 2] - env._pick_place_rest_z).double() >= params["min_lift"],
+            "reach_distance": torch.linalg.vector_norm(point - position, dim=-1)}

@@ -22,7 +22,7 @@ from sim.teleop.config import AgentConfig, parse_config
 
 def _prepare(cfg: AgentConfig):
     from core.arms.calibration import resolve_calibration
-    from core.utils.recording_alignment import recording_contract
+    from core.datasets.alignment import recording_contract
 
     selection = resolve_calibration(
         follower_id=cfg.follower.id if cfg.follower.enabled else None, 
@@ -137,21 +137,22 @@ def _object_pose_in_base(env, name, base_id):
     return torch.cat([pos, quat[:, 3:4], quat[:, :3]], dim=-1)[0].clone()
 
 
-def _write_sidecar(root, index, *, poses, size, fps):
-    from sim.recording.episode_metadata import save_cube_trajectory
+def _write_sidecar(root, index, *, poses, sizes, fps, task, arm, reference_frame):
+    from core.datasets.task_meta import save_task_trajectory
 
-    save_cube_trajectory(root, index, poses, size, fps)
+    save_task_trajectory(root, index, poses, sizes, fps, task=task, arm=arm, reference_frame=reference_frame)
 
 
-# Save the synchronized episode and its object trajectory sidecar (same frame count). During a GUI re-record
-# the session splices it into the chosen slot and returns that index.
-def _save_episode(recorders, trajectory, tracked, fps):
+# Save the synchronized episode and all tracked trajectories with exactly the same frame count.
+def _save_episode(recorders, trajectory, tracked, fps, *, task, arm):
     if tracked is not None and len(trajectory) != recorders.frame_count:
         raise ValueError(f"Object trajectory has {len(trajectory)} frames; datasets have {recorders.frame_count}.")
     sidecar = None
     if tracked is not None:
-        poses = torch.stack(trajectory).cpu().tolist() if trajectory else []
-        sidecar = partial(_write_sidecar, poses=poses, size=tracked[1], fps=fps)
+        poses = {name: torch.stack([frame[name] for frame in trajectory]).cpu().tolist()
+                 for name in tracked} if trajectory else {name: [] for name in tracked}
+        sidecar = partial(_write_sidecar, poses=poses, sizes=tracked, fps=fps, task=task.name, arm=arm.name,
+                          reference_frame=f"robot base link ({arm.links.base})")
     index = recorders.save_episode(sidecar)
     trajectory.clear()
     return index
@@ -216,7 +217,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         import sim.envs
         from core.arms.spec import load_arm_spec
         from core.arms.mapping import JointMapping
-        from core.utils.recording_alignment import mark_recording_root
+        from core.datasets.alignment import mark_recording_root
         from sim.generate.object_spawner import ObjectSpawner
         from sim.recording.lerobot_recorder import split_visual_obs
         from sim.recording.rerecording import RerecordingSession
@@ -274,26 +275,29 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         else:
             print("[INFO]: Recording disabled; set dataset.repo_id, dataset.root and dataset.task_name to enable it.")
 
-        # The single spawnable task object is tracked per frame into <sim root>/pick_place_meta (v1 sidecars).
+        # Track every declared object, including fixed objects and tasks with multiple spawnables.
         tracked = None
         trajectory = []
-        if len(spawner.offsets) == 1:
+        task = sim.envs.TASK
+        if task is not None:
             from sim.generate.object_spawner import _half_extents
 
-            name = next(iter(spawner.offsets))
-            half = _half_extents(sim.envs.TASK, name)
-            size = getattr(env.unwrapped.scene[name].cfg.spawn, "size", None) or (half and tuple(2 * v for v in half))
-            if size is None:
-                raise ValueError(f"{name}: set size in task.toml so its trajectory sidecar records the object size.")
-            tracked = (name, tuple(float(v) for v in size))
+            tracked = {}
+            for name in task.spec.tracked_objects:
+                half = _half_extents(task, name)
+                size = (getattr(env.unwrapped.scene[name].cfg.spawn, "size", None)
+                        or (tuple(2 * value for value in half) if half is not None else None))
+                if size is None:
+                    raise ValueError(f"{name}: declare size or size_outer in task.toml for its trajectory sidecar.")
+                tracked[name] = tuple(float(value) for value in size)
             base_id = env.unwrapped.scene["robot"].find_bodies(arm.links.base)[0][0]
-        elif spawner.offsets:
-            print(f"[WARNING]: {len(spawner.offsets)} spawnable objects; no object trajectory sidecar is written.")
         if recorders is not None and tracked is not None:
-            from sim.recording.episode_metadata import validate_cube_trajectories
+            from core.datasets.task_meta import validate_task_trajectories
 
-            validate_cube_trajectories(recorders.recorders["sim"].dataset_root,
-                                       recorders.recorders["sim"].episode_lengths(), cfg.fps)
+            validate_task_trajectories(recorders.recorders["sim"].dataset_root,
+                                       recorders.recorders["sim"].episode_lengths(), cfg.fps,
+                                       task=task, arm=arm, tracked_objects=tracked,
+                                       reference_frame=f"robot base link ({arm.links.base})")
 
         if cfg.sim_reset_object_name and cfg.sim_reset_object_name not in env.unwrapped.scene.keys():
             raise ValueError(f"sim_reset_object_name={cfg.sim_reset_object_name!r} is not in {env_id}: "
@@ -357,7 +361,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                         recorders.cancel_episode()
                         trajectory.clear()
                     elif recording:
-                        _save_episode(recorders, trajectory, tracked, cfg.fps)
+                        _save_episode(recorders, trajectory, tracked, cfg.fps, task=task, arm=arm)
                     if recording:
                         recording = False
                         controls.set_recording(False)
@@ -371,7 +375,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                         gui_note = "Episode discarded."
                     elif recording:
                         replacing = recorders.target
-                        index = _save_episode(recorders, trajectory, tracked, cfg.fps)
+                        index = _save_episode(recorders, trajectory, tracked, cfg.fps, task=task, arm=arm)
                         if index is None:
                             gui_note = "Nothing recorded; episode not saved."
                         elif replacing is not None:
@@ -436,7 +440,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                                                             ds.task_name)
                     recorders.add_frames(frames, auxiliary)
                     if tracked is not None:
-                        trajectory.append(_object_pose_in_base(env, tracked[0], base_id))
+                        trajectory.append({name: _object_pose_in_base(env, name, base_id) for name in tracked})
 
                 if gui is not None:
                     gui.set_state(

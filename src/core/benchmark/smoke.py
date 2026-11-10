@@ -8,9 +8,6 @@ from __future__ import annotations
 import math
 
 
-MILESTONES = ("reached", "grasped", "lifted", "over_box", "placed")
-
-
 def one_per_zone(schedule):
     """Keep the first scheduled example in each zone, including its original seed."""
     selected, seen = [], set()
@@ -34,7 +31,14 @@ class MilestoneDeadline:
     attempt, and progress exactly at the deadline is accepted. Observing several
     new milestones on one step grants one progress window, not stacked windows.
     """
-    def __init__(self, reach_timeout_s=60.0, progress_timeout_s=30.0):
+    def __init__(self, reach_timeout_s=60.0, progress_timeout_s=30.0, *, milestones=None):
+        if milestones is None:
+            from .starts import task_instance
+
+            milestones = task_instance().stages[:-1]
+        self.milestones = tuple(milestones)
+        if not self.milestones or len(set(self.milestones)) != len(self.milestones):
+            raise ValueError('Smoke milestones must be a nonempty unique sequence')
         for value in (reach_timeout_s, progress_timeout_s):
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
                 raise ValueError("Smoke deadlines must be finite positive seconds")
@@ -44,7 +48,7 @@ class MilestoneDeadline:
 
     @property
     def maximum_duration_s(self):
-        return self.reach_timeout_s + len(MILESTONES) * self.progress_timeout_s
+        return self.reach_timeout_s + len(self.milestones) * self.progress_timeout_s
 
     def reset(self):
         self.deadline_s = self.reach_timeout_s
@@ -66,14 +70,14 @@ class MilestoneDeadline:
         # A pushed/flying cube can set the native "lifted" flag without a
         # grasp. Only an ordered prefix of milestones earns more time.
         highest = -1
-        for i, name in enumerate(MILESTONES):
+        for i, name in enumerate(self.milestones):
             if not stages.get(name):
                 break
             highest = i
         if highest > self.highest:
             for i in range(self.highest + 1, highest + 1):
-                if stages.get(MILESTONES[i]):
-                    self.times[MILESTONES[i]] = self.elapsed_s
+                if stages.get(self.milestones[i]):
+                    self.times[self.milestones[i]] = self.elapsed_s
             self.highest = highest
             self.deadline_s = self.elapsed_s + self.progress_timeout_s
         if success:
@@ -87,7 +91,7 @@ class MilestoneDeadline:
                     deadline_s=self.deadline_s, milestone_times_s=dict(self.times), stop_reason=self.stop_reason)
 
 
-def install_milestone_deadline(env, reach_timeout_s, progress_timeout_s):
+def install_milestone_deadline(env, reach_timeout_s, progress_timeout_s, *, milestones=None):
     """Add truncation to an instrumented single-env benchmark, before auto-reset.
 
     Isaac normally evaluates time_out before success. Cache the instrumented
@@ -98,7 +102,7 @@ def install_milestone_deadline(env, reach_timeout_s, progress_timeout_s):
 
     if env.num_envs != 1 or not hasattr(env, "_benchmark_trace"):
         raise ValueError("Smoke progress deadlines require one instrumented benchmark environment")
-    budget = MilestoneDeadline(reach_timeout_s, progress_timeout_s)
+    budget = MilestoneDeadline(reach_timeout_s, progress_timeout_s, milestones=milestones)
     manager = env.termination_manager
     success_cfg = manager.get_term_cfg("success")
     timeout_cfg = manager.get_term_cfg("time_out")

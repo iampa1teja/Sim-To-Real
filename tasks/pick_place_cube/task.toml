@@ -2,6 +2,15 @@
 name = "pick_place_cube"
 instruction = "Pick up the cube and place it in the box"
 default_variant = "teleop"
+stages = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
+tracked_objects = ["blue_cube"]
+
+[task.start]
+object = "blue_cube"
+frame = "arm_base"
+xy_min = [0.08, -0.18]
+xy_max = [0.22, 0.02]
+yaw_deg = [0.0, 90.0]
 
 [task.variants]
 teleop   = "env_cfg:apply_teleop"
@@ -11,6 +20,7 @@ eval_dr  = "env_cfg:apply_eval_dr"
 [task.objects.white_box]
 usd = "usd/White-Box-Physics.usda"
 rigid = true 
+bottom_origin = true
 size_outer = [0.135, 0.085, 0.045]
 inner_half_size = [0.065625, 0.04064896]
 floor_z = 0.0018
@@ -19,6 +29,7 @@ position = [-0.247171785265209, -0.042505977873273204, 0.000999999999999829]
 rotation_euler_degrees = [0.0, 0.0, 0.0]
 
 [task.objects.blue_cube]
+spawnable = true
 size = [0.02, 0.02, 0.02]
 rigid = true
 mass = 0.008

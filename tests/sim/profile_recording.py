@@ -165,7 +165,7 @@ def main():
         selection = resolve_calibration(arm, unit=args.unit) if args.unit else None
         mapping = JointMapping.from_arm(arm, selection, device=e.device)
         if selection is not None:
-            from core.utils.recording_alignment import recording_contract, mark_recording_root
+            from core.datasets.alignment import recording_contract, mark_recording_root
             contract = recording_contract(follower_id=None, leader_id=None, calibration_selection=selection)
             mark_recording_root(args.output / "dataset", contract)
         initial = as_torch(robot.data.joint_pos).clone()

@@ -8,7 +8,7 @@ from dataclasses import replace
 import unittest
 from unittest.mock import call, patch
 
-from core.utils.recording_alignment import (
+from core.datasets.alignment import (
     MARKER,
     RecordingAlignmentError,
     recording_contract,

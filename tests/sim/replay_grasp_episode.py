@@ -66,7 +66,8 @@ def main():
         table = table[table.episode_index == args.episode].sort_values('frame_index')
         states = np.stack(table['observation.state']).astype(np.float32)
         actions = np.stack(table['action']).astype(np.float32)
-        from sim.recording.replay_source import load_sidecar
+        from core.datasets.sources import load_sidecar
+        from core.datasets.task_meta import sidecar_path
         poses = load_sidecar(args.root, args.episode)
         assert len(poses) == len(actions) == len(states)
         end = args.end_frame or len(actions)
@@ -77,8 +78,7 @@ def main():
         alignment = json.loads((args.root / 'meta/recording_alignment.json').read_text())
         result['source'] = {'root': str(args.root), 'episode': args.episode, 'frames': len(actions),
                             'fps': fps, 'sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest()
-                                for p in data_paths + [args.root / 'pick_place_meta' /
-                                                      f'episode_{args.episode:06d}.json']}}
+                                for p in data_paths + [sidecar_path(args.root, args.episode)]}}
 
         from isaaclab.app import AppLauncher
         from sim.app import rendering_kit_args

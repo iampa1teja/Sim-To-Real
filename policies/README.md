@@ -31,7 +31,13 @@ Camera names come from the scene's fixed-camera declarations and the arm's mount
 The meeting room retains `realsense_rgb` and `wrist_cam`; the plain table uses `room` and `wrist_cam`.
 Configure the policy camera mapping for the scene used to record or evaluate its checkpoint.
 
-The `configure(ArmInfo)` hook, action-dimension validation, generic task engine, and complete conformance command
+Task stages and benchmark reporting are driven by the selected task plugin. Schema-2 datasets retain every
+tracked object's poses in `task_meta/`; legacy `pick_place_meta/` datasets remain readable. Fixed eval sets carry
+task/arm identity, joint order and their saved raw-unit mapping. Their final declared stage determines success.
+The three approved frozen-set conversions retain `legacy_eval_set_id` for paired comparisons; geometry checks
+still apply. See the phase status for hold-state smoke evidence, which does not establish learned-policy success.
+
+The `configure(ArmInfo)` hook, action-dimension validation, and complete conformance command
 are scheduled for later phases. The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
 a generic arm loader alone does not make those model recipes embodiment-independent. See
 [phase status](../docs/restructure-status.md) for the acceptance gates still being verified.

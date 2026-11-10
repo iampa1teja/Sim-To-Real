@@ -13,14 +13,14 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 0 Cleanup | Section 2 cleanup; CPU tests; record/eval/serve/train dry runs unchanged | Complete |
 | 1 Arm | Typed arm contract and per-unit calibration; SO-101 utilities; synthetic four-joint arm; sim-only recorded episode, smoke eval, identical replay joint targets | Complete |
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
-| 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Pending |
+| 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Pending |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Pending |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
 The stage-logic deduplication in section 2.3 is explicitly assigned to Phase 3 by the plan. The large agent/eval
-splits listed in section 2.4 are assigned to Phase 4. Their work remains required.
+splits listed in section 2.4 are assigned to Phase 4 and remain required.
 
 ## Phase 0 evidence and remaining work
 
@@ -131,3 +131,37 @@ parameters are also captured, with a deterministic CPU response replay for check
   are retained in `reference-control-acceptance-b.json` and `reference-control-acceptance-stage.json`; no limits
   were relaxed and no production camera parameters were changed to fit them. The direct controlled comparison
   passes, while exact pixel repeatability across launches/timing remains unestablished.
+
+## Phase 3 integration
+
+- Task manifests declare stages, tracked objects, placement frames and start distributions. The shared stage
+  engine calls task-owned signals/observation rules, latches stages and derives success from the last stage.
+  Generic reset events preserve robot/object/tracking order. Benchmark geometry, starts, reports, statistics
+  and comparison moved to `core.benchmark`.
+- New `core.datasets` readers/writers handle schema-2 named-object sidecars in `task_meta/`, retain schema-1
+  `pick_place_meta/` compatibility, and keep mapping provenance with recorded sources. Recording, replay and
+  rerecording preserve every declared tracked object on the dataset timeline.
+- CPU gate: **267 passed, 22 subtests passed**, with 105 dependency deprecation warnings and no skips/ignores;
+  see `outputs/v2/phase3/cpu-tests-final.log`.
+- `schedule-comparison.json` passes all nine episodes of the saved Phase 1 schedule, including start ids, splits,
+  repeats, policy seeds, step counts, stages, success fields and failure modes. The example hold-state policy
+  produces the same `never_reached` outcomes. This proves schedule/stage preservation, not learned-policy success.
+- The three frozen pick-place eval sets were converted to the approved schema-2 copies exactly.
+  `approved-eval-set-conversions.json` records their new content hashes, preserved `legacy_eval_set_id` values
+  and matching approved-copy SHA-256 hashes. The existing mount mismatch remains: converting schema does not
+  update frozen geometry or bypass its guard.
+- `pick-record/validation.json` passes a production meeting-room recording: 45 finite joint/action frames,
+  45 schema-2 `blue_cube` poses and 45 decoded frames in each of four primary/auxiliary camera videos.
+- `legacy-dataset-validation.json` reads the untouched Phase 2 schema-1 recording through production
+  `core.datasets.sources.load_source` and `RecordedStarts`. All 45 actions, states and object poses match the
+  saved data; first-frame starts and the saved mapping match. All 11 source-file hashes remain unchanged.
+- `tasks/stack_two_cubes/` supplies the second task through its folder. `stack-record-2/validation.json` passes
+  45 frames for both cubes, all joint/action values and all four videos in the meeting room. The first diagnostic
+  run exposed a target pose beyond the table edge; the task's declared/reset target was corrected inside its folder.
+- The actual `s2r eval-set` command generated five stack starts (three ID, one yaw, one recorded train start) from
+  that recording and captured live geometry; see `stack-eval-set.log` and `stack-eval-set.json`.
+- The actual `s2r eval` stack check completed all five generated starts, preserving both named objects and all
+  six declared stages in every episode report. Each 30-step attempt ended `never_reached` through the example
+  hold-state policy. `stack-acceptance.json` and `stack-source-comparison.json` confirm this extension workflow
+  while all 108 `src/` files stayed unchanged from the pre-stack check. This verifies recording/benchmark/eval
+  integration, not learned stacking success. Phase 3 is complete; Phase 4 has not started.

@@ -44,6 +44,7 @@ def _variant_builder(scene, task, variant):
 
     def build_env_cfg():
         cfg = resolve(scene_entry_point(scene))(scene=scene)
+        cfg.task_name = task.name
         resolve(apply_entry)(cfg, task)
         return cfg
 

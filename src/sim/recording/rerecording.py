@@ -18,7 +18,7 @@ import shutil
 import tempfile
 import uuid
 
-from .episode_metadata import SIDECAR_DIR
+from core.datasets.task_meta import SIDECAR_DIR, LEGACY_SIDECAR_DIR, sidecar_path, replace_episode_meta
 
 
 def transaction_path(root):
@@ -126,12 +126,12 @@ numeric stats; camera stats come from the corresponding recorded episode.
     info.update(total_episodes=last, total_frames=offset, splits={"train": f"0:{last}"})
     (root / "meta/info.json").write_text(json.dumps(info, indent=2) + "\n")
     write_stats(aggregate_stats(stats), root)
-    sidecar = root / SIDECAR_DIR / f"episode_{last:06d}.json"
-    if sidecar.exists():
-        payload = json.loads(sidecar.read_text())
-        payload["episode_index"] = target
-        (sidecar.parent / f"episode_{target:06d}.json").write_text(json.dumps(payload) + "\n")
-        sidecar.unlink()
+    try:
+        sidecar = sidecar_path(root, last)
+    except ValueError:
+        sidecar = None
+    if sidecar is not None:
+        replace_episode_meta(root, last, target)
     for path in (root / "mp4").rglob(f"*_{last:03d}.mp4"):
         os.replace(path, path.with_name(path.name[:-len(f"{last:03d}.mp4")] + f"{target:03d}.mp4"))
 
@@ -212,7 +212,7 @@ class RerecordingSession:
     # Save the episode. ``sidecar(root, index)`` writes its object trajectory next to the sim dataset first.
     # A normal save returns the new index; a re-record splices it into the target slot and returns the target.
     def save_episode(self, sidecar=None):
-        from .episode_metadata import validate_cube_trajectories
+        from core.datasets.task_meta import validate_task_trajectories
         self._save_started = self.original is not None
         index = self.group.save_episode()
         if index is None:
@@ -231,8 +231,8 @@ class RerecordingSession:
         stages = {name: rec.dataset_root for name, rec in self.group.recorders.items()}
         checked = _fresh_group(self.group, stages)
         try:
-            if (Path(stages["sim"]) / SIDECAR_DIR).is_dir():
-                validate_cube_trajectories(stages["sim"], checked.recorders["sim"].episode_lengths(), fps)
+            if any((Path(stages["sim"]) / name).is_dir() for name in (SIDECAR_DIR, LEGACY_SIDECAR_DIR)):
+                validate_task_trajectories(stages["sim"], checked.recorders["sim"].episode_lengths(), fps)
         finally:
             checked.finalize()
         self.original.finalize()

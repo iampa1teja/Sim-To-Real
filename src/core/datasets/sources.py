@@ -1,20 +1,16 @@
-# sim/recording/replay_source.py  (ported from v1 utils/replay_source.py)
 """Read recorded episodes and their per-frame object sidecars for replay.
 
 Pure Python (numpy); LeRobot is imported lazily only when a dataset must be opened.
 """
-# Changes from v1: joint count and action order come from the selected ArmSpec, and the
-# sidecar layout constants come from sim.recording.episode_metadata.
 
 from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
 
 import numpy as np
 
 from core.arms.spec import load_arm_spec
-from sim.recording.episode_metadata import SIDECAR_DIR, SIDECAR_FRAME
+from core.datasets.task_meta import load_task_meta, load_object_poses
 
 
 @dataclass
@@ -25,8 +21,12 @@ class SourceEpisode:
     actions: np.ndarray        # (N, J) dataset units, copied unchanged into the new dataset
     states: np.ndarray         # (N, J) dataset units, copied unchanged; also drives the replayed joints
     task: str
-    poses_base: np.ndarray     # (N, 7) x y z qw qx qy qz, robot base-link frame
-    cube_size: tuple = (0.02, 0.02, 0.02)
+    objects_base: dict[str, np.ndarray]  # name -> (N, 7), x y z qw qx qy qz
+    object_sizes: dict[str, tuple[float, float, float]]
+    task_name: str | None
+    arm_name: str
+    reference_frame: str
+    fps: float | None
 
 
 def _mapping_bounds(mapping, arm):
@@ -81,48 +81,9 @@ def replay_joint_mapping(root, arm, unit=None):
     }
 
 
-def _sidecar_path(root, index):
-    return os.path.join(root, SIDECAR_DIR, f"episode_{index:06d}.json")
-
-
-def _read_sidecar(root, index) -> tuple[dict, str]:
-    path = _sidecar_path(root, index)
-    if not os.path.exists(path):
-        raise ValueError(f"Missing sidecar: {path}")
-    with open(path, encoding="utf-8") as file:
-        return json.load(file), path
-
-
-def load_sidecar(root, index) -> np.ndarray:
-    """Validated (N, 7) object poses for one episode."""
-    data, path = _read_sidecar(root, index)
-    if data.get("units") != "m":
-        raise ValueError(f"Invalid units in sidecar {path}")
-    if data.get("reference_frame") != SIDECAR_FRAME:
-        raise ValueError(f"Invalid reference frame in sidecar {path}")
-    if data.get("episode_index") != index:
-        raise ValueError(f"Episode index mismatch in sidecar {path}")
-    positions = np.asarray(data.get("position"), dtype=np.float64)
-    orientations = np.asarray(data.get("orientation_wxyz"), dtype=np.float64)
-    if positions.ndim != 2 or positions.shape[1] != 3:
-        raise ValueError(f"Invalid position data in sidecar {path}")
-    if orientations.ndim != 2 or orientations.shape[1] != 4:
-        raise ValueError(f"Invalid orientation data in sidecar {path}")
-    if data.get("num_frames") != len(positions) or len(orientations) != len(positions):
-        raise ValueError(f"Frame count mismatch in sidecar {path}")
-    if not np.isfinite(positions).all() or not np.isfinite(orientations).all():
-        raise ValueError(f"Sidecar {path} contains NaN/Inf")
-    if not np.allclose(np.linalg.norm(orientations, axis=1), 1.0, atol=1e-3):
-        raise ValueError(f"Non-unit quaternion in sidecar {path}")
-    return np.concatenate((positions, orientations), axis=1)
-
-
-def sidecar_cube_size(root, index) -> tuple:
-    data, path = _read_sidecar(root, index)
-    size = data.get("cube_size_m")
-    if not size or len(size) != 3:
-        raise ValueError(f"Missing cube_size_m in sidecar {path}")
-    return tuple(float(v) for v in size)
+def load_sidecar(root, index, object_name=None, **kwargs) -> np.ndarray:
+    """Read an explicitly named object, or the sole object in a legacy episode."""
+    return load_object_poses(root, index, object_name, **kwargs)
 
 
 def _episode_columns(hf_dataset, start, end):
@@ -134,7 +95,7 @@ def _episode_columns(hf_dataset, start, end):
             np.asarray(hf_dataset["observation.state"][start:end]))
 
 
-def load_source(root, repo_id, exclude: set[int], dataset=None, *, arm=None) -> list[SourceEpisode]:
+def load_source(root, repo_id, exclude: set[int], dataset=None, *, arm=None, task=None, legacy_object=None) -> list[SourceEpisode]:
     """All kept episodes with actions, states, task text and object poses.
 
     `dataset` is injectable for tests; otherwise a stock LeRobotDataset is opened.
@@ -168,15 +129,24 @@ def load_source(root, repo_id, exclude: set[int], dataset=None, *, arm=None) -> 
                 raise ValueError(f"Episode {index}: {name} shape {values.shape} != ({length}, {joints})")
             if not np.isfinite(values).all():
                 raise ValueError(f"Episode {index}: {name} contains NaN/Inf")
-        poses_base = load_sidecar(root, index)
-        if len(poses_base) != length:
-            raise ValueError(f"Episode {index}: sidecar {_sidecar_path(root, index)} length "
-                             f"{len(poses_base)} != episode length {length}")
+        tracked = getattr(getattr(task, "spec", task), "tracked_objects", None)
+        metadata = load_task_meta(root, index, task=task, arm=arm, legacy_object=legacy_object,
+                                  reference_frame=f"robot base link ({arm.links.base})", num_frames=length,
+                                  tracked_objects=tracked)
+        objects = metadata["objects"]
+        objects_base = {
+            name: np.concatenate((np.asarray(obj["position"], dtype=np.float64),
+                                  np.asarray(obj["orientation_wxyz"], dtype=np.float64)), axis=1)
+            for name, obj in objects.items()
+        }
         tasks = row["tasks"]
-        task = tasks[0] if isinstance(tasks, (list, tuple)) else str(tasks)
+        instruction = tasks[0] if isinstance(tasks, (list, tuple)) else str(tasks)
         episodes.append(SourceEpisode(
             index=index, start=start, length=length,
             actions=actions.astype(np.float32, copy=False), states=states.astype(np.float32, copy=False),
-            task=task, poses_base=poses_base, cube_size=sidecar_cube_size(root, index),
+            task=instruction, objects_base=objects_base,
+            object_sizes={name: tuple(obj["size"]) for name, obj in objects.items()},
+            task_name=metadata["task"], arm_name=arm.name,
+            reference_frame=metadata["reference_frame"], fps=metadata["fps"],
         ))
     return episodes

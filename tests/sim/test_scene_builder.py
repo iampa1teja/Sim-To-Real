@@ -76,6 +76,20 @@ def test_task_arm_base_frame_uses_the_selected_robot_mount_pose():
     np.testing.assert_allclose(cfg.scene.white_box.init_state.rot, cfg.scene.robot.init_state.rot, atol=1e-14)
 
 
+@pytest.mark.parametrize("variant", ["teleop", "eval"])
+def test_two_cube_task_composes_from_its_folder(variant):
+    cfg = scene_builder.build_scene_cfg("blank_table")
+    task = load_task("stack_two_cubes")
+    resolve(task.spec.entry_point(variant))(cfg, task)
+    for name in task.spec.tracked_objects:
+        assert getattr(cfg.scene, name).spawn.size == (.02, .02, .02)
+    assert cfg.scene.contact_grasp.filter_prim_paths_expr == ["{ENV_REGEX_NS}/cube_a"]
+    assert cfg.events.reset_tracking.func.__module__.endswith("stack_two_cubes.mdp")
+    if variant == "eval":
+        assert cfg.events.reset_from_starts.params["task"] == task.name
+        assert cfg.terminations.success.func.__module__.endswith("stack_two_cubes.mdp")
+
+
 def test_explicit_arm_snapshot_survives_config_copy_replace_and_export(monkeypatch):
     arm = load_arm_spec("so101")[0]
     # A different default pose and no optional wrist camera must stay with this

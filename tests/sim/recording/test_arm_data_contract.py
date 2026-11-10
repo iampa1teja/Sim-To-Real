@@ -8,8 +8,9 @@ import numpy as np
 import pytest
 
 from core.arms.spec import load_arm_spec
-from core.tasks.loader import load_task_module
-from sim.recording.replay_source import load_source, recorded_joint_mapping, replay_joint_mapping
+from core.arms import mapping as evaluation
+from core.benchmark import eval_set as benchmark, starts
+from core.datasets.sources import load_source, recorded_joint_mapping, replay_joint_mapping
 
 
 @pytest.fixture
@@ -89,7 +90,6 @@ def test_recorder_features_and_frames_follow_selected_arm(arm):
 
 
 def test_task_start_conversion_handles_interleaved_parallel_grippers_and_slide(arm):
-    evaluation = load_task_module("eval", "pick_place_cube")
     state = [25, 50, -20, 75]
     actual = evaluation.dataset_state_to_radians(state, arm=arm)
     np.testing.assert_allclose(actual, [0.01, np.pi / 4, 0.2, -0.01], rtol=0, atol=1e-15)
@@ -133,7 +133,6 @@ def test_recorded_mapping_preserves_reversed_device_codec(tmp_path, arm, monkeyp
     saved, _ = replay_joint_mapping(tmp_path, arm)
     assert saved["left_finger"]["raw_min"] == 100
     assert saved["left_finger"]["raw_max"] == 0
-    evaluation = load_task_module("eval", "pick_place_cube")
     np.testing.assert_allclose(evaluation.dataset_state_to_radians([0, 0, 0, 0], saved, arm=arm),
                                [0.04, 0, 0.25, -0.04])
     # Matching physical spans alone cannot establish equivalent device units.
@@ -202,7 +201,7 @@ def test_source_shapes_and_feature_order_follow_arm(tmp_path, arm):
     directory = tmp_path / "pick_place_meta"
     directory.mkdir()
     (directory / "episode_000000.json").write_text(json.dumps({
-        "units": "m", "reference_frame": "robot base link (base)", "episode_index": 0, "num_frames": 2,
+        "units": "m", "reference_frame": "robot base link (root_link)", "episode_index": 0, "num_frames": 2,
         "position": [[0.1, 0.2, 0.03]] * 2, "orientation_wxyz": [[1, 0, 0, 0]] * 2,
         "cube_size_m": [0.02, 0.02, 0.02],
     }))
@@ -223,14 +222,12 @@ def test_parquet_starts_and_benchmark_validate_selected_joint_count(tmp_path, ar
     import pyarrow as pa
     import pyarrow.parquet as pq
 
-    evaluation = load_task_module("eval", "pick_place_cube")
-    benchmark = load_task_module("benchmark", "pick_place_cube")
     chunk = tmp_path / "data/chunk-000"
     chunk.mkdir(parents=True)
     values = [25., 50., -20., 75.]
     pq.write_table(pa.table({"episode_index": [3, 3], "frame_index": [0, 1],
                             "observation.state": [values, [999.] * 4]}), chunk / "part.parquet")
-    np.testing.assert_equal(evaluation.load_robot_starts(tmp_path, [3], arm=arm), [values])
+    np.testing.assert_equal(starts.load_robot_starts(tmp_path, [3], arm=arm), [values])
     data = dict(schema_version=1, reference_frame="robot base link (base)", units="m", angle_units="rad",
                 parameters={}, scene={}, training_region={},
                 starts=[dict(id="train-0", split="train", x=.1, y=.2, yaw=0., arm_start_state=values)])

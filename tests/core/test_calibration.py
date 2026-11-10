@@ -11,7 +11,7 @@ from core.arms.calibration import (
 )
 from core.arms.spec import load_arm_spec
 from core.arms.mapping import JointMapping
-from core.utils.recording_alignment import recording_contract, validate_recording_root, RecordingAlignmentError, MARKER
+from core.datasets.alignment import recording_contract, validate_recording_root, RecordingAlignmentError, MARKER
 
 
 def test_production_units_preserve_distinct_measured_sources(monkeypatch):

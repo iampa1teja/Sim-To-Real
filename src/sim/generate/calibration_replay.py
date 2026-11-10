@@ -64,10 +64,10 @@ def main(argv=None):
         from core.utils.hashing import tree_sha256
         from sim.envs.mdp.resets import as_torch
         from sim.generate.dr_replay import discover_sim_cameras, make_env
-        from sim.recording.episode_metadata import save_cube_trajectory
+        from core.datasets.task_meta import save_task_trajectory
         from sim.recording.lerobot_recorder import LeRobotRecorder
         from sim.recording.replay_scene import SceneReplayer
-        from sim.recording.replay_source import load_source, recorded_joint_mapping, _mapping_bounds
+        from core.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
 
         task = sim.envs.TASK
         arm, _ = load_arm_spec(args.arm)
@@ -80,7 +80,7 @@ def main(argv=None):
         saved, saved_path = recorded_joint_mapping(args.source, arm)
         if saved is not None and saved != _mapping_bounds(audit["old_mapping"], arm):
             raise ValueError(f"Audit old_mapping differs from source dataset metadata in {saved_path}")
-        source = load_source(str(args.source), SOURCE_REPO_ID, set(), arm=arm)
+        source = load_source(str(args.source), SOURCE_REPO_ID, set(), arm=arm, task=task)
         if len(source) != EXPECTED_SOURCE_EPISODES:
             raise ValueError(f"Expected {EXPECTED_SOURCE_EPISODES} source episodes; got {len(source)}")
         if args.limit:
@@ -114,21 +114,22 @@ def main(argv=None):
             args.report.write_text(json.dumps(report, indent=2) + "\n")
             (args.destination / "meta/calibration_replay.json").write_text(json.dumps(report, indent=2) + "\n")
 
-        robot, cube = replayer.robot, replayer.cube
+        robot = replayer.robot
         with torch.inference_mode():
             for episode in source:
                 env.reset()
                 conversion = dict(joint_order=arm.joint_names, gripper_joints=arm.gripper_joint_names)
                 initial = physical_to_units(
                     units_to_physical(episode.states[0], audit["old_mapping"], **conversion), mapping, **conversion)
-                replayer.pose_frame(initial, episode.poses_base[0])
+                replayer.pose_frame(initial, {name: poses[0] for name, poses in episode.objects_base.items()})
                 q = joints.to_sim(initial).reshape(1, -1)
                 robot.set_joint_position_target_index(target=q, joint_ids=replayer.joint_ids, env_ids=replayer.env_ids)
                 raw.scene.write_data_to_sim()
                 raw.sim.forward()
                 raw.scene.update(0.)
                 mdp.reset_pick_place_state(raw, torch.arange(raw.num_envs, device=raw.device))
-                poses, success, first_success = [], False, None
+                poses = {name: [] for name in replayer.objects}
+                success, first_success = False, None
                 maximum_errors = torch.zeros_like(joints.mins)
                 for frame, action in enumerate(episode.actions):
                     joint_pos = as_torch(robot.data.joint_pos)[0, replayer.joint_ids]
@@ -137,10 +138,11 @@ def main(argv=None):
                     writer.add_frame(writer.make_sim_frame(action, state, images))
                     base_pos = as_torch(robot.data.body_link_pos_w)[:, replayer.base_body_id]
                     base_quat = as_torch(robot.data.body_link_quat_w)[:, replayer.base_body_id]
-                    position, quaternion = math_utils.subtract_frame_transforms(
-                        base_pos, base_quat, as_torch(cube.data.root_pos_w), as_torch(cube.data.root_quat_w))
-                    # Sidecars keep v1's WXYZ order.
-                    poses.append(torch.cat((position[0], quaternion[0, 3:4], quaternion[0, :3])).cpu().tolist())
+                    for name, obj in replayer.objects.items():
+                        position, quaternion = math_utils.subtract_frame_transforms(
+                            base_pos, base_quat, as_torch(obj.data.root_pos_w), as_torch(obj.data.root_quat_w))
+                        poses[name].append(torch.cat((position[0], quaternion[0, 3:4], quaternion[0, :3]))
+                                           .cpu().tolist())
                     target = joints.to_sim(action)
                     env.step(target.reshape(1, -1))
                     joint_pos = as_torch(robot.data.joint_pos)[0, replayer.joint_ids]
@@ -154,7 +156,8 @@ def main(argv=None):
                 destination_index = None
                 if success:
                     destination_index = writer.save_episode()
-                    save_cube_trajectory(args.destination, destination_index, poses, episode.cube_size, args.fps)
+                    save_task_trajectory(args.destination, destination_index, poses, episode.object_sizes, args.fps,
+                                         task=task.name, arm=arm.name, reference_frame=episode.reference_frame)
                 else:
                     writer.clear_episode_buffer()
                 tracking_by_joint = {

@@ -47,6 +47,16 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
   static materials before Newton imports the stage; visual-only lighting retains startup event order.
 - Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.
+- Task plugins own signals, per-step stage flags and failure rules. The generic stage engine latches the declared
+  stages and treats the last as success. Reset order is robot pose, object starts, then task tracking state.
+  Use the generic reset-order assertion; engine code must not dispatch on task names, reset function names or
+  task-specific environment attributes. Object placement/start frames are declared in the task manifest.
+- Schema-2 sidecars store every declared tracked object in `task_meta/`; readers accept legacy `pick_place_meta/`.
+  Write task/arm identity, reference frame and metre units, with one WXYZ object pose per committed dataset frame.
+  Pure readers, validation, migration and source handling belong in `core.datasets`.
+  Saved eval-set arm states are raw units interpreted through that set's mapping, not the active unit's mapping.
+  Approved schema-2 eval-set conversions retain `legacy_eval_set_id` for comparison; preserve every scheduled
+  start/seed. Schema migration does not change or bypass the live geometry guard.
 - `gui/` and `src/sim/recording/web_gui.py` are outside this restructure. The local untracked code explorer is also
   outside the repository; its files are preserved.
 - Run CPU checks with `PYTHONPATH=src python -m pytest tests -q`. The existing `s2r-sim` container includes the
@@ -55,6 +65,6 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 - Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
 
-The arm and declarative scene phases have passed their acceptance checks; consult the status file for evidence
-and the observed renderer variability. Generic task stages/metadata, new/check/migrate commands, policy
-`configure(ArmInfo)`, and the data-generation/second-arm/conformance phases are pending.
+The arm, declarative scene and generic task phases have passed their acceptance checks; consult the status file
+for evidence and renderer limitations. New/check/migrate commands, policy `configure(ArmInfo)`, and the
+data-generation/second-arm/conformance phases are pending.

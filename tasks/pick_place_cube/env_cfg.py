@@ -15,17 +15,16 @@ from isaaclab.utils import configclass
 
 from sim.envs.mdp import ROBOT_COLORS, park_object, randomize_robot_color, time_out
 from .mdp import (
-    check_pick_place_eval_event_order,
     object_grasped,
     object_placed_in_container,
     object_placed_in_container_termination,
     randomize_cube_color,
-    reset_cube_from_recorded_starts,
     reset_pick_place_state,
 )
 from sim.envs.scene_builder import drop_unused_camera_outputs
 from sim.scene.cameras import euler_xyz_degrees_to_xyzw
 from sim.scene.appearance import randomize_scene_light_exposure
+from sim.envs.mdp.starts import assert_reset_event_order, reset_from_starts
 from sim.scene.contact_materials import (
     GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties,
 )
@@ -119,7 +118,7 @@ def apply_teleop(cfg, task):
 
     # Teleop: the cube stays parked out of the scene until spawn.py asks for it at the jaw
     # (sim.generate.object_spawner). Eval replaces this event with recorded starts.
-    cfg.events.spawn_cube = EventTerm(
+    cfg.events.reset_from_starts = EventTerm(
         func=park_object, mode="reset",
         params={"asset_cfg": SceneEntityCfg("blue_cube")},
     )
@@ -144,11 +143,11 @@ def apply_eval(cfg, task):
     episode = task.spec.raw.get("episode", {})
     success = task.spec.raw.get("success", {})
 
-    cfg.events.check_eval_order = EventTerm(func=check_pick_place_eval_event_order, mode="startup")
-    cfg.events.spawn_cube = EventTerm(
-        func = reset_cube_from_recorded_starts, mode = "reset", 
+    cfg.events.check_eval_order = EventTerm(func=assert_reset_event_order, mode="startup")
+    cfg.events.reset_from_starts = EventTerm(
+        func=reset_from_starts, mode="reset",
         params = {
-            "asset_cfg": SceneEntityCfg("blue_cube"), "starts_dir": None, 
+            "task": task.name, "starts_dir": None,
             "mode": "cycle", "random_fraction": 0.0, "seed": None,
             "reset_robot": True,
         },

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from core.arms.spec import ArmSpec
+from core.arms.spec import ArmSpec, load_arm_spec
 from core.arms.calibration import raw_endpoints
 
 ARM_SCALE, GRIPPER_SCALE = 200.0, 100.0
@@ -179,3 +179,31 @@ class JointMapping:
             high = torch.full_like(self.mins, 100.0)
         return {name: (float(min(a, b)), float(max(a, b)))
                 for name, a, b in zip(self.names, low.detach().cpu(), high.detach().cpu())}
+
+
+def usd_limits_deg(arm=None):
+    """Declared physical limits: degrees for revolute joints, metres for prismatic."""
+    arm = arm or load_arm_spec()[0]
+    return {joint.name: tuple(joint.limits) for joint in arm.joints}
+
+
+def dataset_state_to_radians(state, joint_mapping=None, *, arm=None):
+    arm = arm or load_arm_spec()[0]
+    limits = usd_limits_deg(arm)
+    names = arm.joint_names
+    state = np.asarray(state, dtype=float)
+    if state.shape != (len(names),) or not np.isfinite(state).all():
+        raise ValueError(f"Robot state must be {len(names)} finite values, got {state!r}")
+    spans = arm.runtime_joint_limits
+    for name, span in (joint_mapping or {}).items():
+        if name not in spans:
+            raise ValueError(f"Unknown joint mapping: {name}")
+        spans[name] = dict(span)
+    from core.arms.mapping import mapping_for_arm, units_to_physical
+
+    spans = mapping_for_arm(arm, spans)
+    physical = units_to_physical(state, spans, names, gripper_joints=arm.gripper_joint_names)
+    low, high = np.asarray([limits[name] for name in names]).T
+    physical = np.clip(physical, low, high)
+    revolute = np.asarray([joint.type == "revolute" for joint in arm.joints])
+    return np.where(revolute, np.deg2rad(physical), physical)

@@ -6,9 +6,10 @@ The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
 The `v2` restructure is in progress. [Phase status and verification](docs/restructure-status.md) records the
 acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion order and import boundaries.
-Copy `.env.example` to `.env` for local device settings. The arm and declarative scene phases passed their CPU,
-recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
-The generic task engine, `s2r check`, module-only commands, data generation, and the second-arm hardware checks
+Copy `.env.example` to `.env` for local device settings. The arm, declarative scene and generic task phases passed
+their CPU, recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
+Generic stages, named-object benchmarks and multiobject recording work for pick-place and stacking.
+`s2r check`, module-only commands, data generation, and second-arm hardware checks
 remain pending.
 
 ## Layout
@@ -18,15 +19,14 @@ s2r                     CLI launcher (PYTHONPATH=src python3 -m cli)
 pyproject.toml          packages cli, core, sim (src/) and the console scripts
 arms/<arm>/             typed arm.toml, optional <arm>_utils.py, usd/, calibration/units/<id>.json
 scenes/<scene>/         declarative scene.toml, optional appearance.json, mounts/<arm>.toml, scene.py, usd/
-tasks/<task>/           task.toml, __init__.py (TASK), env_cfg.py (variants), mdp.py, eval.py, benchmark.py,
-                        eval_sets/*.json
+tasks/<task>/           task.toml, __init__.py (TASK), env_cfg.py (variants), mdp.py, eval_sets/*.json
 configs/teleop/         lerobot_agent YAMLs (sim_only, paired_real)
 configs/eval/           lerobot_eval YAMLs (one per benchmark run)
 policies/<name>/        policy.toml, client.py, server.py, train/   (see policies/README.md)
 docker/sim/             s2r-sim image: Isaac Lab 3.0 + LeRobot (teleop, record, eval, replay)
 docker/policy/          s2r-serve / s2r-train images: one uv venv per policy
-src/core/               no Isaac: arms, calibration, tasks (spec + loader), policy_client, policy_server,
-                        results, utils, scripts
+src/core/               no Isaac: arms, scenes, calibration, tasks (spec + stages), benchmark, datasets,
+                        policy_client, policy_server, utils, scripts
 src/sim/                Isaac only: envs (+ mdp), scene, teleop, recording, generate, eval
 src/cli/                the s2r CLI (plans docker commands)
 tests/                  CPU-only tests
@@ -86,6 +86,20 @@ Choose it with `S2R_SCENE=blank_table` or `scene: blank_table` in a recording YA
 precedence over environment defaults. The production recorder has been exercised on this scene without a mount
 file; see the status file for the reference-image comparison and recording evidence.
 
+## Tasks and object metadata
+
+`tasks/<task>/task.toml` declares ordered stages, tracked objects, object placements and the start distribution.
+The task's `signals()` reads simulator signals and `observe()` turns a step's poses/signals into stage flags.
+The shared engine latches those flags and derives success from the last declared stage. Task-specific grasp,
+placement and failure rules stay in the task folder. `stack_two_cubes` provides a second task with two tracked
+objects; select it through `task:` in a recording/evaluation YAML or `--task stack_two_cubes`.
+
+New recordings write schema-2 `task_meta/episode_<index>.json` sidecars with task/arm identity, metre positions,
+WXYZ orientations and a size/trajectory entry for every `task.tracked_objects` name. Each trajectory has exactly
+one pose per dataset frame. Dataset sources and alignment live in `core.datasets`; benchmark geometry, starts,
+statistics and comparison live in `core.benchmark`. Existing single-object `pick_place_meta/` datasets remain
+readable through the same production source/start readers. The `s2r migrate` command is scheduled for Phase 4.
+
 ## Commands
 
 Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides the name):
@@ -96,7 +110,7 @@ Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides t
 | `s2r spawn --object blue_cube` | `spawn` | Put a parked task object beside the sim jaw while recording |
 | `s2r eval --config_path configs/eval/pick_place.yaml` | `lerobot_eval` | Evaluate a served policy on the fixed benchmark |
 | `s2r rollout ...` | `real_rollout` | Run a served policy on the real follower |
-| `s2r eval-set --dataset <root> --out <json>` | `make_eval_set` | Build a fixed benchmark from a recorded dataset |
+| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `make_eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
 | `s2r dr-replay ...` | `dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
 | `s2r calibration-replay ...` | `calibration_replay` | Method B calibration replay (physics, keeps successes) |
 | `s2r calibration-report --gap ...` | `calibration_report` | Tracking-gap report |
@@ -122,9 +136,10 @@ Host-side helpers: `compare_eval_results`, `summarize_eval_sweep`, `new_policy`.
 `lerobot_agent` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
 Newton builds its model once, so spawnable task objects are declared up front and parked off the table;
 `spawn --object <name>` (or `sim_reset_object_name` in the config, at each episode start) teleports one beside
-the fixed-jaw tip. The single spawnable object's pose is written per frame to `<sim root>/pick_place_meta/`,
-which eval recorded starts, `make_eval_set` and `dr_replay` read. The generic `task_meta/` layout is scheduled for
-Phase 3. New recording-alignment markers save the arm, joint order and units, selected physical mapping, and
+the fixed-jaw tip. Every object declared in `task.tracked_objects` is written per frame to
+`<sim root>/task_meta/episode_<index>.json` with task/arm identity and WXYZ orientations. Recorded starts,
+eval-set generation and replay also read legacy single-object `pick_place_meta/` sidecars.
+New recording-alignment markers save the arm, joint order and units, selected physical mapping, and
 relative-roll behavior. Resuming with different or legacy alignment metadata uses a new root when
 `dataset.on_alignment_mismatch: new` is configured. Legacy recordings remain readable for replay; a per-unit
 recording without a saved mapping needs an explicit `--unit` to establish its action units.
@@ -133,3 +148,8 @@ recording without a saved mapping needs an explicit `--unit` to establish its ac
 
 `lerobot_eval` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
 the checkpoints you compare; `compare_eval_results` runs paired McNemar tests on the results JSONs.
+Schema-2 eval sets declare the task, arm, joint order and named object poses for each start. Saved robot states
+remain raw LeRobot values interpreted with the set's saved joint mapping. The three approved frozen-set
+conversions retain their former hashes in `legacy_eval_set_id`; comparison accepts the shared identity.
+That conversion preserves geometry. The frozen pick-place sets still predate the existing mount correction,
+so their geometry guard rejects the corrected live mount until an explicit geometry decision is made.

@@ -5,12 +5,28 @@ import json
 from pathlib import Path
 from statistics import mean
 
-from core.tasks.loader import load_task_module
+from .report import summarize, results_report
+from .eval_set import validate_eval_set
+from .compare import eval_set_identities
 
-# Benchmark helpers come from the task (S2R_TASK, default pick_place_cube).
-_benchmark = load_task_module('benchmark')
-summarize, FAILURES, STAGES = _benchmark.summarize, _benchmark.FAILURES, _benchmark.STAGES
-validate_eval_set, results_report = _benchmark.validate_eval_set, _benchmark.results_report
+
+def report_axes(report):
+    overall = report.get('overall', {})
+    stages = list(overall.get('stage_rates', {}))
+    failures = list(overall.get('failure_modes', {}))
+    for row in report.get('episodes', []):
+        stages += [stage for stage in row.get('stages', {}) if stage not in stages]
+        if row.get('failure_mode') is not None and row['failure_mode'] not in failures:
+            failures.append(row['failure_mode'])
+    return stages, failures
+
+
+def row_axes(rows):
+    stages, failures = [], []
+    for row in rows:
+        stages += [stage for stage in row.get('stage_rates', {}) if stage not in stages]
+        failures += [failure for failure in row.get('failure_modes', {}) if failure not in failures]
+    return stages, failures
 
 
 def complete_report(report, expected, eval_set_id=None, horizon=None, settings=None):
@@ -21,7 +37,7 @@ def complete_report(report, expected, eval_set_id=None, horizon=None, settings=N
         validate_eval_set(report['eval_set'])
         if report['eval_set_id'] != report['eval_set']['eval_set_id']:
             return False
-        if eval_set_id and report['eval_set_id'] != eval_set_id:
+        if eval_set_id and eval_set_id not in eval_set_identities(report):
             return False
         if horizon is not None and report.get('action_horizon') != horizon:
             return False
@@ -36,12 +52,13 @@ def complete_report(report, expected, eval_set_id=None, horizon=None, settings=N
 
 def paired(first, second):
     # Same comparison helper as scripts/compare_eval_results.py; only horizon varies.
-    from core.results.compare import compare
+    from .compare import compare
     return compare([first, second], varying_action_horizon=True)
 
 
 def aggregate(horizon, split, rows, report, status):
-    value = summarize(rows, report.get('step_dt', 1))
+    stages, failures = report_axes(report)
+    value = summarize(rows, report.get('step_dt', 1), stages=stages, failures=failures)
     timing = results_report(rows, task='', checkpoint='', seed=0, step_dt=report.get('step_dt', 1))['overall']
     times = [r['success_step'] * report.get('step_dt', 1) for r in rows if r['success']]
 
@@ -51,7 +68,8 @@ def aggregate(horizon, split, rows, report, status):
     result = dict(action_horizon=horizon, split=split, status=status,
                   episodes=value['episodes'], successes=value['successes'], success_rate=value['success_rate'],
                   ci95_low=value['success_rate_ci95'][0], ci95_high=value['success_rate_ci95'][1],
-                  **{s + '_rate': value['stage_rates'][s] for s in STAGES if s != 'success'},
+                  **{stage + '_rate': value['stage_rates'][stage] for stage in stages[:-1]},
+                  stage_rates=value['stage_rates'], failure_modes=value['failure_modes'],
                   **value['failure_modes'], median_time_to_success_s=value['median_time_to_success_s'],
                   mean_time_to_success_s=mean(times) if times else None,
                   success_within_15s=timing['success_rate_within_15s'],
@@ -137,12 +155,14 @@ def summarize_folder(folder):
         def t(key, r=r):
             return '—' if r[key] is None else f'{r[key]:.2f}'
         lines.append(f"| {r['action_horizon']} | {r['split']} | {r['status']} | {r['successes']}/{r['episodes']} | {pct(r['success_rate'])} [{pct(r['ci95_low'])}, {pct(r['ci95_high'])}] | {t('median_time_to_success_s')} / {t('mean_time_to_success_s')} | {pct(r['success_within_15s'])} |")
-    lines += ['', '| AH | Split | Reached | Grasped | Lifted | Over box | Placed |', '| --- | --- | --- | --- | --- | --- | --- |']
+    stages, failures = row_axes(rows)
+    lines += ['', '| AH | Split | ' + ' | '.join(stages[:-1]) + ' |',
+              '| --- | --- | ' + ' | '.join(['---'] * len(stages[:-1])) + ' |']
     for r in rows:
-        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[pct(r[s + '_rate']) for s in STAGES if s != 'success']]) + ' |')
-    lines += ['', '| AH | Split | ' + ' | '.join(FAILURES) + ' |', '| --- | --- | ' + ' | '.join(['---'] * len(FAILURES)) + ' |']
+        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[pct(r[s + '_rate']) for s in stages[:-1]]]) + ' |')
+    lines += ['', '| AH | Split | ' + ' | '.join(failures) + ' |', '| --- | --- | ' + ' | '.join(['---'] * len(failures)) + ' |']
     for r in rows:
-        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[str(r[f]) for f in FAILURES]]) + ' |')
+        lines.append('| ' + ' | '.join([str(r['action_horizon']), r['split'], *[str(r[f]) for f in failures]]) + ' |')
     (folder / 'summary.md').write_text('\n'.join(lines) + '\n')
     make_plots(folder, rows)
     return output
@@ -154,6 +174,7 @@ def make_plots(folder, rows):
     import matplotlib.pyplot as plt
     plots = folder / 'plots'
     plots.mkdir(exist_ok=True)
+    stages, failures = row_axes(rows)
     valid = [r for r in rows if r['status'] == 'complete']
     fig, ax = plt.subplots()
     for split in sorted({r['split'] for r in valid}):
@@ -168,7 +189,7 @@ def make_plots(folder, rows):
     plt.close(fig)
     all_rows = sorted([r for r in valid if r['split'] == 'all'], key=lambda r: r['action_horizon'])
     x = [r['action_horizon'] for r in all_rows]
-    for filename, fields, ylabel in [('stages_vs_horizon.png', [s + '_rate' for s in STAGES if s != 'success'], 'Stage rate'), ('time_to_success_vs_horizon.png', ['median_time_to_success_s', 'mean_time_to_success_s'], 'Simulation seconds')]:
+    for filename, fields, ylabel in [('stages_vs_horizon.png', [s + '_rate' for s in stages[:-1]], 'Stage rate'), ('time_to_success_vs_horizon.png', ['median_time_to_success_s', 'mean_time_to_success_s'], 'Simulation seconds')]:
         fig, ax = plt.subplots()
         for field in fields:
             ax.plot(x, [r[field] if r[field] is not None else float('nan') for r in all_rows], marker='o', label=field)
@@ -179,7 +200,7 @@ def make_plots(folder, rows):
         plt.close(fig)
     fig, ax = plt.subplots()
     bottom = [0] * len(x)
-    for failure in FAILURES:
+    for failure in failures:
         values = [r[failure] for r in all_rows]
         ax.bar([str(h) for h in x], values, bottom=bottom, label=failure)
         bottom = [a + b for a, b in zip(bottom, values)]

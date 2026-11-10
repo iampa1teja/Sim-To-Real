@@ -1,5 +1,5 @@
 # sim/recording/replay_scene.py  (ported from v1 utils/replay_scene.py)
-"""Pose recorded pick-place frames in the live scene and render them with a chosen appearance.
+"""Pose recorded task frames in the live scene and render them with a chosen appearance.
 
 Kinematic replay: joint states and the object pose are written directly and the scene is
 rendered without stepping physics, so the motion is exactly the recorded one.
@@ -17,7 +17,7 @@ import torch
 import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
-from core.tasks.loader import load_task_module
+from core.tasks.loader import load_task, load_task_module
 from sim.envs.mdp.resets import (
     as_torch,
     set_camera_focal_length,
@@ -35,7 +35,7 @@ class SceneReplayer:
 
     def __init__(self, env, mapping, dr_ranges, cameras,
                  external_camera=None, wrist_camera=None,
-                 render_passes=2, object_name="blue_cube", task="pick_place_cube", arm=None):
+                 render_passes=2, object_name=None, task=None, arm=None):
         """mapping: core.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
         from core.arms.spec import load_arm_spec
         from core.scenes import load_scene_spec
@@ -52,8 +52,10 @@ class SceneReplayer:
         self.wrist_camera = wrist_camera or next(iter(attached), None)
         self.render_passes = render_passes
         self.robot = env.scene["robot"]
-        self.cube = env.scene[object_name]
-        self.task_mdp = load_task_module("mdp", task)
+        self.task = load_task(task)
+        names = (object_name,) if object_name is not None else self.task.spec.tracked_objects
+        self.objects = {name: env.scene[name] for name in names}
+        self.task_mdp = load_task_module("mdp", self.task.name)
         self.base_body_id = self.robot.find_bodies(self.arm.links.base)[0][0]
         self.joint_ids, _ = self.robot.find_joints(list(self.arm.usd_joint_names), preserve_order=True)
         self.env_ids = torch.arange(env.num_envs, device=env.device)
@@ -98,11 +100,19 @@ class SceneReplayer:
 
         base_pos = as_torch(self.robot.data.body_link_pos_w)[:, self.base_body_id]
         base_quat = as_torch(self.robot.data.body_link_quat_w)[:, self.base_body_id]
-        pose = torch.as_tensor(np.asarray(pose_base), dtype=base_pos.dtype, device=base_pos.device).reshape(1, 7)
-        quat_xyzw = torch.cat((pose[:, 4:7], pose[:, 3:4]), dim=-1)
-        pos_w, quat_w = math_utils.combine_frame_transforms(base_pos, base_quat, pose[:, :3], quat_xyzw)
-        self.cube.write_root_pose_to_sim_index(root_pose=torch.cat((pos_w, quat_w), dim=-1), env_ids=self.env_ids)
-        self.cube.write_root_velocity_to_sim_index(root_velocity=pos_w.new_zeros((1, 6)), env_ids=self.env_ids)
+        if not isinstance(pose_base, dict):
+            if len(self.objects) != 1:
+                raise ValueError("Multi-object replay requires a named pose map")
+            pose_base = {next(iter(self.objects)): pose_base}
+        if set(pose_base) != set(self.objects):
+            raise ValueError(f"Replay objects {sorted(pose_base)} != task objects {sorted(self.objects)}")
+        for name, values in pose_base.items():
+            pose = torch.as_tensor(np.asarray(values), dtype=base_pos.dtype, device=base_pos.device).reshape(1, 7)
+            quat_xyzw = torch.cat((pose[:, 4:7], pose[:, 3:4]), dim=-1)
+            pos_w, quat_w = math_utils.combine_frame_transforms(base_pos, base_quat, pose[:, :3], quat_xyzw)
+            obj = self.objects[name]
+            obj.write_root_pose_to_sim_index(root_pose=torch.cat((pos_w, quat_w), dim=-1), env_ids=self.env_ids)
+            obj.write_root_velocity_to_sim_index(root_velocity=pos_w.new_zeros((1, 6)), env_ids=self.env_ids)
 
     def _camera_sensors(self):
         """Recorded cameras first, then any other camera sensor in the scene, once each."""

@@ -107,8 +107,8 @@ def load_yaml_config(path):
             if key == "policy" and name == "options":
                 out["policy_option"] = [f"{k}={v}" for k, v in (item or {}).items()]
             elif key == "eval" and name == "dataset":
-                # Recorded starts and robot states live in <dataset>/pick_place_meta (v1 eval.sh).
-                out["cube_starts"] = str(Path(item) / "pick_place_meta")
+                # The generic reader accepts both current and legacy dataset sidecars.
+                out["cube_starts"] = str(Path(item))
             elif key == "eval" and name == "rename_map":
                 out["rename_map"] = json.dumps(item) if item else None
             elif key == "eval" and name == "splits":
@@ -265,8 +265,12 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     from core.arms.spec import load_arm_spec
     from core.arms.calibration import resolve_calibration
     from core.policy_client.grasp import GraspConfig
-    from core.results.eval_resume import load_episodes, next_video_attempt, read_report, write_report
-    from core.tasks.loader import load_task_module
+    from core.benchmark.resume import load_episodes, next_video_attempt, read_report, write_report
+    from core.benchmark.eval_set import EvalSetStarts
+    from core.benchmark import report as benchmark_report
+    from core.benchmark.report import results_report
+    from sim.eval.scene import capture_scene, validate_scene_geometry
+    from sim.eval.stage_tracking import install_stage_tracking, reset_stage_traces
     from sim.eval.sim_remote_policy import SimRemotePolicy
     from sim.teleop.keyboard import KeyboardControl
 
@@ -285,10 +289,10 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     if not smoke_test and (smoke_selection != "first_five" or smoke_reach is not None):
         raise ValueError("Smoke selection and deadlines require --smoke-test")
     if smoke_reach is not None:
-        from core.results.eval_smoke import MilestoneDeadline
-        smoke_budget = MilestoneDeadline(smoke_reach, smoke_progress)
-        if args_cli.policy != "molmoact2" or not getattr(args_cli, "eval_set", None):
-            raise ValueError("Smoke progress deadlines require Molmo with a fixed benchmark")
+        from core.benchmark.smoke import MilestoneDeadline
+        smoke_budget = MilestoneDeadline(smoke_reach, smoke_progress, milestones=task.stages[:-1])
+        if not getattr(args_cli, "eval_set", None):
+            raise ValueError("Smoke progress deadlines require a fixed benchmark")
     resume = getattr(args_cli, "resume", False)
     if resume and (smoke_test or not getattr(args_cli, "eval_set", None) or not args_cli.results_json):
         raise ValueError("--resume requires --eval_set and --results_json, and cannot be used with --smoke-test")
@@ -310,18 +314,14 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
         raise ValueError("render_warmup must be >= 0")
 
     benchmark = None
-    benchmark_module = None
     if getattr(args_cli, "eval_set", None):
-        benchmark_module = load_task_module("benchmark", task.name)
-        from sim.eval.pick_place_benchmark_runtime import capture_scene, install_stage_tracking
-        EvalSetStarts = benchmark_module.EvalSetStarts
         selection = "one_per_zone" if smoke_test and smoke_selection == "one_per_zone" else "all"
         benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed,
-                                  selection=selection)
+                                  selection=selection, task=task)
         if smoke_test and smoke_selection == "first_five" and len(benchmark.schedule) < 5:
             # Repeat small selections so smoke mode still executes exactly five attempts.
             args_cli.repeats *= math.ceil(5 / len(benchmark.schedule))
-            benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed)
+            benchmark = EvalSetStarts(args_cli.eval_set, args_cli.splits, args_cli.repeats, args_cli.seed, task=task)
         args_cli.num_episodes = 5 if smoke_test and smoke_selection == "first_five" else len(benchmark.schedule)
         if args_cli.random_fraction != 0:
             raise ValueError("--eval_set cannot be combined with random_fraction")
@@ -354,13 +354,14 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     episode_length_s = float(env_cfg.episode_length_s)
     if not math.isfinite(episode_length_s) or episode_length_s <= 0:
         raise ValueError("episode_length_s must be finite and greater than 0")
-    spawn_term = getattr(env_cfg.events, "spawn_cube", None)
-    pick_place = getattr(getattr(spawn_term, "func", None), "__name__", "") == "reset_cube_from_recorded_starts"
+    from sim.envs.mdp.starts import reset_from_starts
+    spawn_term = getattr(env_cfg.events, "reset_from_starts", None)
+    starts_enabled = spawn_term is not None and spawn_term.func is reset_from_starts
     if args_cli.num_episodes < 1 or not 0 <= args_cli.random_fraction <= 1:
         raise ValueError("num_episodes must be positive and random_fraction must be in [0, 1]")
-    if pick_place:
-        if env_cfg.scene.num_envs != 1:
-            raise ValueError("Pick-place policy evaluation requires --num_envs 1 (one remote policy state)")
+    if env_cfg.scene.num_envs != 1:
+        raise ValueError("Remote policy evaluation requires --num_envs 1 (one policy state)")
+    if starts_enabled:
         params = spawn_term.params
         params.update(mode=args_cli.start_mode, random_fraction=args_cli.random_fraction, seed=args_cli.seed,
                       reset_robot=args_cli.robot_start == "recorded")
@@ -370,9 +371,9 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
             params.update(eval_set=str(args_cli.eval_set), splits=args_cli.splits, repeats=args_cli.repeats,
                           start_offset=len(saved_report["episodes"]) if resume else 0)
             if smoke_test and smoke_selection == "one_per_zone":
-                params["selection"] = "one_per_zone"
+                params["benchmark_selection"] = "one_per_zone"
     elif benchmark or args_cli.cube_starts or args_cli.lang_instruction_by_color is not None:
-        raise ValueError(f"Cube starts and colour instructions need a recorded-starts variant; {env_id} has none")
+        raise ValueError(f"Recorded starts need an evaluation variant with reset_from_starts; {env_id} has none")
 
     # Seed all RNGs for reproducible episode resets
     random.seed(args_cli.seed)
@@ -388,12 +389,12 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     if action_repeat > 1 or args_cli.policy == "molmoact2":
         print(f"[INFO]: Replanning every {replan_interval_s:.2f}s sim "
               f"({args_cli.action_horizon} targets held for {action_repeat} control ticks each).", flush=True)
-    if benchmark:
-        install_stage_tracking(env.unwrapped)
+    install_stage_tracking(env.unwrapped, task)
     smoke_deadline = None
     if smoke_budget is not None:
-        from core.results.eval_smoke import install_milestone_deadline
-        smoke_deadline = install_milestone_deadline(env.unwrapped, smoke_reach, smoke_progress)
+        from core.benchmark.smoke import install_milestone_deadline
+        smoke_deadline = install_milestone_deadline(env.unwrapped, smoke_reach, smoke_progress,
+                                                   milestones=task.stages[:-1])
         print(f"[SMOKE TEST] {smoke_reach:g}s sim to reach; {smoke_progress:g}s per new milestone; "
               "repeated milestones do not extend the deadline.", flush=True)
     if smoke_test and smoke_selection == "one_per_zone":
@@ -458,30 +459,33 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     policy.connect()
 
     grasp_diagnostics = None
-    if smoke_test and pick_place and args_cli.policy == "molmoact2":
+    if smoke_test and starts_enabled and args_cli.policy == "molmoact2":
         from sim.eval.grasp_diagnostics import install_grasp_diagnostics
         grasp_diagnostics = install_grasp_diagnostics(env.unwrapped, mapping, step_dt)
         if grasp_diagnostics is not None:
             print("[INFO]: Smoke grasp diagnostics enabled (millimetres; in memory only).", flush=True)
 
-    task_eval = load_task_module("eval", task.name)
-    select_instruction, results_report = task_eval.select_instruction, task_eval.results_report
-
     def episode_metadata():
         raw = env.unwrapped
-        index = getattr(raw, "_pick_place_start_index", [None])[0]
-        color = getattr(raw, "_pick_place_cube_color", ["unknown"])[0]
-        instruction = select_instruction(color, args_cli.lang_instruction, args_cli.lang_instruction_by_color)
+        index = getattr(raw, "_task_start_index", [None])[0]
+        task_metadata = task.episode_metadata(raw)
+        color = task_metadata.get("color", "unknown")
+        instruction = task_metadata.get("instruction", args_cli.lang_instruction)
+        if args_cli.lang_instruction_by_color is not None:
+            instruction = args_cli.lang_instruction_by_color.get(color)
+            if not isinstance(instruction, str) or not instruction.strip():
+                raise ValueError(f"Colour instructions need a nonempty instruction for {color!r}")
         policy.lang_instruction = instruction
         extra = {}
         if benchmark:
             start = raw._benchmark_start
             extra = dict(start_id=start["id"], split=start["split"], repeat=start["repeat"],
-                         policy_seed=start["policy_seed"], x=start["x"], y=start["y"], yaw=start["yaw"])
-        return {**extra, "start_index": index,
+                         policy_seed=start["policy_seed"])
+            extra.update({key: start[key] for key in ("x", "y", "yaw", "objects") if key in start})
+        return {**extra, **task_metadata, "start_index": index,
                 "start_kind": "random" if index == -1 else "recorded" if index is not None else "unknown",
-                "zone": getattr(raw, "_pick_place_start_zone", ["unknown"])[0],
-                "cube_color": color, "instruction": instruction}
+                "zone": getattr(raw, "_task_start_zone", ["unknown"])[0],
+                "color": color, "instruction": instruction}
 
     # ManagerBasedRLEnv auto-resets on termination. Snapshot metadata BEFORE
     # stepping, then use the returned reset observation for the next episode.
@@ -495,7 +499,7 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     def progress_summary(stage_label=None):
         completed = len(episodes)
         rate = f"{successes / completed:.1%}" if completed else "N/A"
-        if benchmark and stage_label is None:
+        if stage_label is None:
             stage_label = env.unwrapped._benchmark_trace.progress_label()
         return (f"{stage_label}, " if stage_label else "") + f"success={rate} ({successes}/{completed})"
 
@@ -503,8 +507,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
         report_fn = results_report
         report_extra = {}
         if benchmark:
-            report_fn = benchmark_module.benchmark_report
-            report_extra = dict(eval_set=benchmark.data, repeats=args_cli.repeats)
+            report_fn = benchmark_report.benchmark_report
+            report_extra = dict(eval_set=benchmark.data, repeats=args_cli.repeats, stages=task.stages)
         report = report_fn(
             episodes, task=env_id, checkpoint=args_cli.checkpoint, seed=args_cli.seed, **report_extra,
             random_fraction=args_cli.random_fraction, episode_length_s=episode_length_s,
@@ -602,16 +606,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
         obs, _ = env.reset()
         metadata = episode_metadata()
         if benchmark:
-            live = capture_scene(env.unwrapped)
-            expected = benchmark.data["scene"]
-            # Float32 poses can change the number of nearly collinear hull
-            # vertices. Compare boundaries while retaining the geometry guard.
-            for key in ("box_footprint_base_xy", "table_outline_base_xy"):
-                if not benchmark_module.polygons_match(live[key], expected[key], atol=1e-5):
-                    raise ValueError(f"Live scene differs from eval set: {key}; recapture geometry")
-            if (np.shape(live["cube_size_m"]) != np.shape(expected["cube_size_m"])
-                    or not np.allclose(live["cube_size_m"], expected["cube_size_m"], atol=1e-5, rtol=0)):
-                raise ValueError("Live scene differs from eval set: cube_size_m; recapture geometry")
+            live = capture_scene(env.unwrapped, task)
+            validate_scene_geometry(live, benchmark.data["scene"], task)
             policy.reset(seed=metadata["policy_seed"])
         else:
             policy.reset()
@@ -656,16 +652,17 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
                     video_recorder.write(obs["visual"])
                 obs, _, terminated, truncated, _ = env.step(actions)
                 step += 1
-                if grasp_config.enabled and benchmark and env.unwrapped._benchmark_trace.stages["grasped"]:
+                if grasp_config.enabled and env.unwrapped._benchmark_trace.stages.get("grasped", False):
                     policy.grasp.mark_grasp(step * step_dt)
                 pbar.update(1)
                 is_terminated = bool(terminated.any().item())
                 is_truncated = bool(truncated.any().item())
                 if is_terminated or is_truncated:
-                    terminal_stage = env.unwrapped._benchmark_trace.progress_label() if benchmark else None
+                    terminal_stage = env.unwrapped._benchmark_trace.progress_label()
+                    success = bool(env.unwrapped._benchmark_trace.stages[task.stages[-1]])
                     row = {**metadata, "episode": len(episodes), "steps": step,
-                           "success": is_terminated and not is_truncated,
-                           "success_step": step if is_terminated and not is_truncated else None,
+                           "success": success,
+                           "success_step": step if success else None,
                            "inference_calls": getattr(policy, "inference_calls", None),
                            "wall_time_s": monotonic() - episode_wall_start}
                     # Both clocks start with the episode rollout, including the
@@ -676,9 +673,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
                     if video_recorder is not None:
                         row["videos"] = video_recorder.finish_episode()
                         row["video_encoder"] = video_recorder.encoder
-                    if benchmark:
-                        row.update(env.unwrapped._benchmark_trace.finish(row["success"]))
-                        env.unwrapped._benchmark_trace = benchmark_module.StageTrace()
+                    row.update(env.unwrapped._benchmark_trace.finish(row["success"]))
+                    reset_stage_traces(env.unwrapped)
                     if grasp_config.enabled:
                         row.update(policy.grasp.finish_episode(reason="success" if row["success"] else "timeout"))
                     if grasp_diagnostics is not None:
@@ -701,7 +697,7 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
                     if row.get("smoke_deadline", {}).get("stop_reason"):
                         final_status += " stop=" + row["smoke_deadline"]["stop_reason"]
                     print(f"[EPISODE {len(episodes)}] start={start} zone={row['zone']} "
-                          f"cube_color={row['cube_color']} {'success' if row['success'] else 'fail'} steps={step} "
+                          f"color={row['color']} {'success' if row['success'] else 'fail'} steps={step} "
                           f"{timing_label}={row['elapsed_sim_s']:.2f}s sim "
                           f"({row['wall_time_s']:.2f}s wall){final_status}", flush=True)
                     if grasp_diagnostics is not None:
@@ -769,7 +765,7 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
         if args_cli.results_json:
             write_report(args_cli.results_json, report)
             if benchmark:
-                benchmark_module.save_heatmap(report, args_cli.results_json.with_suffix(".png"))
+                benchmark_report.save_heatmap(report, args_cli.results_json.with_suffix(".png"))
             print(f"Results JSON: {args_cli.results_json}")
         elif smoke_test and (smoke_selection == "one_per_zone" or smoke_budget is not None):
             # Machine-readable console output lets research runners compare

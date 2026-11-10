@@ -4,7 +4,7 @@
 Kinematic replay: for every frame the recorded joint state and cube pose are written into the
 task scene and the cameras are rendered (no physics step). Actions and observation.state are
 copied unchanged; only the camera images and the task text change. Writes a NEW LeRobot dataset
-plus pick_place_meta/ cube sidecars and meta/dr_replay_manifest.json.
+plus task_meta/ object sidecars and meta/dr_replay_manifest.json.
 
   # plan only (no Isaac Sim; needs LeRobot)
   dr_replay --src_root <src> --src_repo_id local/pick_place_v1 \
@@ -115,7 +115,7 @@ def make_env(args):
         value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
     ):
         raise ValueError(f"{env_id} has terminations; replay needs a variant without them (e.g. teleop).")
-    env_cfg.events.spawn_cube = None
+    env_cfg.events.reset_from_starts = None
     env = gym.make(env_id, cfg=env_cfg)
     env.reset()
     return env
@@ -134,7 +134,7 @@ def make_mapping(env, *, arm=None, mapping=None, source_root=None, unit=None):
     """Use recorded calibration or an explicit unit; no scene calibration or hardware reads."""
     from core.arms.mapping import JointMapping
     from core.arms.spec import load_arm_spec
-    from sim.recording.replay_source import replay_joint_mapping
+    from core.datasets.sources import replay_joint_mapping
 
     arm = arm or load_arm_spec()[0]
     if mapping is None:
@@ -155,13 +155,13 @@ def make_writer(args, sim_cameras, device, *, arm=None):
 
 
 def replay_episode(replayer, writer, src, planned, fps) -> None:
-    """Render one planned episode from its source episode and save it with its cube sidecar."""
+    """Render one planned episode from its source episode and save it with its object sidecar."""
     from sim.generate.dr_variants import cube_colors
-    from sim.recording.episode_metadata import save_cube_trajectory
+    from core.datasets.task_meta import save_task_trajectory
 
     replayer.apply(cube_colors()[planned.color], planned.color, planned.draw)
     for i in range(src.length):
-        replayer.pose_frame(src.states[i], src.poses_base[i])
+        replayer.pose_frame(src.states[i], {name: poses[i] for name, poses in src.objects_base.items()})
         images = replayer.render_images()
         frame = writer.make_sim_frame(src.actions[i], src.states[i], images)
         frame["task"] = planned.task_text
@@ -169,7 +169,8 @@ def replay_episode(replayer, writer, src, planned, fps) -> None:
     index = writer.save_episode()
     if index != planned.dst_index:
         raise RuntimeError(f"Saved episode {index}, planned {planned.dst_index}")
-    save_cube_trajectory(writer.dataset_root, index, src.poses_base.tolist(), src.cube_size, fps)
+    save_task_trajectory(writer.dataset_root, index, src.objects_base, src.object_sizes, fps,
+                         task=replayer.task.name, arm=replayer.arm.name, reference_frame=src.reference_frame)
 
 
 def print_plan(plan) -> None:
@@ -195,10 +196,12 @@ def main(argv=None):
     import torch
 
     from sim.generate.dr_variants import cube_colors, build_manifest, parse_csv, plan_episodes, write_json_atomic
-    from sim.recording.replay_source import load_source, replay_joint_mapping
+    from core.datasets.sources import load_source, replay_joint_mapping
     from core.arms.spec import load_arm_spec
+    from core.tasks.loader import load_task
 
     arm, _ = load_arm_spec(args.arm)
+    task = load_task(args.task)
 
     colors = parse_csv(args.colors, cube_colors())
     terms = parse_dr_terms(args.dr)
@@ -208,7 +211,7 @@ def main(argv=None):
         raise FileExistsError(f"Destination already exists: {args.dst_root}")
 
     if args.dry_run:
-        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm)
+        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm, task=task)
         # Draws depend only on each episode's seed + the config ranges, so they are reproduced
         # exactly in the real run; the ranges themselves need Isaac Sim, so they are not shown here.
         print_plan(plan_episodes([s.index for s in source], colors, [], None, args.seed,
@@ -231,7 +234,7 @@ def main(argv=None):
         import sim.envs
         from sim.recording.replay_scene import SceneReplayer
 
-        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm)
+        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm, task=task)
         ranges = read_dr_ranges(sim.envs.TASK)
         plan = plan_episodes([s.index for s in source], colors, terms, ranges, args.seed,
                              args.include_originals, args.lang_blue, args.lang_red)

@@ -8,21 +8,25 @@ import json
 from itertools import combinations
 from pathlib import Path
 
-from core.tasks.loader import load_task_module
+from .eval_set import validate_eval_set
+from .stats import mcnemar
+
+
+def eval_set_identities(report):
+    data = report.get('eval_set', report)
+    return {value for value in (data.get('eval_set_id'), data.get('legacy_eval_set_id')) if value}
 
 
 def compare(reports, repeat=0, *, varying_action_horizon=False, task=None):
-    # The benchmark (eval-set schema + McNemar) lives with its task; S2R_TASK picks it by default.
-    benchmark = load_task_module('benchmark', task)
     if len(reports) < 2:
         raise ValueError('Provide at least two results JSONs')
     for report in reports:
         if report.get('schema_version') != 2 or not report.get('complete'):
             raise ValueError('Comparison requires complete schema-2 benchmark results')
-        benchmark.validate_eval_set(report['eval_set'])
+        validate_eval_set(report['eval_set'], task=task)
         if report['eval_set_id'] != report['eval_set']['eval_set_id']:
             raise ValueError('Result eval_set_id mismatch')
-    if len({r['eval_set_id'] for r in reports}) != 1:
+    if not set.intersection(*(eval_set_identities(report) for report in reports)):
         raise ValueError('Results must use the same eval set')
     keys = ['task', 'episode_length_s', 'robot_start', 'seed']
     keys.append('checkpoint' if varying_action_horizon else 'action_horizon')
@@ -46,7 +50,7 @@ def compare(reports, repeat=0, *, varying_action_horizon=False, task=None):
         for split in ['all', *sorted({a[k]['split'] for k in shared})]:
             keys = [k for k in shared if split == 'all' or a[k]['split'] == split]
             pairs.append(dict(first=i, second=j, split=split, repeat=repeat,
-                              **benchmark.mcnemar([a[k]['success'] for k in keys], [b[k]['success'] for k in keys])))
+                              **mcnemar([a[k]['success'] for k in keys], [b[k]['success'] for k in keys])))
     return pairs
 
 

@@ -173,7 +173,7 @@ def main():
         env_id = envs.TASK.gym_id("teleop")
         cfg = parse_env_cfg(env_id, device="cuda:0", num_envs=1, use_fabric=True)
         cfg.seed = 101
-        cfg.events.spawn_cube = None
+        cfg.events.reset_from_starts = None
         base_position = cfg.scene.robot.init_state.pos
         cfg.scene.robot.init_state.pos = tuple(np.asarray(base_position) + base_offset)
         report["configured_robot_base_position_m"] = list(cfg.scene.robot.init_state.pos)
@@ -185,7 +185,7 @@ def main():
         raw = env.unwrapped
         physics_steps_at_start = raw.sim._physics_step_count
         replayer = SceneReplayer(raw, None, None, CAMERA_NAMES)
-        robot, cube = replayer.robot, replayer.cube
+        robot, cube = replayer.robot, replayer.objects["blue_cube"]
         joint_ids, resolved_names = robot.find_joints(list(JOINT_NAMES), preserve_order=True)
         if tuple(resolved_names) != JOINT_NAMES:
             raise ValueError(f"Live joint order differs: {resolved_names}")

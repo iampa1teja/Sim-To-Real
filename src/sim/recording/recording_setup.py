@@ -76,7 +76,7 @@ def prepare_recording_roots(roots: list[str], contract: dict, *, on_mismatch: st
     Selection never creates directories or rewrites alignment markers. The recorder owns
     initialization, and a repeated launch with the same contract selects the same pair.
     """
-    from core.utils.recording_alignment import RecordingAlignmentError, validate_recording_root
+    from core.datasets.alignment import RecordingAlignmentError, validate_recording_root
     from .rerecording import recover_replacement
 
     if on_mismatch not in ("error", "new"):

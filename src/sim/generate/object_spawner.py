@@ -16,7 +16,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from queue import Empty, Queue
 from threading import Event, Thread
 
-PARK_EVENT = "park_object"
 # Parked objects are already two metres below the environment. Let gravity move
 # them within this offscreen region instead of invalidating renderer transforms
 # with a teleport on every recording tick.
@@ -97,14 +96,21 @@ class ObjectSpawnServer:
 
 
 # Names and park offsets of every object the env cfg parks on reset: {name: park_offset}.
-def parkable_objects(env_cfg):
+def parkable_objects(env_cfg, task=None):
+    from sim.envs.mdp import park_object
+
+    declared = None if task is None else {
+        name for name, spec in task.spec.objects.items() if spec.params.get("spawnable", False)
+    }
     found = {}
     for term in vars(env_cfg.events).values():
         func = getattr(term, "func", None)
-        if getattr(func, "__name__", None) != PARK_EVENT:
+        if func is not park_object:
             continue
         params = term.params or {}
-        found[params["asset_cfg"].name] = tuple(params.get("park_offset", (0.0, 0.0, -2.0)))
+        name = params["asset_cfg"].name
+        if declared is None or name in declared:
+            found[name] = tuple(params.get("park_offset", (0.0, 0.0, -2.0)))
     return found
 
 
@@ -122,7 +128,7 @@ class ObjectSpawner:
     def __init__(self, env, task=None, port=0, authkey="so101-spawn"):
         self.env = env.unwrapped
         self.task = task
-        self.offsets = parkable_objects(self.env.cfg)
+        self.offsets = parkable_objects(self.env.cfg, task)
         self.parked = set(self.offsets)
         self.server = None
         if port and self.offsets:

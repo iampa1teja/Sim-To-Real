@@ -1,6 +1,6 @@
 s2r-data/
 outputs/
-datasets/
+/datasets/
 __pycache__/
 *.pyc
 .venv/
