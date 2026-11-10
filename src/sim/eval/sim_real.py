@@ -32,6 +32,25 @@ def position_with_leader(leader, follower, measured, keys, ranges, *, enabled, m
     return values
 
 
+def connect_trial_policies(factory, executor):
+    """Connect a complete pair, closing partial connections if startup fails."""
+    connected = []
+    try:
+        for _ in range(2):
+            policy = factory()
+            connected.append(policy)
+            executor.submit(policy.connect).result()
+        for policy in connected:
+            executor.submit(policy.reset).result()
+        return connected
+    except Exception:
+        for policy in connected:
+            close = getattr(policy, 'close', None)
+            if close is not None:
+                executor.submit(close).result()
+        raise
+
+
 def parse_args(argv=None):
     from core.rollout.real_rollout import build_parser
     from core.utils.config import parse_yaml_args
@@ -242,19 +261,22 @@ def run(args, app):
                                 for name in start_objects}
                             gui.set_state(True, False, 'Connecting policy; Stop cancels before motion.')
                             if not policies:
-                                for _ in range(2):
+                                def factory():
                                     if args.backend == 'local-lerobot':
                                         from policies.molmoact2.local_tcp import LocalLeRobotPolicy
-                                        policy = LocalLeRobotPolicy(
+                                        return LocalLeRobotPolicy(
                                             ArmInfo.from_arm(arm, args.calibration_selection.mapping),
                                             port=args.policy_port or 5005, instruction=args.lang_instruction,
                                             horizon=args.action_horizon or 30)
-                                    else:
-                                        policy = make_policy(args)
-                                    executor.submit(policy.connect).result()
-                                    policies.append(policy)
-                            for policy in policies:
-                                executor.submit(policy.reset).result()
+                                    return make_policy(args)
+                                try:
+                                    policies = connect_trial_policies(factory, executor)
+                                except Exception as error:
+                                    status = f'Policy unavailable: {error}. Arm held. Start again when the server is ready.'
+                                    report['last_connection_error'] = str(error)
+                                    gui.set_state(False, True, status)
+                                    print(status, flush=True)
+                                    continue
                             begin('real')
                 if phase in ('real', 'sim') and tick - phase_started >= args.episode_seconds:
                     previous = phase

@@ -109,3 +109,28 @@ def test_gui_can_stop_leader_positioning_before_a_trial():
         assert not gui._command('stop')
     finally:
         gui.destroy()
+
+
+def test_failed_policy_pair_closes_connections_and_can_retry():
+    from concurrent.futures import ThreadPoolExecutor
+    from sim.eval.sim_real import connect_trial_policies
+    events = []
+    attempts = []
+    class Policy:
+        def __init__(self):
+            self.index = len(attempts)
+            attempts.append(self)
+        def connect(self):
+            if self.index == 1:
+                raise ConnectionRefusedError('Server is warming up')
+        def close(self):
+            events.append(('close', self.index))
+        def reset(self):
+            events.append(('reset', self.index))
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        with pytest.raises(ConnectionRefusedError):
+            connect_trial_policies(Policy, executor)
+        assert events == [('close', 0), ('close', 1)]
+        result = connect_trial_policies(Policy, executor)
+        assert len(result) == 2
+        assert events[-2:] == [('reset', 2), ('reset', 3)]

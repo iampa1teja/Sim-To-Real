@@ -1,7 +1,7 @@
 # Compare MolmoAct2 on real and simulated starts
 
-Run from the v2 checkout with the sim container running and the existing local
-Molmo server listening on port 5005:
+Run from the v2 checkout with the sim container running and the s2r Molmo
+server listening on port 5005:
 
 ```bash
 ./s2r eval-sim-real
@@ -9,7 +9,7 @@ Molmo server listening on port 5005:
 
 Open http://localhost:8765. This reuses the recording GUI. The follower uses its stable USB serial path, so ACM port renumbering does not select the leader. The default config is
 `configs/eval/sim_real.yaml`; it selects the calibrated `rpd_follower`, room and
-wrist cameras, and the local LeRobot Molmo server. It does not restart that server.
+wrist cameras, and the s2r Molmo server. It does not restart that server.
 
 1. Move the leader to position the physical follower before Start. The sim mirrors
    the follower’s measured joints. Positioning uses the same per-command limits as
@@ -45,7 +45,6 @@ A nonmoving camera preview:
 For shorter manual trials, pass `--episode_seconds 30`. `--shadow` prevents real
 motor commands even when Start is pressed. To use a standard s2r policy server,
 pass `--backend s2r --policy_port 5556` (the checkpoint is chosen on the server).
-The default local server adapter uses loopback only and expects the existing
-LeRobot preprocessing/postprocessing protocol; its built-in joint-frame transform
-is applied once. The checkpoint field in the report is a configured label, not
-an independently verified hash from this custom server.
+The optional `--backend local-lerobot` adapter is only for the separate custom
+LeRobot TCP server; it must never be pointed at an s2r server. The default uses
+the standard s2r transport and policy plugin.

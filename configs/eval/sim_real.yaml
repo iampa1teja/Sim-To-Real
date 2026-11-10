@@ -5,9 +5,9 @@ task: pick_place_cube
 variant: teleop
 unit: rpd_follower
 policy: molmoact2
-backend: local-lerobot
+backend: s2r
 policy_port: 5005
-checkpoint: lerobot/MolmoAct2-SO100_101-LeRobot
+checkpoint: allenai/MolmoAct2-SO100_101@152569fe57914d97be91055800035f54e250d009
 policy_option: [input_joint_units=lerobot_normalized]
 follower_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AE6057392-if00
 follower_id: rpd_follower
