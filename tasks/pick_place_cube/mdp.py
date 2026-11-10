@@ -294,11 +294,18 @@ def stage_signals(env):
     from sim.scene.geometry import gripper_tip_local_offset
     from sim.envs.mdp._common import _ee_body
 
-    params = env.termination_manager.get_term_cfg("success").params
+    configured = getattr(getattr(env.cfg, "terminations", None), "success", None)
+    if configured is not None:
+        params = configured.params
+    else:
+        from . import TASK
+        from .env_cfg import _place_params
+        params = {**_place_params(TASK), "confirm_steps": TASK.spec.raw.get("success", {}).get("confirm_steps", 25)}
     observation = {key: value for key, value in params.items() if key != "confirm_steps"}
     grasp = {key: value for key, value in observation.items() if not key.startswith("container_")}
     grasped = object_grasped(env, **grasp).squeeze(-1).bool()
     placed = object_placed_in_container(env, **observation).squeeze(-1).bool()
+    success = object_placed_in_container_termination(env, **params)
     obj = env.scene[params["object_name"]]
     position = as_torch(obj.data.root_pos_w)
     robot = env.scene["robot"]
@@ -312,6 +319,6 @@ def stage_signals(env):
             get_current_stage(), half, 0.0, ee_path, arm.gripper.tip_mesh,
         ))
     point = ee_position + math_utils.quat_apply(ee_quaternion, env._pick_place_grasp_offset.expand_as(ee_position))
-    return {"grasped": grasped, "placed": placed, "holding": env._pick_place_holding,
+    return {"grasped": grasped, "placed": placed, "success": success, "holding": env._pick_place_holding,
             "lifted": (position[:, 2] - env._pick_place_rest_z).double() >= params["min_lift"],
             "reach_distance": torch.linalg.vector_norm(point - position, dim=-1)}

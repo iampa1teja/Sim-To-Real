@@ -73,6 +73,11 @@ mounted and these variables set: `S2R_POLICY_DIR`, `S2R_DATASET`, `S2R_OUTPUT`,
 with no `[train]` table can only be served. The template ships stub scripts that exit with an error
 until you fill them in.
 
+GR00T preparation preserves schema-2 `task_meta` and legacy `pick_place_meta` sidecars when episodes are
+renumbered. Its existing SO-101 pick-place training recipe accepts `--batch`, `--max-steps`, `--save-steps`
+and `--save-total-limit` after `s2r train ... --` for a bounded training check. This does not make that recipe
+arm- or task-independent.
+
 ## Add a policy
 
 1. `s2r new policy <name>` copies `_template/` to `policies/<name>/`.

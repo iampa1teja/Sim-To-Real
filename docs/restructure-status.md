@@ -15,7 +15,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
 | 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
-| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Pending |
+| 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | In progress — CPU implementation; GPU acceptance pending |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
@@ -222,3 +222,28 @@ parameters are also captured, with a deterministic CPU response replay for check
   The full suite includes this regression and CLI-over-YAML precedence. `yaml-example-acceptance.json` records
   one complete simulator episode with actual example-policy inference through `s2r eval --config_path`.
   Prepared GR00T/Molmo acceptance YAMLs both parse through the production parser; their live runs also passed as recorded above.
+
+## Phase 5 integration (not yet accepted)
+
+- Full CPU suite: **366 passed, 22 subtests passed**, with 118 dependency deprecation warnings and no skips or
+  ignores; see `outputs/v2/phase5/cpu-tests.log`. All eight host static plugin checks pass in `static-check.log`.
+  SDK Mimic tests exercise actual source segmentation, retargeting, async action/reset queues and bounded
+  cancellation. Its config wrapper preserves measured mounts and task fields through copying/export.
+- Arm manifests can declare a TCP offset and the orientation components their IK controls. The native Jacobian
+  solver preserves gripper roles and bounds revolute/prismatic targets in their own units. USD forward kinematics
+  supplies the actual executed target pose for Mimic annotations without changing simulator state.
+- `outputs/v2/phase5/ik-reachability.json` records CPU kinematic solutions for all 36 expert waypoints across a
+  recorded scene and three sampled starts. This does not establish collision clearance, grasping or task success.
+  A live native-Jacobian/FK comparison is prepared but has not run.
+- Scripted generation and calibration replay share one physical rollout and success-filtered LeRobot recorder.
+  Failed attempts and episodes that lose success before their final frame are excluded. Recorded observations,
+  actions, cameras and named-object poses describe the same pre-action frame; success observes the resulting
+  physical state. Calibration replay retains its source-hash and saved-mapping checks.
+- The real `s2r prepare --policy groot_n17` path passed on the existing schema-2 Phase 4 recording fixture:
+  45 frames, two videos, all 90 decoded video frames, real GR00T loader validation and unchanged source hashes.
+  `outputs/v2/phase5/prepare-fixture-validation.json` independently verifies the object sidecar and all 11 source
+  files. This is a format-compatibility check, not the required generated-data training gate.
+  The actual `s2r verify` command also passed prepared checksums and first/middle/last images from both cameras
+  against independent PyAV decoding, with zero RGB difference (`verify-fixture.log`).
+- The GPU was released after Phase 4. Phase 5 work so far uses CPU checks with CUDA hidden; another GPU session
+  must be coordinated with the user before live IK, successful generated episodes, Mimic or training acceptance.

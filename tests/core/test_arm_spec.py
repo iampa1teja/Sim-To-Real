@@ -62,3 +62,15 @@ def test_optional_utils_loads_by_explicit_path(synthetic_arm):
     hooks.prepare_collisions(root)
     assert root == ["prepared"]
     assert load_arm_utils(synthetic_arm) is None
+
+
+@pytest.mark.parametrize('ik,error', [
+    ({'orientation_axes': ['roll']}, 'select x, y'),
+    ({'orientation_axes': ['x', 'x']}, 'duplicate'),
+    ({'position_offset_m': [0, 0]}, 'three|3 values'),
+])
+def test_invalid_ik_contract(synthetic_arm, ik, error):
+    raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
+    raw['ik'] = ik
+    with pytest.raises(ValueError, match=error):
+        _parse_spec('synthetic', synthetic_arm.directory, raw)

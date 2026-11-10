@@ -1,194 +1,154 @@
-# sim/datagen/calibration_replay.py  (ported from v1 scripts/calibration_replay.py)
-"""Method B: replay original commands under the new mapping and retain physical successes.
+"""Replay audited device commands under a selected mapping; keep physical successes.
 
-Only the initial robot/cube poses are restored. Subsequent cube motion is
-simulated, never copied from the source trajectory. The existing benchmark
-requires contact acquisition, lift, release inside the box, and 25 stable ticks.
-
-  s2r calibration-replay --source <dataset> --destination <new root> --audit <audit.json> --report <report.json>
+Only the initial robot/object poses are restored. All subsequent object motion is
+physical. Source hashes and saved source calibration remain strict audit checks.
 """
-# Changes from v1 for Isaac Lab 3.0 / Newton:
-# - Joint units go through core.arms.mapping.JointMapping (v1 LeRobotSO101Interface is gone); old -> new mapping
-#   relabeling shares the pure units_to_physical / physical_to_units helpers in core.arms.mapping.
-# - Source snapshot hashes come from core.utils.hashing.tree_sha256 (same keys as v1 snapshot on Linux).
-# - Success params come from the task (tasks/pick_place_cube/env_cfg.py) instead of PickPlaceTerminationsCfg.
-# - Live quaternions are XYZW; sidecar poses are written WXYZ (v1 format).
 import argparse
 import json
 import os
 from pathlib import Path
 
-from sim.app import apply_selection, add_launch_arguments, launch, close_app
+from sim.app import apply_selection, close_app, launch
+from sim.datagen.scripted import add_generation_launch_arguments, make_report, publish_report, reset_task_tracking, setup_context
 
-EXPECTED_SOURCE_EPISODES = 75
-SOURCE_REPO_ID = "local/pick_place_v1"
+
+def build_parser():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--source_repo_id")
+    parser.add_argument("--destination", type=Path, required=True)
+    parser.add_argument("--repo_id")
+    parser.add_argument("--audit", type=Path, required=True)
+    parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--expected_source_episodes", type=int, default=0, help="Optional explicit audit count")
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=1984)
+    parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--disable_fabric", action="store_true")
+    for key, default in (("arm", "so101"), ("scene", "rpd_meeting_room"), ("task", "pick_place_cube")):
+        parser.add_argument("--" + key, default=os.environ.get("S2R_" + key.upper(), default))
+    parser.add_argument("--variant", default="teleop")
+    parser.add_argument("--unit", help="Target unit; source interpretation comes from the audit")
+    add_generation_launch_arguments(parser)
+    return parser
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, required=True)
-    parser.add_argument("--destination", type=Path, required=True)
-    parser.add_argument("--audit", type=Path, required=True)
-    parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument("--limit", type=int, default=0)
-    parser.add_argument("--seed", type=int, default=1984)
-    parser.add_argument("--disable_fabric", action="store_true")
-    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
-    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
-    parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
-    parser.add_argument("--unit", help="Target calibration unit; source interpretation comes from the audit")
-    add_launch_arguments(parser)
-    args = parser.parse_args(argv)
+    args = build_parser().parse_args(argv)
     if args.destination.exists():
         raise FileExistsError(args.destination)
-    args.enable_cameras = True
-    args.num_envs = 1
-    args.variant = "teleop"
-    args.fps = 30
+    source_root = args.source.resolve()
+    if args.destination.resolve().is_relative_to(source_root) or args.report.resolve().is_relative_to(source_root):
+        raise ValueError("Replay destination and report must be outside the audited source dataset")
+    if args.limit < 0 or args.expected_source_episodes < 0 or args.fps <= 0:
+        raise ValueError("Episode limits/counts must be nonnegative; FPS must be positive")
+    args.repo_id = args.repo_id or f"local/{args.destination.name}"
+    args.source_repo_id = args.source_repo_id or f"local/{args.source.name}"
+    args.starts_dir, args.control_offset, args.expert_options = None, None, {}
+    args.warmup_steps = 0
     apply_selection(args)
     app = launch(args, enable_cameras=True)
-    env = writer = None
+    context = None
+    report = None
+    completed = False
     try:
         import numpy as np
         import torch
-        import isaaclab.utils.math as math_utils
-
-        import sim.envs
-        from core.arms.mapping import JointMapping, physical_to_units, units_to_physical
-        from core.arms.calibration import resolve_calibration
+        from core.arms.mapping import physical_to_units, units_to_physical
         from core.arms.spec import load_arm_spec
-        from core.tasks.loader import load_task_module
+        from core.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
         from core.utils.hashing import tree_sha256
         from sim.envs.mdp._common import as_torch
-        from sim.datagen.dr_replay import discover_sim_cameras, make_env
-        from core.datasets.task_meta import save_task_trajectory
-        from sim.recording.lerobot_recorder import LeRobotRecorder
         from sim.recording.replay_scene import SceneReplayer
-        from core.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
 
-        task = sim.envs.TASK
         arm, _ = load_arm_spec(args.arm)
-        calibration = resolve_calibration(arm, unit=args.unit)
-        mdp = load_task_module("mdp", task.name)
-        env_cfg_module = load_task_module("env_cfg", task.name)
         audit = json.loads(args.audit.read_text())
         if tree_sha256(args.source) != audit["source_hashes"]:
             raise RuntimeError("Source differs from the pre-change snapshot")
         saved, saved_path = recorded_joint_mapping(args.source, arm)
         if saved is not None and saved != _mapping_bounds(audit["old_mapping"], arm):
             raise ValueError(f"Audit old_mapping differs from source dataset metadata in {saved_path}")
-        source = load_source(str(args.source), SOURCE_REPO_ID, set(), arm=arm, task=task)
-        if len(source) != EXPECTED_SOURCE_EPISODES:
-            raise ValueError(f"Expected {EXPECTED_SOURCE_EPISODES} source episodes; got {len(source)}")
-        if args.limit:
-            source = source[:args.limit]
-        env = make_env(args)
-        raw = env.unwrapped
-        cameras = discover_sim_cameras(env)
-        mapping = calibration.mapping
-        joints = JointMapping.from_arm(arm, mapping, device=raw.device)
-        replayer = SceneReplayer(raw, joints, None, cameras, task=task.name, arm=arm)
-        writer = LeRobotRecorder(task_name=source[0].task, repo_id="local/pick_place_v1_calibrated_B",
-                                 dataset_root=str(args.destination), fps=args.fps, device=raw.device, cameras=cameras,
-                                 arm=arm)
-        writer.init_dataset()
-        success_params = dict(env_cfg_module._place_params(task),
-                              confirm_steps=task.spec.raw.get("success", {}).get("confirm_steps", 25))
-        report = dict(method="B: original units, new mapping, physics action replay",
-                      expected_source_episodes=EXPECTED_SOURCE_EPISODES,
-                      source=str(args.source), destination=str(args.destination), old_mapping=audit["old_mapping"],
-                      new_mapping=mapping, initial_positions="Recorded physical joint and cube positions; velocities zero",
-                      arm=arm.name, joint_names=list(arm.joint_names), joint_mapping=mapping,
-                      joint_units=[joint.unit for joint in arm.joints],
-                      joint_roles=[joint.role for joint in arm.joints],
-                      use_degrees=arm.lerobot.use_degrees,
-                      calibration=calibration.provenance,
-                      success_criterion=({k: v for k, v in success_params.items() if k != "contact_sensor_cfg"}),
-                      control_fps=args.fps, seed=args.seed, episodes=[], complete=False)
-
-        def publish():
-            report["successes"] = sum(row["success"] for row in report["episodes"])
-            args.report.write_text(json.dumps(report, indent=2) + "\n")
-            (args.destination / "meta/calibration_replay.json").write_text(json.dumps(report, indent=2) + "\n")
-
-        robot = replayer.robot
+        from core.tasks.loader import load_task
+        task = load_task(args.task)
+        source = load_source(str(args.source), args.source_repo_id, set(), arm=arm, task=task)
+        count = len(source)
+        expected = args.expected_source_episodes or audit.get("expected_source_episodes", count)
+        if count != expected or not source:
+            raise ValueError(f"Expected {expected} nonempty source episodes; got {count}")
+        if any(episode.fps is not None and episode.fps != args.fps for episode in source):
+            raise ValueError("Source FPS differs from the replay control FPS")
+        source = source[:args.limit] if args.limit else source
+        args.max_steps = max(episode.length for episode in source)
+        context = setup_context(args, sample_starts=False, source="calibration_replay")
+        replayer = SceneReplayer(context.raw, context.mapping, None, context.cameras, task=task.name, arm=arm)
+        report = make_report(context, source_provenance={
+            "method": "original device commands, selected mapping, physical action replay",
+            "source": str(args.source.resolve()), "source_repo_id": args.source_repo_id,
+            "audit": str(args.audit.resolve()), "source_hashes": audit["source_hashes"],
+            "old_mapping": audit["old_mapping"], "expected_source_episodes": expected,
+            "selected_source_episodes": [episode.index for episode in source],
+            "initial_positions": "Recorded physical joint/object positions; velocities zero",
+        })
+        publish_report(context, report)
         with torch.inference_mode():
-            for episode in source:
-                env.reset()
+            for attempt, episode in enumerate(source):
+                context.writer.task_name = episode.task
+                context.env.reset()
                 conversion = dict(joint_order=arm.joint_names, gripper_joints=arm.gripper_joint_names)
-                initial = physical_to_units(
-                    units_to_physical(episode.states[0], audit["old_mapping"], **conversion), mapping, **conversion)
+                initial = physical_to_units(units_to_physical(episode.states[0], audit["old_mapping"], **conversion),
+                                            context.calibration.mapping, **conversion)
                 replayer.pose_frame(initial, {name: poses[0] for name, poses in episode.objects_base.items()})
-                q = joints.to_sim(initial).reshape(1, -1)
-                robot.set_joint_position_target_index(target=q, joint_ids=replayer.joint_ids, env_ids=replayer.env_ids)
-                raw.scene.write_data_to_sim()
-                raw.sim.forward()
-                raw.scene.update(0.)
-                mdp.reset_pick_place_state(raw, torch.arange(raw.num_envs, device=raw.device))
-                poses = {name: [] for name in replayer.objects}
-                success, first_success = False, None
-                maximum_errors = torch.zeros_like(joints.mins)
-                for frame, action in enumerate(episode.actions):
-                    joint_pos = as_torch(robot.data.joint_pos)[0, replayer.joint_ids]
-                    state = joints.to_raw(joint_pos)
-                    images = replayer.render_images()
-                    writer.add_frame(writer.make_sim_frame(action, state, images))
-                    base_pos = as_torch(robot.data.body_link_pos_w)[:, replayer.base_body_id]
-                    base_quat = as_torch(robot.data.body_link_quat_w)[:, replayer.base_body_id]
-                    for name, obj in replayer.objects.items():
-                        position, quaternion = math_utils.subtract_frame_transforms(
-                            base_pos, base_quat, as_torch(obj.data.root_pos_w), as_torch(obj.data.root_quat_w))
-                        poses[name].append(torch.cat((position[0], quaternion[0, 3:4], quaternion[0, :3]))
-                                           .cpu().tolist())
-                    target = joints.to_sim(action)
-                    env.step(target.reshape(1, -1))
-                    joint_pos = as_torch(robot.data.joint_pos)[0, replayer.joint_ids]
-                    maximum_errors = torch.maximum(maximum_errors, torch.abs(target - joint_pos))
-                    if bool(mdp.object_placed_in_container_termination(raw, **success_params)[0]):
-                        success = True
-                        if first_success is None:
-                            first_success = frame
-                    if frame % 100 == 0:
-                        print(f"[REPLAY_FRAME] episode={episode.index} frame={frame}/{episode.length}", flush=True)
-                destination_index = None
-                if success:
-                    destination_index = writer.save_episode()
-                    save_task_trajectory(args.destination, destination_index, poses, episode.object_sizes, args.fps,
-                                         task=task.name, arm=arm.name, reference_frame=episode.reference_frame)
-                else:
-                    writer.clear_episode_buffer()
-                tracking_by_joint = {
-                    joint.name: value * 180 / np.pi if joint.type == "revolute" else value
-                    for joint, value in zip(arm.joints, maximum_errors.cpu().tolist())
-                }
-                maximum_tracking = max(
-                    (tracking_by_joint[j.name] for j in arm.joints if j.type == "revolute"), default=0.)
-                maximum_tracking_metres = max(
-                    (tracking_by_joint[j.name] for j in arm.joints if j.type == "prismatic"), default=0.)
-                row = dict(source_episode=episode.index, success=success, destination_episode=destination_index,
-                           frames=episode.length, first_success_frame=first_success,
-                           ever_grasped=bool(raw._pick_place_ever_grasped[0]),
-                           maximum_tracking_error_degrees=maximum_tracking,
-                           maximum_tracking_error_metres=maximum_tracking_metres,
-                           maximum_tracking_error_by_joint=tracking_by_joint,
+                q = context.mapping.to_sim(initial).reshape(1, -1)
+                replayer.robot.set_joint_position_target_index(target=q, joint_ids=replayer.joint_ids, env_ids=replayer.env_ids)
+                context.raw.scene.write_data_to_sim()
+                context.raw.sim.forward()
+                context.raw.scene.update(0.)
+                reset_task_tracking(context.raw)
+                # Flush the restored initial poses to RTX before the first
+                # pre-action frame; subsequent images come from physical steps.
+                replayer.render_images()
+                rollout = context.begin_attempt(args.seed + attempt, reset=False, warmup=False)
+                maximum_errors = torch.zeros_like(context.mapping.mins)
+                try:
+                    for frame, action in enumerate(episode.actions):
+                        target = context.mapping.to_sim(action)
+                        rollout.step(target, action_raw=action, phase="calibration_replay")
+                        measured = as_torch(replayer.robot.data.joint_pos)[0, replayer.joint_ids]
+                        maximum_errors = torch.maximum(maximum_errors, torch.abs(target - measured))
+                        if frame % 100 == 0:
+                            print(f"[REPLAY_FRAME] episode={episode.index} frame={frame}/{episode.length}", flush=True)
+                    row = rollout.recorder.finish(attempt=attempt, seed=args.seed + attempt, reason="source_trajectory_complete")
+                except BaseException:
+                    rollout.recorder.abort()
+                    raise
+                tracking = {joint.name: value * 180 / np.pi if joint.type == "revolute" else value
+                            for joint, value in zip(arm.joints, maximum_errors.cpu().tolist())}
+                row.update(source_episode=episode.index, maximum_tracking_error_by_joint=tracking,
+                           maximum_tracking_error_degrees=max((tracking[j.name] for j in arm.joints if j.type == "revolute"), default=0.),
+                           maximum_tracking_error_metres=max((tracking[j.name] for j in arm.joints if j.type == "prismatic"), default=0.),
                            tracking_units={joint.name: joint.unit for joint in arm.joints})
                 report["episodes"].append(row)
-                publish()
+                publish_report(context, report)
                 print("[REPLAY_EPISODE] " + json.dumps(row), flush=True)
-        report["source_unchanged"] = tree_sha256(args.source) == audit["source_hashes"]
-        if not report["source_unchanged"]:
+        unchanged = tree_sha256(args.source) == audit["source_hashes"]
+        report["source_provenance"]["source_unchanged"] = unchanged
+        if not unchanged:
             raise RuntimeError("Original source changed during replay")
-        report["complete"] = len(report["episodes"]) == EXPECTED_SOURCE_EPISODES
-        publish()
+        report["complete"] = True
+        publish_report(context, report)
+        completed = True
+        return 0
     finally:
         try:
-            if writer is not None:
-                writer.finalize()
-            if env is not None:
-                env.close()
+            if context is not None:
+                try:
+                    if report is not None:
+                        publish_report(context, report)
+                finally:
+                    context.close()
         finally:
-            close_app(app)
+            close_app(app, success=completed)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

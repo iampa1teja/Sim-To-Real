@@ -239,6 +239,10 @@ def plan_check(repo, *, arm=None, scene=None, task=None, policy=None, unit=None,
 
 
 def plan_datagen(source, args=(), container=SIM_CONTAINER, *, git_commit=""):
+    if source is None:
+        # YAML is read where the simulator/config files live. Host dry runs stay
+        # dependency-free and faithfully show this dispatcher invocation.
+        return plan_sim("cli.datagen", args, container, git_commit=git_commit)
     if source not in DATAGEN_MODULES:
         raise CliError(f"Unknown data source {source!r}; choose {', '.join(DATAGEN_MODULES)}")
     return plan_sim(DATAGEN_MODULES[source], args, container, git_commit=git_commit)

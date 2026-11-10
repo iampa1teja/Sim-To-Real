@@ -150,6 +150,13 @@ class HardwareSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class IKSpec:
+    # Rotation-vector components in the arm-base frame; omitted axes mean position-only IK.
+    orientation_axes: tuple[str, ...] = ()
+    position_offset_m: tuple[float, float, float] = (0.0, 0.0, 0.0)
+
+
+@dataclass(frozen=True, slots=True)
 class ArmSpec:
     name: str
     directory: Path
@@ -166,6 +173,7 @@ class ArmSpec:
     initial_state: InitialStateSpec
     lerobot: LeRobotSpec
     hardware: HardwareSpec
+    ik: IKSpec = field(default_factory=IKSpec)
 
     @property
     def joint_names(self) -> tuple[str, ...]:
@@ -320,11 +328,16 @@ def _parse_spec(name, directory, raw):
                 raise ValueError(f"Invalid actuator joint expression {expression!r}") from error
             if not matches:
                 raise ValueError(f"Actuator {group!r} expression {expression!r} matches no USD joint")
+    ik_raw = raw.get("ik", {})
+    axes = _names(ik_raw.get("orientation_axes", []), "ik.orientation_axes")
+    if set(axes) - {"x", "y", "z"}:
+        raise ValueError("ik.orientation_axes must select x, y and/or z rotation-error components")
+    ik = IKSpec(axes, _vector(ik_raw.get("position_offset_m", [0, 0, 0]), 3, "ik.position_offset_m"))
     return ArmSpec(name, directory, _relative_file(directory, raw["usd_path"], "usd_path"),
                    _relative_file(directory, raw["utils"], "utils") if raw.get("utils") else None,
                    links, tuple(joints), gripper, wrist_roll, cameras,
                    copy.deepcopy(raw.get("appearance", {})), actuators,
-                   copy.deepcopy(raw.get("spawn", {})), initial_state, lerobot, hardware)
+                   copy.deepcopy(raw.get("spawn", {})), initial_state, lerobot, hardware, ik)
 
 
 def load_arm_utils(spec: ArmSpec) -> ModuleType | None:

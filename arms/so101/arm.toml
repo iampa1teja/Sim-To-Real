@@ -68,6 +68,13 @@ tip_mesh = "wrist_roll_follower_so101_v1"
 joint = "wrist_roll"
 relative_in_teleop = true
 
+[arm.ik]
+# A five-axis arm controls position and base-frame x/y rotation error, leaving yaw unconstrained.
+orientation_axes = ["x", "y"]
+# Measured fixed fingertip plus 10 mm along the closing axis: centre of a 20 mm reference grasp pocket.
+# The scripted runner may override the tool offset using the arm's geometry hook for other workpiece widths.
+position_offset_m = [0.00210000038146979, -0.00022491104015922092, -0.09442529333488692]
+
 [arm.cameras]
 
 [arm.cameras.wrist_cam]

@@ -1,0 +1,152 @@
+"""Constrained IK uses declared roles, units, frames and native Jacobian ordering."""
+from dataclasses import replace
+import math
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+import torch
+
+from core.arms.spec import IKSpec, load_arm_spec
+from sim.datagen.ik import ArmKinematics, ArticulationIK, IKOptions, solve_damped_step
+
+
+def planar(q):
+    angle, length = q[0], 1 + q[2]
+    position = torch.tensor([length * math.cos(angle), length * math.sin(angle), 0.], dtype=torch.float64)
+    quaternion = torch.tensor([0., 0., math.sin(angle / 2), math.cos(angle / 2)], dtype=torch.float64)
+    jacobian = torch.zeros((6, 4), dtype=torch.float64)
+    jacobian[:3, 0] = torch.tensor([-position[1], position[0], 0.])
+    jacobian[5, 0] = 1
+    jacobian[:3, 2] = torch.tensor([math.cos(angle), math.sin(angle), 0.])
+    return position, quaternion, jacobian
+
+
+def test_four_joint_ik_converges_with_interleaved_parallel_gripper_and_prismatic(synthetic_arm):
+    q = torch.tensor([0., .013, 0., .027], dtype=torch.float64)
+    desired = torch.tensor([.08, .013, .10, .027], dtype=torch.float64)
+    target, _, _ = planar(desired)
+    initial_error = torch.linalg.norm(target - planar(q)[0])
+    for _ in range(70):
+        pose, rotation, jacobian = planar(q)
+        result = solve_damped_step(synthetic_arm, q, pose, rotation, jacobian, target)
+        next_q = result.joint_positions[0]
+        assert abs(next_q[0] - q[0]) <= .08 + 1e-12
+        assert abs(next_q[2] - q[2]) <= .005 + 1e-12
+        torch.testing.assert_close(next_q[[1, 3]], q[[1, 3]], rtol=0, atol=0)
+        q = next_q
+    assert result.converged.item()
+    assert result.position_error.item() < .001
+    assert result.position_error.item() < initial_error / 100
+    torch.testing.assert_close(q[[0, 2]], desired[[0, 2]], atol=1e-5, rtol=0)
+
+
+def test_unreachable_prismatic_target_stops_at_runtime_limit(synthetic_arm):
+    q = torch.tensor([0., .013, .199, .027], dtype=torch.float64)
+    for _ in range(10):
+        pose, rotation, jacobian = planar(q)
+        result = solve_damped_step(synthetic_arm, q, pose, rotation, jacobian, [2., 0., 0.])
+        q = result.joint_positions[0]
+    assert q[2] == synthetic_arm.joints[2].limits[1]
+    assert result.limited.item() and not result.converged.item()
+    assert result.position_error.item() == pytest.approx(.8)
+
+
+def test_orientation_constraints_ignore_uncontrolled_yaw_and_use_base_frame(synthetic_arm):
+    q = torch.tensor([0., .01, 0., .03], dtype=torch.float64)
+    jacobian = torch.zeros((6, 4), dtype=torch.float64)
+    jacobian[4, 0] = 1  # world Y is base X after a +90-degree base rotation.
+    angle = .2
+    target = [0., math.sin(angle / 2), 0., math.cos(angle / 2)]
+    base = [0., 0., math.sqrt(.5), math.sqrt(.5)]
+    arm = replace(synthetic_arm, ik=IKSpec(('x',)))
+    result = solve_damped_step(arm, q, [0., 0., 0.], [0., 0., 0., 1.], jacobian,
+                               [0., 0., 0.], target, base_orientation=base)
+    assert result.orientation_error.item() == pytest.approx(.2)
+    assert result.joint_positions[0, 0] > 0
+    ignored = replace(synthetic_arm, ik=IKSpec(('x', 'y')))
+    result = solve_damped_step(ignored, q, [0., 0., 0.], [0., 0., 0., 1.], jacobian,
+                               [0., 0., 0.], [0., 0., math.sin(angle / 2), math.cos(angle / 2)])
+    assert result.converged.item() and result.orientation_error.item() == 0
+    torch.testing.assert_close(result.joint_positions[0], q, atol=0, rtol=0)
+
+
+def test_zero_jacobian_is_finite_and_does_not_report_unreachable_target_success(synthetic_arm):
+    result = solve_damped_step(synthetic_arm, [0., .01, 0., .03], [0., 0., 0.], [0., 0., 0., 1.],
+                               np.zeros((6, 4)), [1., 1., 1.])
+    assert torch.isfinite(result.joint_positions).all() and not result.converged.item()
+    for kwargs in ({'damping': 0}, {'max_joint_step_m': float('nan')}):
+        with pytest.raises(ValueError, match='finite and positive'):
+            IKOptions(**kwargs)
+
+
+def test_native_adapter_accounts_for_tcp_offset_joint_permutation_and_base_dofs(synthetic_arm):
+    q = torch.tensor([0., .013, .1, .027], dtype=torch.float64)
+    position, orientation, jacobian = planar(q)
+    # Native articulation order is Right, Slide, Pan, Left; manifest order remains Pan, Left, Slide, Right.
+    ids = [2, 3, 1, 0]
+    native_q = q[[3, 2, 0, 1]].unsqueeze(0)
+    native_jacobian = torch.zeros((1, 2, 6, 10), dtype=torch.float64)
+    for manifest, native in enumerate(ids):
+        native_jacobian[0, 1, :, 6 + native] = jacobian[:, manifest]
+    data = SimpleNamespace(
+        body_link_pos_w=torch.stack((torch.zeros(3), position)).unsqueeze(0),
+        body_link_quat_w=torch.stack((torch.tensor([0., 0., 0., 1.]), orientation)).unsqueeze(0),
+        joint_pos=native_q, body_link_jacobian_w=native_jacobian,
+    )
+    robot = SimpleNamespace(data=data, is_fixed_base=False, num_base_dofs=6,
+        find_joints=lambda names, preserve_order: (ids, list(synthetic_arm.usd_joint_names)),
+        find_bodies=lambda name: ([1 if name == synthetic_arm.links.ee else 0], [name]))
+    solver = ArticulationIK(robot, synthetic_arm, position_offset_m=[0., .1, 0.])
+    current, quaternion = solver.current_pose()
+    torch.testing.assert_close(current[0], position + position.new_tensor([0., .1, 0.]), atol=0, rtol=0)
+    target = current + current.new_tensor([0., .01, 0.])
+    result = solver.solve(target)
+    jacobian[0, 0] -= .1  # omega_z cross offset_y contributes -offset_y in linear X.
+    expected = solve_damped_step(synthetic_arm, q, current, quaternion, jacobian, target)
+    torch.testing.assert_close(result.joint_positions, expected.joint_positions, atol=1e-12, rtol=0)
+    torch.testing.assert_close(robot.data.joint_pos, native_q, atol=0, rtol=0)
+
+
+def stage_for_arm(arm, *, meters_per_unit=1., reverse_slide=False):
+    from pxr import Gf, Usd, UsdGeom, UsdPhysics
+
+    stage = Usd.Stage.CreateInMemory()
+    root = UsdGeom.Xform.Define(stage, '/Robot')
+    stage.SetDefaultPrim(root.GetPrim())
+    UsdGeom.SetStageMetersPerUnit(stage, meters_per_unit)
+    for name, x in (('base', 0.), ('elbow', 1.), ('tool', 1.), ('left_link', 1.), ('right_link', 1.)):
+        body = UsdGeom.Xform.Define(stage, '/Robot/' + name)
+        body.AddTranslateOp().Set(Gf.Vec3d(x / meters_per_unit, 0., 0.))
+        UsdPhysics.RigidBodyAPI.Apply(body.GetPrim())
+    joint = UsdPhysics.RevoluteJoint.Define(stage, '/Robot/Pan')
+    joint.CreateBody0Rel().SetTargets(['/Robot/base'])
+    joint.CreateBody1Rel().SetTargets(['/Robot/elbow'])
+    joint.CreateAxisAttr('Z')
+    joint.CreateLocalPos1Attr(Gf.Vec3f(-1 / meters_per_unit, 0., 0.))
+    joint = UsdPhysics.PrismaticJoint.Define(stage, '/Robot/Slide')
+    joint.CreateBody0Rel().SetTargets(['/Robot/tool' if reverse_slide else '/Robot/elbow'])
+    joint.CreateBody1Rel().SetTargets(['/Robot/elbow' if reverse_slide else '/Robot/tool'])
+    joint.CreateAxisAttr('X')
+    return stage
+
+
+@pytest.mark.parametrize('meters_per_unit,reverse_slide', [(1., False), (.001, False), (1., True)])
+def test_usd_fk_uses_authored_joint_axes_frames_units_and_direction(synthetic_arm, meters_per_unit, reverse_slide):
+    kinematics = ArmKinematics(stage_for_arm(synthetic_arm, meters_per_unit=meters_per_unit,
+                                             reverse_slide=reverse_slide), synthetic_arm)
+    pose = kinematics.fk([math.pi / 2, .013, .1, .027])
+    expected = 1 - .1 if reverse_slide else 1 + .1
+    np.testing.assert_allclose(pose[:3, 3], [0., expected, 0.], atol=1e-12, rtol=0)
+    np.testing.assert_allclose(pose[:3, :3], [[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]], atol=1e-12, rtol=0)
+    np.testing.assert_array_equal(pose, kinematics.fk([math.pi / 2, .04, .1, 0.]))
+
+
+def test_so101_fk_zero_pose_matches_authored_frames_without_simulator(monkeypatch):
+    monkeypatch.delenv('S2R_ARMS_DIR', raising=False)
+    arm = load_arm_spec('so101')[0]
+    assert arm.ik.orientation_axes == ('x', 'y')
+    fk = ArmKinematics.from_arm(arm)
+    pose = fk.fk(np.zeros(len(arm.joints)))
+    assert pose.shape == (4, 4) and np.isfinite(pose).all()
+    assert abs(np.linalg.det(pose[:3, :3]) - 1) < 1e-12

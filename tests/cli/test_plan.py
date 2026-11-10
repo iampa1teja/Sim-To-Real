@@ -27,6 +27,31 @@ def test_every_data_source_maps_to_a_module(source, module):
     assert plan_datagen(source, ("--seed", "9")).argv[-5:] == ("python", "-m", module, "--seed", "9")
 
 
+def test_datagen_yaml_source_is_selected_inside_container(tmp_path, capsys):
+    from cli.datagen import resolve_source
+    from cli.main import main
+
+    path = tmp_path / "generation.yaml"
+    path.write_text("source: mimic\nseed: 7\n")
+    argv = ["--config_path", str(path), "--seed", "9"]
+    assert resolve_source(argv) == ("mimic", argv)
+    assert resolve_source(["--source", "scripted", *argv]) == ("scripted", argv)
+    assert plan_datagen(None, argv).argv[-7:] == ("python", "-m", "cli.datagen", *argv)
+    assert main(["--dry-run", "datagen", *argv], repo=tmp_path) == 0
+    assert "python -m cli.datagen --config_path" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("content", ["source: missing\n", "source: [scripted]\n", "seed: 7\n", "- scripted\n"])
+def test_datagen_rejects_invalid_yaml_source(tmp_path, content):
+    from cli.datagen import resolve_source
+
+    path = tmp_path / "generation.yaml"
+    path.write_text(content)
+    with pytest.raises(SystemExit) as error:
+        resolve_source(["--config_path", str(path)])
+    assert error.value.code == 2
+
+
 def test_host_new_check_migrate_plan_paths(tmp_path):
     assert plan_host("core.datasets.task_meta", ("dataset",), tmp_path).argv == (sys.executable, "-m", "core.datasets.task_meta", "dataset")
     assert plan_new("arm", "sample", tmp_path).argv == (sys.executable, "-m", "cli.scaffold", "arm", "sample", "--repo", str(tmp_path))

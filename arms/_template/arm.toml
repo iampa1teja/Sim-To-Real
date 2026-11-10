@@ -10,6 +10,12 @@ utils = "_utils.py"
 base = "base"
 ee = "tool"
 
+# Optional IK tool point in the ee-link frame, in metres. Rotation errors are projected
+# onto declared arm-base axes; a low-DOF arm should omit constraints it cannot control.
+# [arm.ik]
+# position_offset_m = [0.0, 0.0, 0.0]
+# orientation_axes = ["x", "y"]
+
 [[arm.joints]]
 name = "shoulder"
 usd = "Shoulder"

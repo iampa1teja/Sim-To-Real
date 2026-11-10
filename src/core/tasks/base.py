@@ -211,6 +211,18 @@ class Task(ABC):
     def episode_metadata(self, env, index=0) -> dict[str, Any]:
         return {}
 
+    def expert(self):
+        """Load the optional task-folder expert without hiding its import errors."""
+        if not (self.spec.task_dir / "expert.py").is_file():
+            raise NotImplementedError(f"Task {self.name!r} has no expert.py scripted expert")
+        from core.tasks.loader import load_task_module
+
+        module = load_task_module("expert", self.name)
+        factory = getattr(module, "create", None)
+        if not callable(factory):
+            raise TypeError(f"Task {self.name!r} expert.py must export create(task)")
+        return factory(self)
+
     @abstractmethod
     def observe(self, state: StepState) -> dict[str, bool]:
         raise NotImplementedError

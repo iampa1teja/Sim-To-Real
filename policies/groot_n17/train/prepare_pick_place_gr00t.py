@@ -22,6 +22,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from gr00t_model_profiles import PROFILES
+from dataset_sidecars import copy_task_sidecars
 
 PIN = 'ead52833afbbf4243f8cd5e7664f48a94de03b19'
 
@@ -109,14 +110,12 @@ converter.convert_tasks(source, build)
 if not args.exclude_episodes:
     converter.copy_global_stats(source, build)
     converter.convert_data(source, build, records, chunks_size)
-    shutil.copytree(source / 'pick_place_meta', build / 'pick_place_meta', dirs_exist_ok=args.resume)
 else:
     # Do not pass a filtered list to upstream convert_data: it infers a file's
     # row offset from its first episode, which may now have been excluded.
     records = []
     offset = 0
     used_tasks = set()
-    (build / 'pick_place_meta').mkdir(exist_ok=True)
     for ep, original in enumerate(source_records):
         old_ep, length = int(original['episode_index']), int(original['length'])
         record = dict(original, episode_index=ep, dataset_from_index=offset,
@@ -144,10 +143,6 @@ else:
         dest.parent.mkdir(parents=True, exist_ok=True)
         pq.write_table(table, dest)
         used_tasks.update(table['task_index'].to_pylist())
-        sidecar = json.loads((source / f'pick_place_meta/episode_{old_ep:06d}.json').read_text())
-        assert sidecar['episode_index'] == old_ep
-        sidecar['episode_index'] = ep
-        write_json(build / f'pick_place_meta/episode_{ep:06d}.json', sidecar)
         offset += length
     tasks_path = build / 'meta/tasks.jsonl'
     tasks = [json.loads(line) for line in tasks_path.read_text().splitlines()]
@@ -167,6 +162,8 @@ else:
     # Both pinned generators skip valid existing stats, including on resume.
     for name in ('stats.json', 'relative_stats.json'):
         (build / 'meta' / name).unlink(missing_ok=True)
+copy_task_sidecars(source, build, index_map,
+                   {int(row['episode_index']): int(row['length']) for row in source_records})
 converter.convert_episodes_metadata(build, records)
 
 video_checks = []
@@ -210,6 +207,7 @@ config_source = (Path(__file__).with_name('so_arm_n17_config.py') if args.model_
 shutil.copy2(config_source, build / 'so100_config.py')
 shutil.copy2(Path(__file__), build / 'prepare_pick_place_gr00t.py')
 shutil.copy2(Path(__file__).with_name('gr00t_model_profiles.py'), build / 'gr00t_model_profiles.py')
+shutil.copy2(Path(__file__).with_name('dataset_sidecars.py'), build / 'dataset_sidecars.py')
 if args.model_profile == 'so_arm_n17':
     shutil.copy2(config_source, build / 'so_arm_n17_config.py')
 write_json(build / 'source_sha256.json', before)

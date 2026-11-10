@@ -210,8 +210,10 @@ def main(argv=None, repo=REPO):
     # rejects a first argument that starts with a dash, so they bypass the parser.
     if argv and argv[0] == "datagen":
         parser = argparse.ArgumentParser(prog="s2r datagen")
-        parser.add_argument("--source", required=True, choices=("scripted", "mimic", "dr_replay"))
+        parser.add_argument("--source", choices=("scripted", "mimic", "dr_replay"))
         parsed, extra = parser.parse_known_args(argv[1:])
+        if parsed.source is None and not any(arg == "--config_path" or arg.startswith("--config_path=") for arg in extra):
+            parser.error("provide --source or --config_path with a source field")
         args = argparse.Namespace(command="datagen", source=parsed.source, args=extra, dry_run=leading_dry_run)
         policies = {}
     elif argv and argv[0] == "migrate":
@@ -231,7 +233,7 @@ def main(argv=None, repo=REPO):
     except CliError as error:
         print(f"s2r: error: {error}", file=sys.stderr)
         return 2
-    if args.command == "datagen" and not leading_dry_run:
+    if args.command == "datagen" and args.source is not None and not leading_dry_run:
         module = Path(repo) / "src" / "sim" / "datagen" / (args.source + ".py")
         if not module.is_file():
             print(f"s2r: data source {args.source!r} is not implemented yet ({module.name}).", file=sys.stderr)
