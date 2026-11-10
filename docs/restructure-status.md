@@ -268,6 +268,14 @@ parameters are also captured, with a deterministic CPU response replay for check
   difference at sampled frames. Evidence: `prepare-noroll-fast1-validation.json`, `prepare-noroll-fast1.log` and
   `verify-noroll-fast1.log`. `noroll-fast1-orientation-proof.json` confirms all 28 waypoint goal quaternions are
   identical; after grasp, commanded wrist-roll span is 0.943 degrees and measured span is 0.908 degrees.
+- The requested stacking demonstration also passes: `stack/stack2.json` records all six stacking stages and
+  one accepted 304-frame episode at seed 182482. Both camera videos and both named-object trajectories pass
+  independent validation. The expert lives in `tasks/stack_two_cubes/expert.py`; all 123 generic Python files
+  remain unchanged from the pre-extension baseline. `configs/datagen/stack_two_cubes.yaml` reproduces the
+  setup. A first attempt at seed 1184 pinched the cube diagonally and failed; it was not saved. The successful
+  arrangement aligns the cube with the fingers before pickup and keeps one requested orientation throughout.
+  The preview is `outputs/v2/phase5/stack/stack-two-cubes-episode.mp4`; additional final-contact geometry and
+  25-frame stability checks are recorded in `stack/stack2-geometry-and-extension-proof.json`.
 - The live Mimic path exposed two integration issues: config dispatch must preserve Python module identity, and
   Kit rendering must occur outside the private asyncio coroutine. Both now have CPU regression coverage;
   the latter follows the installed SDK's synchronous environment loop around asynchronous generator queues.
