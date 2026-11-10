@@ -7,7 +7,7 @@ import torch
 
 pytest.importorskip("isaaclab")
 
-from sim.eval.grasp_diagnostics import _read_frame, _tracking_errors
+from tools.diagnostics.grasp_diagnostics import _read_frame, _tracking_errors
 
 
 def test_permuted_joint_order_does_not_create_false_tracking_error():

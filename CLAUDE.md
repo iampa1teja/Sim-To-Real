@@ -4,10 +4,16 @@ The active restructure is on branch `v2`. See `docs/restructure-status.md` for p
 Do not start the next phase until the current phase's CPU suite and simulator checks pass.
 
 - `src/core/` must not import Isaac Sim, Isaac Lab, Kit, or `pxr`. Simulator-specific code belongs in `src/sim/`.
+- `s2r` is the only installed console command. Plans invoke Python modules; keep CLI planning free of SDK
+  imports and side effects so `--dry-run` prints the actual command. Sync includes arms, scenes, tasks, policies
+  and configs. Host plans pass `S2R_GIT_COMMIT` into containers whose worktree pointer cannot resolve there.
 - The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
   for their lifetime. Scene loaders also resolve selectors at call time; the Gym registry and task modules still
   select registrations at import time, so choose selectors before importing them. Shared selection and Kit
   argument helpers live in `sim.app` and are safe before Kit startup.
+- Launch simulator programs through `sim.app.launch` after choosing arm/scene/task. Recording lives in
+  `sim.teleop.agent`, evaluation in `sim.eval.run`, generation in `sim.datagen`, and real rollout in
+  `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `core.utils.config`; flags override YAML.
 - `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
   optional `.gripper`/`.wrist_roll`, and the declared wrist cameras. No arm-specific names or motor indices belong
   in generic source. Optional spawn/appearance hooks are loaded from the arm's `<arm>_utils.py`.
@@ -47,6 +53,9 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
   static materials before Newton imports the stage; visual-only lighting retains startup event order.
 - Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.
+- Policy clients receive ordered joint names, roles, joint types and the saved device codec through
+  `configure(ArmInfo)`. Generic clients derive their dimension from that contract; a fixed embodiment declares
+  `[action].dim`. Keep model-specific coordinate conventions inside its policy folder.
 - Task plugins own signals, per-step stage flags and failure rules. The generic stage engine latches the declared
   stages and treats the last as success. Reset order is robot pose, object starts, then task tracking state.
   Use the generic reset-order assertion; engine code must not dispatch on task names, reset function names or
@@ -61,10 +70,14 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   outside the repository; its files are preserved.
 - Run CPU checks with `PYTHONPATH=src python -m pytest tests -q`. The existing `s2r-sim` container includes the
   required Python/Isaac dependencies; run simulator scripts through `s2r-entrypoint python` there.
+- `s2r check --static` runs host manifest/entrypoint validation without Isaac/USD or Torch imports; NumPy is its
+  only external dependency. The complete host test/tool environment is available with `uv sync --group host`.
+  Without `--static`, the command additionally launches selected headless simulator checks; coordinate GPU use.
 - Keep local hardware settings in ignored `.env`; `.env.example` contains portable example values.
 - Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
 
 The arm, declarative scene and generic task phases have passed their acceptance checks; consult the status file
-for evidence and renderer limitations. New/check/migrate commands, policy `configure(ArmInfo)`, and the
-data-generation/second-arm/conformance phases are pending.
+for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording and
+example evaluation pass. Live GR00T/Molmo serving and evaluation remain pending; do not mark Phase 4 complete
+or start the next phase before those gates pass. Data-generation/second-arm/conformance phases remain pending.

@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from core.calibration.calibration_check import CalibrationGapLogger, Thresholds, summarize
-from core.calibration.calibration_report import generate_report
+from core.calibration.gap import CalibrationGapLogger, Thresholds, summarize
+from core.calibration.report import generate_report
 
 
 def write_log(path, *, units, real, sim, commanded=None):

@@ -231,8 +231,8 @@ def main():
         raise ValueError("Downstream-ball inclusion check failed")
     source_paths = [args.config, stats_path, local_path(cfg["eval"]["eval_set"]), Path(__file__)]
     source_paths += [Path(layer.realPath) for layer in stage.GetUsedLayers() if layer.realPath]
-    source_paths += [ROOT / "src/sim/eval/grasp_diagnostics.py", ROOT / "tasks/pick_place_cube/eval.py",
-                     ROOT / "tasks/pick_place_cube/benchmark.py"]
+    source_paths += [ROOT / "tools/diagnostics/grasp_diagnostics.py", ROOT / "src/core/benchmark/geometry.py",
+                     ROOT / "src/core/benchmark/eval_set.py"]
     report = dict(scope=__doc__, eval_set_id=data["eval_set_id"],
                   source_sha256={str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                                  for path in source_paths},

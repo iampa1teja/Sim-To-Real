@@ -1,1 +1,1 @@
-"""Policy evaluation in simulation (lerobot_eval, benchmark runtime, eval video)."""
+"""Policy evaluation: setup, episode loop, reports and videos."""

@@ -31,8 +31,8 @@ CMD ["--list"]
 
 FROM base AS train
 LABEL org.opencontainers.image.description="Policy training runtime: runs a policy's declared train commands"
-ENV SO101_ROLE=train
+ENV S2R_ROLE=train
 
 FROM base AS serve
 LABEL org.opencontainers.image.description="Policy server for the SO-101 workshop (GR00T, MolmoAct2, ...)"
-ENV SO101_ROLE=serve
+ENV S2R_ROLE=serve

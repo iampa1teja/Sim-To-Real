@@ -62,10 +62,10 @@ def blend_actions(old, new, steps):
 
 
 class JointEMA:
-    def __init__(self, alpha=1.0, smooth_gripper=False, gripper_index=-1):
+    def __init__(self, alpha=1.0, smooth_gripper=False, gripper_indices=()):
         self.alpha = alpha
         self.smooth_gripper = smooth_gripper
-        self.gripper_index = gripper_index
+        self.gripper_indices = tuple(gripper_indices)
         self.reset()
 
     def reset(self):
@@ -77,7 +77,7 @@ class JointEMA:
         else:
             sent = self.alpha * action + (1 - self.alpha) * self.previous
             if not self.smooth_gripper:
-                sent[self.gripper_index] = action[self.gripper_index]
+                sent[list(self.gripper_indices)] = action[list(self.gripper_indices)]
         self.previous = sent.copy()
         return sent
 
@@ -103,14 +103,13 @@ class ActionSmoother:
     tail remains available for a cross-fade. Ensemble mode uses all T rows.
     """
 
-    def __init__(self, config, action_horizon, joint_keys, grasp=None):
+    def __init__(self, config, action_horizon, joint_keys, grasp=None, *, gripper_indices=()):
         config.validate(action_horizon)
         self.config = config
         self.grasp = grasp
         self.horizon = action_horizon
         self.joint_keys = tuple(joint_keys)
-        gripper = next((i for i, key in enumerate(joint_keys) if key == "gripper.pos"), -1)
-        self.ema = JointEMA(config.ema_alpha, config.smooth_gripper, gripper)
+        self.ema = JointEMA(config.ema_alpha, config.smooth_gripper, gripper_indices)
         self.reset()
 
     def reset(self, initial_target=None):
@@ -195,12 +194,12 @@ class ActionSmoother:
 class TimingLog:
     """Write CSV per tick and aggregate latency/jerk without retaining the rollout."""
 
-    def __init__(self, path, joint_keys):
+    def __init__(self, path, joint_keys, *, gripper_indices=()):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.file = self.path.open("w", newline="")
         self.joint_keys = tuple(joint_keys)
-        self.arm_indices = [i for i, k in enumerate(joint_keys) if k != "gripper.pos"]
+        self.arm_indices = [i for i in range(len(joint_keys)) if i not in gripper_indices]
         self.writer = csv.writer(self.file)
         self.writer.writerow(["step", "chunk_id", "inference_latency_s", "overrun", "held",
                               *[f"raw_{k}" for k in joint_keys], *[f"sent_{k}" for k in joint_keys]])
@@ -243,9 +242,9 @@ class SimulationSmoother:
     clock or thread affects actions. The initial query is delivered immediately.
     """
 
-    def __init__(self, config, action_horizon, joint_keys, timing=None, grasp=None):
+    def __init__(self, config, action_horizon, joint_keys, timing=None, grasp=None, *, gripper_indices=()):
         self.config = config
-        self.smoother = ActionSmoother(config, action_horizon, joint_keys, grasp=grasp)
+        self.smoother = ActionSmoother(config, action_horizon, joint_keys, grasp=grasp, gripper_indices=gripper_indices)
         self.timing = timing
         self.total_steps = 0
         self.reset()

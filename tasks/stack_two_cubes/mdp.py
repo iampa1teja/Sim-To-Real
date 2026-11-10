@@ -3,7 +3,7 @@ import torch
 import isaaclab.utils.math as math_utils
 from isaaclab.sim import get_current_stage
 from sim.envs.mdp import as_torch, env_indices
-from sim.envs.mdp.resets import _ee_body
+from sim.envs.mdp._common import _ee_body
 
 
 def reset_target(env, env_ids):

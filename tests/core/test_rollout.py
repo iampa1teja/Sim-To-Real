@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from core.scripts.real_rollout import (
+from core.rollout.real_rollout import (
     RolloutSettings, clamp_action, joint_ranges, run_episode, sim_start_roll_units,
 )
 
@@ -58,3 +58,36 @@ def test_degree_mode_wrist_start_is_encoded_with_calibrated_zero(monkeypatch):
     assert raw != 0.0
     joint = arm.wrist_roll.joint
     assert units_to_physical([raw], {joint: selection.mapping[joint]}, [joint])[0] == pytest.approx(0, abs=1e-12)
+
+
+def test_rollout_yaml_selectors_and_explicit_flags(tmp_path):
+    from core.rollout.real_rollout import parse_args
+
+    path = tmp_path / 'rollout.yaml'
+    path.write_text('''arm: so101
+scene: blank_table
+task: stack_two_cubes
+variant: teleop
+policy: example
+fps: 10
+enable_motion: false
+rename_map:
+  external: room
+''')
+    args = parse_args(['--config_path', str(path), '--fps', '15'])
+    assert (args.arm, args.scene, args.task, args.variant) == ('so101', 'blank_table', 'stack_two_cubes', 'teleop')
+    assert args.policy == 'example' and args.fps == 15
+    assert args.enable_motion is False and args.action_horizon is None
+    assert args.lang_instruction == 'Stack the blue cube on top of the red cube'
+    import json
+    assert json.loads(args.rename_map) == {'external': 'room'}
+
+
+@pytest.mark.parametrize('option', ['enable_motion', 'release_on_exit'])
+def test_rollout_yaml_refuses_non_boolean_motion_options(tmp_path, option):
+    from core.rollout.real_rollout import parse_args
+
+    path = tmp_path / 'rollout.yaml'
+    path.write_text(f'policy: example\n{option}: "false"\n')
+    with pytest.raises(SystemExit):
+        parse_args(['--config_path', str(path)])

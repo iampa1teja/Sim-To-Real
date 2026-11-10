@@ -8,7 +8,7 @@ variant: eval
 policy:
   name: molmoact2
   checkpoint: molmoact2_so101
-  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by lerobot_eval
+  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by sim.eval.run
   options:
     norm_tag: so100_so101_molmoact2
     dtype: bfloat16

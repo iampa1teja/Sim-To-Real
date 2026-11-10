@@ -10,15 +10,18 @@ import numpy as np
 import torch
 
 from core.policy_client.remote_policy import RemotePolicy
+from core.policy_client.contract import ArmInfo
 
 
 class SimRemotePolicy(RemotePolicy):
-    def __init__(self, mapping, cameras, rename_map=None, **kwargs):
+    def __init__(self, mapping, cameras, rename_map=None, *, arm_spec=None, arm_info=None, **kwargs):
         """mapping: core.arms.mapping.JointMapping; cameras: sim camera names; rename_map: sim -> policy name."""
         self.mapping = mapping
         self.cameras = list(cameras)
         self.rename_map = dict(rename_map or {})
-        super().__init__([f"{name}.pos" for name in mapping.names], mapping=mapping, **kwargs)
+        arm_info = arm_info or (ArmInfo.from_arm(arm_spec, mapping) if arm_spec is not None
+                                else ArmInfo.from_mapping(mapping))
+        super().__init__([f"{name}.pos" for name in mapping.names], arm_info=arm_info, **kwargs)
 
     def _sim_inputs(self, joint_positions, visual_obs) -> dict:
         state = self.mapping.to_raw(joint_positions).detach().cpu().numpy().astype(np.float32)

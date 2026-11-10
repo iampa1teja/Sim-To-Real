@@ -1,0 +1,16 @@
+# Policy plugins, datasets, models and outputs are mounted at runtime.
+# Send only the shared modules and entrypoint copied by this Dockerfile.
+**
+!src
+!src/core
+!src/core/policy_client
+!src/core/policy_client/**
+!src/core/policy_server
+!src/core/policy_server/**
+!docker
+!docker/policy
+!docker/policy/Dockerfile
+!docker/policy/Dockerfile.dockerignore
+!docker/policy/entrypoint.sh
+**/__pycache__
+**/*.pyc

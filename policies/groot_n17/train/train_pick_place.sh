@@ -2,15 +2,15 @@
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 # Started by `s2r train` in the train container (entrypoint --env mode): use its variables and its venv.
-if [[ -n ${SO101_PYTHON:-} ]]; then
-    export SO101_TRAIN_IN_CONTAINER=1
-    GROOT="${GROOT:-${SO101_PROJECT_DIR:-}}"
-    DATASET="${DATASET:-${SO101_DATASET:-}}"
-    OUT="${OUT:-${SO101_OUTPUT:-}}"
-    BASE_MODEL="${BASE_MODEL:-${SO101_BASE_MODEL:-}}"
-    GROOT_PYTHON="$SO101_PYTHON"
+if [[ -n ${S2R_PYTHON:-} ]]; then
+    export S2R_TRAIN_IN_CONTAINER=1
+    GROOT="${GROOT:-${S2R_PROJECT_DIR:-}}"
+    DATASET="${DATASET:-${S2R_DATASET:-}}"
+    OUT="${OUT:-${S2R_OUTPUT:-}}"
+    BASE_MODEL="${BASE_MODEL:-${S2R_BASE_MODEL:-}}"
+    GROOT_PYTHON="$S2R_PYTHON"
 fi
-if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+if [[ ${S2R_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" train "$@"
 fi
 GROOT="${GROOT:-$HOME/Isaac-GR00T-N1.7}"

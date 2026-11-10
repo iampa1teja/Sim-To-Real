@@ -2,7 +2,7 @@
 # Continue the saved 200k run with only its diffusion transformer trainable.
 set -euo pipefail
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
-if [[ ${SO101_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
+if [[ ${S2R_TRAIN_IN_CONTAINER:-0} != 1 ]]; then
     exec bash "$REPO/docker/train.sh" dit "$@"
 fi
 GROOT="${GROOT:-$HOME/Isaac-GR00T-N1.7}"

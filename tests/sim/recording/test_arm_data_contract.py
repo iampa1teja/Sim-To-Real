@@ -68,8 +68,8 @@ encoder_counts_per_turn = 4096
 zero_count = 2048
 ''')
     monkeypatch.setenv("S2R_ARMS_DIR", str(directory.parent))
-    monkeypatch.delenv("SO101_FOLLOWER_CALIBRATION", raising=False)
-    monkeypatch.delenv("SO101_LEADER_CALIBRATION", raising=False)
+    monkeypatch.delenv("S2R_FOLLOWER_CALIBRATION", raising=False)
+    monkeypatch.delenv("S2R_LEADER_CALIBRATION", raising=False)
     return load_arm_spec("four_joint")[0]
 
 

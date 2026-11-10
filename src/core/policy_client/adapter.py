@@ -12,7 +12,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from .contract import ClientPolicy, load_client_policy
+from .contract import ArmInfo, ClientPolicy, load_client_policy
 from .discovery import PolicyManifest, discover
 from .transport import PolicyClient
 
@@ -64,13 +64,20 @@ def build_plugin_client(
     timeout_ms: int = 15000,
     api_token: str | None = None,
     policy_options: dict[str, str] | None = None,
+    arm_info: ArmInfo | None = None,
 ) -> PluginClient:
     """Look up the plugin, build its ClientPolicy and a transport client for the server."""
     policies = discover()
     if policy_name not in policies:
         raise ValueError(f"Unknown policy {policy_name!r}; available: {', '.join(sorted(policies))}")
     manifest = policies[policy_name]
+    if manifest.action_dim != 'arm' and manifest.action_dim != len(joint_order):
+        raise ValueError(f'Policy {policy_name!r} requires {manifest.action_dim} joints; selected arm has {len(joint_order)}')
+    if arm_info is not None and tuple(joint_order) != arm_info.feature_names:
+        raise ValueError('Policy joint order differs from ArmInfo feature order')
     policy = load_client_policy(policy_name, manifest, dict(policy_options or {}))
+    if arm_info is not None:
+        policy.configure(arm_info)
     client = PolicyClient(host, manifest.default_port if port is None else port, timeout_ms, api_token)
     return PluginClient(client, policy, manifest, joint_order)
 

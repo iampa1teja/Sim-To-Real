@@ -14,7 +14,7 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 1 Arm | Typed arm contract and per-unit calibration; SO-101 utilities; synthetic four-joint arm; sim-only recorded episode, smoke eval, identical replay joint targets | Complete |
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
-| 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Pending |
+| 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | In progress; live gates pending |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Pending |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
@@ -164,4 +164,52 @@ parameters are also captured, with a deterministic CPU response replay for check
   six declared stages in every episode report. Each 30-step attempt ended `never_reached` through the example
   hold-state policy. `stack-acceptance.json` and `stack-source-comparison.json` confirm this extension workflow
   while all 108 `src/` files stayed unchanged from the pre-stack check. This verifies recording/benchmark/eval
-  integration, not learned stacking success. Phase 3 is complete; Phase 4 has not started.
+  integration, not learned stacking success. Phase 3 is complete.
+
+## Phase 4 integration (in progress)
+
+- CLI plans now invoke `python -m` entrypoints. Only `s2r` remains an installed console command; recording,
+  evaluation, rollout, calibration and data-generation modules use their new package boundaries. Shared app
+  launch and YAML/argparse helpers preserve selector-before-import ordering and CLI-over-YAML precedence.
+- `s2r new arm|scene|task|policy <name>` creates a folder from its template. All four generated scaffolds pass
+  typed manifest and entrypoint checks. This is static validation, not proof that a template is a calibrated
+  production robot or a trained model.
+- CLI planner/scaffold tests: **21 passed**; see `outputs/v2/phase4-cli-tests.log`. Dry runs print module commands
+  and pass the host revision through `S2R_GIT_COMMIT`, avoiding the container's unresolved host worktree pointer.
+- Final full CPU suite: **319 passed, 22 subtests passed**, with 105 dependency deprecation warnings and no
+  skips/ignores; see `outputs/v2/phase4/cpu-tests-final.log`.
+- Actual host `./s2r check --static` passed all eight available extensions in an isolated temporary uv environment.
+  Only `numpy==2.5.1` was installed. `phase4-host-static-check.log` records the command/output;
+  `phase4-host-static-import-boundary.log` confirms no Isaac Lab, Isaac Sim, USD, Omni or Torch modules were
+  imported and lists the environment's sole installed package. No global Python packages were changed.
+- Static checks validate every extension; fixed policy action dimensions are checked against the selected arm
+  only. Without `--static`, the default plan adds three deduplicated runtime compositions covering the current
+  arm, both scenes and both tasks. Explicit selectors request one composition.
+- All three actual CLI runtime checks pass, with rendered RGB and three finite simulation steps for each:
+  SO-101/meeting-room/pick-place, SO-101/blank-table/pick-place, and SO-101/meeting-room/stacking.
+  `outputs/v2/phase4/composition-checks.json` records their joints, bodies, cameras and objects.
+- Recording configs moved to `configs/record/`; rollout and data-generation examples use common selectors.
+  Sync includes arms/scenes, and training/calibration environment variables use the `S2R_` prefix without
+  legacy-variable fallbacks. Shell syntax, Compose configuration and whitespace checks pass.
+- Policy clients now receive `configure(ArmInfo)` with joint order, roles, types and mapping. Generic clients
+  derive the action dimension; the fixed six-axis model manifests declare it explicitly.
+- `outputs/v2/phase4/pick-record/validation.json` passes recording through the renamed production
+  `sim.teleop.agent.main`: 45 finite joint/action frames, 45 matching object poses, and 45 decoded frames in
+  each of four primary/auxiliary RGB videos. Only leader input and control requests are test fixtures.
+- `sim.eval.run` completed the example hold-state policy's nine-episode saved schedule; its report is
+  `outputs/v2/phase4/example-eval.json`. `eval-entrypoint-comparison.json` confirms identical start IDs,
+  seeds, steps, stage flags, success fields and failure modes. This does not establish learned-policy success.
+- The first evaluation startup exited with a native MuJoCo crash (status 139), retained in
+  `outputs/v2/phase4/example-eval-attempt1.log`. An identical retry completed the schedule. No production
+  physics settings were changed between attempts; native startup repeatability remains an observed limitation.
+- The actual host `s2r migrate` command migrated a copied schema-1, 45-frame episode to schema 2 while retaining
+  its legacy sidecar. `outputs/v2/phase4/migrate-cli.log` records the direct `core.datasets.task_meta` invocation;
+  the disposable copy is under `migrate-fixture/`. `migration-validation.json` confirms every saved pose and
+  all original files are preserved in the migrated copy.
+- The isolated image `s2r-serve:v2-phase4` built successfully as
+  `sha256:26130c514307f2b17af6c7296fb7addc39585e5fca2a8169925dded1447a1b1a`;
+  see `outputs/v2/phase4/serve-build.log`. The existing `latest` tag was unchanged.
+- **Remaining gate:** both actual GR00T and Molmo policy servers must serve and evaluate through the updated
+  contract. GPU coordination is awaiting the user's reply while a pre-existing host Molmo server uses GPU
+  memory. Image construction, CPU tests and the example policy run do not satisfy these model-specific gates.
+  Phase 4 remains in progress.

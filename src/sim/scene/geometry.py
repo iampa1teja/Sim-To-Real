@@ -118,7 +118,7 @@ def _measure_table_plane(stage, root_prim, anchor):
 
 def cache_scene_geometry(env, env_ids):
     """Measure scene anchors and arm tip geometry once before resets."""
-    from sim.envs.mdp.resets import _env_prim_path, env_indices
+    from sim.envs.mdp._common import _env_prim_path, env_indices
 
     arm = getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]
     scene = getattr(env.cfg, "scene_spec", None) or load_scene_spec()

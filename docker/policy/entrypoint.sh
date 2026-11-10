@@ -145,8 +145,8 @@ if [[ $mode == env ]]; then
             -r "$policy_dir/train/requirements.txt"
     fi
 
-    export SO101_PYTHON=$UV_PROJECT_ENVIRONMENT/bin/python
-    export SO101_PROJECT_DIR=$project
+    export S2R_PYTHON=$UV_PROJECT_ENVIRONMENT/bin/python
+    export S2R_PROJECT_DIR=$project
 
     exec "$@"
 fi

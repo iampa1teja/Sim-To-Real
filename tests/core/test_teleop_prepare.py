@@ -5,7 +5,7 @@ import pytest
 
 from core.arms.calibration import resolve_calibration
 from core.datasets.alignment import RecordingAlignmentError
-from sim.teleop import lerobot_agent as agent
+from sim.teleop import agent
 from sim.teleop.config import AgentConfig, DatasetConfig
 
 

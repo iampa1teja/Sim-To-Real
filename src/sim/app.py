@@ -2,6 +2,9 @@
 
 
 import os
+from argparse import Namespace
+import sys
+import traceback
 
 
 def rendering_kit_args(existing: str = "") -> str:
@@ -34,5 +37,46 @@ def apply_selection(cfg) -> None:
         raise ValueError("variant needs a task.")
     os.environ["S2R_ARM"] = cfg.arm
     os.environ["S2R_SCENE"] = cfg.scene
-    os.environ["S2R_TASK"] = cfg.task
+    os.environ["S2R_TASK"] = cfg.task or ""
+
+
+def add_launch_arguments(parser):
+    """Register SDK flags without starting Kit or importing simulator assets."""
+    from isaaclab.app import AppLauncher
+
+    AppLauncher.add_app_launcher_args(parser)
+    return parser
+
+
+def launch(args=None, *, selection=None, enable_cameras=None, **overrides):
+    """Start the shared Kit app after selectors and rendering dependencies are prepared.
+
+    Namespace callers retain SDK-resolved options, including environment-selected headless
+    mode. The module itself stays safe to import before selecting arms/scenes/tasks.
+    """
+    if selection is not None:
+        apply_selection(selection)
+    options = Namespace(**(vars(args) if isinstance(args, Namespace) else dict(args or {})))
+    vars(options).update(overrides)
+    if enable_cameras is not None:
+        options.enable_cameras = enable_cameras
+    options.kit_args = rendering_kit_args(getattr(options, "kit_args", "") or "")
+
+    from isaaclab.app import AppLauncher
+
+    app = AppLauncher(options).app
+    if isinstance(args, Namespace):
+        vars(args).update(vars(options))
+    return app
+
+
+def close_app(app, *, success=True):
+    """Flush pending failures before Kit's close can terminate the Python process."""
+    exception = sys.exc_info()
+    exit_code = 0 if success and exception[0] is None else 1
+    if exception[0] is not None:
+        traceback.print_exception(*exception)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    app.close(exit_code=exit_code)
 

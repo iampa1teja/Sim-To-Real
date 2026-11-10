@@ -22,10 +22,10 @@ def test_light_exposure_dr_changes_only_marked_lights_in_selected_environment(mo
         UsdLux.DomeLight.Define(stage, root + "/OldImportedLight")
         apply_scene_lighting(stage, root, lighting)
         assert not stage.GetPrimAtPath(root + "/OldImportedLight")
-    resets = ModuleType("sim.envs.mdp.resets")
+    resets = ModuleType("sim.envs.mdp._common")
     resets.env_indices = lambda env, ids: SimpleNamespace(tolist=lambda: list(ids))
     resets._env_prim_path = lambda env, room, index: f"/World/envs/env_{index}/Chamber"
-    monkeypatch.setitem(sys.modules, "sim.envs.mdp.resets", resets)
+    monkeypatch.setitem(sys.modules, "sim.envs.mdp._common", resets)
     env = SimpleNamespace(cfg=SimpleNamespace(scene_spec=SimpleNamespace(room_root="Content", lighting=lighting)),
                           scene={"room": object()}, sim=SimpleNamespace(stage=stage))
     set_scene_light_exposure(env, [1], 2.5)

@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from core.calibration.calibrate_arm import calibrate_device
+from core.calibration.calibrate import calibrate_device
 
 
 @pytest.mark.parametrize("role", ["leader", "follower"])
@@ -42,7 +42,7 @@ def test_custom_device_registration_and_calibration_lifecycle(monkeypatch, tmp_p
     def register(name):
         assert name == "custom_robot_package"
         events.append("plugin")
-    monkeypatch.setattr("core.calibration.calibrate_arm.importlib.import_module", register)
+    monkeypatch.setattr("core.calibration.calibrate.importlib.import_module", register)
     spec = SimpleNamespace(modules=("custom_robot_package",), follower_type="custom_follower",
                            leader_type="custom_leader", use_degrees=False)
     if failure:
@@ -83,7 +83,7 @@ def test_registered_config_can_omit_optional_degree_flag(monkeypatch, tmp_path, 
 
 def test_read_live_config_can_omit_optional_degree_flag(monkeypatch, tmp_path):
     from dataclasses import dataclass
-    from core.calibration.check_calibration import read_live
+    from core.calibration.check import read_live
     @dataclass
     class DeviceConfig:
         port: str
@@ -103,7 +103,7 @@ def test_read_live_config_can_omit_optional_degree_flag(monkeypatch, tmp_path):
     module = ModuleType("lerobot.robots")
     module.RobotConfig, module.make_robot_from_config = Registry, make
     monkeypatch.setitem(sys.modules, "lerobot.robots", module)
-    monkeypatch.setattr("core.calibration.check_calibration.load_arm_spec", lambda: (
+    monkeypatch.setattr("core.calibration.check.load_arm_spec", lambda: (
         SimpleNamespace(lerobot=SimpleNamespace(modules=(), follower_type="custom", use_degrees=False)), tmp_path))
     result = read_live("port", "device1", tmp_path / "device1.json", {"axis": dict(range_min=0, range_max=200)})
     assert result[0]["in_range"]

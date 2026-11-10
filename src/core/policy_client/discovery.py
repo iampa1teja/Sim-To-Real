@@ -58,6 +58,7 @@ class PolicyManifest:
     env: dict[str, str]
     path: Path
     train: TrainSpec | None = None
+    action_dim: str | int = 'arm'
 
 
 def default_policies_dir() -> Path:
@@ -124,6 +125,7 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
         language = data.get("observation", {}).get("language", False)
         default_horizon = data["action"]["default_horizon"]
         representation = data.get("action", {}).get("representation", "absolute_joint")
+        action_dim = data.get("action", {}).get("dim", "arm")
         runtime_env = data.get("runtime", {}).get("env", {})
 
     except KeyError as err:
@@ -171,6 +173,8 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
 
     if representation != "absolute_joint":
         raise ValueError("action.representation must be 'absolute_joint'")
+    if action_dim != 'arm' and (type(action_dim) is not int or action_dim < 1):
+        raise ValueError("action.dim must be 'arm' or a positive fixed joint count")
 
     if not isinstance(runtime_env, dict):
         raise ValueError("runtime.env must be a table")
@@ -197,6 +201,7 @@ def load_manifest(policy_dir: str | Path) -> PolicyManifest:
         env=runtime_env,
         path=policy_dir,
         train=train,
+        action_dim=action_dim,
     )
     return manifest
 
@@ -221,3 +226,10 @@ def discover(policies_dir: str | Path | None = None) -> dict[str, PolicyManifest
             manifests[manifest.name] = manifest
 
     return manifests
+
+
+def get_manifest(name, policies_dir=None):
+    manifests = discover(policies_dir)
+    if name not in manifests:
+        raise ValueError(f'Unknown policy {name!r}; available: {", ".join(sorted(manifests))}')
+    return manifests[name]

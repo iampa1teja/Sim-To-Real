@@ -176,7 +176,7 @@ def apply_table_photo_projection(stage, room_root, look):
 def configure_scene_updates(env, env_ids, scene_spec):
     """Preserve the measured scene's startup order: views, appearance, lighting."""
     from sim.envs.scene_builder import hide_default_viewports
-    from sim.envs.mdp.resets import _env_prim_path
+    from sim.envs.mdp._common import _env_prim_path
     from sim.scene.appearance import apply_scene_lighting, scene_content_root
 
     hide_default_viewports(env.sim.stage)

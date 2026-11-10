@@ -117,7 +117,7 @@ def apply_teleop(cfg, task):
     )
 
     # Teleop: the cube stays parked out of the scene until spawn.py asks for it at the jaw
-    # (sim.generate.object_spawner). Eval replaces this event with recorded starts.
+    # (sim.datagen.spawner). Eval replaces this event with recorded starts.
     cfg.events.reset_from_starts = EventTerm(
         func=park_object, mode="reset",
         params={"asset_cfg": SceneEntityCfg("blue_cube")},

@@ -8,7 +8,7 @@ import torch
 from core.arms.spec import load_arm_spec
 from core.tasks.base import Pose
 from core.tasks.loader import load_task
-from sim.envs.mdp.resets import _wxyz, _xyzw, as_torch, env_indices
+from sim.envs.mdp._common import _wxyz, _xyzw, as_torch, env_indices
 
 
 def _poses(objects):

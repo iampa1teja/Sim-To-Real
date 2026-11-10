@@ -17,6 +17,7 @@ cameras = ["room", "wrist"]
 language = true
 
 [action]
+dim = 6
 default_horizon = 8
 representation = "absolute_joint"
 

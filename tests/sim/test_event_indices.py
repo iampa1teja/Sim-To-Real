@@ -9,7 +9,7 @@ import torch
 
 
 def load_helper():
-    path = Path(__file__).resolve().parents[2] / "src/sim/envs/mdp/resets.py"
+    path = Path(__file__).resolve().parents[2] / "src/sim/envs/mdp/_common.py"
     node = next(node for node in ast.parse(path.read_text()).body
                 if isinstance(node, ast.FunctionDef) and node.name == "env_indices")
     namespace = {"torch": torch}

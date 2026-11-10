@@ -1,5 +1,6 @@
 """Repository identity recorded in datasets, evaluation sets and telemetry."""
 from pathlib import Path
+import os
 import subprocess
 
 
@@ -16,6 +17,8 @@ def git_commit(root, *, default="unknown", required=False):
     try:
         return _git(root, "rev-parse", "HEAD")
     except (OSError, subprocess.SubprocessError):
+        if os.environ.get("S2R_GIT_COMMIT"):
+            return os.environ["S2R_GIT_COMMIT"]
         if required:
             raise
         return default
@@ -30,4 +33,4 @@ def git_identity(root, *, timeout=None, untracked_files=None):
         return {"git_commit": _git(root, "rev-parse", "HEAD", timeout=timeout),
                 "git_dirty": bool(_git(root, *status_args, timeout=timeout))}
     except (OSError, subprocess.SubprocessError):
-        return {"git_commit": None, "git_dirty": None}
+        return {"git_commit": os.environ.get("S2R_GIT_COMMIT"), "git_dirty": None}

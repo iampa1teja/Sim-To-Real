@@ -8,7 +8,7 @@ variant: eval
 policy:
   name: molmoact2
   checkpoint: molmoact2_base
-  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by lerobot_eval
+  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by sim.eval.run
   options:
     wrist_roll_model_offset: -90     # base USD wrist degrees -> original Molmo wrist frame
     norm_tag: so100_so101_molmoact2   # normalization stats in the checkpoint's norm_stats.json

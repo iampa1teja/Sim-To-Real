@@ -18,13 +18,13 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
 from core.tasks.loader import load_task, load_task_module
-from sim.envs.mdp.resets import (
-    as_torch,
+from sim.envs.mdp._common import as_torch
+from sim.envs.mdp.appearance import set_robot_color
+from sim.envs.mdp.cameras import (
     set_camera_focal_length,
     set_camera_pose_offset,
-    set_robot_color,
 )
-from sim.generate.dr_variants import DRDraw
+from sim.datagen.dr_variants import DRDraw
 from sim.scene.cameras import sync_camera_intrinsics
 from sim.scene.appearance import set_scene_light_exposure
 from sim.recording.lerobot_recorder import split_visual_obs

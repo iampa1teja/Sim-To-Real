@@ -115,7 +115,7 @@ def test_source_reads_multiple_objects_and_legacy_with_explicit_context(tmp_path
 
 def test_teleop_save_keeps_all_objects_on_the_dataset_timeline(tmp_path):
     import torch
-    from sim.teleop.lerobot_agent import _save_episode
+    from sim.teleop.loop import save_episode
 
     class Recorders:
         frame_count = 2
@@ -130,14 +130,14 @@ def test_teleop_save_keeps_all_objects_on_the_dataset_timeline(tmp_path):
         {"lower": torch.tensor(row), "upper": torch.tensor(row) + torch.tensor([0, 0, .1, 0, 0, 0, 0])}
         for row in POSES
     ]
-    assert _save_episode(Recorders(), trajectory, SIZES, 30, task=task, arm=arm) == 7
+    assert save_episode(Recorders(), trajectory, SIZES, 30, task=task, arm=arm) == 7
     assert trajectory == []
     data = load_task_meta(tmp_path, 7, task="stack", arm="synthetic",
                           reference_frame="robot base link (root_link)", num_frames=2)
     assert set(data["objects"]) == set(SIZES)
     np.testing.assert_allclose(load_object_poses(tmp_path, 7, "lower"), POSES)
     with pytest.raises(ValueError, match="datasets have 2"):
-        _save_episode(Recorders(), [], SIZES, 30, task=task, arm=arm)
+        save_episode(Recorders(), [], SIZES, 30, task=task, arm=arm)
 
 
 def test_rerecord_replacement_supersedes_old_schema_in_same_slot(tmp_path):

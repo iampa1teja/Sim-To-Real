@@ -37,8 +37,16 @@ task/arm identity, joint order and their saved raw-unit mapping. Their final dec
 The three approved frozen-set conversions retain `legacy_eval_set_id` for paired comparisons; geometry checks
 still apply. See the phase status for hold-state smoke evidence, which does not establish learned-policy success.
 
-The `configure(ArmInfo)` hook, action-dimension validation, and complete conformance command
-are scheduled for later phases. The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
+Clients receive `configure(ArmInfo)` with the selected joint names, roles, types and raw-unit mapping.
+The default/example client derives its action dimension from this metadata. A fixed-embodiment plugin declares
+`[action].dim = 6` (as GR00T and Molmo do); incompatible arms are rejected before inference.
+`s2r check --static --arm <arm> --policy <name>` checks that selected pairing without rejecting unrelated policies.
+
+The Phase 4 serving image `s2r-serve:v2-phase4` is built, and the renamed evaluation entrypoint completed the
+example hold-state policy's nine-episode schedule. Actual GR00T and Molmo serving/evaluation still await GPU
+coordination; an existing host Molmo server is using GPU memory. These gates and the complete conformance
+command remain pending. A completed hold-state schedule does not establish learned-policy task success.
+The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
 a generic arm loader alone does not make those model recipes embodiment-independent. See
 [phase status](../docs/restructure-status.md) for the acceptance gates still being verified.
 
@@ -59,15 +67,15 @@ verify = "train/verify.sh"          # optional
 
 Each command is a script path inside the policy folder (`.sh` runs with bash, `.py` with the
 policy's Python). The train container runs it with the repo
-mounted and these variables set: `SO101_POLICY_DIR`, `SO101_DATASET`, `SO101_OUTPUT`,
-`SO101_BASE_MODEL`, `SO101_PYTHON` (the interpreter of the policy's separate training venv) and
-`SO101_PROJECT_DIR`. Packages the policy needs only for training go in `train/requirements.txt`. Arguments after the command name are passed to the script unchanged. A policy
+mounted and these variables set: `S2R_POLICY_DIR`, `S2R_DATASET`, `S2R_OUTPUT`,
+`S2R_BASE_MODEL`, `S2R_PYTHON` (the interpreter of the policy's separate training venv) and
+`S2R_PROJECT_DIR`. Packages the policy needs only for training go in `train/requirements.txt`. Arguments after the command name are passed to the script unchanged. A policy
 with no `[train]` table can only be served. The template ships stub scripts that exit with an error
 until you fill them in.
 
 ## Add a policy
 
-1. `new_policy <name>` copies `_template/` to `policies/<name>/`.
+1. `s2r new policy <name>` copies `_template/` to `policies/<name>/`.
 2. Fill `policy.toml`, list dependencies in `pyproject.toml`, run `uv lock` there, commit `uv.lock`.
 3. Implement the functions in `client.py` and `server.py` (see `docs/07-policy-plugins.md`), and fill the
    `train/` scripts or delete the `[train]` table.

@@ -9,25 +9,30 @@ acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion o
 Copy `.env.example` to `.env` for local device settings. The arm, declarative scene and generic task phases passed
 their CPU, recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
 Generic stages, named-object benchmarks and multiobject recording work for pick-place and stacking.
-`s2r check`, module-only commands, data generation, and second-arm hardware checks
-remain pending.
+The CLI uses module entrypoints, provides `s2r new` scaffolds and `s2r check` validation.
+Phase 4's full CPU suite, host checks, three simulator compositions and production recording pass.
+The renamed evaluator also completed the example policy's nine-episode schedule. Live GR00T and Molmo
+serving/evaluation remain pending GPU coordination, so Phase 4 is not complete. Scripted/Mimic generation
+and second-arm hardware checks remain pending.
 
 ## Layout
 
 ```
 s2r                     CLI launcher (PYTHONPATH=src python3 -m cli)
-pyproject.toml          packages cli, core, sim (src/) and the console scripts
+pyproject.toml          packages cli, core, sim (src/) and the single `s2r` console entrypoint
 arms/<arm>/             typed arm.toml, optional <arm>_utils.py, usd/, calibration/units/<id>.json
 scenes/<scene>/         declarative scene.toml, optional appearance.json, mounts/<arm>.toml, scene.py, usd/
 tasks/<task>/           task.toml, __init__.py (TASK), env_cfg.py (variants), mdp.py, eval_sets/*.json
-configs/teleop/         lerobot_agent YAMLs (sim_only, paired_real)
-configs/eval/           lerobot_eval YAMLs (one per benchmark run)
+configs/record/         recording YAMLs (sim_only, paired_real)
+configs/eval/           evaluation YAMLs (one per benchmark run)
+configs/rollout/        real-rollout YAMLs (shadow mode by default)
+configs/datagen/        source-specific generation YAMLs
 policies/<name>/        policy.toml, client.py, server.py, train/   (see policies/README.md)
 docker/sim/             s2r-sim image: Isaac Lab 3.0 + LeRobot (teleop, record, eval, replay)
 docker/policy/          s2r-serve / s2r-train images: one uv venv per policy
 src/core/               no Isaac: arms, scenes, calibration, tasks (spec + stages), benchmark, datasets,
-                        policy_client, policy_server, utils, scripts
-src/sim/                Isaac only: envs (+ mdp), scene, teleop, recording, generate, eval
+                        policy_client, policy_server, rollout, utils, scripts
+src/sim/                Isaac only: envs (+ mdp), scene, teleop, recording, datagen, eval
 src/cli/                the s2r CLI (plans docker commands)
 tests/                  CPU-only tests
 ```
@@ -98,26 +103,34 @@ New recordings write schema-2 `task_meta/episode_<index>.json` sidecars with tas
 WXYZ orientations and a size/trajectory entry for every `task.tracked_objects` name. Each trajectory has exactly
 one pose per dataset frame. Dataset sources and alignment live in `core.datasets`; benchmark geometry, starts,
 statistics and comparison live in `core.benchmark`. Existing single-object `pick_place_meta/` datasets remain
-readable through the same production source/start readers. The `s2r migrate` command is scheduled for Phase 4.
+readable through the same production source/start readers. Use `s2r migrate <dataset> --task <task> --arm <arm>` to write schema-2 sidecars explicitly.
 
 ## Commands
+
+Install the CPU dependencies for host validation with `uv sync --group host`. The `./s2r` launcher uses that environment; `uv run s2r` also works.
+
+`s2r new arm|scene|task|policy <name>` creates a folder from its template. `s2r check --static` validates every
+extension without Isaac imports. Static checking needs NumPy; it does not import Torch or the simulator.
+`s2r check` then runs a small set of headless compositions covering every available arm, scene and task;
+explicit selectors check one composition. `--policy` checks the selected policy's action dimension against
+the selected arm, without requiring every fixed-embodiment policy to support every arm.
 
 Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides the name):
 
 | Command | Program | What it does |
 | --- | --- | --- |
-| `s2r record --config_path configs/teleop/paired_real.yaml` | `lerobot_agent` | Leader-driven teleop, sim-only or paired sim+real recording |
-| `s2r spawn --object blue_cube` | `spawn` | Put a parked task object beside the sim jaw while recording |
-| `s2r eval --config_path configs/eval/pick_place.yaml` | `lerobot_eval` | Evaluate a served policy on the fixed benchmark |
-| `s2r rollout ...` | `real_rollout` | Run a served policy on the real follower |
-| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `make_eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
-| `s2r dr-replay ...` | `dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
-| `s2r calibration-replay ...` | `calibration_replay` | Method B calibration replay (physics, keeps successes) |
-| `s2r calibration-report --gap ...` | `calibration_report` | Tracking-gap report |
-| `s2r calibrate leader\|follower --port ...` | `calibrate_arm` | LeRobot calibration saved where `arm.toml` expects it |
-| `s2r calibration-check --id follower_arm_1` | `check_calibration` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
-| `s2r calibration-stats` | `calibration_stats` | Rebuild stats from `arms/so101/calibration/samples/` |
-| `s2r envs` | `list_envs` | List arms, scenes, tasks and gym ids |
+| `s2r record --config_path configs/record/paired_real.yaml` | `python -m sim.teleop.agent` | Leader-driven teleop, sim-only or paired sim+real recording |
+| `s2r spawn --object blue_cube` | `python -m cli.spawn` | Put a parked task object beside the sim jaw while recording |
+| `s2r eval --config_path configs/eval/pick_place.yaml` | `python -m sim.eval.run` | Evaluate a served policy on the fixed benchmark |
+| `s2r rollout ...` | `python -m core.rollout.real_rollout` | Run a served policy on the real follower |
+| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.benchmark.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
+| `s2r datagen --source dr_replay ...` | `python -m sim.datagen.dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
+| `s2r calibration-replay ...` | `python -m sim.datagen.calibration_replay` | Method B calibration replay (physics, keeps successes) |
+| `s2r calibration-report --gap ...` | `python -m core.calibration.report` | Tracking-gap report |
+| `s2r calibrate leader\|follower --port ...` | `python -m core.calibration.calibrate` | LeRobot calibration saved where `arm.toml` expects it |
+| `s2r calibration-check --id follower_arm_1` | `python -m core.calibration.check` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
+| `s2r calibration-stats` | `python -m core.calibration.stats` | Rebuild stats from `arms/so101/calibration/samples/` |
+| `s2r envs` | `python -m cli.list_envs` | List arms, scenes, tasks and gym ids |
 
 Policy commands run on the host (or a remote GPU with `--host user@box --remote-root /abs/path`):
 
@@ -129,11 +142,11 @@ s2r policies                             list policies and their train commands
 s2r tunnel --host user@box --port N      reach a remote policy server from the local sim
 ```
 
-Host-side helpers: `compare_eval_results`, `summarize_eval_sweep`, `new_policy`.
+Host-side helpers: `python -m core.benchmark.compare`, `python -m core.benchmark.sweep`, and `s2r new policy <name>`.
 
 ## Recording
 
-`lerobot_agent` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
+`python -m sim.teleop.agent` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
 Newton builds its model once, so spawnable task objects are declared up front and parked off the table;
 `spawn --object <name>` (or `sim_reset_object_name` in the config, at each episode start) teleports one beside
 the fixed-jaw tip. Every object declared in `task.tracked_objects` is written per frame to
@@ -146,7 +159,7 @@ recording without a saved mapping needs an explicit `--unit` to establish its ac
 
 ## Evaluation
 
-`lerobot_eval` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
+`python -m sim.eval.run` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
 the checkpoints you compare; `compare_eval_results` runs paired McNemar tests on the results JSONs.
 Schema-2 eval sets declare the task, arm, joint order and named object poses for each start. Saved robot states
 remain raw LeRobot values interpreted with the set's saved joint mapping. The three approved frozen-set

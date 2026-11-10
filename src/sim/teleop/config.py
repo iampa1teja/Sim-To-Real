@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal
 
-from sim.app import apply_selection, rendering_kit_args
+from sim.app import add_launch_arguments
 
 
 def _env(name: str, default: str | None = None):
@@ -140,10 +140,8 @@ def parse_config(argv: list[str] | None = None) -> tuple[AgentConfig, argparse.N
     draccus, which also handles ``--config_path``.
     """
     import draccus
-    from isaaclab.app import AppLauncher
-
     parser = argparse.ArgumentParser(add_help=False)
-    AppLauncher.add_app_launcher_args(parser)
+    add_launch_arguments(parser)
     isaac_args, rest = parser.parse_known_args(argv)
     config_path = None
     if "--config_path" in rest:
@@ -159,5 +157,4 @@ def parse_config(argv: list[str] | None = None) -> tuple[AgentConfig, argparse.N
     cfg = draccus.parse(config_class=AgentConfig, config_path=config_path, args=rest)
     # Every teleop agent renders the cameras it records or streams.
     isaac_args.enable_cameras = True
-    isaac_args.kit_args = rendering_kit_args(isaac_args.kit_args)
     return cfg, isaac_args
