@@ -206,3 +206,98 @@ def test_integral_preview_reset_and_antiwindup_at_lead_and_joint_limits(syntheti
     assert solver.integral_bias is None
     solver.solve([.1, 0., 0.], advance=False)
     assert solver.integral_bias is None
+
+
+def test_fk_jacobian_matches_analytic_base_frame_with_tcp_and_mixed_roles(synthetic_arm):
+    arm = replace(synthetic_arm, ik=IKSpec(('z',), (.02, .03, .01)))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    q = np.array([.4, .013, .06, .027])
+    before = q.copy()
+    current = kinematics.fk(q)
+    jacobian = kinematics.jacobian(q)
+    expected = np.zeros((6, 4))
+    expected[:3, 0] = [-current[1, 3], current[0, 3], 0.]
+    expected[5, 0] = 1.
+    expected[:3, 2] = [math.cos(q[0]), math.sin(q[0]), 0.]
+    np.testing.assert_allclose(jacobian, expected, atol=2e-10, rtol=0)
+    np.testing.assert_array_equal(q, before)
+
+
+def test_local_inverse_recovers_mixed_joint_command_and_preserves_parallel_gripper(synthetic_arm):
+    arm = replace(synthetic_arm, ik=IKSpec(('z',)))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    measured = np.array([0., .013, 0., .027])
+    desired = np.array([.04, .001, .003, .039])
+    target = kinematics.fk(desired)
+    before = measured.copy()
+    result = kinematics.inverse(target, measured)
+    assert result.converged.item()
+    assert result.position_error.item() <= 1e-5
+    assert result.orientation_error.item() <= 1e-4
+    np.testing.assert_allclose(result.joint_positions[0, [0, 2]], desired[[0, 2]], atol=2e-5, rtol=0)
+    np.testing.assert_array_equal(result.joint_positions[0, [1, 3]], measured[[1, 3]])
+    np.testing.assert_array_equal(measured, before)
+
+
+@pytest.mark.parametrize('measured,target_slide', [(0., .15), (.199, .5)])
+def test_local_inverse_final_dispatch_respects_measured_step_and_runtime_limits(
+        synthetic_arm, measured, target_slide):
+    arm = replace(synthetic_arm, ik=IKSpec(('z',)))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    state = np.array([0., .013, measured, .027])
+    target = kinematics.fk([.5, .013, target_slide, .027])
+    result = kinematics.inverse(target, state)
+    command = result.joint_positions[0].numpy()
+    assert abs(command[0] - state[0]) <= .08 + 1e-12
+    assert abs(command[2] - state[2]) <= .005 + 1e-12
+    assert arm.joints[2].limits[0] <= command[2] <= arm.joints[2].limits[1]
+    np.testing.assert_array_equal(command[[1, 3]], state[[1, 3]])
+    assert result.limited.item() and not result.converged.item()
+    expected_error = np.linalg.norm(target[:3, 3] - kinematics.fk(command)[:3, 3])
+    assert result.position_error.item() == pytest.approx(expected_error, abs=1e-14)
+
+
+def test_local_inverse_ignores_undeclared_orientation_and_rejects_invalid_inputs(synthetic_arm):
+    arm = replace(synthetic_arm, ik=IKSpec(('x', 'y')))
+    kinematics = ArmKinematics(stage_for_arm(arm), arm)
+    measured = np.array([0., .013, 0., .027])
+    target = kinematics.fk(measured)
+    target[:3, :3] = np.diag([-1., -1., 1.])  # A pure yaw is outside the declared constraints.
+    result = kinematics.inverse(target, measured)
+    np.testing.assert_array_equal(result.joint_positions[0], measured)
+    assert result.converged.item()
+    for kwargs in ({'max_iterations': 0}, {'position_tolerance_m': float('nan')}):
+        with pytest.raises(ValueError, match='positive'):
+            kinematics.inverse(target, measured, **kwargs)
+    malformed = target.copy()
+    malformed[0, 0] = 2.
+    with pytest.raises(ValueError, match='rigid 4x4'):
+        kinematics.inverse(malformed, measured)
+
+
+# Saved physical no-roll episode: datasets/v2_phase5_scripted_noroll_fast1,
+# frames 190 (lift) and 334 (fast arc, worst one-step recovery). Values are decoded
+# simulator radians. Keep these small real-command regressions independent of an
+# untracked dataset; gripper commands are dispatched separately by Mimic.
+@pytest.mark.parametrize('measured,target', [
+    ([-1.163608319116648, -.7601840025618709, .9659029653945234, .6477574383318583,
+      -.033707175924888984, .06433686438416306],
+     [-1.163474640998018, -.7705220616360987, .9344297748614645, .6657402344146962,
+      -.03245369241626948, -.1745329917784602]),
+    ([1.5324260446621738, -.18931287358164015, .40377766621812344, .6384114379010836,
+      -.037141974742046675, .06481570272093419],
+     [1.5649960384805777, -.1854819999349474, .3676161233147698, .6300907638656686,
+      -.03519884765900414, -.1745329917784602]),
+])
+def test_local_inverse_recovers_saved_physical_source_commands(monkeypatch, measured, target):
+    monkeypatch.delenv('S2R_ARMS_DIR', raising=False)
+    arm = load_arm_spec('so101')[0]
+    kinematics = ArmKinematics.from_arm(arm)
+    result = kinematics.inverse(kinematics.fk(target), measured)
+    arm_ids = [index for index, joint in enumerate(arm.joints) if joint.role == 'arm']
+    gripper_ids = [index for index, joint in enumerate(arm.joints) if joint.role == 'gripper']
+    assert result.converged.item()
+    assert result.position_error.item() <= 1e-5
+    assert result.orientation_error.item() <= 1e-4
+    np.testing.assert_allclose(result.joint_positions[0, arm_ids], np.asarray(target)[arm_ids], atol=2e-4, rtol=0)
+    np.testing.assert_array_equal(result.joint_positions[0, gripper_ids], np.asarray(measured)[gripper_ids])

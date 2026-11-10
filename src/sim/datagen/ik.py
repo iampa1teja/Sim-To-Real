@@ -2,9 +2,10 @@
 
 Targets use world metres/XYZW. Orientation constraints are rotation-error components
 in the declared arm-base frame, so a low-DOF arm need not promise a full 6-D pose.
-Each solve returns one limited joint target; callers step physics before solving again.
+Tracking updates return one limited joint target per physical step. Command-pose
+inversion iterates cached kinematics locally before returning a bounded command.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 
 import numpy as np
@@ -373,6 +374,101 @@ class ArmKinematics:
         result[:3, 3] += result[:3, :3] @ self.position_offset_m
         return result
 
+    def jacobian(self, joint_positions, *, epsilon=1e-6):
+        """Differentiate cached FK at the TCP; rows are base-frame linear/angular velocity.
+
+        Columns retain manifest order and use radians/metres. Gripper roles have
+        zero columns because a Cartesian arm command must preserve their targets.
+        """
+        q = np.asarray(joint_positions, dtype=float)
+        current = self.fk(q)
+        if not math.isfinite(epsilon) or epsilon <= 0:
+            raise ValueError('FK Jacobian epsilon must be finite and positive')
+        result = np.zeros((6, len(self.arm.joints)))
+        for index, joint in enumerate(self.arm.joints):
+            if joint.role != 'arm':
+                continue
+            offset = np.zeros_like(q)
+            offset[index] = epsilon
+            before, after = self.fk(q - offset), self.fk(q + offset)
+            result[:3, index] = (after[:3, 3] - before[:3, 3]) / (2 * epsilon)
+            rotation_rate = (after[:3, :3] - before[:3, :3]) / (2 * epsilon)
+            angular = rotation_rate @ current[:3, :3].T
+            result[3:, index] = np.array([angular[2, 1] - angular[1, 2],
+                                         angular[0, 2] - angular[2, 0],
+                                         angular[1, 0] - angular[0, 1]]) / 2
+        return result
+
+    def inverse(self, target_pose_base, measured_joint_positions, *, options=None, max_iterations=12,
+                position_tolerance_m=1e-5, orientation_tolerance_rad=1e-4):
+        """Invert a commanded TCP pose locally, without physics or integral feedback.
+
+        ``target_pose_base`` is a rigid 4x4 transform in the declared arm-base
+        frame. The deterministic branch starts at the measured manifest-order
+        radians/metres. Internal FK/DLS iterations use the unchanged per-step
+        options; the final physical command also respects those joint-step bounds
+        relative to the original measurement, plus runtime limits. Gripper roles
+        remain exactly measured. Returned errors describe this final bounded
+        command, and convergence uses only the arm's declared orientation axes.
+
+        Unlike the physical tracking controller, this inverts FK(action) targets
+        that already encode their source command's load compensation. It never
+        advances a simulator or adds another integral bias.
+        """
+        if (not isinstance(max_iterations, int) or isinstance(max_iterations, bool) or max_iterations < 1
+                or any(not math.isfinite(value) or value <= 0
+                       for value in (position_tolerance_m, orientation_tolerance_rad))):
+            raise ValueError('Inverse iterations and pose tolerances must be positive')
+        target = np.asarray(target_pose_base, dtype=float)
+        if (target.shape != (4, 4) or not np.isfinite(target).all()
+                or not np.allclose(target[3], [0., 0., 0., 1.], atol=1e-8, rtol=0)
+                or not np.allclose(target[:3, :3].T @ target[:3, :3], np.eye(3), atol=1e-6, rtol=0)
+                or not np.isclose(np.linalg.det(target[:3, :3]), 1., atol=1e-6, rtol=0)):
+            raise ValueError('Inverse target must be a finite rigid 4x4 base-frame transform')
+        measured = np.asarray(measured_joint_positions, dtype=float).copy()
+        self.fk(measured)  # Validate shape and finiteness before indexing roles.
+        options = options or IKOptions()
+        local_options = replace(options, position_tolerance_m=position_tolerance_m,
+                                orientation_tolerance_rad=orientation_tolerance_rad)
+        ids = [index for index, joint in enumerate(self.arm.joints) if joint.role == 'arm']
+        step_caps = np.array([options.max_joint_step_rad if self.arm.joints[index].type == 'revolute'
+                              else options.max_joint_step_m for index in ids])
+        lower = np.array([math.radians(self.arm.joints[index].limits[0])
+                          if self.arm.joints[index].type == 'revolute' else self.arm.joints[index].limits[0]
+                          for index in ids])
+        upper = np.array([math.radians(self.arm.joints[index].limits[1])
+                          if self.arm.joints[index].type == 'revolute' else self.arm.joints[index].limits[1]
+                          for index in ids])
+        dispatch_lower = np.maximum(lower, measured[ids] - step_caps)
+        dispatch_upper = np.minimum(upper, measured[ids] + step_caps)
+        if np.any(dispatch_lower > dispatch_upper):
+            raise ValueError('Measured arm joint lies beyond the runtime limit and permitted command step')
+        target_quaternion = _numpy_quaternion(target[:3, :3])
+        q, limited = measured.copy(), False
+        for _ in range(max_iterations):
+            current = self.fk(q)
+            solved = solve_damped_step(self.arm, torch.from_numpy(q), current[:3, 3],
+                                       _numpy_quaternion(current[:3, :3]), self.jacobian(q),
+                                       target[:3, 3], target_quaternion, options=local_options)
+            limited |= bool(solved.limited.item())
+            if solved.converged.item():
+                break
+            q = solved.joint_positions[0].numpy()
+        bounded = q.copy()
+        bounded[ids] = np.clip(q[ids], dispatch_lower, dispatch_upper)
+        limited |= bool(np.any(bounded != q))
+        current = self.fk(bounded)
+        position_error = float(np.linalg.norm(target[:3, 3] - current[:3, 3]))
+        axes = [{'x': 0, 'y': 1, 'z': 2}[axis] for axis in self.arm.ik.orientation_axes]
+        rotation_error = _rotation_error(torch.from_numpy(target_quaternion[None]),
+                                         torch.from_numpy(_numpy_quaternion(current[:3, :3])[None]))
+        orientation_error = float(rotation_error[0, axes].norm()) if axes else 0.
+        return IKResult(torch.from_numpy(bounded[None]), torch.tensor([position_error], dtype=torch.float64),
+                        torch.tensor([orientation_error], dtype=torch.float64),
+                        torch.tensor([position_error <= position_tolerance_m
+                                      and orientation_error <= orientation_tolerance_rad]),
+                        torch.tensor([limited]))
+
 
 def _numpy_rotation(quaternion):
     x, y, z, w = np.asarray(quaternion, dtype=float)
@@ -383,3 +479,23 @@ def _numpy_rotation(quaternion):
     return np.array([[1 - 2 * (y*y + z*z), 2 * (x*y - z*w), 2 * (x*z + y*w)],
                      [2 * (x*y + z*w), 1 - 2 * (x*x + z*z), 2 * (y*z - x*w)],
                      [2 * (x*z - y*w), 2 * (y*z + x*w), 1 - 2 * (x*x + y*y)]])
+
+
+def _numpy_quaternion(rotation):
+    """Convert a proper rotation matrix to XYZW without a SciPy dependency."""
+    trace = np.trace(rotation)
+    if trace > 0:
+        scale = 2 * math.sqrt(1 + trace)
+        result = np.array([(rotation[2, 1] - rotation[1, 2]) / scale,
+                           (rotation[0, 2] - rotation[2, 0]) / scale,
+                           (rotation[1, 0] - rotation[0, 1]) / scale, scale / 4])
+    else:
+        first = int(np.argmax(np.diag(rotation)))
+        second, third = (first + 1) % 3, (first + 2) % 3
+        scale = 2 * math.sqrt(1 + rotation[first, first] - rotation[second, second] - rotation[third, third])
+        result = np.empty(4)
+        result[first] = scale / 4
+        result[second] = (rotation[first, second] + rotation[second, first]) / scale
+        result[third] = (rotation[first, third] + rotation[third, first]) / scale
+        result[3] = (rotation[third, second] - rotation[second, third]) / scale
+    return result / np.linalg.norm(result)

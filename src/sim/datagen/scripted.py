@@ -234,7 +234,11 @@ def make_report(context, *, source_provenance=None):
             "joint_units": [joint.unit for joint in arm.joints], "joint_roles": [joint.role for joint in arm.joints],
             "joint_mapping": context.calibration.mapping, "calibration": context.calibration.provenance,
             "control_offset_m": np.asarray(context.ik.position_offset_m).tolist(),
-            "ik_controller": {"control_dt_s": 1 / args.fps, "options": asdict(context.ik.options)},
+            "ik_controller": {
+                "mode": {"scripted": "native_jacobian_feedback", "mimic": "bounded_command_pose_inverse",
+                         "calibration_replay": "recorded_joint_command_replay"}.get(context.source, context.source),
+                "integral_feedback_applied": context.source == "scripted" and context.ik.options.integral_gain > 0,
+                "control_dt_s": 1 / args.fps, "options": asdict(context.ik.options)},
             "seed": args.seed, "git_commit": git_commit(Path(__file__).resolve().parents[3]),
             "source_provenance": source_provenance or {}, "episodes": [], "accepted_episodes": 0,
             "requested_episodes": getattr(args, "episodes", None),

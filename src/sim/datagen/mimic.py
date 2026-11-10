@@ -173,10 +173,14 @@ def __getattr__(name):
             noise = float((action_noise_dict or {}).get(eef_name) or 0.0)
             if noise:
                 target[:3, 3] += torch.randn_like(target[:3, 3]) * noise
-            base_position, base_orientation = self._base()
-            position, orientation = math_utils.combine_frame_transforms(
-                base_position[0], base_orientation[0], target[:3, 3], math_utils.quat_from_matrix(target[:3, :3]))
-            action = self.s2r_ik.solve(position, orientation).joint_positions.clone()
+            # These poses encode FK of the source's executed joint commands,
+            # including any load compensation already applied by its controller.
+            # Recover bounded joint targets locally; another feedback/PI update
+            # would add that compensation again and distort the demonstration.
+            measured = _tensor(self.s2r_ik.robot.data.joint_pos)[:, self.s2r_ik.joint_ids]
+            solved = self.s2r_fk.inverse(target.detach().cpu().numpy(), measured[0].detach().cpu().numpy(),
+                                         options=self.s2r_ik.options)
+            action = solved.joint_positions.to(dtype=measured.dtype, device=self.device)
             indices = [index for index, joint in enumerate(self.s2r_arm.joints) if joint.role == 'gripper']
             grip = torch.as_tensor(gripper_action_dict[eef_name], dtype=action.dtype, device=action.device).flatten()
             if grip.shape != (len(indices),):

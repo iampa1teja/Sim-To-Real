@@ -83,6 +83,35 @@ def test_subtasks_declare_objects_and_nonfinal_stage_boundaries():
         MimicSpec.from_task(task, {'subtasks': rows})
 
 
+def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
+    from sim.datagen import mimic
+    from sim.datagen.ik import IKOptions
+
+    target = torch.eye(4)
+    target[:3, 3] = torch.tensor([.1, -.2, .3])
+    options = IKOptions()
+    calls = []
+
+    def inverse(pose, measured, *, options):
+        calls.append(options)
+        np.testing.assert_array_equal(pose, target.numpy())
+        np.testing.assert_array_equal(measured, [3., 1., 4., 2.])
+        return SimpleNamespace(joint_positions=torch.tensor([[3.01, 1., 4.02, 2.003]], dtype=torch.float64))
+
+    arm = SimpleNamespace(links=SimpleNamespace(ee='tool'),
+                          joints=[SimpleNamespace(role=role) for role in ('arm', 'gripper', 'arm', 'arm')])
+    ik = SimpleNamespace(options=options, joint_ids=[2, 0, 3, 1],
+                         robot=SimpleNamespace(data=SimpleNamespace(joint_pos=torch.tensor([[1., 2., 3., 4.]]))),
+                         solve=lambda *a, **k: pytest.fail('Mimic must not reapply the scripted feedback controller'))
+    env = SimpleNamespace(num_envs=1, device='cpu', s2r_arm=arm, s2r_ik=ik,
+                          s2r_fk=SimpleNamespace(inverse=inverse))
+    action = mimic.S2RMimicEnv.target_eef_pose_to_action(env, {'tool': target}, {'tool': torch.tensor([.25])})
+    torch.testing.assert_close(action, torch.tensor([[3.01, .25, 4.02, 2.003]]))
+    assert calls == [options] and action.dtype == torch.float32
+    torch.testing.assert_close(env.s2r_last_target, target)
+    torch.testing.assert_close(env.s2r_last_gripper, torch.tensor([.25]))
+
+
 @pytest.mark.parametrize('max_steps,accepted,reason,step_error', [
     (100, True, 'mimic_trajectory_finished', False),
     (2, False, 'max_steps', False),
