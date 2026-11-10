@@ -1,4 +1,4 @@
-# GUI Start runs real for five minutes, then sim from the saved starting pose.
+# GUI Start runs real for 2 minutes 30 seconds, then sim from the saved starting pose.
 arm: so101
 scene: rpd_meeting_room
 task: pick_place_cube
@@ -16,7 +16,7 @@ leader_id: rpd_leader
 camera_gripper: /dev/video0
 camera_external: /dev/video6
 action_horizon: 30
-episode_seconds: 300
+episode_seconds: 150
 fps: 30
 enable_motion: true
 headless: true

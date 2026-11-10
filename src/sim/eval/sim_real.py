@@ -236,7 +236,8 @@ def run(args, app):
                             env.step(target)
                             spawner.spawn()
                             ready = True
-                            status = 'Match the real cube to the sim jaw placement. Start: real 5 min, then sim 5 min.'
+                            status = (f'Match the real cube to the sim jaw placement. Start: real {args.episode_seconds / 60:g} min, '
+                                      f'then sim {args.episode_seconds / 60:g} min.')
                     if requests.get('start') and ready:
                         if report['trials']:
                             status = 'This comparison is saved. Exit and relaunch to start another without overwriting it.'

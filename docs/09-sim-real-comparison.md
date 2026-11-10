@@ -19,9 +19,9 @@ wrist cameras, and the s2r Molmo server. It does not restart that server.
    same convention as paired recording, and click **Spawn object**. Compare the
    room and wrist views. Real cube placement is manual: this does not measure its
    pose or prove millimetre alignment.
-3. Click **Start real → sim**. The real policy trial runs for 300 seconds. The
+3. Click **Start real → sim**. The real policy trial runs for 150 seconds. The
    physical follower then holds its final target. The simulator restores the saved
-   starting joints and object poses and runs its own 300-second trial, using its
+   starting joints and object poses and runs its own 150-second trial, using its
    own images and joint observations. Both use the same loaded policy server.
 4. **Stop evaluation** cancels the comparison, including the pending second trial.
    Exit closes devices; the follower keeps torque enabled. Restart the command
