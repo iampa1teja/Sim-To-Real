@@ -176,8 +176,8 @@ parameters are also captured, with a deterministic CPU response replay for check
   production robot or a trained model.
 - CLI planner/scaffold tests: **21 passed**; see `outputs/v2/phase4-cli-tests.log`. Dry runs print module commands
   and pass the host revision through `S2R_GIT_COMMIT`, avoiding the container's unresolved host worktree pointer.
-- Final full CPU suite: **319 passed, 22 subtests passed**, with 105 dependency deprecation warnings and no
-  skips/ignores; see `outputs/v2/phase4/cpu-tests-final.log`.
+- Final full CPU suite: **320 passed, 22 subtests passed**, with 105 dependency deprecation warnings and no
+  skips/ignores; see `outputs/v2/phase4/cpu-tests-yaml-final.log`.
 - Actual host `./s2r check --static` passed all eight available extensions in an isolated temporary uv environment.
   Only `numpy==2.5.1` was installed. `phase4-host-static-check.log` records the command/output;
   `phase4-host-static-import-boundary.log` confirms no Isaac Lab, Isaac Sim, USD, Omni or Torch modules were
@@ -213,3 +213,8 @@ parameters are also captured, with a deterministic CPU response replay for check
   contract. GPU coordination is awaiting the user's reply while a pre-existing host Molmo server uses GPU
   memory. Image construction, CPU tests and the example policy run do not satisfy these model-specific gates.
   Phase 4 remains in progress.
+
+- Evaluation YAML `run.gui` is accepted with the Lab 3 launcher, which no longer registers a headless parser flag.
+  The full suite includes this regression and CLI-over-YAML precedence. `yaml-example-acceptance.json` records
+  one complete simulator episode with actual example-policy inference through `s2r eval --config_path`.
+  Prepared GR00T/Molmo acceptance YAMLs both parse through the production parser; their live runs remain pending.

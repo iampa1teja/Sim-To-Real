@@ -303,7 +303,9 @@ def parse_args(argv=None):
     add_grasp_arguments(parser)
     add_launch_arguments(parser)
     dests = {action.dest for action in parser._actions}
-    unknown = set(defaults) - dests
+    # Lab 3 no longer registers a --headless flag, but its launcher still accepts
+    # the option in a Namespace. run.gui remains part of the evaluation YAML.
+    unknown = set(defaults) - dests - {"headless"}
     if unknown:
         parser.error(f"{known.config_path}: unknown keys {sorted(unknown)}")
     parser.set_defaults(**defaults)
