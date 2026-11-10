@@ -11,9 +11,9 @@ their CPU, recording and simulator checks; the evidence and renderer limitations
 Generic stages, named-object benchmarks and multiobject recording work for pick-place and stacking.
 The CLI uses module entrypoints, provides `s2r new` scaffolds and `s2r check` validation.
 Phase 4's full CPU suite, host checks, three simulator compositions and production recording pass.
-The renamed evaluator also completed the example policy's nine-episode schedule. Live GR00T and Molmo
-serving/evaluation remain pending GPU coordination, so Phase 4 is not complete. Scripted/Mimic generation
-and second-arm hardware checks remain pending.
+The renamed evaluator reproduced the example policy's nine-episode schedule; live GR00T and Molmo also
+served and evaluated with finite joint commands. Phase 4 is complete. Scripted/Mimic generation,
+second-arm hardware checks and final documentation/conformance remain pending.
 
 ## Layout
 

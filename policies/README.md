@@ -43,9 +43,9 @@ The default/example client derives its action dimension from this metadata. A fi
 `s2r check --static --arm <arm> --policy <name>` checks that selected pairing without rejecting unrelated policies.
 
 The Phase 4 serving image `s2r-serve:v2-phase4` is built, and the renamed evaluation entrypoint completed the
-example hold-state policy's nine-episode schedule. Actual GR00T and Molmo serving/evaluation still await GPU
-coordination; an existing host Molmo server is using GPU memory. These gates and the complete conformance
-command remain pending. A completed hold-state schedule does not establish learned-policy task success.
+example hold-state policy's nine-episode schedule. Actual GR00T and Molmo each completed a short simulator
+evaluation with real model inference and finite joint commands. These checks establish serving/evaluation
+integration, not learned-policy task success or benchmark performance. Final documentation/conformance is pending.
 The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
 a generic arm loader alone does not make those model recipes embodiment-independent. See
 [phase status](../docs/restructure-status.md) for the acceptance gates still being verified.

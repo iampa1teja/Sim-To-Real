@@ -78,6 +78,6 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
 
 The arm, declarative scene and generic task phases have passed their acceptance checks; consult the status file
-for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording and
-example evaluation pass. Live GR00T/Molmo serving and evaluation remain pending; do not mark Phase 4 complete
-or start the next phase before those gates pass. Data-generation/second-arm/conformance phases remain pending.
+for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording,
+example evaluation and live GR00T/Molmo serving/evaluation pass. Data-generation/second-arm/conformance phases
+remain pending; their acceptance checks must pass before advancing.

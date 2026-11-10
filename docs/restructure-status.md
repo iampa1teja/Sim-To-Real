@@ -14,13 +14,13 @@ Every phase must pass the complete CPU suite without `--ignore`. Simulator chang
 | 1 Arm | Typed arm contract and per-unit calibration; SO-101 utilities; synthetic four-joint arm; sim-only recorded episode, smoke eval, identical replay joint targets | Complete |
 | 2 Scene | Declarative builder, appearance/mount split, blank table; reference-image comparison; SO-101 recording without a mount file | Complete |
 | 3 Task | Generic stages/starts, task metadata/schema 2, stack task; same scheduled stages; legacy dataset reads; stack record/eval-set/eval without src edits | Complete |
-| 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | In progress; live gates pending |
+| 4 CLI | Split agent/eval, module commands, new/check/migrate, environment renames, policy configure; all planner tests, all plugin checks, both policies served and evaluated | Complete |
 | 5 Data generation | IK scripted expert, shared success-filtered recorder and calibration replay, then Mimic; successful generated LeRobot episodes and policy preparation/training | Pending |
 | 6 Second arm | OMX factory calibration/utilities/mount; sim record/eval on blank table, then paired hardware recording; no arm-specific src edits | Pending |
 | 7 Docs/conformance | Eight guides, templates and conformance; each plugin type addable from the docs alone | Pending |
 
 The stage-logic deduplication in section 2.3 is explicitly assigned to Phase 3 by the plan. The large agent/eval
-splits listed in section 2.4 are assigned to Phase 4 and remain required.
+splits listed in section 2.4 were completed in Phase 4.
 
 ## Phase 0 evidence and remaining work
 
@@ -166,7 +166,7 @@ parameters are also captured, with a deterministic CPU response replay for check
   while all 108 `src/` files stayed unchanged from the pre-stack check. This verifies recording/benchmark/eval
   integration, not learned stacking success. Phase 3 is complete.
 
-## Phase 4 integration (in progress)
+## Phase 4 integration
 
 - CLI plans now invoke `python -m` entrypoints. Only `s2r` remains an installed console command; recording,
   evaluation, rollout, calibration and data-generation modules use their new package boundaries. Shared app
@@ -207,14 +207,18 @@ parameters are also captured, with a deterministic CPU response replay for check
   the disposable copy is under `migrate-fixture/`. `migration-validation.json` confirms every saved pose and
   all original files are preserved in the migrated copy.
 - The isolated image `s2r-serve:v2-phase4` built successfully as
-  `sha256:26130c514307f2b17af6c7296fb7addc39585e5fca2a8169925dded1447a1b1a`;
+  `sha256:4dad52d630649aa183d0b7e332cbcbc5002a8c78ae0f66a1cb3a188c6b0474dc`;
   see `outputs/v2/phase4/serve-build.log`. The existing `latest` tag was unchanged.
-- **Remaining gate:** both actual GR00T and Molmo policy servers must serve and evaluate through the updated
-  contract. GPU coordination is awaiting the user's reply while a pre-existing host Molmo server uses GPU
-  memory. Image construction, CPU tests and the example policy run do not satisfy these model-specific gates.
-  Phase 4 remains in progress.
+- Both live model gates pass: GR00T made three inference calls and Molmo made one during their respective
+  completed 30-step episodes. Each logged 20 policy action ticks with all 12 raw/sent joint columns finite.
+  `live-policy-gates.json`, the individual `*-live-validation.json` files, reports, server descriptions, action
+  CSVs and logs are retained under `outputs/v2/phase4/`. These are integration checks, not success benchmarks.
+- The first live container launch exposed a blank line before the shell entrypoint's shebang; it was removed
+  and both isolated serving/training images rebuilt. Their entrypoints now execute successfully. The live
+  evaluations emitted the same RTX memcpy warning class present in Phase 3; no model-server errors occurred.
+- Both owned policy servers were stopped after verification. Phase 4 is complete.
 
 - Evaluation YAML `run.gui` is accepted with the Lab 3 launcher, which no longer registers a headless parser flag.
   The full suite includes this regression and CLI-over-YAML precedence. `yaml-example-acceptance.json` records
   one complete simulator episode with actual example-policy inference through `s2r eval --config_path`.
-  Prepared GR00T/Molmo acceptance YAMLs both parse through the production parser; their live runs remain pending.
+  Prepared GR00T/Molmo acceptance YAMLs both parse through the production parser; their live runs also passed as recorded above.

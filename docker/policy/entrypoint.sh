@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 # Usage:
 #   entrypoint.sh --policy <name> [launcher args...]
