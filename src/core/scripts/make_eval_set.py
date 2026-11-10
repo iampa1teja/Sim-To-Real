@@ -2,6 +2,7 @@
 import argparse
 from collections import Counter
 import json
+import os
 from pathlib import Path
 from core.paths import repo_dir
 from core.tasks.loader import load_task_module
@@ -13,6 +14,7 @@ def main(argv=None):
     parser.add_argument('--dataset', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--task', default='pick_place_cube')
+    parser.add_argument('--arm', default=os.environ.get('S2R_ARM', 'so101'))
     parser.add_argument('--seed', type=int, default=1984)
     parser.add_argument('--n_id', type=int, default=60)
     parser.add_argument('--n_ood', type=int, default=20)
@@ -26,13 +28,16 @@ def main(argv=None):
                         default=None,
                         help='Live geometry snapshot from capture_eval_scene.py')
     args = parser.parse_args(argv)
+    from core.arms.spec import load_arm_spec
+
+    arm, _ = load_arm_spec(args.arm)
     scene_json = args.scene_json or repo_dir('tasks') / args.task / 'eval_sets/pick_place_scene.json'
     scene = json.loads(scene_json.read_text())
     generate_eval_set = load_task_module('benchmark', args.task).generate_eval_set
-    commit = git_commit(Path(__file__).resolve().parent, required=True)
+    commit = git_commit(repo_dir('tasks').parent, required=True)
     data = generate_eval_set(args.dataset, scene, seed=args.seed, n_id=args.n_id, n_ood=args.n_ood,
                              n_yaw=args.n_yaw, min_dist_m=args.min_dist_m, ood_margin_m=args.ood_margin_m,
-                             yaw_mode=args.yaw_mode, reach_envelope=args.reach_envelope, git_commit=commit)
+                             yaw_mode=args.yaw_mode, reach_envelope=args.reach_envelope, git_commit=commit, arm=arm)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, indent=2, allow_nan=False) + '\n')
     print(json.dumps({'eval_set_id': data['eval_set_id'], 'splits': dict(Counter(s['split'] for s in data['starts'])),

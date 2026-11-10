@@ -13,6 +13,7 @@ from isaaclab_visualizers.kit import KitVisualizerCfg
 
 from sim.envs.mdp import (
     JointPositionActionCfg,
+    apply_runtime_joint_limits,
     ee_frame_state,
     joint_pos,
     joint_pos_rel,
@@ -20,12 +21,6 @@ from sim.envs.mdp import (
     reset_joints_by_offset,
 )
 from sim.scene.arm import load_arm_cfg, load_arm_spec
-from sim.scene.real_setup import ARM_NAME
-
-ARM_SPEC, _ = load_arm_spec(ARM_NAME)
-JOINT_NAMES = list(ARM_SPEC["joints"]["names"])
-BASE_LINK = ARM_SPEC["links"]["base"]
-EE_LINK = ARM_SPEC["links"]["ee"]
 
 
 @configclass
@@ -34,19 +29,14 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
     env_spacing = 4.0
     num_envs = 1
-    robot: ArticulationCfg = load_arm_cfg(ARM_NAME).replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = None
 
 
 @configclass
 class ActionsCfg:
     """Absolute joint position targets for every arm joint."""
 
-    joint_positions = JointPositionActionCfg(
-        asset_name="robot",
-        joint_names=JOINT_NAMES,
-        scale=1.0,
-        use_default_offset=False,
-    )
+    joint_positions: JointPositionActionCfg = None
 
 
 @configclass
@@ -59,12 +49,7 @@ class BaseObservationsCfg:
 
         joint_pos_obs = ObsTerm(func=joint_pos)
         joint_pos_rel = ObsTerm(func=joint_pos_rel)
-        ee_frame_state = ObsTerm(
-            func=ee_frame_state,
-            params={
-                "robot_cfg": SceneEntityCfg("robot", body_names=[BASE_LINK, EE_LINK], preserve_order=True),
-            },
-        )
+        ee_frame_state: ObsTerm = None
 
         def __post_init__(self):
             self.enable_corruption = True
@@ -77,15 +62,8 @@ class BaseObservationsCfg:
 class BaseEventsCfg:
     """Reset events."""
 
-    reset_robot_position = EventTerm(
-        func=reset_joints_by_offset,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=JOINT_NAMES),
-            "position_range": (0.0, 0.0),
-            "velocity_range": (0.0, 0.0),
-        },
-    )
+    reset_robot_position: EventTerm = None
+    runtime_joint_limits = EventTerm(func=apply_runtime_joint_limits, mode="startup")
     reset_set_robot_visual_material = EventTerm(
         func=randomize_robot_color,
         mode="reset",
@@ -105,6 +83,29 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
     terminations = None
 
     def __post_init__(self):
+        arm, _ = load_arm_spec()
+        self.scene.robot = load_arm_cfg(arm.name).replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.actions.joint_positions = JointPositionActionCfg(
+            asset_name="robot", joint_names=list(arm.usd_joint_names),
+            scale=1.0, use_default_offset=False, preserve_order=True,
+        )
+        for observation in (self.observations.policy.joint_pos_obs, self.observations.policy.joint_pos_rel):
+            observation.params = {"asset_cfg": SceneEntityCfg(
+                "robot", joint_names=list(arm.usd_joint_names), preserve_order=True,
+            )}
+        self.observations.policy.ee_frame_state = ObsTerm(
+            func=ee_frame_state,
+            params={"robot_cfg": SceneEntityCfg(
+                "robot", body_names=[arm.links.base, arm.links.ee], preserve_order=True,
+            )},
+        )
+        self.events.reset_robot_position = EventTerm(
+            func=reset_joints_by_offset, mode="reset",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", joint_names=list(arm.usd_joint_names), preserve_order=True),
+                "position_range": (0.0, 0.0), "velocity_range": (0.0, 0.0),
+            },
+        )
         self.decimation = 2
         self.episode_length_s = 5.0
 

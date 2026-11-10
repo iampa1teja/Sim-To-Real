@@ -12,6 +12,26 @@ policies/<name>/
 └── train/            optional: the scripts named in policy.toml [train.commands]
 ```
 
+## Arm and action units
+
+The platform's typed `ArmSpec` defines joint order, USD names, roles, and physical units. Current client plugins
+receive raw device-state vectors and return raw device-action vectors in that order. Normalized body joints use
+`-100..100` and gripper joints `0..100`. With `use_degrees = true`, body values are the driver's calibrated
+encoder-degree coordinate; its midpoint/scale can differ from the arm's physical frame. Grippers stay normalized.
+Selected mappings retain explicit raw endpoints when needed, including reversed motor directions. Policy-specific
+embodiment conventions remain the plugin's concern; clients must not treat raw degree codes as USD angles.
+
+`JointMapping` owns the simulator boundary: calibrated spans map device units to physical degrees/metres, runtime
+limits clamp targets, and revolute angles become radians for the articulation. Calibration units are selected by
+recording `follower.unit` or evaluation/rollout/replay `--unit`; they live under
+`arms/<arm>/calibration/units/`. Clients should keep camera and joint ordering explicit and preserve the action units
+used to train their checkpoint. The standard client shares `DefaultClientPolicy` request/response handling.
+
+The `configure(ArmInfo)` hook, action-dimension validation, generic task engine, and complete conformance command
+are scheduled for later phases. The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
+a generic arm loader alone does not make those model recipes embodiment-independent. See
+[phase status](../docs/restructure-status.md) for the acceptance gates still being verified.
+
 ## Training a policy
 
 A policy that can be trained declares it in `policy.toml`; nothing outside its folder is edited.

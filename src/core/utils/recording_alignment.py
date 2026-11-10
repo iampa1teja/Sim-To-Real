@@ -1,17 +1,11 @@
+"""Record the selected arm/mapping and reject calibration changes on dataset resume."""
 import hashlib
-import json 
+import json
 from pathlib import Path
 
-from ..arms.spec import load_arm_spec
-from ..arms.joint_calibration import resolve_calibration
-from ..scenes import setup_path
+from core.arms.calibration import resolve_calibration
+from core.arms.spec import load_arm_spec
 
-_ARM, _ = load_arm_spec()
-_LEROBOT = _ARM["lerobot"]
-FOLLOWER_JOINTS = tuple(_LEROBOT["names"])
-FOLLOWER_CALIBRATION_DIR = _LEROBOT["follower_calibration_dir"]
-LEADER_CALIBRATION_DIR = _LEROBOT["leader_calibration_dir"]
-SETUP_PATH = setup_path()
 MARKER = "meta/recording_alignment.json"
 
 
@@ -19,33 +13,31 @@ class RecordingAlignmentError(ValueError):
     """An existing dataset cannot be resumed with the selected calibration."""
 
 
-def recording_contract(*, follower_id, leader_id, setup=None, calibration_selection=None):
-    setup = json.loads(SETUP_PATH.read_text()) if setup is None else setup
-    selection = calibration_selection or resolve_calibration(setup=setup)
-    resolved = setup["sim_joint_mapping_source"].get("wrist_roll_fit_status") == "verified"
-    calibration = {key: setup[key] for key in ("sim_joint_mapping", "sim_joint_mapping_source", "runtime_joint_limits")}
-    if selection.provenance["explicit_selection"]:
-        calibration = dict(calibration, sim_joint_mapping=selection.mapping)
-    # Record the files actually loaded by both devices, including the leader's default file.
-    selected = {role: selection.provenance[f"{role}_calibration"]["sha256"]
-                for role in ("follower", "leader")}
-    if any(selected.values()):
-        calibration["selected_calibrations"] = selected
-    source = setup["sim_joint_mapping_source"]
-    contract = {
-        "version": 3, "follower_id": follower_id, "leader_id": leader_id,
-        "calibration_sha256": hashlib.sha256(json.dumps(calibration, sort_keys=True).encode()).hexdigest(),
-        "start_sync": "follower_state", "roll_resolved": resolved,
-        "synced_joints": list(FOLLOWER_JOINTS),
-        "wrist_rezero": False, "recorded_action": "unshifted_leader",
-        "wrist_roll_zero_offset_degrees": source["wrist_roll_zero_offset_degrees"],
-        "roll_zero_measurement": "verified constant" if resolved else "unmeasured constant",
-        "note": "All six joints sync from the follower; every sim target uses the mapped leader action. "
-        "The shared roll-zero constant is independent of episode starts; no sim-only re-zero."
-        }
-    if "selected_calibrations" in calibration:
-        contract["selected_calibrations"] = calibration["selected_calibrations"]
+def recording_contract(*, follower_id, leader_id, calibration_selection=None, arm=None, unit=None):
+    arm = (getattr(calibration_selection, "arm", None) or load_arm_spec()[0]) if arm is None else arm
+    selection = calibration_selection or resolve_calibration(arm, unit=unit)
+    source = selection.unit.source if getattr(selection, "unit", None) is not None else {}
+    selected = {role: selection.provenance[f"{role}_calibration"]["sha256"] for role in ("follower", "leader")}
+    calibration = dict(arm=arm.name, mapping=selection.mapping, runtime_joint_limits=arm.runtime_joint_limits,
+                       parameters=selection.provenance["mapping_parameters"], selected_calibrations=selected)
+    contract = dict(
+        version=4, arm=arm.name, unit=selection.provenance.get("unit"),
+        joint_names=list(arm.joint_names), joint_units=[joint.unit for joint in arm.joints],
+        joint_roles=[joint.role for joint in arm.joints], use_degrees=arm.lerobot.use_degrees,
+        joint_mapping=selection.mapping, follower_id=follower_id, leader_id=leader_id,
+        calibration_sha256=hashlib.sha256(json.dumps(calibration, sort_keys=True).encode()).hexdigest(),
+        start_sync="follower_state", synced_joints=list(arm.joint_names),
+        wrist_rezero=bool(arm.wrist_roll and arm.wrist_roll.relative_in_teleop),
+        sim_wrist_relative=bool(arm.wrist_roll and arm.wrist_roll.relative_in_teleop),
+        recorded_action="unshifted_leader", selected_calibrations=selected,
+        note="Sim targets use the selected mapping and declared relative-roll behavior; recorded actions preserve device units.",
+    )
+    if arm.wrist_roll is not None:
+        contract.update(roll_resolved=source.get("wrist_roll_fit_status") == "verified",
+                        wrist_roll_zero_offset_degrees=selection.provenance["mapping_parameters"].get(
+                            arm.wrist_roll.joint, {}).get("offset", 0.0))
     return contract
+
 
 def validate_recording_root(root, contract):
     root = Path(root)
@@ -56,6 +48,8 @@ def validate_recording_root(root, contract):
         saved = json.loads(marker.read_text()) if marker.is_file() else None
     except json.JSONDecodeError:
         saved = None
+    # Legacy markers did not store enough arm/mapping information to establish
+    # equivalence. Keep them readable for replay; resume needs a new root.
     if saved != contract:
         raise RecordingAlignmentError(
             f"Recording alignment differs or is missing in {root}. "
@@ -64,7 +58,6 @@ def validate_recording_root(root, contract):
 
 
 def mark_recording_root(root, contract):
-    """Only called after the dataset owner has successfully initialized the new root."""
     path = Path(root) / MARKER
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(contract, indent=2) + "\n")

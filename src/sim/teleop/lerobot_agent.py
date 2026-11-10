@@ -21,19 +21,19 @@ from sim.app import apply_selection
 from sim.teleop.config import AgentConfig, parse_config
 
 def _prepare(cfg: AgentConfig):
-    from core.arms.joint_calibration import resolve_calibration
+    from core.arms.calibration import resolve_calibration
     from core.utils.recording_alignment import recording_contract
 
     selection = resolve_calibration(
         follower_id=cfg.follower.id if cfg.follower.enabled else None, 
         leader_id=cfg.leader.id,
-        follower_path=cfg.follower.calibration_path,
+        unit=cfg.follower.unit,
     )
     selection.print_paths()
     contract = recording_contract(follower_id=cfg.follower.id, leader_id=cfg.leader.id, calibration_selection=selection)
 
     roots = []
-    if cfg.recording and (selection.follower_path or selection.leader_path):
+    if cfg.recording:
         roots.append(cfg.dataset.root)
         if cfg.follower.enabled:
             roots.append(cfg.dataset.real_root or derived_real_root(cfg.dataset.root))
@@ -50,10 +50,6 @@ def _prepare(cfg: AgentConfig):
                   "using separate folders and preserving existing recordings.", flush=True)
         for role, root in zip(("sim", "real"), roots):
             print(f"[recording] {role} dataset: {root}", flush=True)
-    elif cfg.recording:
-        from sim.recording.rerecording import recover_replacement
-
-        recover_replacement(cfg.dataset.root)
     ports = {"leader": cfg.leader.port}
     if cfg.follower.enabled:
         ports["follower"] = cfg.follower.port
@@ -80,10 +76,7 @@ def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     env_cfg = parse_env_cfg(env_id, device=device, num_envs=1, use_fabric=cfg.use_fabric)
     env_cfg.seed = cfg.seed
 
-    if selection.provenance.get("mapping_source") == "follower_file":
-        env_cfg.sim_joint_mapping = deepcopy(selection.mapping)
-    if getattr(env_cfg, "sim_joint_mapping", None) not in (None, selection.mapping):
-        raise ValueError("Environment mapping differs from the selected follower calibration.")
+    env_cfg.sim_joint_mapping = deepcopy(selection.mapping)
     if env_cfg.terminations is not None and any(
         value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
     ):
@@ -228,7 +221,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         import gymnasium as gym
 
         import sim.envs
-        from core.arms.joint_calibration import ROLL_JOINT
+        from core.arms.spec import load_arm_spec
         from core.arms.mapping import JointMapping
         from core.utils.recording_alignment import mark_recording_root
         from sim.generate.object_spawner import ObjectSpawner
@@ -253,8 +246,11 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         spawner = ObjectSpawner(env, task=sim.envs.TASK, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
 
         sim_cameras = _sim_cameras(env)
-        mapping = JointMapping.from_setup(selection, device=device)
-        roll = mapping.names.index(ROLL_JOINT)
+        arm, _ = load_arm_spec(cfg.arm)
+        mapping = JointMapping.from_arm(arm, selection, device=device)
+        roll_spec = arm.wrist_roll
+        roll = (mapping.names.index(roll_spec.joint)
+                if roll_spec is not None and roll_spec.relative_in_teleop else None)
 
         leader = connect_device("leader", cfg.leader.port, cfg.leader.id, cameras={}, fps=cfg.fps,
                                 selection=selection, calibrate=calibrate)
@@ -289,7 +285,6 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         tracked = None
         trajectory = []
         if len(spawner.offsets) == 1:
-            from sim.envs.base_env_cfg import BASE_LINK
             from sim.generate.object_spawner import _half_extents
 
             name = next(iter(spawner.offsets))
@@ -298,7 +293,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
             if size is None:
                 raise ValueError(f"{name}: set size in task.toml so its trajectory sidecar records the object size.")
             tracked = (name, tuple(float(v) for v in size))
-            base_id = env.unwrapped.scene["robot"].find_bodies(BASE_LINK)[0][0]
+            base_id = env.unwrapped.scene["robot"].find_bodies(arm.links.base)[0][0]
         elif spawner.offsets:
             print(f"[WARNING]: {len(spawner.offsets)} spawnable objects; no object trajectory sidecar is written.")
         if recorders is not None and tracked is not None:
@@ -312,7 +307,8 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                              f"{list(env.unwrapped.scene.keys())}")
 
         actions = torch.zeros(env.action_space.shape, device=device)
-        roll_min, roll_max = torch.deg2rad(mapping.clamp_mins[roll]), torch.deg2rad(mapping.clamp_maxs[roll])
+        if roll is not None:
+            roll_min, roll_max = torch.deg2rad(mapping.clamp_mins[roll]), torch.deg2rad(mapping.clamp_maxs[roll])
         leader_roll_start = None
         sim_roll_start = None
         previous_target = None
@@ -414,15 +410,16 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                     leader_action = leader.get_action()
                 except Exception as exc:
                     raise RuntimeError(f"Failed to read the physical leader: {exc}") from exc
-                target = mapping.to_radians(mapping.raw_from_actions(leader_action))
+                target = mapping.to_sim(mapping.raw_from_actions(leader_action))
 
                 if obs is None:
                     obs = env.unwrapped.observation_manager.compute()
                 # Wrist roll is relative: the sim keeps its own start angle and follows the leader's change.
-                if leader_roll_start is None:
-                    leader_roll_start = target[roll].clone()
-                    sim_roll_start = obs["policy"]["joint_pos_obs"][0, roll].clone()
-                target[roll] = torch.clamp(sim_roll_start + target[roll] - leader_roll_start, roll_min, roll_max)
+                if roll is not None:
+                    if leader_roll_start is None:
+                        leader_roll_start = target[roll].clone()
+                        sim_roll_start = obs["policy"]["joint_pos_obs"][0, roll].clone()
+                    target[roll] = torch.clamp(sim_roll_start + target[roll] - leader_roll_start, roll_min, roll_max)
 
                 # The real follower is read every tick while recording, or for the GUI's real camera panes.
                 follower_observation = None

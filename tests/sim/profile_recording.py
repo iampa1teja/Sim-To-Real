@@ -18,6 +18,7 @@ import traceback
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--unit", default=None, help="Optional arm calibration unit for recording")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--frames", type=int, default=300)
     parser.add_argument("--warmup", type=int, default=60)
@@ -53,6 +54,8 @@ def main():
         from isaaclab_tasks.utils import parse_env_cfg
         import sim.envs as envs
         from core.arms.mapping import JointMapping
+        from core.arms.spec import load_arm_spec
+        from core.arms.calibration import resolve_calibration
         from sim.envs.mdp import as_torch
         from sim.envs.rpd_meeting_room_env_cfg import drop_unused_camera_outputs
         from sim.generate.object_spawner import ObjectSpawner
@@ -158,7 +161,13 @@ def main():
         recorder = LeRobotRecorder("Performance profile", "local/performance-profile",
                                    str(args.output / "dataset"), 30, e.device, cameras=cameras)
         recorder.init_dataset()
-        mapping = JointMapping.from_setup(device=e.device)
+        arm, _ = load_arm_spec()
+        selection = resolve_calibration(arm, unit=args.unit) if args.unit else None
+        mapping = JointMapping.from_arm(arm, selection, device=e.device)
+        if selection is not None:
+            from core.utils.recording_alignment import recording_contract, mark_recording_root
+            contract = recording_contract(follower_id=None, leader_id=None, calibration_selection=selection)
+            mark_recording_root(args.output / "dataset", contract)
         initial = as_torch(robot.data.joint_pos).clone()
         limits = as_torch(robot.data.joint_pos_limits)
         phases = torch.arange(6, device=e.device) * 0.7

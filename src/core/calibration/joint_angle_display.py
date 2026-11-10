@@ -11,8 +11,11 @@ class JointAngleTable:
     WIDTHS = (14, 9, 9, 9, 7)
     TITLE = "Joint angles (deg)   S=still M=moving L=limit B=|gap|>180"
 
-    def __init__(self, joint_order, *, stream=None, terminal_size=None):
+    def __init__(self, joint_order, *, stream=None, terminal_size=None, gripper_joints=(), joint_units=None):
         self.order = tuple(joint_order)
+        self.gripper_joints = set(gripper_joints)
+        self.units = dict(zip(self.order, joint_units or ["deg"] * len(self.order)))
+        self.TITLE = "Joint positions (native deg/m)   S=still M=moving L=limit B=full-turn gap"
         self.stream = sys.stdout if stream is None else stream
         self.terminal_size = terminal_size or shutil.get_terminal_size
         self.interactive = bool(self.stream.isatty() and os.environ.get("TERM") != "dumb")
@@ -29,9 +32,9 @@ class JointAngleTable:
         return text if len(text) <= 9 else f"{float(value):+9.1e}"
 
     def _cells(self, row):
-        real = row.get("real_deg", row.get("mapped_follower_degrees"))
-        sim = row.get("sim_deg", row.get("sim_physx_degrees"))
-        gaps = row.get("sim_minus_real_deg", row.get("sim_minus_mapped_follower_degrees"))
+        real = row.get("real", row.get("real_deg", row.get("mapped_follower_degrees")))
+        sim = row.get("sim", row.get("sim_deg", row.get("sim_physx_degrees")))
+        gaps = row.get("sim_minus_real", row.get("sim_minus_real_deg", row.get("sim_minus_mapped_follower_degrees")))
         static = row.get("static")
         limits = row.get("at_limit", row.get("at_runtime_limit", [False] * len(self.order)))
         branches = row.get("suspected_branch_error", [abs(gap) > 180 for gap in gaps])
@@ -53,14 +56,13 @@ class JointAngleTable:
             return "| " + " | ".join(value.ljust(width) for value, width in zip(values, self.WIDTHS)) + " |"
 
         lines = [self.TITLE, border, line(("Joint", "Real", "Sim", "Sim-real", "Flags")), border]
-        names = [name for name in self.order if name != "gripper"]
-        if "gripper" in self.order:
-            names.append("gripper")
+        names = [name for name in self.order if name not in self.gripper_joints]
+        names += [name for name in self.order if name in self.gripper_joints]
         for name in names:
-            if name == "gripper" and len(lines) > 4:
+            if name in self.gripper_joints and len(lines) > 4:
                 lines.append(border)
             self.row_positions[name] = len(lines)
-            lines.append(line((name[:self.WIDTHS[0]], *cells[name])))
+            lines.append(line(((name + " " + self.units[name])[:self.WIDTHS[0]], *cells[name])))
         lines.append(border)
         return lines
 

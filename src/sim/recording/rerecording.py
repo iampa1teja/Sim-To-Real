@@ -145,6 +145,7 @@ def _fresh_group(group, roots):
             old.task_name, old.repo_id, str(roots[name]), old.fps, old.device,
             old.cameras, old.save_mp4, old.depth, old.instance_id_seg,
             features=copy.deepcopy(old.dataset_features), robot_type=old.robot_type,
+            arm=old.arm,
             image_writer_threads_per_camera=old.image_writer_threads_per_camera,
         )
     result = SynchronizedLeRobotRecorders(recorders)

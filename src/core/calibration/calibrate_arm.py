@@ -18,13 +18,45 @@ Afterwards: s2r calibration-check --id <follower id>
 """
 
 import argparse
+from dataclasses import fields, is_dataclass
 import os
-import shutil
-import sys
+import importlib
 
-from core.arms.joint_calibration import FOLLOWER_CALIBRATION_DIR, LEADER_CALIBRATION_DIR
 from core.arms.spec import load_arm_spec
 from core.calibration.check_calibration import calibration_root
+
+
+def calibrate_device(role, lerobot, *, port, device_id, directory):
+    """Use the installed LeRobot calibration lifecycle after registering arm modules."""
+    for module in lerobot.modules:
+        importlib.import_module(module)
+    if role == "leader":
+        from lerobot.teleoperators import TeleoperatorConfig
+        from lerobot.teleoperators.utils import make_teleoperator_from_config
+        config_class = TeleoperatorConfig.get_choice_class(lerobot.leader_type)
+        make_device = make_teleoperator_from_config
+    elif role == "follower":
+        from lerobot.robots import RobotConfig, make_robot_from_config
+        config_class = RobotConfig.get_choice_class(lerobot.follower_type)
+        make_device = make_robot_from_config
+    else:
+        raise ValueError(f"Unknown device role {role!r}")
+    options = dict(port=port, id=device_id, calibration_dir=directory)
+    if not is_dataclass(config_class) or "use_degrees" in {field.name for field in fields(config_class)}:
+        options["use_degrees"] = lerobot.use_degrees
+    config = config_class(**options)
+    device = make_device(config)
+    try:
+        device.connect(calibrate=False)
+        device.calibrate()
+    except BaseException as error:
+        try:
+            device.disconnect()
+        except Exception as cleanup_error:
+            error.add_note(f"Device cleanup also failed: {cleanup_error!r}")
+        raise
+    else:
+        device.disconnect()
 
 
 def main(argv=None):
@@ -34,26 +66,19 @@ def main(argv=None):
     parser.add_argument("--id")
     args = parser.parse_args(argv)
 
-    lerobot = load_arm_spec()[0]["lerobot"]
+    lerobot = load_arm_spec()[0].lerobot
     if args.role == "leader":
-        prefix, kind = "teleop", lerobot["leader_type"]
         port = args.port or os.getenv("TELEOP_PORT", "/dev/ttyACM0")
         device_id = args.id or os.getenv("TELEOP_ID", "leader_arm_1")
-        folder = calibration_root() / LEADER_CALIBRATION_DIR
+        folder = calibration_root() / lerobot.leader_calibration_dir
     else:
-        prefix, kind = "robot", lerobot["follower_type"]
         port = args.port or os.getenv("ROBOT_PORT", "/dev/ttyACM1")
         device_id = args.id or os.getenv("ROBOT_ID", "follower_arm_1")
-        folder = calibration_root() / FOLLOWER_CALIBRATION_DIR
+        folder = calibration_root() / lerobot.follower_calibration_dir
 
-    executable = shutil.which("lerobot-calibrate")
-    if executable is None:
-        raise SystemExit("lerobot-calibrate not found; run this in the sim container or the sim2real env.")
-    command = [executable, f"--{prefix}.type={kind}", f"--{prefix}.port={port}", f"--{prefix}.id={device_id}",
-               f"--{prefix}.use_degrees={str(lerobot['use_degrees']).lower()}", f"--{prefix}.calibration_dir={folder}"]
-    print(f"[calibrate] {args.role} {device_id} on {port}; the file will be saved to {folder / (device_id + '.json')}")
-    sys.stdout.flush()
-    os.execv(executable, command)
+    print(f"[calibrate] {args.role} {device_id} on {port}; the file will be saved to {folder / (device_id + '.json')}",
+          flush=True)
+    calibrate_device(args.role, lerobot, port=port, device_id=device_id, directory=folder)
 
 
 if __name__ == "__main__":

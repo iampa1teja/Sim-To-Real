@@ -1,3 +1,4 @@
+unit: rpd_robot
 # MolmoAct2 base checkpoint (policies/molmoact2/setup_molmoact2.sh) on the fixed benchmark.
 arm: so101
 scene: rpd_meeting_room

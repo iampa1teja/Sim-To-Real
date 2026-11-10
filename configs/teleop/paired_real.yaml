@@ -13,7 +13,7 @@ leader:
 follower:
   enabled: true
   id: rpd_follower
-  calibration_path: /root/.cache/huggingface/lerobot/calibration/robots/so101_follower/rpd_follower.json
+  unit: rpd_follower
   cameras:
     gripper: /dev/video0
     external: /dev/video6

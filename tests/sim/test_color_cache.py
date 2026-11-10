@@ -37,10 +37,11 @@ class ColorCacheTests(unittest.TestCase):
         env = SimpleNamespace(num_envs=1, scene={"blue_cube": object()})
         namespace = {"Gf": Gf, "Usd": Usd, "UsdShade": UsdShade,
                      "get_current_stage": lambda: stage,
+                     "env_indices": lambda env, ids: np.arange(env.num_envs)[ids] if isinstance(ids, slice) else ids,
                      "_env_prim_path": lambda *_: "/Cube"}
         exec(compile(ast.Module(body=[function], type_ignores=[]), str(source), "exec"), namespace)
         set_color = namespace["set_cube_color"]
-        set_color(env, np.array([0]), (1, 0, 0), "red")
+        set_color(env, slice(None), (1, 0, 0), "red")
         self.assertEqual(tuple(color.Get()), (1, 0, 0))
         with patch.object(Usd, "PrimRange", side_effect=AssertionError("cached resets must not traverse")):
             set_color(env, np.array([0]), (0, 1, 0), "green")

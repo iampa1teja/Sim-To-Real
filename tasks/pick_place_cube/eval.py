@@ -2,7 +2,7 @@
 # Isaac-free: recorded starts, cube/box geometry and the eval results report. Quaternions on disk stay WXYZ (v1 format);
 # mdp.py converts at the Isaac boundary.
 # Changes from v1: joint names come from arm.toml instead of hard-coded SO-101 tuples, limits are read lazily
-# (no setup read at import), and the 6-joint shape check uses the arm's joint count.
+# (no setup read at import), and state shapes follow the selected arm's joint count.
 
 from datetime import datetime, timezone
 import json
@@ -12,7 +12,7 @@ from statistics import median
 
 import numpy as np
 
-from core.arms.joint_limits import joint_name_pairs, runtime_joint_limits
+from core.arms.spec import load_arm_spec
 
 
 def rotation_matrix(quaternion):
@@ -63,41 +63,49 @@ def start_episode_ids(directory):
     return ids
 
 
-# LeRobot and USD joint names, paired in arm.toml order ([arm.lerobot] names / [arm.joints] names).
-LEROBOT_JOINTS, USD_JOINTS = (tuple(names) for names in zip(*joint_name_pairs()))
+def usd_limits_deg(arm=None):
+    """Declared physical limits: degrees for revolute joints, metres for prismatic."""
+    arm = arm or load_arm_spec()[0]
+    return {joint.name: tuple(joint.limits) for joint in arm.joints}
 
 
-# Runtime joint limits (degrees) from the scene's measured setup, keyed by LeRobot joint name.
-def usd_limits_deg():
-    return {name: (span["joint_min"], span["joint_max"]) for name, span in runtime_joint_limits().items()}
-
-
-# Dataset units (observation.state) -> sim joint radians, in LEROBOT_JOINTS order.
+# Dataset units (observation.state) -> radians/metres in arm.toml action order.
 # Arm joints map -100..100 and the gripper 0..100 onto the calibrated span (joint_mapping overrides it per joint),
 # then clamp to the runtime limits. Frozen eval sets carry their own joint_mapping; the
 # conversion itself is shared with JointMapping.
-def dataset_state_to_radians(state, joint_mapping=None):
-    limits = usd_limits_deg()
+def dataset_state_to_radians(state, joint_mapping=None, *, arm=None):
+    arm = arm or load_arm_spec()[0]
+    limits = usd_limits_deg(arm)
+    names = arm.joint_names
     state = np.asarray(state, dtype=float)
-    if state.shape != (len(LEROBOT_JOINTS),) or not np.isfinite(state).all():
-        raise ValueError(f"Robot state must be {len(LEROBOT_JOINTS)} finite values, got {state!r}")
-    mapping = {name: limits[name] for name in LEROBOT_JOINTS}
+    if state.shape != (len(names),) or not np.isfinite(state).all():
+        raise ValueError(f"Robot state must be {len(names)} finite values, got {state!r}")
+    spans = arm.runtime_joint_limits
     for name, span in (joint_mapping or {}).items():
-        if name not in mapping:
+        if name not in spans:
             raise ValueError(f"Unknown joint mapping: {name}")
-        mapping[name] = (float(span["joint_min"]), float(span["joint_max"]))
-    from core.arms.joint_calibration import GRIPPER_JOINT
-    from core.arms.mapping import units_to_degrees
+        spans[name] = dict(span)
+    from core.arms.mapping import mapping_for_arm, units_to_physical
 
-    spans = {name: dict(joint_min=low, joint_max=high) for name, (low, high) in mapping.items()}
-    degrees = units_to_degrees(state, spans, LEROBOT_JOINTS, gripper_joints=(GRIPPER_JOINT,))
-    low, high = np.asarray([limits[name] for name in LEROBOT_JOINTS]).T
-    return np.deg2rad(np.clip(degrees, low, high))
+    spans = mapping_for_arm(arm, spans)
+    physical = units_to_physical(state, spans, names, gripper_joints=arm.gripper_joint_names)
+    low, high = np.asarray([limits[name] for name in names]).T
+    physical = np.clip(physical, low, high)
+    revolute = np.asarray([joint.type == "revolute" for joint in arm.joints])
+    return np.where(revolute, np.deg2rad(physical), physical)
 
 
-def load_robot_starts(dataset_root, episode_ids):
+def load_robot_starts(dataset_root, episode_ids, *, arm=None):
     """First-frame observation.state of each episode, read from the dataset parquet files."""
     import pyarrow.parquet as pq
+
+    arm = arm or load_arm_spec()[0]
+    metadata = Path(dataset_root) / "meta/info.json"
+    if metadata.is_file():
+        features = json.loads(metadata.read_text()).get("features", {})
+        names = features.get("observation.state", {}).get("names")
+        if names is not None and tuple(names) != arm.feature_names:
+            raise ValueError(f"Recorded robot state joint order differs from arm {arm.name!r}")
 
     paths = sorted(Path(dataset_root).glob("data/*/*.parquet"))
     if not paths:
@@ -114,21 +122,22 @@ def load_robot_starts(dataset_root, episode_ids):
     if missing:
         raise ValueError(f"No first-frame robot state in {dataset_root} for episodes {missing}")
     for episode in episode_ids:
-        if first[episode].shape != (len(LEROBOT_JOINTS),) or not np.isfinite(first[episode]).all():
+        if first[episode].shape != (len(arm.joint_names),) or not np.isfinite(first[episode]).all():
             raise ValueError(f"Invalid first-frame robot state for episode {episode}")
     return [first[e] for e in episode_ids]
 
 
 class RecordedStarts:
-    def __init__(self, directory, mode='cycle', random_fraction=0.0, seed=None, robot_states_root=None):
+    def __init__(self, directory, mode='cycle', random_fraction=0.0, seed=None, robot_states_root=None, *, arm=None):
         if mode not in ('cycle', 'random'):
             raise ValueError('start mode must be cycle or random')
         if not 0 <= random_fraction <= 1:
             raise ValueError('random_fraction must be in [0, 1]')
         self.starts = load_starts(directory)
         self.episode_ids = start_episode_ids(directory)
+        self.arm = arm or load_arm_spec()[0]
         # Optional: the arm's recorded first-frame state, paired with each cube start.
-        self.robot_states = (load_robot_starts(robot_states_root, self.episode_ids)
+        self.robot_states = (load_robot_starts(robot_states_root, self.episode_ids, arm=self.arm)
                              if robot_states_root is not None else None)
         xy = np.array([p[:2] for p, _ in self.starts])
         self.low, self.high = xy.min(axis=0), xy.max(axis=0)

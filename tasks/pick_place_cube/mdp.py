@@ -26,7 +26,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 from isaaclab.sim import get_current_stage
 
-from sim.envs.mdp.resets import _env_prim_path, _wxyz, _xyzw, as_torch
+from sim.envs.mdp.resets import _env_prim_path, _wxyz, _xyzw, as_torch, env_indices
 
 
 # ---------------------------------------------------------------------------
@@ -52,14 +52,16 @@ def reset_cube_from_recorded_starts(
     same initial conditions it was trained on.
     """
     from .eval import (
-        RecordedStarts, USD_JOINTS, dataset_state_to_radians, resting_pose, rotation_matrix,
+        RecordedStarts, dataset_state_to_radians, resting_pose, rotation_matrix,
         footprint, footprints_overlap, upright_orientation,
     )
     from . import TASK
+    from core.arms.spec import load_arm_spec
     from sim.scene.gripper_geometry import table_plane
 
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
+    arm = load_arm_spec()[0]
+
+    env_ids = env_indices(env, env_ids)
     if not len(env_ids):
         return
     starts_dir = starts_dir or os.environ.get("PICK_PLACE_EVAL_STARTS")
@@ -72,17 +74,17 @@ def reset_cube_from_recorded_starts(
             from .benchmark import EvalSetStarts
 
             env._pick_place_starts = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset,
-                                                   selection=selection)
+                                                   selection=selection, arm=arm)
         else:
             env._pick_place_starts = RecordedStarts(starts_dir, mode, random_fraction, seed,
-                                                    robot_states_root=_robot_states_root(starts_dir, reset_robot))
+                                                    robot_states_root=_robot_states_root(starts_dir, reset_robot), arm=arm)
         env._pick_place_starts_key = key
     sampler = env._pick_place_starts
     asset, robot, box = env.scene[asset_cfg.name], env.scene["robot"], env.scene["white_box"]
     env.sim.forward()
-    base_ids, _ = robot.find_bodies("base")
+    base_ids, _ = robot.find_bodies(arm.links.base)
     if len(base_ids) != 1:
-        raise ValueError("Recorded starts require exactly one robot body named base")
+        raise ValueError(f"Recorded starts require exactly one robot base body named {arm.links.base!r}")
     base_id = base_ids[0]
     size = asset.cfg.spawn.size
     stage = get_current_stage()
@@ -131,9 +133,9 @@ def reset_cube_from_recorded_starts(
                 # Frozen benchmark arm units belong to their saved mapping.
                 # Preserve the physical start when the active command mapping changes.
                 start_mapping = sampler.data.get("scene", {}).get("joint_mapping", start_mapping)
-            joint_starts.append(dataset_state_to_radians(sampler.robot_state(start), start_mapping))
+            joint_starts.append(dataset_state_to_radians(sampler.robot_state(start), start_mapping, arm=arm))
     if reset_robot:
-        joint_ids, _ = robot.find_joints(list(USD_JOINTS), preserve_order=True)
+        joint_ids, _ = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)
         joint_dtype = as_torch(robot.data.joint_pos).dtype
         joint_pos = torch.as_tensor(np.array(joint_starts), device=env.device, dtype=joint_dtype)
         robot.write_joint_state_to_sim_index(
@@ -181,8 +183,7 @@ def check_pick_place_eval_event_order(env, env_ids):
 
 def randomize_cube_color(env, env_ids, colors):
     """Pick a random palette colour per env, apply it, and return the chosen names."""
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
+    env_ids = env_indices(env, env_ids)
     names = list(colors)
     if not names:
         raise ValueError("Cube colour palette must not be empty")
@@ -198,8 +199,7 @@ def randomize_cube_color(env, env_ids, colors):
 
 def set_cube_color(env, env_ids, rgb: tuple[float, float, float], name):
     """Set the cube's bound surface shader colour in each listed environment."""
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
+    env_ids = env_indices(env, env_ids)
     asset = env.scene["blue_cube"]
     stage = get_current_stage()
     if not hasattr(env, "_pick_place_cube_color"):
@@ -252,8 +252,7 @@ def set_light_exposure_at(stage, prim_path, exposure):
 
 def set_pick_place_room_light(env, env_ids, exposure):
     """Set exposure on each measured room tube light that exists."""
-    if env_ids is None:
-        env_ids = torch.arange(env.num_envs, device=env.device)
+    env_ids = env_indices(env, env_ids)
     stage = get_current_stage()
     room = env.scene["room"]
     for index in env_ids.tolist():

@@ -39,7 +39,7 @@ def main():
     args = parser.parse_args()
 
     def folders(kind, marker):
-        return sorted(p.name for p in repo_dir(kind).iterdir() if (p / marker).is_file())
+        return sorted(p.name for p in repo_dir(kind).iterdir() if not p.name.startswith("_") and (p / marker).is_file())
 
     tasks = available_tasks()
     print(f"arms:   {', '.join(folders('arms', 'arm.toml')) or '-'}")

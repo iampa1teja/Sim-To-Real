@@ -47,7 +47,7 @@ _RENAMES = {
     "smoke_test": {"enabled": "smoke_test", "selection": "smoke_selection",
                    "reach_timeout_s": "smoke_reach_timeout_s", "progress_timeout_s": "smoke_progress_timeout_s"},
 }
-_TOP_LEVEL = {"arm", "scene", "task", "variant"}
+_TOP_LEVEL = {"arm", "scene", "task", "variant", "unit"}
 
 
 def _positive_float(value):
@@ -129,6 +129,7 @@ def _build_parser():
     parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
     parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
     parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
+    parser.add_argument("--unit", default=os.environ.get("S2R_UNIT"), help="arm calibration unit ID")
     parser.add_argument("--variant", default="eval", help="Task variant (eval, eval_dr, ...)")
     parser.add_argument("--disable_fabric", action="store_true", default=False,
                         help="Disable fabric and use USD I/O operations.")
@@ -261,6 +262,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
 
     import sim.envs
     from core.arms.mapping import JointMapping
+    from core.arms.spec import load_arm_spec
+    from core.arms.calibration import resolve_calibration
     from core.policy_client.grasp import GraspConfig
     from core.results.eval_resume import load_episodes, next_video_attempt, read_report, write_report
     from core.tasks.loader import load_task_module
@@ -340,6 +343,9 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     env_cfg = parse_env_cfg(env_id, device=args_cli.device, num_envs=args_cli.num_envs,
                             use_fabric=not args_cli.disable_fabric)
     env_cfg.seed = args_cli.seed
+    arm, _ = load_arm_spec(args_cli.arm)
+    calibration = resolve_calibration(arm, unit=args_cli.unit)
+    env_cfg.sim_joint_mapping = dict(calibration.mapping)
     print(f"[INFO]: Env {env_id}; robot USD: {env_cfg.scene.robot.spawn.usd_path}")
     if args_cli.episode_length_s is not None:
         env_cfg.episode_length_s = args_cli.episode_length_s
@@ -407,9 +413,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
         print("[Info]: No cameras found - videos will not be recorded")
 
     rename_map = json.loads(args_cli.rename_map) if args_cli.rename_map else None
-    # The env's mapping (real_setup.json sim_joint_mapping) converts sim radians <-> policy raw units.
-    mapping = JointMapping.from_setup(SimpleNamespace(mapping=getattr(env.unwrapped.cfg, "sim_joint_mapping", None)),
-                                      device=env.unwrapped.device)
+    # The selected physical unit defines the policy/dataset raw-unit convention.
+    mapping = JointMapping.from_arm(arm, calibration, device=env.unwrapped.device)
     if args_cli.rerun:
         from sim.teleop.devices import init_rerun
         init_rerun("s2r_eval")
@@ -456,7 +461,8 @@ def _evaluate(args_cli, simulation_app):  # noqa: C901
     if smoke_test and pick_place and args_cli.policy == "molmoact2":
         from sim.eval.grasp_diagnostics import install_grasp_diagnostics
         grasp_diagnostics = install_grasp_diagnostics(env.unwrapped, mapping, step_dt)
-        print("[INFO]: Smoke grasp diagnostics enabled (millimetres; in memory only).", flush=True)
+        if grasp_diagnostics is not None:
+            print("[INFO]: Smoke grasp diagnostics enabled (millimetres; in memory only).", flush=True)
 
     task_eval = load_task_module("eval", task.name)
     select_instruction, results_report = task_eval.select_instruction, task_eval.results_report

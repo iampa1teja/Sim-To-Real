@@ -16,6 +16,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--steps", type=int, default=300)
+    parser.add_argument("--permute-joints", action="store_true",
+                        help="Verify manifest action order differs from the SO101 USD articulation order")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     os.environ.update(S2R_ARM="so101", S2R_SCENE="rpd_meeting_room", S2R_TASK="pick_place_cube")
@@ -29,6 +31,16 @@ def main():
             headless=not args.gui, visualizer="kit" if args.gui else None,
             enable_cameras=True, kit_args=rendering_kit_args(),
         ).app
+        if args.permute_joints:
+            from dataclasses import replace
+            from core.arms import spec as arm_specs
+            original_load_arm_spec = arm_specs.load_arm_spec
+
+            def reordered_arm(name=None, variant=None):
+                arm, directory = original_load_arm_spec(name, variant)
+                return replace(arm, joints=tuple(arm.joints[index] for index in (4, 1, 5, 2, 0, 3))), directory
+
+            arm_specs.load_arm_spec = reordered_arm
         import gymnasium as gym
         import numpy as np
         import torch
@@ -37,6 +49,7 @@ def main():
         from isaaclab_tasks.utils import parse_env_cfg
         import sim.envs as envs
         from core.arms.mapping import JointMapping
+        from core.arms.spec import load_arm_spec
         from sim.envs.mdp import as_torch
         from sim.envs.mdp.resets import _env_prim_path
         from sim.generate.object_spawner import ObjectSpawner
@@ -70,18 +83,23 @@ def main():
         env = gym.make(env_id, cfg=cfg)
         e = env.unwrapped
         robot = e.scene["robot"]
+        arm = load_arm_spec()[0]
+        joint_ids, joint_names = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)
+        result["joint_order"] = joint_names
+        assert joint_names == list(arm.usd_joint_names)
+        assert e.action_manager.get_term("joint_positions")._joint_names == joint_names
         obs, _ = env.reset()
         # A 20 mm cube cannot be inserted between the closed fingers. Open the
         # jaw through the normal action path before testing jaw-relative spawn;
         # the later sinusoid keeps that jaw open while the arm moves.
-        jaw = robot.find_joints("Jaw")[0][0]
-        fixture_target = as_torch(robot.data.joint_pos).clone()
+        jaw = joint_names.index("Jaw")
+        fixture_target = as_torch(robot.data.joint_pos)[:, joint_ids].clone()
         fixture_target[:, jaw] = 0.6
         for _ in range(30):
             obs, *_ = env.step(fixture_target)
-        result["spawn_jaw_position_rad"] = float(as_torch(robot.data.joint_pos)[0, jaw])
+        result["spawn_jaw_position_rad"] = float(as_torch(robot.data.joint_pos)[0, joint_ids[jaw]])
         assert result["spawn_jaw_position_rad"] > 0.5, result["spawn_jaw_position_rad"]
-        mapping = JointMapping.from_setup(device=e.device)
+        mapping = JointMapping.from_arm(load_arm_spec()[0], device=e.device)
         # Frame construction only: no dataset is opened or written.
         recorder = LeRobotRecorder("runtime check", "local/check", "/tmp/unused-s2r-check", 30, e.device)
         spawner = ObjectSpawner(e, task=envs.TASK, port=0)
@@ -99,12 +117,12 @@ def main():
         result["spawn_table_clearance_m"] = float(gap)
         assert float(gap) >= 0.00019, result["spawn"]
 
-        initial = as_torch(robot.data.joint_pos).clone()
-        limits = as_torch(robot.data.joint_pos_limits)
+        initial = as_torch(robot.data.joint_pos)[:, joint_ids].clone()
+        limits = as_torch(robot.data.joint_pos_limits)[:, joint_ids]
         max_error = max_relative_error = max_abs = max_raw = 0.0
         samples, durations = [], []
         early_images = {}
-        phases = torch.arange(6, device=e.device) * 0.7
+        phases = torch.arange(len(joint_names), device=e.device) * 0.7
         viewport = None
         if args.gui:
             from omni.kit.viewport.utility import get_active_viewport
@@ -116,8 +134,8 @@ def main():
                 target = torch.clamp(target, limits[..., 0] + 0.01, limits[..., 1] - 0.01)
                 started = time.perf_counter()
                 obs, *_ = env.step(target)
-                q = as_torch(robot.data.joint_pos)
-                default = as_torch(robot.data.default_joint_pos)
+                q = as_torch(robot.data.joint_pos)[:, joint_ids]
+                default = as_torch(robot.data.default_joint_pos)[:, joint_ids]
                 measured = obs["policy"]["joint_pos_obs"]
                 relative = obs["policy"]["joint_pos_rel"]
                 torch.testing.assert_close(measured, q, rtol=0, atol=1e-6)

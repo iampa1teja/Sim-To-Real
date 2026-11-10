@@ -1,3 +1,4 @@
+unit: rpd_robot
 # MolmoAct2 SO-101 checkpoint (setup_molmoact2.sh --variant so101), full benchmark with videos.
 arm: so101
 scene: rpd_meeting_room

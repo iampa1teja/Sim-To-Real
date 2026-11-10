@@ -21,7 +21,9 @@ def capture_scene(env):
     from isaaclab.sim import get_current_stage
 
     from core.tasks.loader import load_task
-    from sim.envs.base_env_cfg import BASE_LINK
+    from core.arms.spec import load_arm_spec
+
+    base_link = load_arm_spec()[0].links.base
     from sim.envs.mdp.resets import _wxyz
     from sim.scene.gripper_geometry import table_plane
 
@@ -31,9 +33,9 @@ def capture_scene(env):
     stage = get_current_stage()
     env.sim.forward()
     robot, box = env.scene["robot"], env.scene["white_box"]
-    ids, _ = robot.find_bodies(BASE_LINK)
+    ids, _ = robot.find_bodies(base_link)
     if len(ids) != 1:
-        raise ValueError(f"Expected exactly one robot body named {BASE_LINK!r}")
+        raise ValueError(f"Expected exactly one robot body named {base_link!r}")
     base_p = _numpy(robot.data.body_link_pos_w)[0, ids[0]]
     base_q = _wxyz(_numpy(robot.data.body_link_quat_w)[0, ids[0]])
     box_p = _numpy(box.data.root_pos_w)[0]

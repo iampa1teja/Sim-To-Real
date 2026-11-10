@@ -34,11 +34,12 @@ class SceneReplayer:
 
     def __init__(self, env, mapping, dr_ranges, cameras,
                  external_camera="camera_realsense_rgb", wrist_camera="camera_wrist_cam",
-                 render_passes=2, object_name="blue_cube", task="pick_place_cube"):
+                 render_passes=2, object_name="blue_cube", task="pick_place_cube", arm=None):
         """mapping: core.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
-        from sim.envs.base_env_cfg import BASE_LINK, JOINT_NAMES
+        from core.arms.spec import load_arm_spec
 
         self.env = env
+        self.arm = arm or load_arm_spec()[0]
         self.mapping = mapping
         self.dr_ranges = dr_ranges
         self.cameras = list(cameras)
@@ -48,8 +49,8 @@ class SceneReplayer:
         self.robot = env.scene["robot"]
         self.cube = env.scene[object_name]
         self.task_mdp = load_task_module("mdp", task)
-        self.base_body_id = self.robot.find_bodies(BASE_LINK)[0][0]
-        self.joint_ids, _ = self.robot.find_joints(JOINT_NAMES, preserve_order=True)
+        self.base_body_id = self.robot.find_bodies(self.arm.links.base)[0][0]
+        self.joint_ids, _ = self.robot.find_joints(list(self.arm.usd_joint_names), preserve_order=True)
         self.env_ids = torch.arange(env.num_envs, device=env.device)
 
     def apply(self, color_rgb, color_name, draw: DRDraw | None) -> None:
@@ -81,7 +82,7 @@ class SceneReplayer:
 
     def pose_frame(self, state_raw, pose_base) -> None:
         """Write one recorded frame: joints from observation.state, object from its base-link pose (WXYZ)."""
-        q = self.mapping.to_radians(np.asarray(state_raw)).reshape(1, -1)
+        q = self.mapping.to_sim(np.asarray(state_raw)).reshape(1, -1)
         q = q.to(as_torch(self.robot.data.joint_pos).dtype)
         self.robot.write_joint_state_to_sim_index(position=q, velocity=torch.zeros_like(q),
                                                   joint_ids=self.joint_ids, env_ids=self.env_ids)

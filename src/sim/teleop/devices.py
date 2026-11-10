@@ -1,26 +1,21 @@
 import os
-from dataclasses import dataclass
+import importlib
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Any
 
 import rerun as rr
 from lerobot.cameras.opencv import OpenCVCameraConfig
-from lerobot.robots import RobotConfig, make_robot_from_config, so_follower  # noqa: F401 (register configs)
-from lerobot.teleoperators import TeleoperatorConfig, so_leader  # noqa: F401 (register configs)
+from lerobot.robots import RobotConfig, make_robot_from_config
+from lerobot.teleoperators import TeleoperatorConfig
 from lerobot.teleoperators.utils import make_teleoperator_from_config
 from lerobot.processor import make_default_processors
 from lerobot.datasets.pipeline_features import aggregate_pipeline_dataset_features, create_initial_features
 from lerobot.utils.feature_utils import combine_feature_dicts,  build_dataset_frame
 from lerobot.utils.constants import ACTION, OBS_STR
 
-from core.arms.joint_calibration import load_device_calibration, resolve_calibration
+from core.arms.calibration import load_device_calibration, resolve_calibration
 from core.arms.spec import load_arm_spec
-
-def _lerobot_config(spec: dict) -> dict:
-    try:
-        return spec["lerobot"]
-    except (KeyError, TypeError) as exc:
-        raise ValueError("Arm specification must contain a 'lerobot' section.") from exc
 
 def make_camera_configs(cameras: dict, fps: int,) -> dict:
     result = {}
@@ -43,25 +38,38 @@ def make_device_config(kind: str, port: str, id: str, cameras: dict, fps: int, s
     No SO101-specific LeRobot config classes are imported here.
     ``options`` adds follower-config fields (e.g. max_relative_target, disable_torque_on_disconnect).
     """
-    spec, _ = load_arm_spec()
-    lerobot = _lerobot_config(spec)
+    spec = getattr(selection, "arm", None) or load_arm_spec()[0]
+    lerobot = spec.lerobot
+    for module in lerobot.modules:
+        importlib.import_module(module)
 
     common = {
         "port": port,
         "id": id,
-        "use_degrees": lerobot["use_degrees"],
+        "use_degrees": lerobot.use_degrees,
     }
 
     path = getattr(selection, f"{kind}_path", None) if selection is not None else None
-    if path is not None:
+    if path is not None and lerobot.calibration == "per_unit":
         common["calibration_dir"] = path.parent
 
     if kind == "follower":
-        config_class = RobotConfig.get_choice_class(lerobot["follower_type"])
-        return config_class(**common, cameras=make_camera_configs(cameras, fps), **(options or {}),)
+        config_class = RobotConfig.get_choice_class(lerobot.follower_type)
+        supported = {item.name for item in fields(config_class)}
+        common = {name: value for name, value in common.items() if name in supported}
+        if "cameras" in supported:
+            common["cameras"] = make_camera_configs(cameras, fps)
+        elif cameras:
+            raise ValueError(f"Follower {lerobot.follower_type!r} does not support cameras")
+        unsupported = set(options or {}) - supported
+        if unsupported:
+            raise ValueError(f"Follower {lerobot.follower_type!r} does not support options {sorted(unsupported)}")
+        return config_class(**common, **(options or {}))
 
     if kind == "leader":
-        config_class = TeleoperatorConfig.get_choice_class(lerobot["leader_type"])
+        config_class = TeleoperatorConfig.get_choice_class(lerobot.leader_type)
+        supported = {item.name for item in fields(config_class)}
+        common = {name: value for name, value in common.items() if name in supported}
         return config_class(**common)
 
     raise ValueError(f"Unsupported device kind: {kind!r}")
@@ -90,7 +98,7 @@ class Device:
             self.selection = resolve_calibration(**{f"{self.kind}_id": self.cfg.id})
 
         path = getattr(self.selection, f"{self.kind}_path")
-        if path is not None:
+        if path is not None and self.selection.arm.lerobot.calibration == "per_unit":
             load_device_calibration(self.device, path)
         self.selection.verify_loaded(self.device, self.kind)
 
@@ -98,8 +106,11 @@ class Device:
             def refuse(*_args, **_kwargs):
                 raise RuntimeError("Calibration is disabled for this session")
             self.device.calibrate = refuse
-            self.device._save_calibration = refuse
-            self.device.bus.write_calibration = refuse
+            if hasattr(self.device, "_save_calibration"):
+                self.device._save_calibration = refuse
+            bus = getattr(self.device, "bus", None)
+            if bus is not None and hasattr(bus, "write_calibration"):
+                bus.write_calibration = refuse
         self.device.connect(calibrate=calibrate)
 
         if not calibrate and not self.device.is_calibrated:
@@ -144,6 +155,11 @@ class Device:
     def disconnect(self) -> None:
         robot = self.device
         if robot is None:
+            return
+
+        if self.selection is not None and self.selection.arm.lerobot.calibration == "factory":
+            if self.is_connected:
+                robot.disconnect()
             return
 
         errors = []

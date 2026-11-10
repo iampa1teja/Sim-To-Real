@@ -16,11 +16,11 @@ Usage (in the sim container started with compose.hardware.yaml):
 """
 
 import argparse
+from dataclasses import fields, is_dataclass
 import json
 import os
 from pathlib import Path
 
-from core.arms.joint_calibration import FOLLOWER_CALIBRATION_DIR
 from core.arms.spec import load_arm_spec
 
 # Standard deviations from the mean motion range before a joint is flagged.
@@ -29,7 +29,7 @@ N_STD = 2.0
 HOMING_OFFSET_WARN = 2048
 
 
-# Folder LeRobot calibration files live under (same default as core.arms.joint_calibration.resolve_calibration).
+# Folder LeRobot calibration files live under (same default as core.arms.calibration.resolve_calibration).
 def calibration_root():
     return Path(os.environ.get("HF_LEROBOT_CALIBRATION") or "~/.cache/huggingface/lerobot/calibration").expanduser()
 
@@ -90,10 +90,15 @@ def live_check(bus, calibration):
 def read_live(port, robot_id, calibration_path, calibration):
     from lerobot.robots import RobotConfig, make_robot_from_config
 
-    lerobot = load_arm_spec()[0]["lerobot"]
-    config_class = RobotConfig.get_choice_class(lerobot["follower_type"])
-    config = config_class(port=port, id=robot_id, use_degrees=lerobot["use_degrees"],
-                          calibration_dir=Path(calibration_path).parent)
+    lerobot = load_arm_spec()[0].lerobot
+    import importlib
+    for module in lerobot.modules:
+        importlib.import_module(module)
+    config_class = RobotConfig.get_choice_class(lerobot.follower_type)
+    options = dict(port=port, id=robot_id, calibration_dir=Path(calibration_path).parent)
+    if not is_dataclass(config_class) or "use_degrees" in {field.name for field in fields(config_class)}:
+        options["use_degrees"] = lerobot.use_degrees
+    config = config_class(**options)
     robot = make_robot_from_config(config)
     robot.bus.connect()
     try:
@@ -151,7 +156,7 @@ def main(argv=None):
     parser.add_argument("--no-live", action="store_true", help="skip the live encoder check (no hardware needed)")
     args = parser.parse_args(argv)
 
-    calibration_path = Path(args.file) if args.file else calibration_root() / FOLLOWER_CALIBRATION_DIR / f"{args.id}.json"
+    calibration_path = Path(args.file) if args.file else calibration_root() / load_arm_spec()[0].lerobot.follower_calibration_dir / f"{args.id}.json"
     if not calibration_path.is_file():
         raise SystemExit(f"Calibration file not found: {calibration_path}\n"
                          "Run `s2r calibrate follower` first, or pass --id / --file.")

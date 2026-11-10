@@ -21,7 +21,6 @@ import argparse
 import json
 import os
 from pathlib import Path
-from types import SimpleNamespace
 
 from core.utils.provenance import git_commit
 from sim.app import apply_selection, rendering_kit_args
@@ -50,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int, default=0,
                         help="Replay only the first N planned episodes (0 = all); for quick checks")
     parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
+    parser.add_argument("--unit", help="Calibration unit; required for legacy per-unit datasets without saved mapping")
     parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
     parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
     parser.add_argument("--variant", default="teleop", help="Task variant without terminations")
@@ -130,20 +130,25 @@ def discover_sim_cameras(env) -> dict:
     }
 
 
-def make_mapping(env):
-    """Raw dataset units <-> sim radians with the env's joint mapping; no robot hardware is opened."""
+def make_mapping(env, *, arm=None, mapping=None, source_root=None, unit=None):
+    """Use recorded calibration or an explicit unit; no scene calibration or hardware reads."""
     from core.arms.mapping import JointMapping
+    from core.arms.spec import load_arm_spec
+    from sim.recording.replay_source import replay_joint_mapping
 
-    mapping = getattr(env.unwrapped.cfg, "sim_joint_mapping", None)
-    return JointMapping.from_setup(SimpleNamespace(mapping=mapping), device=env.unwrapped.device)
+    arm = arm or load_arm_spec()[0]
+    if mapping is None:
+        mapping, _ = replay_joint_mapping(source_root, arm, unit)
+    return JointMapping.from_arm(arm, mapping, device=env.unwrapped.device)
 
 
-def make_writer(args, sim_cameras, device):
+def make_writer(args, sim_cameras, device, *, arm=None):
     from sim.recording.lerobot_recorder import LeRobotRecorder
 
     writer = LeRobotRecorder(
         task_name=args.lang_blue,  # default only; every frame's task is set per episode
         repo_id=args.dst_repo_id, dataset_root=args.dst_root, fps=args.fps, device=device, cameras=sim_cameras,
+        arm=arm,
     )
     writer.init_dataset()
     return writer
@@ -190,7 +195,10 @@ def main(argv=None):
     import torch
 
     from sim.generate.dr_variants import COLORS, build_manifest, parse_csv, plan_episodes, write_json_atomic
-    from sim.recording.replay_source import load_source
+    from sim.recording.replay_source import load_source, replay_joint_mapping
+    from core.arms.spec import load_arm_spec
+
+    arm, _ = load_arm_spec(args.arm)
 
     colors = parse_csv(args.colors, COLORS)
     terms = parse_dr_terms(args.dr)
@@ -200,13 +208,16 @@ def main(argv=None):
         raise FileExistsError(f"Destination already exists: {args.dst_root}")
 
     if args.dry_run:
-        source = load_source(args.src_root, args.src_repo_id, exclude)
+        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm)
         # Draws depend only on each episode's seed + the config ranges, so they are reproduced
         # exactly in the real run; the ranges themselves need Isaac Sim, so they are not shown here.
         print_plan(plan_episodes([s.index for s in source], colors, [], None, args.seed,
                                  args.include_originals, args.lang_blue, args.lang_red))
         print(f"DR terms for the real run: {terms or 'none'}")
         return
+
+    joint_mapping, calibration = replay_joint_mapping(args.src_root, arm, args.unit)
+    print(f"[INFO]: Replay calibration: {calibration}")
 
     from isaaclab.app import AppLauncher
     AppLauncher.add_app_launcher_args(parser)
@@ -220,7 +231,7 @@ def main(argv=None):
         import sim.envs
         from sim.recording.replay_scene import SceneReplayer
 
-        source = load_source(args.src_root, args.src_repo_id, exclude)
+        source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm)
         ranges = read_dr_ranges(sim.envs.TASK)
         plan = plan_episodes([s.index for s in source], colors, terms, ranges, args.seed,
                              args.include_originals, args.lang_blue, args.lang_red)
@@ -230,8 +241,9 @@ def main(argv=None):
 
         env = make_env(args)
         sim_cameras = discover_sim_cameras(env)
-        replayer = SceneReplayer(env.unwrapped, make_mapping(env), ranges, sim_cameras, task=args.task)
-        writer = make_writer(args, sim_cameras, env.unwrapped.device)
+        mapping = make_mapping(env, arm=arm, mapping=joint_mapping)
+        replayer = SceneReplayer(env.unwrapped, mapping, ranges, sim_cameras, task=args.task, arm=arm)
+        writer = make_writer(args, sim_cameras, env.unwrapped.device, arm=arm)
 
         by_index = {s.index: s for s in source}
         with torch.inference_mode():
@@ -239,8 +251,12 @@ def main(argv=None):
                 print(f"[{n}/{len(plan)}] src {planned.src_index} -> dst {planned.dst_index} ({planned.color})")
                 replay_episode(replayer, writer, by_index[planned.src_index], planned, args.fps)
 
-        write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json",
-                          build_manifest(plan, _json_args(args), git_commit(REPO_ROOT)))
+        manifest = build_manifest(plan, _json_args(args), git_commit(REPO_ROOT))
+        manifest.update(arm=arm.name, joint_names=list(arm.joint_names), joint_mapping=joint_mapping,
+                        joint_units=[joint.unit for joint in arm.joints],
+                        joint_roles=[joint.role for joint in arm.joints], use_degrees=arm.lerobot.use_degrees,
+                        calibration=calibration)
+        write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json", manifest)
         print(f"[INFO]: Wrote {len(plan)} episodes to {args.dst_root}")
     finally:
         if writer is not None:

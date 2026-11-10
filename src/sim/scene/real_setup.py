@@ -3,14 +3,11 @@ import json
 
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade
 
-from core.arms.spec import ARM_NAME, arms_dir  # noqa: F401  (ARM_NAME re-exported)
 from core.paths import repo_dir as _repo_dir  # noqa: F401  (kept for existing imports)
 from core.scenes import SCENE_NAME, load_setup, scene_dir  # noqa: F401
 
 # Measured room: real_setup.json, textures/ and usd/digital_twin.usdz live in scenes/<scene>/.
 ASSET_DIR = scene_dir()
-# Arm-specific visuals (the real wrist camera mount) live with the arm.
-ARM_USD_DIR = arms_dir() / ARM_NAME / "usd"
 SETUP = load_setup()
 DEFAULT_SETUP_USDZ = str(ASSET_DIR / "usd" / "digital_twin.usdz")
 
@@ -177,61 +174,18 @@ def apply_table_planar_uv(stage, room_root, frame):
 
 
 def apply_robot_appearance(stage, robot_root, arm_color=None):
-    """Apply the real arm's beige plastic, charcoal motors and yellow wrist mount."""
-    look = SETUP['appearance']
-    arm_color = look['robot_beige'] if arm_color is None else arm_color
-    for material_name, color, roughness in (
-        ('material_a_3d_printed', arm_color, look['robot_plastic_roughness']),
-        ('material_sts3215', look['motor_charcoal'], look['motor_roughness']),
-    ):
-        prim = stage.GetPrimAtPath(f'{robot_root}/Looks/{material_name}/Shader')
-        if not prim.IsValid():
-            continue
-        shader = UsdShade.Shader(prim)
-        is_preview = shader.GetIdAttr().Get() == 'UsdPreviewSurface'
-        shader.CreateInput('diffuseColor' if is_preview else 'diffuse_color_constant', Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*color))
-        shader.CreateInput('roughness' if is_preview else 'reflection_roughness_constant', Sdf.ValueTypeNames.Float).Set(roughness)
-    # Make just the camera mount editable; keep lens/PCB/motor materials intact.
-    for suffix in ('/gripper/visuals', '/gripper/visuals/camera_mount'):
-        prim = stage.GetPrimAtPath(robot_root + suffix)
-        if prim.IsValid() and prim.IsInstance():
-            prim.SetInstanceable(False)
-    mount = stage.GetPrimAtPath(robot_root + '/gripper/visuals/camera_mount/mount')
-    if mount.IsValid() and not mount.IsInstanceProxy():
-        material = UsdShade.Material.Define(stage, robot_root + '/Looks/WristMountYellow')
-        shader = UsdShade.Shader.Define(stage, str(material.GetPath()) + '/Shader')
-        shader.CreateIdAttr('UsdPreviewSurface')
-        shader.CreateInput('diffuseColor', Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*look['wrist_mount_yellow']))
-        shader.CreateInput('roughness', Sdf.ValueTypeNames.Float).Set(look['wrist_mount_roughness'])
-        material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), 'surface')
-        UsdShade.MaterialBindingAPI.Apply(mount).Bind(material, bindingStrength=UsdShade.Tokens.strongerThanDescendants)
-    apply_real_wrist_mount_visual(stage, robot_root)
+    """Apply the selected arm's optional appearance hook using the scene look."""
+    from core.arms.spec import load_arm_spec, load_arm_utils
 
-
-def apply_real_wrist_mount_visual(stage, robot_root):
-    """Replace the visual camera assembly using the measured CAD bolt interface.
-
-    Mesh vertices are baked in gripper-local metres. The original collision
-    subtree, rigid bodies, joints, mass and inertia are deliberately untouched.
-    Fit provenance: visual_matching/work/wrist_mount/mount_candidate.json.
-    """
-    visuals = stage.GetPrimAtPath(robot_root + '/gripper/visuals')
-    if not visuals.IsValid():
+    arm, _ = load_arm_spec()
+    utilities = load_arm_utils(arm)
+    apply = getattr(utilities, "apply_appearance", None)
+    if apply is None:
         return
-    if visuals.IsInstance():
-        visuals.SetInstanceable(False)
-    old_mount = stage.GetPrimAtPath(str(visuals.GetPath()) + '/camera_mount')
-    if old_mount.IsValid():
-        UsdGeom.Imageable(old_mount).MakeInvisible()
-    path = str(visuals.GetPath()) + '/real_camera_mount'
-    replacement = stage.GetPrimAtPath(path)
-    if not replacement.IsValid():
-        replacement = stage.DefinePrim(path, 'Xform')
-        replacement.GetReferences().AddReference(str(ARM_USD_DIR / 'real_wrist_mount.usda'))
-    material = stage.GetPrimAtPath(robot_root + '/Looks/WristMountYellow')
-    if material.IsValid():
-        UsdShade.MaterialBindingAPI.Apply(replacement).Bind(
-            UsdShade.Material(material), bindingStrength=UsdShade.Tokens.strongerThanDescendants)
+    look = {**SETUP.get("appearance", {}), **arm.appearance}
+    if arm_color is not None:
+        look["robot_beige"] = arm_color
+    apply(stage, robot_root, look)
 
 
 def apply_opencv_intrinsics(prim, intrinsics):

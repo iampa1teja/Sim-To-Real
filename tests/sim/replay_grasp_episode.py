@@ -45,6 +45,7 @@ def main():
     parser.add_argument('--hold-seconds', type=float, default=0)
     parser.add_argument('--end-frame', type=int)
     parser.add_argument('--start-frame', type=int, default=0)
+    parser.add_argument("--unit", default="rpd_follower", help="Calibration unit for the recorded fixture")
     args = parser.parse_args()
     if args.prescribe_arm_states and args.arm_state_root is None:
         parser.error('--prescribe-arm-states requires --arm-state-root')
@@ -135,20 +136,21 @@ def main():
         from sim.envs.mdp import as_torch
         from sim.scene.gripper_geometry import table_plane
         from core.arms.mapping import JointMapping
-        from core.arms.joint_calibration import resolve_calibration
-        calibration_path = '/root/.cache/huggingface/lerobot/calibration/robots/so101_follower/rpd_follower.json'
-        selection = resolve_calibration(follower_path=calibration_path)
+        from core.arms.calibration import resolve_calibration
+        from core.arms.spec import load_arm_spec
+        arm, _ = load_arm_spec()
+        selection = resolve_calibration(arm, unit=args.unit)
         assert selection.provenance['follower_calibration']['sha256'] == alignment['selected_calibrations']['follower']
-        mapping = JointMapping.from_setup(selection, device='cuda:0')
-        q_source = mapping.to_radians(states)
-        q_targets = mapping.to_radians(actions)
+        mapping = JointMapping.from_arm(arm, selection, device='cuda:0')
+        q_source = mapping.to_sim(states)
+        q_targets = mapping.to_sim(actions)
         if args.arm_state_root is not None:
             measured_paths = sorted(args.arm_state_root.glob('data/*/*.parquet'))
             measured = pd.concat([pq.read_table(p).to_pandas() for p in measured_paths], ignore_index=True)
             measured = measured[measured.episode_index == args.episode].sort_values('frame_index')
             actual = np.stack(measured['observation.state']).astype(np.float32)[args.start_frame:end]
             assert len(actual) == len(actions)
-            measured_q = mapping.to_radians(actual)
+            measured_q = mapping.to_sim(actual)
             q_targets[:, :5] = measured_q[:, :5]
             q_source[0, :5] = measured_q[0, :5]
             result['source']['arm_state_sha256'] = {str(p): hashlib.sha256(p.read_bytes()).hexdigest()

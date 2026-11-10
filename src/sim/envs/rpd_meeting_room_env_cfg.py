@@ -11,6 +11,9 @@ Isaac Lab 3.0 changes from v1's my_room_env_cfg:
 - Offsets are XYZW quaternions.
 """
 import os
+from dataclasses import asdict
+
+from core.arms.spec import load_arm_spec
 
 from pxr import Gf, Usd, UsdGeom
 
@@ -27,7 +30,7 @@ from isaaclab.utils import configclass
 from isaaclab_physx.renderers import IsaacRtxRendererCfg, IsaacRtxRendererGlobalSettingsCfg
 
 from sim.envs.base_env_cfg import BaseEnvCfg, BaseEventsCfg, BaseObservationsCfg, BaseSceneCfg
-from sim.envs.mdp import apply_runtime_joint_limits, image_raw, image_rgb_raw
+from sim.envs.mdp import apply_runtime_joint_limits, env_indices, image_raw, image_rgb_raw
 from sim.scene.calibrated_camera import CalibratedPinholeCameraCfg, CalibratedTiledCamera, apply_opencv_intrinsics
 from sim.scene.calibrated_viewport_cfg import CalibratedKitVisualizerCfg
 from sim.scene.contact_materials import bind_contact_material
@@ -115,8 +118,8 @@ def _camera(path, values, rotation, data_types):
         spawn=CalibratedPinholeCameraCfg(
             func=_spawn_named_camera,
             intrinsics=({**values["calibration"], "width": values["width"], "height": values["height"]}
-                        if "calibration" in values else None),
-            response=values.get("response"),
+                        if values.get("calibration") else None),
+            response=values.get("response") or None,
             focal_length=values["focal_length"],
             horizontal_aperture=values["horizontal_aperture"],
             vertical_aperture=values["vertical_aperture"],
@@ -124,6 +127,19 @@ def _camera(path, values, rotation, data_types):
             f_stop=0.0,
         ),
         offset=TiledCameraCfg.OffsetCfg(pos=tuple(values["position"]), rot=rotation, convention="opengl"),
+    )
+
+
+def _wrist_camera():
+    """Attach the selected arm's optional calibrated wrist sensor."""
+    arm, _ = load_arm_spec()
+    camera = arm.cameras.get("wrist")
+    if camera is None:
+        return None
+    return _camera(
+        "{ENV_REGEX_NS}/Robot/" + camera.parent_link + "/wrist_cam",
+        asdict(camera), _euler_xyz_degrees_to_xyzw(camera.euler_degrees),
+        ["rgb", "depth", "instance_id_segmentation_fast"],
     )
 
 
@@ -142,11 +158,7 @@ class RpdMeetingRoomSceneCfg(BaseSceneCfg):
     realsense_depth = _camera(
         "{ENV_REGEX_NS}/realsense_camera_depth", SETUP["realsense"], camera_rotation(), ["depth"],
     )
-    camera_wrist_cam = _camera(
-        "{ENV_REGEX_NS}/Robot/gripper/wrist_cam", SETUP["wrist"],
-        _euler_xyz_degrees_to_xyzw(SETUP["wrist"]["euler_degrees"]),
-        ["rgb", "depth", "instance_id_segmentation_fast"],
-    )
+    camera_wrist_cam: TiledCameraCfg = None
 
 
 def _visual_term(sensor, kind):
@@ -188,7 +200,8 @@ def _configure_scene_updates(env, env_ids):
 
 
 def _set_real_robot_materials(env, env_ids):
-    apply_robot_appearance(env.sim.stage, "/World/envs/env_0/Robot", arm_color=ROOM_ARM_COLOR)
+    for index in env_indices(env, env_ids).tolist():
+        apply_robot_appearance(env.sim.stage, env.scene.env_prim_paths[index] + "/Robot", arm_color=ROOM_ARM_COLOR)
 
 
 @configclass
@@ -203,13 +216,17 @@ class RpdMeetingRoomEventsCfg(BaseEventsCfg):
 
 @configclass
 class RpdMeetingRoomEnvCfg(BaseEnvCfg):
-    sim_joint_mapping: dict = SETUP.get("sim_joint_mapping", {})
     scene: RpdMeetingRoomSceneCfg = RpdMeetingRoomSceneCfg()
     events: RpdMeetingRoomEventsCfg = RpdMeetingRoomEventsCfg()
     observations: RpdMeetingRoomObservationsCfg = RpdMeetingRoomObservationsCfg()
 
     def __post_init__(self):
         super().__post_init__()
+        self.scene.camera_wrist_cam = _wrist_camera()
+        if self.scene.camera_wrist_cam is None:
+            self.observations.visual.rgb_wrist_cam = None
+            self.observations.visual.depth_wrist_cam = None
+            self.observations.visual.instance_id_seg_wrist_cam = None
         # Newton supplies stable contact manifolds for the triangulated tabletop;
         # MJWarp still solves the dynamics. Native MJWarp contacts let the cube
         # rock and creep here, even with nonzero friction and multi-CCD enabled.
@@ -231,7 +248,10 @@ class RpdMeetingRoomEnvCfg(BaseEnvCfg):
             )
         )
         self.scene.robot.init_state.rot = robot_rotation()
-        self.scene.robot.init_state.joint_pos = SETUP["robot"]["joint_positions"].copy()
+        arm, _ = load_arm_spec()
+        scene_joints = SETUP["robot"].get("joint_positions", {})
+        if set(scene_joints) == set(arm.usd_joint_names):
+            self.scene.robot.init_state.joint_pos = scene_joints.copy()
         self.sim.default_visualizer_cfg = CalibratedKitVisualizerCfg(
             camera_prim_path="/World/envs/env_0/realsense_camera_rgb",
             window_width=SETUP["realsense"]["width"],
@@ -250,12 +270,14 @@ def drop_unused_camera_outputs(cfg, depth=False, instance_id_seg=False):
     """
     if not depth:
         cfg.scene.realsense_depth = None
-        cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != "depth"]
+        if cfg.scene.camera_wrist_cam is not None:
+            cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != "depth"]
         cfg.observations.visual.depth_realsense_rgb = None
         cfg.observations.visual.depth_wrist_cam = None
     if not instance_id_seg:
         seg = "instance_id_segmentation_fast"
         cfg.scene.camera_realsense_rgb.data_types = [t for t in cfg.scene.camera_realsense_rgb.data_types if t != seg]
-        cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != seg]
+        if cfg.scene.camera_wrist_cam is not None:
+            cfg.scene.camera_wrist_cam.data_types = [t for t in cfg.scene.camera_wrist_cam.data_types if t != seg]
         cfg.observations.visual.instance_id_seg_realsense_rgb = None
         cfg.observations.visual.instance_id_seg_wrist_cam = None

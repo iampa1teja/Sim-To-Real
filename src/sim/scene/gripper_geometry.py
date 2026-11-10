@@ -9,10 +9,10 @@ from core.arms.spec import load_arm_spec
 
 
 def fixed_jaw_mesh_name() -> str:
-    links = load_arm_spec()[0].get("links", {})
-    if "fixed_jaw_mesh" not in links:
-        raise KeyError("arm.toml needs [arm.links] fixed_jaw_mesh (the fixed-jaw mesh name under the ee link's visuals)")
-    return links["fixed_jaw_mesh"]
+    gripper = load_arm_spec()[0].gripper
+    if gripper is None or not gripper.tip_mesh:
+        raise ValueError("Jaw-relative placement needs [arm.gripper] tip_mesh")
+    return gripper.tip_mesh
 
 
 _GEOMETRY_CACHE = weakref.WeakKeyDictionary()
@@ -95,11 +95,13 @@ def _measure_table_plane(stage, root_prim):
 def cache_scene_geometry(env, env_ids):
     """Measure static geometry once at startup, before episode reset/spawn events."""
     from sim.envs.mdp.resets import _env_prim_path, env_indices
-    from sim.envs.base_env_cfg import EE_LINK
+    arm, _ = load_arm_spec()
+    if arm.gripper is None or not arm.gripper.tip_mesh:
+        return
 
     stage = env.sim.stage
     robot = env.scene["robot"]
     mesh_name = fixed_jaw_mesh_name()
     for index in env_indices(env, env_ids).tolist():
         table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]))
-        _jaw_points(stage, _env_prim_path(env, robot, index) + "/" + EE_LINK, mesh_name)
+        _jaw_points(stage, _env_prim_path(env, robot, index) + "/" + arm.links.ee, mesh_name)

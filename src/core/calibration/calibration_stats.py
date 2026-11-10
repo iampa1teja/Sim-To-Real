@@ -19,21 +19,21 @@ from pathlib import Path
 
 import numpy as np
 
-from core.arms.joint_calibration import FOLLOWER_JOINTS
 from core.arms.spec import load_arm_spec
 
 
 # Motion range of every joint in every sample file: ({joint: [range, ...]}, [file, ...]).
-def load_all(calibration_dir, exclude=()):
+def load_all(calibration_dir, exclude=(), *, arm=None):
+    names = (load_arm_spec()[0] if arm is None else arm).joint_names
     files = sorted(p for p in Path(calibration_dir).glob("*.json") if p.stem not in set(exclude))
     if not files:
         raise SystemExit(f"No JSON files found in {calibration_dir} (after exclusions)")
-    motion_ranges = {joint: [] for joint in FOLLOWER_JOINTS}
+    motion_ranges = {joint: [] for joint in names}
     print(f"Using {len(files)} calibration file(s):")
     for path in files:
         print(f"  {path.name}")
         data = json.loads(path.read_text())
-        for joint in FOLLOWER_JOINTS:
+        for joint in names:
             if joint in data:
                 motion_ranges[joint].append(abs(data[joint]["range_max"] - data[joint]["range_min"]))
     return motion_ranges, files
@@ -50,24 +50,25 @@ def compute_stats(motion_ranges):
 
 # Box plot of the ranges per joint, one coloured dot per calibration file.
 def plot(motion_ranges, files, output):
+    names = tuple(motion_ranges)
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.patches as patches
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.boxplot([motion_ranges[j] for j in FOLLOWER_JOINTS], tick_labels=range(1, len(FOLLOWER_JOINTS) + 1),
+    ax.boxplot([motion_ranges[j] for j in names], tick_labels=range(1, len(names) + 1),
                patch_artist=True, showfliers=False, medianprops=dict(color="black", linewidth=2),
                boxprops=dict(facecolor="lightgrey", alpha=0.6), whiskerprops=dict(linewidth=1.5),
                capprops=dict(linewidth=1.5))
     colors = plt.cm.tab10.colors
     for index in range(len(files)):
-        for joint_index, joint in enumerate(FOLLOWER_JOINTS, start=1):
+        for joint_index, joint in enumerate(names, start=1):
             ax.scatter(joint_index, motion_ranges[joint][index], color=colors[index % len(colors)],
                        edgecolors="black", linewidths=0.5, zorder=3, s=60)
     ax.set_title("Calibration: motion range per joint\n(abs(range_max − range_min), encoder counts)", fontsize=13)
     ax.set_ylabel("Motion range (encoder counts)")
-    ax.set_xlabel("Joint index (" + ", ".join(f"{i}={j}" for i, j in enumerate(FOLLOWER_JOINTS, 1)) + ")")
+    ax.set_xlabel("Joint index (" + ", ".join(f"{i}={j}" for i, j in enumerate(names, 1)) + ")")
     ax.yaxis.grid(True, linestyle="--", alpha=0.6)
     ax.set_axisbelow(True)
     fig.legend(handles=[patches.Patch(color=colors[i % len(colors)], label=f.stem) for i, f in enumerate(files)],

@@ -1,5 +1,7 @@
 import numpy as np 
 
+from core.arms.spec import load_arm_spec
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.managers import (
@@ -91,8 +93,13 @@ def apply_teleop(cfg, task):
     cube = task.spec.objects["blue_cube"]
     episode = task.spec.raw.get("episode", {})
 
+    arm, _ = load_arm_spec()
+    if arm.gripper is None or not arm.gripper.contact_bodies:
+        raise ValueError(f"Task {task.name!r} needs arm gripper contact_bodies")
+    contact_bodies = arm.gripper.contact_bodies
+    body_pattern = contact_bodies[0] if len(contact_bodies) == 1 else "(" + "|".join(contact_bodies) + ")"
     cfg.scene.contact_grasp = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/jaw",
+        prim_path="{ENV_REGEX_NS}/Robot/" + body_pattern,
         update_period=0.0,
         history_length=1,
         debug_vis=False,

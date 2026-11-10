@@ -4,17 +4,18 @@ import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import SimpleNamespace
+from dataclasses import replace
 import unittest
 from unittest.mock import call, patch
 
 from core.utils.recording_alignment import (
     MARKER,
-    SETUP_PATH,
     RecordingAlignmentError,
     recording_contract,
 )
 from sim.recording.recording_setup import prepare_recording_roots
+from core.arms.spec import load_arm_spec
+from core.arms.calibration import resolve_calibration
 
 
 class RecordingRootsTests(unittest.TestCase):
@@ -142,20 +143,13 @@ class RecordingRootsTests(unittest.TestCase):
 
 class RecordingCalibrationIdentityTests(unittest.TestCase):
     def contract(self, *, follower="follower-one", leader="leader-one"):
-        setup = json.loads(SETUP_PATH.read_text())
-        selection = SimpleNamespace(
-            mapping=setup["sim_joint_mapping"],
-            provenance={
-                "explicit_selection": True,
-                "follower_calibration": {"sha256": follower},
-                "leader_calibration": {"sha256": leader},
-                "selected_calibrations": {"follower": follower, "leader": None},
-            },
-        )
-        return recording_contract(
-            follower_id="follower", leader_id="leader", setup=setup,
-            calibration_selection=selection,
-        )
+        arm, _ = load_arm_spec("so101")
+        selection = resolve_calibration(arm, unit="rpd_robot", environ={})
+        provenance = dict(selection.provenance,
+                          follower_calibration={"sha256": follower},
+                          leader_calibration={"sha256": leader})
+        selection = replace(selection, provenance=provenance)
+        return recording_contract(follower_id="follower", leader_id="leader", calibration_selection=selection)
 
     def test_contract_records_resolved_leader_without_environment_override(self):
         contract = self.contract()

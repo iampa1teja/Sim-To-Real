@@ -44,7 +44,8 @@ class RolloutSettings:
     enable_motion: bool = False
     max_start_error: float = 20.0  # largest allowed gap, raw units, between the pose and the first target
     expected_start_roll: float | None = None  # shared sim-start wrist roll in this follower's units
-    roll_key: str = "wrist_roll.pos"
+    roll_key: str | None = None
+    raw_ranges: tuple[tuple[float, float], ...] = ()
 
 
 @dataclass
@@ -55,35 +56,41 @@ class EpisodeResult:
     detail: str = ""
 
 
-def joint_range(key):
-    from core.arms.joint_calibration import GRIPPER_JOINT
+def joint_ranges(arm, mapping):
+    """Raw action bounds from the selected calibration's actual device codec."""
+    from core.arms.mapping import raw_joint_limits
+    bounds = raw_joint_limits(arm, mapping)
+    return tuple(bounds[name] for name in arm.joint_names)
 
-    return GRIPPER_RANGE if key.startswith(GRIPPER_JOINT) else BODY_RANGE
 
-
-def sim_start_roll_units(mapping, setup=None):
-    """The sim's start wrist roll (scene setup joint_positions) expressed in this follower's raw units."""
-    from core.arms.joint_calibration import ROLL_JOINT
-    from core.arms.joint_limits import joint_name_pairs
+def sim_start_roll_units(mapping, setup=None, arm=None):
+    """Optional sim-start roll expressed in the selected unit's raw convention."""
+    from core.arms.spec import load_arm_spec
+    from core.arms.mapping import physical_to_units
     from core.scenes import load_setup
 
+    arm = arm or load_arm_spec()[0]
+    if arm.wrist_roll is None:
+        return None
+    joint = next(joint for joint in arm.joints if joint.name == arm.wrist_roll.joint)
     setup = load_setup() if setup is None else setup
-    usd_name = dict(joint_name_pairs())[ROLL_JOINT]
-    degrees = math.degrees(setup["robot"]["joint_positions"][usd_name])
-    bounds = mapping[ROLL_JOINT]
-    return (degrees - bounds["joint_min"]) / (bounds["joint_max"] - bounds["joint_min"]) * 200 - 100
+    initial = setup.get("robot", {}).get("joint_positions", {}).get(joint.usd, joint.initial)
+    physical = math.degrees(initial) if joint.type == "revolute" else initial
+    return float(physical_to_units([physical], {joint.name: mapping[joint.name]}, [joint.name],
+                                   gripper_joints=arm.gripper_joint_names)[0])
 
 
-def clamp_action(action, joint_keys):
+def clamp_action(action, joint_keys, ranges):
     """Target vector inside each joint's raw range. Raises ValueError for a missing or non-finite value."""
+    if len(ranges) != len(joint_keys):
+        raise ValueError("One raw range per arm joint is required")
     values = []
-    for key in joint_keys:
+    for key, (low, high) in zip(joint_keys, ranges):
         if key not in action:
             raise ValueError(f"policy action has no value for {key}")
         value = float(action[key])
         if not np.isfinite(value):
             raise ValueError(f"policy action for {key} is not finite ({value})")
-        low, high = joint_range(key)
         values.append(min(max(value, low), high))
     return np.asarray(values, dtype=np.float32)
 
@@ -121,7 +128,7 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
                           f"limit {settings.max_start_error})")
                 break
         try:
-            target = clamp_action(policy.get_raw_action(state, images), joint_keys)
+            target = clamp_action(policy.get_raw_action(state, images), joint_keys, settings.raw_ranges)
         except Exception as error:
             status, detail = "policy_error", repr(error)
             break
@@ -173,6 +180,9 @@ def write_report(path, header, episodes):
 def build_parser():
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--arm", default=env("S2R_ARM", "so101"))
+    parser.add_argument("--scene", default=env("S2R_SCENE", "rpd_meeting_room"))
+    parser.add_argument("--unit", default=env("S2R_UNIT"), help="arm calibration unit ID")
     parser.add_argument("--policy", required=True, help="policy folder name under policies/")
     parser.add_argument("--policy_host", default="localhost")
     parser.add_argument("--policy_port", type=int, default=None, help="default: the policy's default_port")
@@ -192,8 +202,6 @@ def build_parser():
                         help="disable torque on exit; the arm will drop")
     parser.add_argument("--follower_port", default=env("ROBOT_PORT"))
     parser.add_argument("--follower_id", default=env("ROBOT_ID"))
-    parser.add_argument("--calibration_file", help="Explicit follower mapping and hardware JSON; "
-                        "default mapping is the scene's real_setup.json; follower_id selects the hardware file")
     parser.add_argument("--camera_gripper", default=env("CAMERA_GRIPPER"))
     parser.add_argument("--camera_external", default=env("CAMERA_EXTERNAL"))
     parser.add_argument("--camera_width", type=int, default=int(env("CAMERA_WIDTH", "640")))
@@ -216,7 +224,8 @@ def camera_specs(args):
 
 def validate(args):
     """Argument errors found before touching any hardware."""
-    from core.arms.joint_calibration import resolve_calibration
+    from core.arms.calibration import resolve_calibration
+    from core.arms.spec import load_arm_spec
 
     errors = []
     if not args.follower_port:
@@ -224,8 +233,8 @@ def validate(args):
     if not args.follower_id:
         errors.append("set ROBOT_ID or pass --follower_id")
     try:
-        args.calibration_selection = resolve_calibration(follower_id=args.follower_id,
-                                                         follower_path=args.calibration_file)
+        args.arm_spec = load_arm_spec(args.arm)[0]
+        args.calibration_selection = resolve_calibration(args.arm_spec, unit=args.unit, follower_id=args.follower_id)
         args.joint_mapping = args.calibration_selection.mapping
     except (ValueError, FileNotFoundError) as error:
         errors.append(str(error))
@@ -261,7 +270,6 @@ def connect_follower(args):
 def make_policy(args):
     import torch
 
-    from core.arms.joint_calibration import FOLLOWER_JOINTS
     from core.arms.mapping import JointMapping
     from core.policy_client.remote_policy import RemotePolicy
 
@@ -270,8 +278,8 @@ def make_policy(args):
         # States use the same base-USD angles as the simulator; keep the model convention separate
         # from the physical arm zero.
         options.setdefault("wrist_roll_model_offset", "-90")
-    mapping = JointMapping.from_setup(args.calibration_selection, device=torch.device("cpu"))
-    return RemotePolicy([f"{name}.pos" for name in FOLLOWER_JOINTS], policy_name=args.policy, host=args.policy_host,
+    mapping = JointMapping.from_arm(args.arm_spec, args.calibration_selection, device=torch.device("cpu"))
+    return RemotePolicy(list(args.arm_spec.feature_names), policy_name=args.policy, host=args.policy_host,
                         port=args.policy_port, action_horizon=args.action_horizon,
                         lang_instruction=args.lang_instruction, control_dt=1 / args.fps, policy_options=options,
                         mapping=mapping)
@@ -286,9 +294,8 @@ def ask(prompt, input_fn, allowed):
 
 def main(argv=None, *, follower_factory=connect_follower, policy_factory=make_policy, input_fn=input,
          now=datetime.now):
-    from core.arms.joint_calibration import FOLLOWER_JOINTS, ROLL_JOINT, sim_mapping_parameters
-
     args = build_parser().parse_args(argv)
+    os.environ.update(S2R_ARM=args.arm, S2R_SCENE=args.scene)
     errors = validate(args)
     if errors:
         print("real_rollout: " + "; ".join(errors), file=sys.stderr)
@@ -302,15 +309,17 @@ def main(argv=None, *, follower_factory=connect_follower, policy_factory=make_po
     output.mkdir(parents=True, exist_ok=True)
     print("MOTION ENABLED: the arm will move. Keep a hand on the power switch." if args.enable_motion else
           "SHADOW MODE: the policy is queried and logged, no command is sent to the arm.", flush=True)
-    expected_roll = sim_start_roll_units(args.joint_mapping)
+    expected_roll = sim_start_roll_units(args.joint_mapping, arm=args.arm_spec)
     header = {"policy": args.policy, "checkpoint": args.checkpoint, "lang_instruction": args.lang_instruction,
               "motion": args.enable_motion, "fps": args.fps, "episode_seconds": args.episode_seconds,
               "max_relative_target": args.max_relative_target, "max_start_error": args.max_start_error,
               "started": started.isoformat(timespec="seconds"), "sim_start_roll_units": expected_roll,
-              "mapping_parameters": sim_mapping_parameters(), "calibration": args.calibration_selection.provenance}
-    joint_keys = [f"{name}.pos" for name in FOLLOWER_JOINTS]
+              "calibration": args.calibration_selection.provenance}
+    joint_keys = list(args.arm_spec.feature_names)
     settings = RolloutSettings(args.fps, args.episode_seconds, args.enable_motion, args.max_start_error,
-                               expected_start_roll=expected_roll, roll_key=f"{ROLL_JOINT}.pos")
+                               expected_start_roll=expected_roll,
+                               roll_key=(f"{args.arm_spec.wrist_roll.joint}.pos" if args.arm_spec.wrist_roll else None),
+                               raw_ranges=joint_ranges(args.arm_spec, args.calibration_selection.mapping))
     rename_map = json.loads(args.rename_map)
     cameras = {name: rename_map[name] for name in camera_specs(args)}
     follower, policy, episodes, failed = None, None, [], False

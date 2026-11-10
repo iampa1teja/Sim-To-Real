@@ -8,6 +8,7 @@ from statistics import median
 import numpy as np
 
 from core.utils.hashing import json_sha256
+from core.arms.spec import load_arm_spec
 
 from . import FAILURES, STAGES  # noqa: F401  (re-exported for core scripts)
 from .eval import (RecordedStarts, footprint, footprints_overlap, resting_pose, rotation_matrix,
@@ -129,7 +130,9 @@ def eval_set_digest(data):
 
 
 def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
-                      min_dist_m=.02, ood_margin_m=(.02, .05), yaw_mode='matched', reach_envelope=False, git_commit='unknown'):
+                      min_dist_m=.02, ood_margin_m=(.02, .05), yaw_mode='matched', reach_envelope=False,
+                      git_commit='unknown', arm=None):
+    arm = arm or load_arm_spec()[0]
     if any(type(n) is not int or n < 0 for n in (n_id, n_ood, n_yaw)) or n_yaw > n_id:
         raise ValueError('Counts must be nonnegative integers, with n_yaw <= n_id')
     if (not math.isfinite(min_dist_m) or min_dist_m < 0 or len(ood_margin_m) != 2
@@ -137,7 +140,7 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
         raise ValueError('Require min_dist_m >= 0 and 0 < ood_margin_m[0] < ood_margin_m[1]')
     if yaw_mode not in ('matched', 'radial', 'random'):
         raise ValueError('yaw_mode must be matched, radial or random')
-    recorded = RecordedStarts(Path(dataset) / 'pick_place_meta', robot_states_root=dataset)
+    recorded = RecordedStarts(Path(dataset) / 'pick_place_meta', robot_states_root=dataset, arm=arm)
     xy = np.array([p[:2] for p, _ in recorded.starts])
     polygon = hull(xy)
     # Opt-in: keep id/ood starts inside the radial band of the recorded picks, so none is closer to the base or
@@ -209,11 +212,12 @@ def generate_eval_set(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n_yaw=20,
                                                                min=float(relative_yaws.min()), max=float(relative_yaws.max())),
                                      yaw_rule='matched: bearing plus nearest recorded relative yaw; radial: bearing; random: uniform [0, pi/2)' ), starts=starts)
     data['eval_set_id'] = eval_set_digest(data)
-    validate_eval_set(data)
+    validate_eval_set(data, arm=arm)
     return data
 
 
-def validate_eval_set(data):
+def validate_eval_set(data, *, arm=None):
+    arm = arm or load_arm_spec()[0]
     if data.get('schema_version') != 1 or data.get('reference_frame') != 'robot base link (base)' or data.get('units') != 'm' or data.get('angle_units') != 'rad':
         raise ValueError('Unsupported eval set schema or coordinate units')
     if data.get('eval_set_id') != eval_set_digest(data):
@@ -226,21 +230,21 @@ def validate_eval_set(data):
         if not np.isfinite([start['x'], start['y'], start['yaw']]).all():
             raise ValueError('Nonfinite start pose')
         state = np.asarray(start['arm_start_state'])
-        if state.shape != (6,) or not np.isfinite(state).all():
-            raise ValueError('Arm start state must contain six finite values')
+        if state.shape != (len(arm.joint_names),) or not np.isfinite(state).all():
+            raise ValueError(f'Arm start state must contain {len(arm.joint_names)} finite values')
     if not ids:
         raise ValueError('Empty eval set')
     return data
 
 
-def load_eval_set(path):
-    return validate_eval_set(json.loads(Path(path).read_text()))
+def load_eval_set(path, *, arm=None):
+    return validate_eval_set(json.loads(Path(path).read_text()), arm=arm)
 
 
 class EvalSetStarts:
     """Ordered trials, repeated with deterministic seeds; same reset interface."""
-    def __init__(self, path, splits=None, repeats=1, seed=1984, start_offset=0, selection='all'):
-        self.data = load_eval_set(path)
+    def __init__(self, path, splits=None, repeats=1, seed=1984, start_offset=0, selection='all', *, arm=None):
+        self.data = load_eval_set(path, arm=arm)
         if isinstance(splits, str):
             splits = splits.split(',')
         available = {s['split'] for s in self.data['starts']}

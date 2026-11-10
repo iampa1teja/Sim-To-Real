@@ -41,4 +41,4 @@ class SimRemotePolicy(RemotePolicy):
             observation = dict(inputs["images"])
             observation.update({key: float(value) for key, value in zip(self.joint_keys, inputs["state"])})
             log_rerun_data(observation=observation, action=action)
-        return self.mapping.to_radians(raw)
+        return self.mapping.to_sim(raw)

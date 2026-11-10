@@ -31,7 +31,7 @@ class FollowerConfig:
     enabled: bool = False
     port: str = _env("ROBOT_PORT", "/dev/ttyACM1")
     id: str = _env("ROBOT_ID", "follower_arm_1")
-    calibration_path: str | None = None
+    unit: str | None = _env("S2R_UNIT")
     # name -> OpenCV index or /dev/video path. Opened only when recording a real dataset.
     cameras: dict[str, str] = field(default_factory=lambda: {
         name: value for name, value in (("gripper", os.getenv("CAMERA_GRIPPER")),
@@ -82,9 +82,9 @@ class GuiConfig:
 
 @dataclass
 class AgentConfig:
-    arm: str = "so101"
-    scene: str = "rpd_meeting_room"
-    task: str = "pick_place_cube"
+    arm: str = _env("S2R_ARM", "so101")
+    scene: str = _env("S2R_SCENE", "rpd_meeting_room")
+    task: str = _env("S2R_TASK", "pick_place_cube")
     variant: str | None = None
     num_envs: int | None = None
     use_fabric: bool = True

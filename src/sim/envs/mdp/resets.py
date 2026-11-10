@@ -48,7 +48,7 @@ def env_indices(env, env_ids):
         return all_ids
     if isinstance(env_ids, slice):
         return all_ids[env_ids]
-    return torch.as_tensor(env_ids, device=env.device).reshape(-1)
+    return torch.as_tensor(env_ids, device=env.device, dtype=torch.long).reshape(-1)
 
 
 ROBOT_COLORS = {
@@ -93,12 +93,13 @@ def _env_prim_path(env, asset, index):
 
 def _ee_body(env, robot):
     """(ee body index, ee prim path in env 0) for the arm's end-effector link from arm.toml."""
-    from sim.envs.base_env_cfg import EE_LINK
+    from core.arms.spec import load_arm_spec
 
-    ids, _ = robot.find_bodies(EE_LINK)
+    ee_link = load_arm_spec()[0].links.ee
+    ids, _ = robot.find_bodies(ee_link)
     if len(ids) != 1:
-        raise ValueError(f"Expected exactly one robot body named {EE_LINK!r}")
-    return ids[0], _env_prim_path(env, robot, 0) + "/" + EE_LINK
+        raise ValueError(f"Expected exactly one robot body named {ee_link!r}")
+    return ids[0], _env_prim_path(env, robot, 0) + "/" + ee_link
 
 
 # ---------------------------------------------------------------------------
@@ -118,9 +119,16 @@ def set_robot_color(env, rgb: tuple[float, float, float]):
     """Set color of the arm to a desired RGB value (USD material edit, independent of physics backend)."""
     with Sdf.ChangeBlock():
         robot = env.scene["robot"]
-        material_prim_path = robot.cfg.prim_path + "/Looks/material_a_3d_printed/Shader"
-        material_prim = sim_utils.find_matching_prims(material_prim_path)[0]
-        material_prim.GetAttribute("inputs:diffuse_color_constant").Set(rgb)
+        from core.arms.spec import load_arm_spec
+
+        material_path = load_arm_spec()[0].appearance.get("body_material")
+        if not material_path:
+            return
+        material_prim_path = robot.cfg.prim_path + "/" + material_path.lstrip("/")
+        for material_prim in sim_utils.find_matching_prims(material_prim_path):
+            shader = UsdShade.Shader(material_prim)
+            name = "diffuseColor" if shader.GetIdAttr().Get() == "UsdPreviewSurface" else "diffuse_color_constant"
+            shader.GetInput(name).Set(Gf.Vec3f(*rgb))
 
 
 # ---------------------------------------------------------------------------
@@ -309,22 +317,19 @@ def set_camera_focal_length(env, asset_cfg: SceneEntityCfg, focal_length):
 
 
 def apply_runtime_joint_limits(env, env_ids):
-    """Startup event: write real_setup.json's runtime joint limits (degrees) to the sim as radians."""
-    from core.arms.joint_limits import joint_name_pairs, runtime_joint_limits
+    """Apply per-joint arm limits: revolute degrees become radians; prismatic limits stay metres."""
+    from core.arms.spec import load_arm_spec
 
+    arm, _ = load_arm_spec()
     robot = env.scene["robot"]
-    bounds = runtime_joint_limits()
-    pairs = joint_name_pairs()
-    missing = [usd for _, usd in pairs if usd not in robot.joint_names]
+    missing = [joint.usd for joint in arm.joints if joint.usd not in robot.joint_names]
     if missing:
         raise ValueError(f"arm.toml joint names {missing} not in the USD articulation {robot.joint_names}")
-    joint_ids = [robot.joint_names.index(usd) for _, usd in pairs]
-    values = torch.tensor(
-        [[bounds[name]["joint_min"], bounds[name]["joint_max"]] for name, _ in pairs],
-        device=env.device,
-        dtype=torch.float32,
-    )
+    joint_ids = [robot.joint_names.index(joint.usd) for joint in arm.joints]
+    values = torch.tensor([joint.limits for joint in arm.joints], device=env.device, dtype=torch.float32)
+    revolute = torch.tensor([joint.type == "revolute" for joint in arm.joints], device=env.device)
+    values[revolute] = torch.deg2rad(values[revolute])
     env_ids = env_indices(env, env_ids)
-    limits = torch.deg2rad(values).unsqueeze(0).repeat(len(env_ids), 1, 1)
+    limits = values.unsqueeze(0).repeat(len(env_ids), 1, 1)
     robot.write_joint_position_limit_to_sim_index(limits=limits, joint_ids=joint_ids, env_ids=env_ids)
-    print(f"[INFO]: Runtime joint limits applied from the scene setup: {bounds}")
+    print(f"[INFO]: Runtime joint limits applied from arm {arm.name!r}: {arm.runtime_joint_limits}")
