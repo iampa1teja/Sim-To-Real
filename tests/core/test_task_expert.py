@@ -8,9 +8,11 @@ from core.tasks.expert import ExpertContext
 from core.tasks.loader import load_task
 
 
-def test_optional_expert_missing_is_clear():
+def test_optional_expert_missing_is_clear(tmp_path):
+    task = load_task("pick_place_cube")
+    task = type(task)(replace(task.spec, name="missing_expert", task_dir=tmp_path))
     with pytest.raises(NotImplementedError, match="no expert.py"):
-        load_task("stack_two_cubes").expert()
+        task.expert()
 
 
 def test_internal_expert_import_failure_is_not_masked(tmp_path, monkeypatch):
