@@ -1,0 +1,120 @@
+<robot name="five_jaw">
+<link name="world"/>
+<link name="Base_0">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.4"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/body.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/body.stl"/></geometry></collision>
+</link>
+<joint name="WorldMount" type="fixed"><parent link="world"/><child link="Base_0"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Bracket_1">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></collision>
+</link>
+<joint name="FixedBracket_1" type="fixed"><parent link="Base_0"/><child link="Bracket_1"/>
+ <origin xyz="0 0 .025" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Link_1">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></visual>
+ <collision><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></collision>
+</link>
+<joint name="Axis_1" type="revolute"><parent link="Bracket_1"/><child link="Link_1"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 0 1"/>
+ <limit lower="-3.141592653589793" upper="3.141592653589793" effort="20" velocity="2"/></joint>
+<link name="Bracket_2">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></collision>
+</link>
+<joint name="FixedBracket_2" type="fixed"><parent link="Link_1"/><child link="Bracket_2"/>
+ <origin xyz="0.06 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Link_2">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></visual>
+ <collision><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></collision>
+</link>
+<joint name="Axis_2" type="revolute"><parent link="Bracket_2"/><child link="Link_2"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-3.141592653589793" upper="3.141592653589793" effort="20" velocity="2"/></joint>
+<link name="Bracket_3">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></collision>
+</link>
+<joint name="FixedBracket_3" type="fixed"><parent link="Link_2"/><child link="Bracket_3"/>
+ <origin xyz="0.14 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Link_3">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></visual>
+ <collision><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></collision>
+</link>
+<joint name="Axis_3" type="revolute"><parent link="Bracket_3"/><child link="Link_3"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-3.141592653589793" upper="1.05" effort="20" velocity="2"/></joint>
+<link name="Bracket_4">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></collision>
+</link>
+<joint name="FixedBracket_4" type="fixed"><parent link="Link_3"/><child link="Bracket_4"/>
+ <origin xyz="0.14 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Link_4">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></visual>
+ <collision><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></collision>
+</link>
+<joint name="Axis_4" type="revolute"><parent link="Bracket_4"/><child link="Link_4"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-3.141592653589793" upper="3.141592653589793" effort="20" velocity="2"/></joint>
+<link name="Bracket_5">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/motor.stl"/></geometry></collision>
+</link>
+<joint name="FixedBracket_5" type="fixed"><parent link="Link_4"/><child link="Bracket_5"/>
+ <origin xyz="0.1 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Link_5">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></visual>
+ <collision><origin xyz=".05 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/link.stl"/></geometry></collision>
+</link>
+<joint name="Axis_5" type="revolute"><parent link="Bracket_5"/><child link="Link_5"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="1 0 0"/>
+ <limit lower="-3.141592653589793" upper="3.141592653589793" effort="20" velocity="2"/></joint>
+<link name="Tool_0">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.08"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/body.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="meshes/body.stl"/></geometry></collision>
+</link>
+<joint name="ToolMount" type="fixed"><parent link="Link_5"/><child link="Tool_0"/>
+ <origin xyz=".05 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+<link name="Jaw_1">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="meshes/finger.stl" scale="1 1 1.1"/></geometry></visual>
+ <collision><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="meshes/finger.stl" scale="1 1 1.1"/></geometry></collision>
+</link>
+<joint name="GripJaw" type="revolute"><parent link="Tool_0"/><child link="Jaw_1"/>
+ <origin xyz=".015 0 .01" rpy="0 0 0"/><axis xyz="0 -1 0"/>
+ <limit lower="0" upper="1.2" effort="20" velocity="2"/></joint>
+</robot>

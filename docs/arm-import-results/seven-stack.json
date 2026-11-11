@@ -1,0 +1,1553 @@
+{
+  "schema_version": 1,
+  "source": "scripted",
+  "dataset": "/workspace/datasets/arm_import_seven_stack_5",
+  "repo_id": "local/stack_two_cubes_scripted",
+  "arm": "seven_parallel",
+  "task": "stack_two_cubes",
+  "scene": "rpd_meeting_room",
+  "variant": "teleop",
+  "fps": 30,
+  "joint_names": [
+    "Axis_1",
+    "Axis_2",
+    "Axis_3",
+    "Axis_4",
+    "Axis_5",
+    "Axis_6",
+    "Axis_7",
+    "Grip_L"
+  ],
+  "joint_units": [
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "m"
+  ],
+  "joint_roles": [
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "gripper"
+  ],
+  "joint_mapping": {
+    "Axis_1": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Axis_2": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Axis_3": {
+      "joint_min": -180.0,
+      "joint_max": 60.160568488736445
+    },
+    "Axis_4": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Axis_5": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Axis_6": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Axis_7": {
+      "joint_min": -180.0,
+      "joint_max": 180.0
+    },
+    "Grip_L": {
+      "joint_min": 0.0,
+      "joint_max": 0.045
+    }
+  },
+  "calibration": {
+    "arm": "seven_parallel",
+    "unit": null,
+    "follower_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "leader_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "mapping_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "unit_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "mapping_parameters": {},
+    "mapping": {
+      "Axis_1": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Axis_2": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Axis_3": {
+        "joint_min": -180.0,
+        "joint_max": 60.160568488736445
+      },
+      "Axis_4": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Axis_5": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Axis_6": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Axis_7": {
+        "joint_min": -180.0,
+        "joint_max": 180.0
+      },
+      "Grip_L": {
+        "joint_min": 0.0,
+        "joint_max": 0.045
+      }
+    },
+    "mapping_source": "simulation_manifest",
+    "selected_calibrations": {},
+    "explicit_selection": false
+  },
+  "control_offset_m": [
+    0.0,
+    0.0,
+    0.0699999999254942
+  ],
+  "ik_controller": {
+    "library": "isaaclab.controllers.DifferentialIKController",
+    "method": "dls",
+    "joint_limit_avoidance_gain": 0.5,
+    "mode": "native_jacobian_feedback",
+    "integral_feedback_applied": true,
+    "control_dt_s": 0.03333333333333333,
+    "options": {
+      "damping": 0.0125,
+      "orientation_weight": 0.05,
+      "max_position_step_m": 0.01,
+      "max_orientation_step_rad": 3.141592653589793,
+      "max_joint_step_rad": 0.08,
+      "max_joint_step_m": 0.005,
+      "position_tolerance_m": 0.001,
+      "orientation_tolerance_rad": 0.03,
+      "integral_gain": 1.0,
+      "max_integral_bias_rad": 0.08,
+      "max_integral_bias_m": 0.005
+    }
+  },
+  "seed": 182482,
+  "git_commit": "30b18f1ec615dcd49c9a2bb96d7dec352cf3a7dc",
+  "source_provenance": {
+    "expert": "/workspace/s2r/tasks/stack_two_cubes/expert.py",
+    "options": {
+      "approach_height_m": 0.06,
+      "lift_height_m": 0.05,
+      "move_seconds": 2.0,
+      "transport_seconds": 0.5,
+      "gripper_open_fraction": 0.45,
+      "gripper_closed_fraction": 0.0
+    }
+  },
+  "episodes": [
+    {
+      "attempt": 0,
+      "index": 0,
+      "accepted": true,
+      "success": true,
+      "latched_success": true,
+      "final_success": true,
+      "stages": {
+        "reached": true,
+        "grasped": true,
+        "lifted": true,
+        "over_target": true,
+        "stacked": true,
+        "success": true
+      },
+      "failure_mode": null,
+      "frames": 363,
+      "steps": 363,
+      "seed": 182482,
+      "first_success_step": 363,
+      "last_state": {
+        "objects": {
+          "cube_a": {
+            "position": [
+              0.4736575484275818,
+              -0.4235272705554962,
+              0.8267720341682434
+            ],
+            "quat_xyzw": [
+              -0.006197389680892229,
+              -0.007150578778237104,
+              0.8012304902076721,
+              -0.5982810854911804
+            ]
+          },
+          "cube_b": {
+            "position": [
+              0.4739328622817993,
+              -0.4236912429332733,
+              0.8067705631256104
+            ],
+            "quat_xyzw": [
+              -0.004565130453556776,
+              -0.008103396743535995,
+              0.9011386632919312,
+              -0.4334312379360199
+            ]
+          }
+        },
+        "ee": {
+          "position": [
+            0.47524702548980713,
+            -0.42482709884643555,
+            0.8972421884536743
+          ],
+          "quat_xyzw": [
+            -0.9897202253341675,
+            0.1427338421344757,
+            0.0014244214398786426,
+            0.008878027088940144
+          ]
+        },
+        "gripper": 0.020002251490950584,
+        "signals": {
+          "holding": false,
+          "grasped": false,
+          "lifted": true,
+          "over_target": false,
+          "stacked": true,
+          "success": true,
+          "reach_distance": 0.0016422204207628965
+        }
+      },
+      "camera_frames": {
+        "realsense_rgb": 363,
+        "wrist_cam": 363
+      },
+      "object_frames": {
+        "cube_a": 363,
+        "cube_b": 363
+      },
+      "metadata_path": "/workspace/datasets/arm_import_seven_stack_5/datagen_meta/episode_000000.json",
+      "reason": "task_success",
+      "waypoint_trace": [
+        {
+          "event": "start",
+          "waypoint": "approach",
+          "step": 0,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.5213533969312006,
+              -0.6242999097963201,
+              0.9099744826803959
+            ],
+            "quat_xyzw": [
+              -0.9990876317024231,
+              -0.041738297790288925,
+              -0.0005325370584614575,
+              0.00903892982751131
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.47836785321207514,
+              -0.5180051817173335,
+              0.8650363632647995
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.4784373939037323,
+                -0.5168948769569397,
+                0.8050466775894165
+              ],
+              "quat_xyzw": [
+                -0.0062777879647910595,
+                -0.0070265233516693115,
+                0.8007364869117737,
+                -0.5989426970481873
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.47349321842193604,
+                -0.4234037697315216,
+                0.8067712783813477
+              ],
+              "quat_xyzw": [
+                -0.004281644243746996,
+                -0.00817958265542984,
+                0.9010562896728516,
+                -0.4336039423942566
+              ]
+            }
+          },
+          "signals": {},
+          "stages": {
+            "reached": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/00_start_approach_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/00_start_approach_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "approach",
+          "step": 77,
+          "elapsed_s": 2.5666666666666664,
+          "actual_tcp_pose": {
+            "position": [
+              0.4793661813787496,
+              -0.5142988640940145,
+              0.8644739366365926
+            ],
+            "quat_xyzw": [
+              -0.9886165261268616,
+              0.1501971185207367,
+              0.0012142754858359694,
+              0.008769103325903416
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.47836785321207514,
+              -0.5180051817173335,
+              0.8650363632647995
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.4784407615661621,
+                -0.516901433467865,
+                0.8050511479377747
+              ],
+              "quat_xyzw": [
+                -0.006005550734698772,
+                -0.007061947602778673,
+                0.8007471561431885,
+                -0.5989307761192322
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086339570581913,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.05948689579963684
+          },
+          "stages": {
+            "reached": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/01_complete_approach_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/01_complete_approach_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "descend",
+          "step": 77,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4793661813787496,
+              -0.5142988640940145,
+              0.8644739366365926
+            ],
+            "quat_xyzw": [
+              -0.9886165261268616,
+              0.1501971185207367,
+              0.0012142754858359694,
+              0.008769103325903416
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.4784373939037323,
+              -0.5168948769569397,
+              0.8050466775894165
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.4784407615661621,
+                -0.516901433467865,
+                0.8050511479377747
+              ],
+              "quat_xyzw": [
+                -0.006005550734698772,
+                -0.007061947602778673,
+                0.8007471561431885,
+                -0.5989307761192322
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086339570581913,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.05948689579963684
+          },
+          "stages": {
+            "reached": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/02_start_descend_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/02_start_descend_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "descend",
+          "step": 137,
+          "elapsed_s": 2.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.47902347658753774,
+              -0.516405344540168,
+              0.8052138182643053
+            ],
+            "quat_xyzw": [
+              -0.9896278977394104,
+              0.1434454768896103,
+              -0.001173793920315802,
+              0.007666110061109066
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.4784373939037323,
+              -0.5168948769569397,
+              0.8050466775894165
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47844189405441284,
+                -0.5169086456298828,
+                0.8050504326820374
+              ],
+              "quat_xyzw": [
+                -0.006018262356519699,
+                -0.00707112206146121,
+                0.8007383346557617,
+                -0.5989424586296082
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086343295872211,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0007862912607379258
+          },
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/03_complete_descend_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/03_complete_descend_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "close",
+          "step": 137,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.47902347658753774,
+              -0.516405344540168,
+              0.8052138182643053
+            ],
+            "quat_xyzw": [
+              -0.9896278977394104,
+              0.1434454768896103,
+              -0.001173793920315802,
+              0.007666110061109066
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.4784373939037323,
+              -0.5168948769569397,
+              0.8050466775894165
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47844189405441284,
+                -0.5169086456298828,
+                0.8050504326820374
+              ],
+              "quat_xyzw": [
+                -0.006018262356519699,
+                -0.00707112206146121,
+                0.8007383346557617,
+                -0.5989424586296082
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086343295872211,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0007862912607379258
+          },
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/04_start_close_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/04_start_close_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "close",
+          "step": 161,
+          "elapsed_s": 0.8,
+          "actual_tcp_pose": {
+            "position": [
+              0.4790094755672585,
+              -0.5165734976398262,
+              0.8052421977883679
+            ],
+            "quat_xyzw": [
+              -0.9896705746650696,
+              0.14316824078559875,
+              -0.0009667276754043996,
+              0.0073592523112893105
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.4784373939037323,
+              -0.5168948769569397,
+              0.8050466775894165
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47721531987190247,
+                -0.5166732668876648,
+                0.805091381072998
+              ],
+              "quat_xyzw": [
+                -0.007295132149010897,
+                -0.0057446882128715515,
+                0.8010359406471252,
+                -0.5985443592071533
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086338639259338,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0018032483058050275
+          },
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/05_complete_close_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/05_complete_close_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "lift",
+          "step": 161,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4790094755672585,
+              -0.5165734976398262,
+              0.8052421977883679
+            ],
+            "quat_xyzw": [
+              -0.9896705746650696,
+              0.14316824078559875,
+              -0.0009667276754043996,
+              0.0073592523112893105
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.47837944332735133,
+              -0.5178201309239345,
+              0.8550380823189023
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47721531987190247,
+                -0.5166732668876648,
+                0.805091381072998
+              ],
+              "quat_xyzw": [
+                -0.007295132149010897,
+                -0.0057446882128715515,
+                0.8010359406471252,
+                -0.5985443592071533
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086338639259338,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0018032483058050275
+          },
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/06_start_lift_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/06_start_lift_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "lift",
+          "step": 221,
+          "elapsed_s": 2.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4782566990608957,
+              -0.518359001546814,
+              0.855655386858425
+            ],
+            "quat_xyzw": [
+              -0.9898218512535095,
+              0.14201389253139496,
+              0.0013769023353233933,
+              0.00910953152924776
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.47837944332735133,
+              -0.5178201309239345,
+              0.8550380823189023
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47652021050453186,
+                -0.5184701085090637,
+                0.8555049300193787
+              ],
+              "quat_xyzw": [
+                -0.007005542516708374,
+                -0.008565873838961124,
+                0.8003299236297607,
+                -0.5994578003883362
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.0045341141521930695,
+                -0.008086337707936764,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.001746534020639956
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/07_complete_lift_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/07_complete_lift_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "transport",
+          "step": 221,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4782566990608957,
+              -0.518359001546814,
+              0.855655386858425
+            ],
+            "quat_xyzw": [
+              -0.9898218512535095,
+              0.14201389253139496,
+              0.0013769023353233933,
+              0.00910953152924776
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475158983789333,
+              -0.42459648776989284,
+              0.8774243911748675
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47652021050453186,
+                -0.5184701085090637,
+                0.8555049300193787
+              ],
+              "quat_xyzw": [
+                -0.007005542516708374,
+                -0.008565873838961124,
+                0.8003299236297607,
+                -0.5994578003883362
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.0045341141521930695,
+                -0.008086337707936764,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.001746534020639956
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/08_start_transport_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/08_start_transport_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "transport",
+          "step": 248,
+          "elapsed_s": 0.9,
+          "actual_tcp_pose": {
+            "position": [
+              0.47406478684536896,
+              -0.424598869878096,
+              0.8781209489006958
+            ],
+            "quat_xyzw": [
+              -0.9903472661972046,
+              0.13836434483528137,
+              2.1140202079550363e-05,
+              0.008226373232901096
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475158983789333,
+              -0.42459648776989284,
+              0.8774243911748675
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47230759263038635,
+                -0.4247617721557617,
+                0.8778550028800964
+              ],
+              "quat_xyzw": [
+                -0.0071010896936059,
+                -0.007217049598693848,
+                0.7981802225112915,
+                -0.602333664894104
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086339570581913,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0017846670234575868
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/09_complete_transport_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/09_complete_transport_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "lower",
+          "step": 248,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.47406478684536896,
+              -0.424598869878096,
+              0.8781209489006958
+            ],
+            "quat_xyzw": [
+              -0.9903472661972046,
+              0.13836434483528137,
+              2.1140202079550363e-05,
+              0.008226373232901096
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475216934365714,
+              -0.42367123380289806,
+              0.8274329864453817
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47230759263038635,
+                -0.4247617721557617,
+                0.8778550028800964
+              ],
+              "quat_xyzw": [
+                -0.0071010896936059,
+                -0.007217049598693848,
+                0.7981802225112915,
+                -0.602333664894104
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.473487913608551,
+                -0.42340540885925293,
+                0.8067758679389954
+              ],
+              "quat_xyzw": [
+                -0.004534114617854357,
+                -0.008086339570581913,
+                0.9010558724403381,
+                -0.43360409140586853
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0017846670234575868
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/10_start_lower_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/10_start_lower_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "lower",
+          "step": 338,
+          "elapsed_s": 3.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4754089430478018,
+              -0.42333803889343624,
+              0.8271299691099667
+            ],
+            "quat_xyzw": [
+              -0.989649772644043,
+              0.14321044087409973,
+              0.001370569341816008,
+              0.009084864519536495
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475216934365714,
+              -0.42367123380289806,
+              0.8274329864453817
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47364625334739685,
+                -0.4235267639160156,
+                0.8268901705741882
+              ],
+              "quat_xyzw": [
+                -0.006358923390507698,
+                -0.0075010694563388824,
+                0.8012107610702515,
+                -0.5983015894889832
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.4739311933517456,
+                -0.42369160056114197,
+                0.8067578077316284
+              ],
+              "quat_xyzw": [
+                -0.004533709958195686,
+                -0.008086364716291428,
+                0.9011296033859253,
+                -0.433450847864151
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0017888996517285705
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/11_complete_lower_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/11_complete_lower_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "release",
+          "step": 338,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4754089430478018,
+              -0.42333803889343624,
+              0.8271299691099667
+            ],
+            "quat_xyzw": [
+              -0.989649772644043,
+              0.14321044087409973,
+              0.001370569341816008,
+              0.009084864519536495
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475216934365714,
+              -0.42367123380289806,
+              0.8274329864453817
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47364625334739685,
+                -0.4235267639160156,
+                0.8268901705741882
+              ],
+              "quat_xyzw": [
+                -0.006358923390507698,
+                -0.0075010694563388824,
+                0.8012107610702515,
+                -0.5983015894889832
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.4739311933517456,
+                -0.42369160056114197,
+                0.8067578077316284
+              ],
+              "quat_xyzw": [
+                -0.004533709958195686,
+                -0.008086364716291428,
+                0.9011296033859253,
+                -0.433450847864151
+              ]
+            }
+          },
+          "signals": {
+            "holding": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false,
+            "reach_distance": 0.0017888996517285705
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/12_start_release_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/12_start_release_wrist_cam.png"
+          }
+        },
+        {
+          "event": "complete",
+          "waypoint": "release",
+          "step": 362,
+          "elapsed_s": 0.8,
+          "actual_tcp_pose": {
+            "position": [
+              0.4752779596193657,
+              -0.42354918252913704,
+              0.8273161178079902
+            ],
+            "quat_xyzw": [
+              -0.9897025227546692,
+              0.1428518295288086,
+              0.0013339620782062411,
+              0.008997500874102116
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475216934365714,
+              -0.42367123380289806,
+              0.8274329864453817
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47364342212677,
+                -0.4235331416130066,
+                0.8267698287963867
+              ],
+              "quat_xyzw": [
+                -0.006506566423922777,
+                -0.007041384931653738,
+                0.801117479801178,
+                -0.5984304547309875
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.4739321768283844,
+                -0.42369192838668823,
+                0.8067699670791626
+              ],
+              "quat_xyzw": [
+                -0.0045831892639398575,
+                -0.008111377246677876,
+                0.90113765001297,
+                -0.4334331750869751
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": true,
+            "over_target": false,
+            "stacked": true,
+            "success": false,
+            "reach_distance": 0.0017234630649909377
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": true,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/13_complete_release_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/13_complete_release_wrist_cam.png"
+          }
+        },
+        {
+          "event": "start",
+          "waypoint": "retreat",
+          "step": 362,
+          "elapsed_s": 0.0,
+          "actual_tcp_pose": {
+            "position": [
+              0.4752779596193657,
+              -0.42354918252913704,
+              0.8273161178079902
+            ],
+            "quat_xyzw": [
+              -0.9897025227546692,
+              0.1428518295288086,
+              0.0013339620782062411,
+              0.008997500874102116
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475158983789333,
+              -0.42459648776989284,
+              0.8774243911748675
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.47364342212677,
+                -0.4235331416130066,
+                0.8267698287963867
+              ],
+              "quat_xyzw": [
+                -0.006506566423922777,
+                -0.007041384931653738,
+                0.801117479801178,
+                -0.5984304547309875
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.4739321768283844,
+                -0.42369192838668823,
+                0.8067699670791626
+              ],
+              "quat_xyzw": [
+                -0.0045831892639398575,
+                -0.008111377246677876,
+                0.90113765001297,
+                -0.4334331750869751
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": true,
+            "over_target": false,
+            "stacked": true,
+            "success": false,
+            "reach_distance": 0.0017234630649909377
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": true,
+            "success": false
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/14_start_retreat_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/14_start_retreat_wrist_cam.png"
+          }
+        },
+        {
+          "event": "task_success",
+          "waypoint": "retreat",
+          "step": 363,
+          "elapsed_s": 0.03333333333333333,
+          "actual_tcp_pose": {
+            "position": [
+              0.47522706375747503,
+              -0.42356848809396286,
+              0.8272535072968459
+            ],
+            "quat_xyzw": [
+              -0.9897202253341675,
+              0.1427338421344757,
+              0.0014244214398786426,
+              0.008878027088940144
+            ]
+          },
+          "desired_tcp_pose": {
+            "position": [
+              0.475158983789333,
+              -0.42459648776989284,
+              0.8774243911748675
+            ],
+            "quat_xyzw": [
+              -0.9897254798875021,
+              0.1426836190861588,
+              0.0012054526766143011,
+              0.00914184670111101
+            ]
+          },
+          "objects": {
+            "cube_a": {
+              "position": [
+                0.4736575484275818,
+                -0.4235272705554962,
+                0.8267720341682434
+              ],
+              "quat_xyzw": [
+                -0.006197389680892229,
+                -0.007150578778237104,
+                0.8012304902076721,
+                -0.5982810854911804
+              ]
+            },
+            "cube_b": {
+              "position": [
+                0.4739328622817993,
+                -0.4236912429332733,
+                0.8067705631256104
+              ],
+              "quat_xyzw": [
+                -0.004565130453556776,
+                -0.008103396743535995,
+                0.9011386632919312,
+                -0.4334312379360199
+              ]
+            }
+          },
+          "signals": {
+            "holding": false,
+            "grasped": false,
+            "lifted": true,
+            "over_target": false,
+            "stacked": true,
+            "success": true,
+            "reach_distance": 0.0016422204207628965
+          },
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": true,
+            "success": true
+          },
+          "images": {
+            "realsense_rgb": "seven-stack-5-diagnostics/attempt_0000/15_task_success_retreat_realsense_rgb.png",
+            "wrist_cam": "seven-stack-5-diagnostics/attempt_0000/15_task_success_retreat_wrist_cam.png"
+          }
+        }
+      ]
+    }
+  ],
+  "accepted_episodes": 1,
+  "requested_episodes": 1,
+  "attempt_limit": 1,
+  "attempts_completed": 1,
+  "complete": true
+}

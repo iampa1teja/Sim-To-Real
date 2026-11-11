@@ -1,5 +1,6 @@
 # Copy this folder to arms/<name>, rename name/utils, and supply the referenced USD.
-# Joint tables define the complete action order. Limits use degrees or metres;
+# Non-mimic joint tables define action order; mimic followers remain physical joints.
+# Limits use degrees or metres;
 # initial uses radians or metres. No joint count or gripper index is assumed.
 [arm]
 name = "new_arm"
@@ -55,6 +56,15 @@ kind = "jaw"
 joints = ["finger"]
 contact_bodies = ["finger_link"]
 friction_bodies = ["tool", "finger_link"]
+# For a parallel gripper with measured source coordinates (metres):
+# closed_gap_m = 0.0
+# open_gap_m = 0.08
+# closed_position = 0.0
+# open_position = 0.04
+# closing_axis = [1.0, 0.0, 0.0]
+# approach_axis = [0.0, 0.0, 1.0]
+# A follower joint gets mimic = {joint = "finger", multiplier = 1.0, offset = 0.0}
+# and role = "gripper", but is omitted from gripper.joints and action dimensions.
 # tip_mesh = "tool_mesh"   # optional: a mesh in the end-effector visual subtree
 
 # Omit wrist_roll entirely on arms without an independently controllable roll.

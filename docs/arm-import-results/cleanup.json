@@ -1,0 +1,18 @@
+{
+  "requested_by_owner": true,
+  "performed_after_validation": true,
+  "directories": [
+    {
+      "directory": "outputs",
+      "removed_top_level_entries": 22,
+      "remaining_entries": 0
+    },
+    {
+      "directory": "datasets",
+      "removed_top_level_entries": 79,
+      "remaining_entries": 0
+    }
+  ],
+  "dataset_container_mount": "/workspace/datasets points to project datasets/",
+  "retained_evidence": "docs/arm-import-results/"
+}

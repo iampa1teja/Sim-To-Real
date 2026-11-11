@@ -7,3 +7,9 @@
 *.usdz binary
 *.pt binary
 *.safetensors binary
+
+# Imported ROS source bytes are provenance; do not rewrite line endings on checkout.
+arms/*/source/** -text whitespace=-blank-at-eol
+
+# Retained SDK logs preserve the original diagnostic output.
+docs/arm-import-results/logs/* whitespace=-blank-at-eol

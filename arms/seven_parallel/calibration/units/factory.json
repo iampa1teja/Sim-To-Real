@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "arm": "seven_parallel",
+  "unit_id": "factory",
+  "mapping": {
+    "Axis_1": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_2": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_3": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_4": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_5": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_6": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "Axis_7": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    }
+  },
+  "source": {
+    "kind": "urdf_import_placeholder",
+    "confirm": true,
+    "excluded_prismatic_joints": [
+      "Grip_L"
+    ]
+  }
+}

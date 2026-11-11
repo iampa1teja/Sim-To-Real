@@ -1,0 +1,152 @@
+[
+  {
+    "task": "pick_place_cube",
+    "root": "/workspace/datasets/arm_import_seven_pick_4",
+    "passed": true,
+    "episodes": 1,
+    "lengths": [
+      594
+    ],
+    "action_dimensions": [
+      8
+    ],
+    "feature_names": [
+      "Axis_1.pos",
+      "Axis_2.pos",
+      "Axis_3.pos",
+      "Axis_4.pos",
+      "Axis_5.pos",
+      "Axis_6.pos",
+      "Axis_7.pos",
+      "Grip_L.pos"
+    ],
+    "mapping_axes": [
+      "Axis_1",
+      "Axis_2",
+      "Axis_3",
+      "Axis_4",
+      "Axis_5",
+      "Axis_6",
+      "Axis_7",
+      "Grip_L"
+    ],
+    "sidecars_valid": true,
+    "video_endpoint_checks": {
+      "observation.images.realsense_rgb": [
+        {
+          "frame": 0,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        },
+        {
+          "frame": 593,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        }
+      ],
+      "observation.images.wrist_cam": [
+        {
+          "frame": 0,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        },
+        {
+          "frame": 593,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        }
+      ]
+    }
+  },
+  {
+    "task": "stack_two_cubes",
+    "root": "/workspace/datasets/arm_import_seven_stack_5",
+    "passed": true,
+    "episodes": 1,
+    "lengths": [
+      363
+    ],
+    "action_dimensions": [
+      8
+    ],
+    "feature_names": [
+      "Axis_1.pos",
+      "Axis_2.pos",
+      "Axis_3.pos",
+      "Axis_4.pos",
+      "Axis_5.pos",
+      "Axis_6.pos",
+      "Axis_7.pos",
+      "Grip_L.pos"
+    ],
+    "mapping_axes": [
+      "Axis_1",
+      "Axis_2",
+      "Axis_3",
+      "Axis_4",
+      "Axis_5",
+      "Axis_6",
+      "Axis_7",
+      "Grip_L"
+    ],
+    "sidecars_valid": true,
+    "video_endpoint_checks": {
+      "observation.images.realsense_rgb": [
+        {
+          "frame": 0,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        },
+        {
+          "frame": 362,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        }
+      ],
+      "observation.images.wrist_cam": [
+        {
+          "frame": 0,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        },
+        {
+          "frame": 362,
+          "shape": [
+            3,
+            480,
+            640
+          ],
+          "finite": true
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,9 @@
+[mount]
+anchor = "mount"
+translation_correction_m = [0.0, 0.0, 0.04778445403731681]
+
+[mount.source]
+importer = "urdf"
+tag = "derived"
+confirm = true
+reason = "Base collision support fitted above measured default tabletop"

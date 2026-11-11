@@ -1,0 +1,719 @@
++ docker run --rm --gpus all --network host -e S2R_GIT_COMMIT=cd5bb96e16e4c638c5a161f31d83a16950fe8ff9 --mount type=bind,source=/home/rpuser1/Isaac-Sim-to-Real,target=/workspace/s2r --mount type=bind,source=/home/rpuser1/Isaac-Sim-to-Real/datasets,target=/workspace/datasets --mount type=bind,source=/tmp/s2r-external-package-acceptance/seven_parallel_pkg,target=/tmp/s2r-external-package-acceptance/seven_parallel_pkg,readonly -w /workspace/s2r s2r-sim:latest s2r-entrypoint python -m sim.arms.urdf_import external_probe --urdf /tmp/s2r-external-package-acceptance/seven_parallel_pkg/robot.urdf.xacro --ee_link Tool_0 --gripper Grip_L --camera Camera_1=wrist_cam --package_path seven_parallel_pkg=/tmp/s2r-external-package-acceptance/seven_parallel_pkg --grasp_depth_m 0.01 --continuous_limit_deg 180.0
+AppLauncher is deprecated; use isaaclab.app.launch_simulation.
+2026-11-11T18:12:34Z [Info] [carb] Logging to file: /isaac-sim/kit/logs/Kit/IsaacLab/3.0/kit_20261111_181234.log
+2026-11-11T18:12:34Z [2ms] [Warning] [omni.ext.plugin] [ext: isaaclab_contrib] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_contrib' or '/workspace/isaaclab/source/isaaclab_contrib/config'
+2026-11-11T18:12:34Z [2ms] [Warning] [omni.ext.plugin] [ext: isaaclab_teleop] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_teleop' or '/workspace/isaaclab/source/isaaclab_teleop/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_visualizers] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_visualizers' or '/workspace/isaaclab/source/isaaclab_visualizers/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_experimental] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_experimental' or '/workspace/isaaclab/source/isaaclab_experimental/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_assets] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_assets' or '/workspace/isaaclab/source/isaaclab_assets/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_mimic] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_mimic' or '/workspace/isaaclab/source/isaaclab_mimic/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_ov] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_ov' or '/workspace/isaaclab/source/isaaclab_ov/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_rl] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_rl' or '/workspace/isaaclab/source/isaaclab_rl/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_newton] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_newton' or '/workspace/isaaclab/source/isaaclab_newton/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_tasks] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_tasks' or '/workspace/isaaclab/source/isaaclab_tasks/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_ppisp] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_ppisp' or '/workspace/isaaclab/source/isaaclab_ppisp/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_tasks_experimental] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_tasks_experimental' or '/workspace/isaaclab/source/isaaclab_tasks_experimental/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab' or '/workspace/isaaclab/source/isaaclab/config'
+2026-11-11T18:12:34Z [3ms] [Warning] [omni.ext.plugin] [ext: isaaclab_physx] Extensions config 'extension.toml' doesn't exist '/workspace/isaaclab/source/isaaclab_physx' or '/workspace/isaaclab/source/isaaclab_physx/config'
+2026-11-11T18:12:34Z [187ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [260ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [342ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [434ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [537ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [649ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [771ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:34Z [903ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,046ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,198ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,360ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,532ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,714ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:35Z [1,906ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:36Z [2,109ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:36Z [2,321ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:36Z [2,543ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:36Z [2,776ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:37Z [3,018ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:37Z [3,270ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:37Z [3,532ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:37Z [3,804ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:38Z [4,086ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:38Z [4,378ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:38Z [4,680ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:39Z [4,993ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:39Z [5,315ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:39Z [5,647ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:40Z [5,990ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:40Z [6,342ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:40Z [6,705ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:41Z [7,127ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:41Z [7,510ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1794420764.558704      46 descriptor_database.cc:633] File already exists in database: grpc/health/v1/health.proto
+W0000 00:00:1794420764.558722      46 message.cc:301] Protobuf GeneratedMessageFactory: File is already registered: grpc/health/v1/health.proto
+2026-11-11T18:12:41Z [7,902ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:42Z [8,304ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:42Z [8,715ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:43Z [9,137ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:43Z [9,569ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:44Z [10,011ms] [Warning] [carb.omniclient.plugin]  107: OmniHub: ThreadId(03) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 101 without writing file \\\"/tmp/hub-root-65581A61.config.json\\\"\")"
+2026-11-11T18:12:44Z [10,674ms] [Warning] [omni.platforminfo.plugin] failed to open the default display.  Can't verify X Server version.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 580.173.02    | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA GeForce RTX 4090          | Yes: 0 |     | 24564   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2684      | 0aa900f2.. |
+|     |                                  |        |     |            | 1         |            |
+|=============================================================================================|
+| OS: 24.04.3 LTS (Noble Numbat) ubuntu, Version: 24.04.3, Kernel: 6.8.0-142-generic
+| Processor: Intel(R) Core(TM) i9-14900K
+| Bare Metal Cores: 24 | Bare Metal Logical Cores: 48
+| Available Cores:  32 
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 63040 | Free Memory: 57276
+| Total Page/Swap (MB): 2047 | Free Page/Swap: 0
+|---------------------------------------------------------------------------------------------|
+2026-11-11T18:12:45Z [11,148ms] [Warning] [omni.rtx] CPU performance profile is set to powersave. This profile sets the CPU to the lowest frequency reducing performance.
+2026-11-11T18:12:45Z [11,150ms] [Warning] [omni.rtx] IOMMU is enabled.
+2026-11-11T18:12:46Z [11,955ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-11-11T18:12:46Z [11,955ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-11-11T18:12:46Z [12,075ms] [Warning] [omni.log] Source: omni.hydra was already registered.
+2026-11-11T18:12:46Z [12,091ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+Warning: Possible version incompatibility. Attempting to load carb::ujitso::IFactory with version v0.3 against v0.2.
+[ISAACLAB] KitLauncher initialization complete
+2026-11-11T18:12:46Z [12,091ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-11-11T18:12:46Z [12,094ms] [Warning] [carb.windowing-glfw.plugin] GLFW initialization failed.
+2026-11-11T18:12:46Z [12,094ms] [Warning] [carb] Failed to startup plugin carb.windowing-glfw.plugin (interfaces: [carb::windowing::IGLContext v1.0],[carb::windowing::IWindowing v1.5]) (impl: carb.windowing-glfw.plugin)
+2026-11-11T18:12:47Z [13,037ms] [Warning] [pxr.Semantics] pxr.Semantics is deprecated - please use Semantics instead
+2026-11-11T18:12:47Z [13,169ms] [Warning] [omni.replicator.core.scripts.extension] No material configuration file, adding configuration to material settings directly.
+2026-11-11T18:12:52Z [18,035ms] [Warning] [rtx.hydra] RenderDelegate : Warning /rtx/hydra/readTransformsFromFabricInRenderDelegate and geometry streaming are enabled together but this can cause issues with dynamic objects not streaming correctly due to problems in the transform update.
+2026-11-11T18:16:15Z [221,318ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_1, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,318ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_2, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,318ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_3, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,319ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_4, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,319ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_5, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,319ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_6, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,319ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Axis_7, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,319ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Grip_L, actuator will be created without gain parameters
+2026-11-11T18:16:15Z [221,320ms] [Warning] [isaacsim.asset.importer.utils.impl.urdf_to_mjc_physx_conversion_utils] Stiffness and damping not available joint /seven_parallel/Physics/Grip_R, actuator will be created without gain parameters
+[2026-11-11 18:16:18.791] [CoACD] [info] threshold               0.05
+[2026-11-11 18:16:18.791] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:16:18.791] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:16:18.791] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:16:18.791] [CoACD] [info] pca                     false
+[2026-11-11 18:16:18.791] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:16:18.791] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:16:18.791] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:16:18.791] [CoACD] [info] merge                   false
+[2026-11-11 18:16:18.791] [CoACD] [info] decimate                false
+[2026-11-11 18:16:18.791] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:16:18.791] [CoACD] [info] extrude                 false
+[2026-11-11 18:16:18.791] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:16:18.791] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:16:18.791] [CoACD] [info] seed                    0
+[2026-11-11 18:16:18.791] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:16:18.791] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:16:18.791] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:16:18.791] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:16:18.791] [CoACD] [info] Manifold Check Time: 3.8e-05s
+[2026-11-11 18:16:18.791] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:16:18.791] [CoACD] [info] # Points: 8
+[2026-11-11 18:16:18.791] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:16:18.791] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:16:18.791] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:16:18.791] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:16:18.808] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:16:18.809] [CoACD] [info] Compute Time: 0.017815890998463146s
+[2026-11-11 18:16:18.809] [CoACD] [info] # Convex Hulls: 1
+[2026-11-11 18:16:22.854] [CoACD] [info] threshold               0.05
+[2026-11-11 18:16:22.854] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:16:22.854] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:16:22.854] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:16:22.854] [CoACD] [info] pca                     false
+[2026-11-11 18:16:22.854] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:16:22.854] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:16:22.854] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:16:22.854] [CoACD] [info] merge                   false
+[2026-11-11 18:16:22.854] [CoACD] [info] decimate                false
+[2026-11-11 18:16:22.854] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:16:22.854] [CoACD] [info] extrude                 false
+[2026-11-11 18:16:22.854] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:16:22.854] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:16:22.854] [CoACD] [info] seed                    0
+[2026-11-11 18:16:22.854] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:16:22.854] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:16:22.854] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:16:22.854] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:16:22.854] [CoACD] [info] Manifold Check Time: 3.1e-05s
+[2026-11-11 18:16:22.854] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:16:22.854] [CoACD] [info] # Points: 8
+[2026-11-11 18:16:22.854] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:16:22.854] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:16:22.854] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:16:22.854] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:16:22.869] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:16:22.869] [CoACD] [info] Compute Time: 0.014191987007507123s
+[2026-11-11 18:16:22.869] [CoACD] [info] # Convex Hulls: 1
+/workspace/s2r/src/sim/arms/urdf_import.py:341: DeprecationWarning: __array_wrap__ must accept context and return_scalar arguments (positionally) in the future. (Deprecated NumPy 2.0)
+  euler_degrees=[float(np.degrees(value[0])) for value in euler])
+[2026-11-11 18:16:23.012] [CoACD] [info] threshold               0.05
+[2026-11-11 18:16:23.012] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:16:23.012] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:16:23.012] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:16:23.012] [CoACD] [info] pca                     false
+[2026-11-11 18:16:23.012] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:16:23.012] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:16:23.012] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:16:23.012] [CoACD] [info] merge                   false
+[2026-11-11 18:16:23.012] [CoACD] [info] decimate                false
+[2026-11-11 18:16:23.012] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:16:23.012] [CoACD] [info] extrude                 false
+[2026-11-11 18:16:23.012] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:16:23.012] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:16:23.012] [CoACD] [info] seed                    0
+[2026-11-11 18:16:23.012] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:16:23.012] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:16:23.012] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:16:23.012] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:16:23.012] [CoACD] [info] Manifold Check Time: 3.9e-05s
+[2026-11-11 18:16:23.012] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:16:23.012] [CoACD] [info] # Points: 8
+[2026-11-11 18:16:23.012] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:16:23.012] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:16:23.012] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:16:23.012] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:16:23.025] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:16:23.025] [CoACD] [info] Compute Time: 0.013499893000698648s
+[2026-11-11 18:16:23.025] [CoACD] [info] # Convex Hulls: 1
+Module newton._src.geometry.inertia 060c986 load on device 'cuda:0' took 973.53 ms  (compiled)
+Module validate_and_correct_inertia_kernel_1ff2ac62 6ad45b8 load on device 'cpu' took 1077.48 ms  (compiled)
+Module newton._src.geometry.bvh 4a1c07f load on device 'cpu' took 326.59 ms  (compiled)
+Module newton._src.sim.articulation 2e73608 load on device 'cpu' took 2413.39 ms  (compiled)
+Module newton._src.solvers.featherstone.kernels b454fa1 load on device 'cpu' took 4087.58 ms  (compiled)
+Module newton._src.sim.inverse_dynamics d3f4aee load on device 'cpu' took 86.54 ms  (compiled)
+[INFO]: Parsing configuration from: <function build_env_cfg[rpd_meeting_room:pick_place_cube:teleop] at 0x79afe6f1d440>
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : None
+	Physics step-size     : 0.008333333333333333
+	Rendering step-size   : 0.03333333333333333
+	Environment step-size : 0.03333333333333333
+[INFO]: Registered backend 'newton' for factory Articulation.
+[INFO]: Registered backend 'newton' for factory RigidObject.
+[INFO]: Using renderer: CalibratedRtxRenderer
+[INFO]: Using renderer: CalibratedRtxRenderer
+[INFO]: Registered backend 'newton' for factory ContactSensor.
+[INFO]: Using renderer: CalibratedRtxRenderer
+2026-11-11T18:16:26Z [232,163ms] [Warning] [omni.usd] Encountered USD Warnings but USD Diagnostics are currently muted. To view USD Warnings, please set the '/persistent/app/usd/muteUsdDiagnostics' setting to false in Preferences page.
+2026-11-11T18:16:44Z [250,418ms] [Warning] [isaaclab.envs.manager_based_env] Seed not set for the environment. The environment creation may not be deterministic.
+[2026-11-11 18:16:45.153] [CoACD] [info] threshold               0.05
+[2026-11-11 18:16:45.153] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:16:45.153] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:16:45.153] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:16:45.153] [CoACD] [info] pca                     false
+[2026-11-11 18:16:45.153] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:16:45.153] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:16:45.153] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:16:45.153] [CoACD] [info] merge                   false
+[2026-11-11 18:16:45.153] [CoACD] [info] decimate                false
+[2026-11-11 18:16:45.153] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:16:45.153] [CoACD] [info] extrude                 false
+[2026-11-11 18:16:45.153] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:16:45.153] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:16:45.153] [CoACD] [info] seed                    0
+[2026-11-11 18:16:45.153] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:16:45.153] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:16:45.153] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:16:45.153] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:16:45.153] [CoACD] [info] Manifold Check Time: 3.3e-05s
+[2026-11-11 18:16:45.153] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:16:45.153] [CoACD] [info] # Points: 8
+[2026-11-11 18:16:45.153] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:16:45.153] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:16:45.153] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:16:45.153] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:16:45.166] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:16:45.166] [CoACD] [info] Compute Time: 0.013013817006140016s
+[2026-11-11 18:16:45.166] [CoACD] [info] # Convex Hulls: 1
+/workspace/isaaclab/source/isaaclab_newton/isaaclab_newton/cloner/newton_clone_utils.py:165: FutureWarning: Newton shape color replacement is enabled; this workaround will be deprecated in a future release.
+  replace_newton_builder_shape_colors(builder, stage)
+[INFO]: Time taken for scene creation Last: 0.633324 s, Mean: 0.633324 s, Std: 0.000000 s, N: 1
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 1
+	Environment spacing   : 4.0
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : []
+	Replicate physics     : True
+[INFO]: Dispatching MODEL_INIT callbacks
+[INFO]: Finalizing model on device: cuda:0
+Finalize builder took: Last: 0.770905 s, Mean: 0.770905 s, Std: 0.000000 s, N: 1
+[INFO]: Dispatching PHYSICS_READY callbacks
+[INFO]: Simulation parameters for joints in /World/envs/env_[^/]+/Robot:
++-----------------------------------------------------------------------------------------------------------------------+
+|                         Simulation Joint Information (Prim path: /World/envs/env_[^/]+/Robot)                         |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+| Index | Name   | Stiffness | Damping | Armature | Static Friction | Position Limits | Velocity Limits | Effort Limits |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+|   0   | Axis_1 |   6.361   |  1.151  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   1   | Axis_2 |  293.578  |  9.121  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   2   | Axis_3 |   68.628  |  1.778  |  0.000   |      0.000      | [-3.142, 1.050] |      2.000      |     20.000    |
+|   3   | Axis_4 |   98.067  |  2.193  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   4   | Axis_5 |   18.515  |  0.420  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   5   | Axis_6 |   21.247  |  0.364  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   6   | Axis_7 |   9.360   |  0.214  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   7   | Grip_L |  489.006  |  6.993  |  0.000   |      0.000      |  [0.000, 0.045] |      0.200      |     15.000    |
+|   8   | Grip_R |  489.006  |  6.993  |  0.000   |      0.000      |  [0.000, 0.045] |      0.200      |     15.000    |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+[INFO]: Registered backend 'newton' for factory FrameView.
+[INFO]: Adding contact sensor for /World/envs/env_[^/]+/Robot/(Finger_L|Finger_R) with filter ['/World/envs/env_[^/]+/CUBE']
+Contact sensor construction took: Last: 0.166975 s, Mean: 0.166975 s, Std: 0.000000 s, N: 1
+[INFO]: Contact sensor initialized with 2 sensors.
+[INFO]: Creating buffers for contact sensor data with num_envs: 1, num_sensors: 2, num_filter_objects: 1, history_length: 1, generate_force_matrix: True, track_contact_points: False, track_air_time: False, track_pose: False, device: cuda:0
+[INFO]: Creating buffers for contact sensor data with num_envs: 1, num_sensors: 2, num_filter_objects: 1, history_length: 1, generate_force_matrix: True, track_contact_points: False, track_air_time: False, track_pose: False, device: cuda:0
+Initialize solver took: Last: 14.509976 s, Mean: 14.509976 s, Std: 0.000000 s, N: 1
+[INFO]: Time taken for simulation start Last: 29.749983 s, Mean: 29.749983 s, Std: 0.000000 s, N: 1
+[INFO] Command Manager:  <CommandManager> contains 0 active terms.
++----------------------+
+| Active Command Terms |
++-------+------+-------+
+| Index | Name |  Type |
++-------+------+-------+
++-------+------+-------+
+
+[INFO] Event Manager:  <EventManager> contains 2 active terms.
++-----------------------------------------+
+|   Active Event Terms in Mode: 'reset'   |
++-------+---------------------------------+
+| Index | Name                            |
++-------+---------------------------------+
+|   0   | reset_robot_position            |
+|   1   | reset_set_robot_visual_material |
+|   2   | reset_from_starts               |
+|   3   | reset_tracking                  |
++-------+---------------------------------+
++---------------------------------------+
+| Active Event Terms in Mode: 'startup' |
++-------+-------------------------------+
+| Index | Name                          |
++-------+-------------------------------+
+|   0   | runtime_joint_limits          |
+|   1   | cache_static_geometry         |
+|   2   | configure_scene_updates       |
+|   3   | set_robot_visual_material     |
++-------+-------------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.
++-----------------------+
+| Active Recorder Terms |
++------------+----------+
+|   Index    | Name     |
++------------+----------+
++------------+----------+
+
+[INFO]: Resolved joint names for the action term MimicJointPositionAction: ['Axis_1', 'Axis_2', 'Axis_3', 'Axis_4', 'Axis_5', 'Axis_6', 'Axis_7', 'Grip_L'] [tensor([0, 1, 2, 3, 4, 5, 6, 7], device='cuda:0', dtype=torch.int32)]
+[INFO] Action Manager:  <ActionManager> contains 1 active terms.
++-------------------------------------+
+|    Active Action Terms (shape: 8)   |
++-------+-----------------+-----------+
+| Index | Name            | Dimension |
++-------+-----------------+-----------+
+|   0   | joint_positions |         8 |
++-------+-----------------+-----------+
+
+[INFO]: RTX streaming completed in 0.22 s.
+[INFO] Observation Manager: <ObservationManager> contains 3 groups.
++---------------------------------------------+
+| Active Observation Terms in Group: 'policy' |
++---------+-----------------------+-----------+
+|  Index  | Name                  |   Shape   |
++---------+-----------------------+-----------+
+|    0    | joint_pos_obs         |    (8,)   |
+|    1    | joint_pos_rel         |    (8,)   |
+|    2    | ee_frame_state        |    (7,)   |
++---------+-----------------------+-----------+
++-------------------------------------------------------+
+|      Active Observation Terms in Group: 'visual'      |
++-------+-------------------------------+---------------+
+| Index | Name                          |     Shape     |
++-------+-------------------------------+---------------+
+|   0   | rgb_realsense_rgb             | (480, 640, 3) |
+|   1   | depth_realsense_rgb           | (480, 640, 1) |
+|   2   | instance_id_seg_realsense_rgb | (480, 640, 4) |
+|   3   | rgb_wrist_cam                 | (480, 640, 3) |
++-------+-------------------------------+---------------+
++----------------------------------------------------+
+| Active Observation Terms in Group: 'subtask_terms' |
++------------+--------------------------+------------+
+|   Index    | Name                     |   Shape    |
++------------+--------------------------+------------+
+|     0      | cube_grasped             |    (1,)    |
+|     1      | cube_placed              |    (1,)    |
++------------+--------------------------+------------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 0 active terms.
++--------------------------+
+| Active Termination Terms |
++-------+------+-----------+
+| Index | Name |  Time Out |
++-------+------+-----------+
++-------+------+-----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 0 active terms.
++-----------------------+
+|  Active Reward Terms  |
++-------+------+--------+
+| Index | Name | Weight |
++-------+------+--------+
++-------+------+--------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++-------------------------+
+| Active Curriculum Terms |
++-------------+-----------+
+|    Index    | Name      |
++-------------+-----------+
++-------------+-----------+
+
+[INFO]: Runtime joint limits applied from arm 'external_probe': {'Axis_1': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_2': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_3': {'joint_min': -180.0, 'joint_max': 60.160568488736445}, 'Axis_4': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_5': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_6': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_7': {'joint_min': -180.0, 'joint_max': 180.0}, 'Grip_L': {'joint_min': 0.0, 'joint_max': 0.045}}
+[INFO]: Completed setting up the environment...
+[mimic] constraint: external_probe
+2026-11-11T18:16:46Z [252,209ms] [Warning] [omni.fabric.plugin] Warning: attribute material:binding not found for path /World/envs/env_0/WhiteBox/node_
+
+2026-11-11T18:16:49Z [255,093ms] [Warning] [isaaclab_newton.assets.articulation.articulation_data] Failed to get root com velocity. If the articulation is fixed, this is expected. Setting root com velocity to zeros.
+2026-11-11T18:16:58Z [264,195ms] [Warning] [omni.replicator.core.scripts.annotators] omni.hydra.engine.stats is not installed, assuming single GPU
+[2026-11-11 18:18:02.702] [CoACD] [info] threshold               0.05
+[2026-11-11 18:18:02.702] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:18:02.702] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:18:02.702] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:18:02.702] [CoACD] [info] pca                     false
+[2026-11-11 18:18:02.702] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:18:02.702] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:18:02.702] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:18:02.702] [CoACD] [info] merge                   false
+[2026-11-11 18:18:02.702] [CoACD] [info] decimate                false
+[2026-11-11 18:18:02.702] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:18:02.702] [CoACD] [info] extrude                 false
+[2026-11-11 18:18:02.702] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:18:02.702] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:18:02.702] [CoACD] [info] seed                    0
+[2026-11-11 18:18:02.702] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:18:02.702] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:18:02.702] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:18:02.702] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:18:02.702] [CoACD] [info] Manifold Check Time: 4.1e-05s
+[2026-11-11 18:18:02.702] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:18:02.702] [CoACD] [info] # Points: 8
+[2026-11-11 18:18:02.702] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:18:02.702] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:18:02.702] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:18:02.702] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:18:02.715] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:18:02.715] [CoACD] [info] Compute Time: 0.01311742801044602s
+[2026-11-11 18:18:02.715] [CoACD] [info] # Convex Hulls: 1
+CUDA graph took: Last: 0.326877 s, Mean: 0.326877 s, Std: 0.000000 s, N: 1
+[INFO]: SimulationContext cleared
+[2026-11-11 18:18:03.808] [CoACD] [info] threshold               0.05
+[2026-11-11 18:18:03.808] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:18:03.808] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:18:03.808] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:18:03.808] [CoACD] [info] pca                     false
+[2026-11-11 18:18:03.808] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:18:03.808] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:18:03.808] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:18:03.808] [CoACD] [info] merge                   false
+[2026-11-11 18:18:03.808] [CoACD] [info] decimate                false
+[2026-11-11 18:18:03.808] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:18:03.808] [CoACD] [info] extrude                 false
+[2026-11-11 18:18:03.808] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:18:03.808] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:18:03.808] [CoACD] [info] seed                    0
+[2026-11-11 18:18:03.808] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:18:03.808] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:18:03.808] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:18:03.808] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:18:03.808] [CoACD] [info] Manifold Check Time: 3.7e-05s
+[2026-11-11 18:18:03.808] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:18:03.808] [CoACD] [info] # Points: 8
+[2026-11-11 18:18:03.808] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:18:03.808] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:18:03.808] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:18:03.808] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:18:03.822] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:18:03.822] [CoACD] [info] Compute Time: 0.013308612004038878s
+[2026-11-11 18:18:03.822] [CoACD] [info] # Convex Hulls: 1
+[2026-11-11 18:18:03.947] [CoACD] [info] threshold               0.05
+[2026-11-11 18:18:03.947] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:18:03.947] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:18:03.947] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:18:03.947] [CoACD] [info] pca                     false
+[2026-11-11 18:18:03.947] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:18:03.947] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:18:03.947] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:18:03.947] [CoACD] [info] merge                   false
+[2026-11-11 18:18:03.947] [CoACD] [info] decimate                false
+[2026-11-11 18:18:03.947] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:18:03.947] [CoACD] [info] extrude                 false
+[2026-11-11 18:18:03.947] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:18:03.947] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:18:03.947] [CoACD] [info] seed                    0
+[2026-11-11 18:18:03.947] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:18:03.947] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:18:03.947] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:18:03.947] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:18:03.947] [CoACD] [info] Manifold Check Time: 3.7e-05s
+[2026-11-11 18:18:03.947] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:18:03.947] [CoACD] [info] # Points: 8
+[2026-11-11 18:18:03.947] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:18:03.947] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:18:03.947] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:18:03.947] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:18:03.960] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:18:03.960] [CoACD] [info] Compute Time: 0.013073491005343385s
+[2026-11-11 18:18:03.960] [CoACD] [info] # Convex Hulls: 1
+[INFO]: Parsing configuration from: <function build_env_cfg[rpd_meeting_room:pick_place_cube:teleop] at 0x79aff411e480>
+[INFO]: Base environment:
+	Environment device    : cuda:0
+	Environment seed      : None
+	Physics step-size     : 0.008333333333333333
+	Rendering step-size   : 0.03333333333333333
+	Environment step-size : 0.03333333333333333
+[INFO]: Using renderer: CalibratedRtxRenderer
+[INFO]: Using renderer: CalibratedRtxRenderer
+[INFO]: Using renderer: CalibratedRtxRenderer
+2026-11-11T18:18:22Z [348,773ms] [Warning] [isaaclab.envs.manager_based_env] Seed not set for the environment. The environment creation may not be deterministic.
+2026-11-11T18:18:22Z [348,788ms] [Warning] [rtx.hydra] RenderDelegate : Warning /rtx/hydra/readTransformsFromFabricInRenderDelegate and geometry streaming are enabled together but this can cause issues with dynamic objects not streaming correctly due to problems in the transform update.
+[2026-11-11 18:18:23.066] [CoACD] [info] threshold               0.05
+[2026-11-11 18:18:23.066] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:18:23.066] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:18:23.066] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:18:23.066] [CoACD] [info] pca                     false
+[2026-11-11 18:18:23.066] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:18:23.066] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:18:23.066] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:18:23.066] [CoACD] [info] merge                   false
+[2026-11-11 18:18:23.066] [CoACD] [info] decimate                false
+[2026-11-11 18:18:23.066] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:18:23.066] [CoACD] [info] extrude                 false
+[2026-11-11 18:18:23.066] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:18:23.066] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:18:23.066] [CoACD] [info] seed                    0
+[2026-11-11 18:18:23.066] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:18:23.066] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:18:23.066] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:18:23.066] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:18:23.066] [CoACD] [info] Manifold Check Time: 4e-05s
+[2026-11-11 18:18:23.066] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:18:23.066] [CoACD] [info] # Points: 8
+[2026-11-11 18:18:23.066] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:18:23.066] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:18:23.066] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:18:23.066] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:18:23.080] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:18:23.080] [CoACD] [info] Compute Time: 0.013497888998244889s
+[2026-11-11 18:18:23.080] [CoACD] [info] # Convex Hulls: 1
+/workspace/isaaclab/source/isaaclab_newton/isaaclab_newton/cloner/newton_clone_utils.py:165: FutureWarning: Newton shape color replacement is enabled; this workaround will be deprecated in a future release.
+  replace_newton_builder_shape_colors(builder, stage)
+[INFO]: Time taken for scene creation Last: 0.543174 s, Mean: 0.588249 s, Std: 0.063746 s, N: 2
+[INFO]: Scene manager:  <class InteractiveScene>
+	Number of environments: 1
+	Environment spacing   : 4.0
+	Source prim name      : /World/envs/env_0
+	Global prim paths     : []
+	Replicate physics     : True
+[INFO]: Dispatching MODEL_INIT callbacks
+[INFO]: Finalizing model on device: cuda:0
+Finalize builder took: Last: 0.112706 s, Mean: 0.441805 s, Std: 0.465417 s, N: 2
+[INFO]: Dispatching PHYSICS_READY callbacks
+[INFO]: Simulation parameters for joints in /World/envs/env_[^/]+/Robot:
++-----------------------------------------------------------------------------------------------------------------------+
+|                         Simulation Joint Information (Prim path: /World/envs/env_[^/]+/Robot)                         |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+| Index | Name   | Stiffness | Damping | Armature | Static Friction | Position Limits | Velocity Limits | Effort Limits |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+|   0   | Axis_1 |   6.361   |  0.857  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   1   | Axis_2 |  293.578  |  6.402  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   2   | Axis_3 |   68.628  |  1.317  |  0.000   |      0.000      | [-3.142, 1.050] |      2.000      |     20.000    |
+|   3   | Axis_4 |   98.067  |  1.899  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   4   | Axis_5 |   18.515  |  0.381  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   5   | Axis_6 |   21.247  |  0.448  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   6   | Axis_7 |   9.360   |  0.214  |  0.000   |      0.000      | [-3.142, 3.142] |      2.000      |     20.000    |
+|   7   | Grip_L |  489.006  |  6.993  |  0.000   |      0.000      |  [0.000, 0.045] |      0.200      |     15.000    |
+|   8   | Grip_R |  489.006  |  6.993  |  0.000   |      0.000      |  [0.000, 0.045] |      0.200      |     15.000    |
++-------+--------+-----------+---------+----------+-----------------+-----------------+-----------------+---------------+
+[INFO]: Adding contact sensor for /World/envs/env_[^/]+/Robot/(Finger_L|Finger_R) with filter ['/World/envs/env_[^/]+/CUBE']
+Contact sensor construction took: Last: 0.000568 s, Mean: 0.083771 s, Std: 0.117668 s, N: 2
+[INFO]: Contact sensor initialized with 2 sensors.
+[INFO]: Creating buffers for contact sensor data with num_envs: 1, num_sensors: 2, num_filter_objects: 1, history_length: 1, generate_force_matrix: True, track_contact_points: False, track_air_time: False, track_pose: False, device: cuda:0
+[INFO]: Creating buffers for contact sensor data with num_envs: 1, num_sensors: 2, num_filter_objects: 1, history_length: 1, generate_force_matrix: True, track_contact_points: False, track_air_time: False, track_pose: False, device: cuda:0
+Initialize solver took: Last: 0.252185 s, Mean: 7.381080 s, Std: 10.081781 s, N: 2
+[INFO]: Time taken for simulation start Last: 0.468361 s, Mean: 15.109172 s, Std: 20.705234 s, N: 2
+[INFO] Command Manager:  <CommandManager> contains 0 active terms.
++----------------------+
+| Active Command Terms |
++-------+------+-------+
+| Index | Name |  Type |
++-------+------+-------+
++-------+------+-------+
+
+[INFO] Event Manager:  <EventManager> contains 2 active terms.
++-----------------------------------------+
+|   Active Event Terms in Mode: 'reset'   |
++-------+---------------------------------+
+| Index | Name                            |
++-------+---------------------------------+
+|   0   | reset_robot_position            |
+|   1   | reset_set_robot_visual_material |
+|   2   | reset_from_starts               |
+|   3   | reset_tracking                  |
++-------+---------------------------------+
++---------------------------------------+
+| Active Event Terms in Mode: 'startup' |
++-------+-------------------------------+
+| Index | Name                          |
++-------+-------------------------------+
+|   0   | runtime_joint_limits          |
+|   1   | cache_static_geometry         |
+|   2   | configure_scene_updates       |
+|   3   | set_robot_visual_material     |
++-------+-------------------------------+
+
+[INFO] Recorder Manager:  <RecorderManager> contains 0 active terms.
++-----------------------+
+| Active Recorder Terms |
++------------+----------+
+|   Index    | Name     |
++------------+----------+
++------------+----------+
+
+[INFO]: Resolved joint names for the action term MimicJointPositionAction: ['Axis_1', 'Axis_2', 'Axis_3', 'Axis_4', 'Axis_5', 'Axis_6', 'Axis_7', 'Grip_L'] [tensor([0, 1, 2, 3, 4, 5, 6, 7], device='cuda:0', dtype=torch.int32)]
+[INFO] Action Manager:  <ActionManager> contains 1 active terms.
++-------------------------------------+
+|    Active Action Terms (shape: 8)   |
++-------+-----------------+-----------+
+| Index | Name            | Dimension |
++-------+-----------------+-----------+
+|   0   | joint_positions |         8 |
++-------+-----------------+-----------+
+
+[INFO]: RTX streaming completed in 0.06 s.
+[INFO] Observation Manager: <ObservationManager> contains 3 groups.
++---------------------------------------------+
+| Active Observation Terms in Group: 'policy' |
++---------+-----------------------+-----------+
+|  Index  | Name                  |   Shape   |
++---------+-----------------------+-----------+
+|    0    | joint_pos_obs         |    (8,)   |
+|    1    | joint_pos_rel         |    (8,)   |
+|    2    | ee_frame_state        |    (7,)   |
++---------+-----------------------+-----------+
++-------------------------------------------------------+
+|      Active Observation Terms in Group: 'visual'      |
++-------+-------------------------------+---------------+
+| Index | Name                          |     Shape     |
++-------+-------------------------------+---------------+
+|   0   | rgb_realsense_rgb             | (480, 640, 3) |
+|   1   | depth_realsense_rgb           | (480, 640, 1) |
+|   2   | instance_id_seg_realsense_rgb | (480, 640, 4) |
+|   3   | rgb_wrist_cam                 | (480, 640, 3) |
++-------+-------------------------------+---------------+
++----------------------------------------------------+
+| Active Observation Terms in Group: 'subtask_terms' |
++------------+--------------------------+------------+
+|   Index    | Name                     |   Shape    |
++------------+--------------------------+------------+
+|     0      | cube_grasped             |    (1,)    |
+|     1      | cube_placed              |    (1,)    |
++------------+--------------------------+------------+
+
+[INFO] Termination Manager:  <TerminationManager> contains 0 active terms.
++--------------------------+
+| Active Termination Terms |
++-------+------+-----------+
+| Index | Name |  Time Out |
++-------+------+-----------+
++-------+------+-----------+
+
+[INFO] Reward Manager:  <RewardManager> contains 0 active terms.
++-----------------------+
+|  Active Reward Terms  |
++-------+------+--------+
+| Index | Name | Weight |
++-------+------+--------+
++-------+------+--------+
+
+[INFO] Curriculum Manager:  <CurriculumManager> contains 0 active terms.
++-------------------------+
+| Active Curriculum Terms |
++-------------+-----------+
+|    Index    | Name      |
++-------------+-----------+
++-------------+-----------+
+
+[INFO]: Runtime joint limits applied from arm 'external_probe': {'Axis_1': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_2': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_3': {'joint_min': -180.0, 'joint_max': 60.160568488736445}, 'Axis_4': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_5': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_6': {'joint_min': -180.0, 'joint_max': 180.0}, 'Axis_7': {'joint_min': -180.0, 'joint_max': 180.0}, 'Grip_L': {'joint_min': 0.0, 'joint_max': 0.045}}
+[INFO]: Completed setting up the environment...
+[mimic] constraint: external_probe
+2026-11-11T18:18:23Z [349,496ms] [Warning] [isaaclab_newton.assets.articulation.articulation_data] Failed to get root com velocity. If the articulation is fixed, this is expected. Setting root com velocity to zeros.
+2026-11-11T18:18:23Z [349,556ms] [Warning] [carb] Client omni.hydratexture.plugin has acquired [carb::settings::ISettings v1.1] 100 times. Consider accessing this interface with carb::getCachedInterface() (Performance warning)
+[2026-11-11 18:18:29.835] [CoACD] [info] threshold               0.05
+[2026-11-11 18:18:29.835] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:18:29.835] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:18:29.835] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:18:29.835] [CoACD] [info] pca                     false
+[2026-11-11 18:18:29.835] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:18:29.835] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:18:29.835] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:18:29.835] [CoACD] [info] merge                   false
+[2026-11-11 18:18:29.835] [CoACD] [info] decimate                false
+[2026-11-11 18:18:29.835] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:18:29.835] [CoACD] [info] extrude                 false
+[2026-11-11 18:18:29.835] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:18:29.835] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:18:29.835] [CoACD] [info] seed                    0
+[2026-11-11 18:18:29.835] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:18:29.835] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:18:29.835] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:18:29.835] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: false
+[2026-11-11 18:18:29.835] [CoACD] [info] Manifold Check Time: 4.5e-05s
+[2026-11-11 18:18:29.835] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:18:29.835] [CoACD] [info] # Points: 8
+[2026-11-11 18:18:29.835] [CoACD] [info] # Triangles: 12
+[2026-11-11 18:18:29.835] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:18:29.835] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:18:29.835] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:18:29.848] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:18:29.848] [CoACD] [info] Compute Time: 0.013048292996245436s
+[2026-11-11 18:18:29.848] [CoACD] [info] # Convex Hulls: 1
+CUDA graph took: Last: 0.331863 s, Mean: 0.329370 s, Std: 0.003526 s, N: 2
+[INFO]: SimulationContext cleared
+CONFIRM arm.links.base: Base_0 (--base_link or structural fixed-root proposal)
+CONFIRM arm.gripper.contact_bodies: ['Finger_L', 'Finger_R'] (Child links of selected fingers including mimic joints)
+MEASURED arm.gripper.closed_gap_m: 1.5832483768463135e-08 (Converted collision geometry sweep)
+MEASURED arm.gripper.open_gap_m: 0.09000004921108484 (Converted collision geometry sweep)
+MEASURED arm.gripper.closed_position: 0.0 (Converted collision geometry sweep)
+MEASURED arm.gripper.open_position: 0.045 (Converted collision geometry sweep)
+MEASURED arm.gripper.closing_axis: [1.0, 0.0, 0.0] (Converted collision geometry sweep)
+MEASURED arm.gripper.approach_axis: [0.0, 0.0, 1.0] (Converted collision geometry sweep)
+CONFIRM arm.ik.orientation_axes: ['x', 'y', 'z'] (Joint-count structural proposal; confirm controllable orientation axes)
+MEASURED arm.ik.position_offset_m: [0.0, 0.0, 0.0699999999254942] (Measured inner fingertip centre minus grasp depth along approach axis)
+CONFIRM arm.cameras."wrist_cam".parent_link: Tool_0 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".position: [0.5900000000000001, -0.05, 0.045] (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".euler_degrees: [0.0, 0.0, 0.0] (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".width: 640 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".height: 480 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".horizontal_aperture: 20.955 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".vertical_aperture: 15.716249999999999 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+CONFIRM arm.cameras."wrist_cam".focal_length: 18.14756233630291 (Fixed camera transform and default 640x480 60-degree horizontal FOV)
+DERIVED arm.initial_state.rotation_euler_degrees: [0.0, 0.0, -0.00038472000945979245] (Forward direction aligned to default reference arm)
+CONFIRM arm.hardware.motor: unconfigured (ros2_control ids; assumed encoder defaults require hardware confirmation)
+CONFIRM arm.hardware.encoder_counts_per_turn: 4096 (ros2_control ids; assumed encoder defaults require hardware confirmation)
+CONFIRM arm.hardware.zero_count: 2048 (ros2_control ids; assumed encoder defaults require hardware confirmation)
+CONFIRM arm.hardware.joint_ids: {'Axis_1': '1', 'Axis_2': '2', 'Axis_3': '3', 'Axis_4': '4', 'Axis_5': '5', 'Axis_6': '6', 'Axis_7': '7', 'Grip_L': '8', 'Grip_R': '9'} (ros2_control ids; assumed encoder defaults require hardware confirmation)
+TODO arm.hardware.Grip_L.counts_per_metre: TODO (URDF linear stroke does not imply rotary motor transmission; excluded from factory unit)
+TODO arm.hardware.Grip_R.counts_per_metre: TODO (URDF linear stroke does not imply rotary motor transmission; excluded from factory unit)
+TODO arm.lerobot.driver: TODO (Real rollout needs an owner-supplied driver)
+Import report: /workspace/s2r/arms/external_probe/import-report.json

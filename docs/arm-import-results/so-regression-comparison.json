@@ -1,0 +1,35 @@
+[
+  {
+    "source": "pick",
+    "seed": 101,
+    "baseline_steps": 492,
+    "current_steps": 492,
+    "baseline_accepted": false,
+    "current_accepted": false,
+    "waypoint_trace_identical": true,
+    "differing_numerical_fields": [],
+    "numerical_episode_equal": true
+  },
+  {
+    "source": "stack",
+    "seed": 182482,
+    "baseline_steps": 304,
+    "current_steps": 304,
+    "baseline_accepted": true,
+    "current_accepted": true,
+    "waypoint_trace_identical": true,
+    "differing_numerical_fields": [],
+    "numerical_episode_equal": true
+  },
+  {
+    "source": "mimic",
+    "seed": 1984,
+    "baseline_steps": 402,
+    "current_steps": 402,
+    "baseline_accepted": false,
+    "current_accepted": false,
+    "waypoint_trace_identical": true,
+    "differing_numerical_fields": [],
+    "numerical_episode_equal": true
+  }
+]

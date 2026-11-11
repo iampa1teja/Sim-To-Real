@@ -1,0 +1,174 @@
+[2026-11-11 18:24:14.682] [CoACD] [info] threshold               0.05
+[2026-11-11 18:24:14.682] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:24:14.682] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:24:14.682] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:24:14.682] [CoACD] [info] pca                     false
+[2026-11-11 18:24:14.682] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:24:14.682] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:24:14.682] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:24:14.682] [CoACD] [info] merge                   false
+[2026-11-11 18:24:14.682] [CoACD] [info] decimate                false
+[2026-11-11 18:24:14.682] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:24:14.682] [CoACD] [info] extrude                 false
+[2026-11-11 18:24:14.682] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:24:14.682] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:24:14.682] [CoACD] [info] seed                    0
+[2026-11-11 18:24:14.682] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:24:14.682] [CoACD] [info] [1/3] Edge check finish
+[2026-11-11 18:24:14.683] [CoACD] [info] [2/3] Self-intersection check finish
+[2026-11-11 18:24:14.683] [CoACD] [info] [3/3] Triangle orientation check finish. Reversed: true
+[2026-11-11 18:24:14.683] [CoACD] [info] Manifold Check Time: 0.001259s
+[2026-11-11 18:24:14.683] [CoACD] [info] Mesh Manifoldness: true
+[2026-11-11 18:24:14.683] [CoACD] [info] # Points: 176
+[2026-11-11 18:24:14.683] [CoACD] [info] # Triangles: 348
+[2026-11-11 18:24:14.683] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:24:14.683] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:24:14.684] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:14.687] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:14.687] [CoACD] [info] Compute Time: 0.003725659000338055s
+[2026-11-11 18:24:14.687] [CoACD] [info] # Convex Hulls: 1
+[2026-11-11 18:24:14.688] [CoACD] [info] threshold               0.05
+[2026-11-11 18:24:14.688] [CoACD] [info] max # convex hull       64
+[2026-11-11 18:24:14.688] [CoACD] [info] preprocess mode         auto
+[2026-11-11 18:24:14.688] [CoACD] [info] preprocess resolution   50
+[2026-11-11 18:24:14.688] [CoACD] [info] pca                     false
+[2026-11-11 18:24:14.688] [CoACD] [info] mcts max depth          1
+[2026-11-11 18:24:14.688] [CoACD] [info] mcts nodes              20
+[2026-11-11 18:24:14.688] [CoACD] [info] mcts iterations         5
+[2026-11-11 18:24:14.688] [CoACD] [info] merge                   false
+[2026-11-11 18:24:14.688] [CoACD] [info] decimate                false
+[2026-11-11 18:24:14.688] [CoACD] [info] max_ch_vertex           256
+[2026-11-11 18:24:14.688] [CoACD] [info] extrude                 false
+[2026-11-11 18:24:14.688] [CoACD] [info] extrude margin          0.01
+[2026-11-11 18:24:14.688] [CoACD] [info] approximate mode        ch
+[2026-11-11 18:24:14.688] [CoACD] [info] seed                    0
+[2026-11-11 18:24:14.688] [CoACD] [info]  - Manifold Check
+[2026-11-11 18:24:14.689] [CoACD] [info] 	Wrong triangle orientation
+[2026-11-11 18:24:14.689] [CoACD] [info] Manifold Check Time: 0.001141s
+[2026-11-11 18:24:14.689] [CoACD] [info] Mesh Manifoldness: false
+[2026-11-11 18:24:14.689] [CoACD] [info]  - Preprocess
+[2026-11-11 18:24:14.689] [CoACD] [info] Preprocess resolution: 50
+[2026-11-11 18:24:14.728] [CoACD] [info] Preprocess Time: 0.834643s
+[2026-11-11 18:24:14.728] [CoACD] [info] # Points: 11544
+[2026-11-11 18:24:14.728] [CoACD] [info] # Triangles: 23120
+[2026-11-11 18:24:14.728] [CoACD] [info]  - Decomposition (MCTS)
+[2026-11-11 18:24:14.728] [CoACD] [info] iter 0 ---- waiting pool: 1
+[2026-11-11 18:24:14.728] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:14.837] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:14.837] [CoACD] [info] iter 1 ---- waiting pool: 2
+[2026-11-11 18:24:14.838] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:14.838] [CoACD] [info] Processing [50.0%]
+[2026-11-11 18:24:14.924] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:14.925] [CoACD] [info] iter 2 ---- waiting pool: 4
+[2026-11-11 18:24:14.925] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:14.925] [CoACD] [info] Processing [25.0%]
+[2026-11-11 18:24:14.925] [CoACD] [info] Processing [75.0%]
+[2026-11-11 18:24:14.925] [CoACD] [info] Processing [50.0%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:14.989] [CoACD] [info] iter 3 ---- waiting pool: 8
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [12.5%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [37.5%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [62.5%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [50.0%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [87.5%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [75.0%]
+[2026-11-11 18:24:14.989] [CoACD] [info] Processing [25.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] iter 4 ---- waiting pool: 8
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [25.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [12.5%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [50.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [87.5%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [37.5%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [75.0%]
+[2026-11-11 18:24:15.023] [CoACD] [info] Processing [62.5%]
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:15.054] [CoACD] [info] iter 5 ---- waiting pool: 10
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [60.0%]
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [20.0%]
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [40.0%]
+[2026-11-11 18:24:15.054] [CoACD] [info] Processing [80.0%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:15.083] [CoACD] [info] iter 6 ---- waiting pool: 14
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [14.3%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [42.9%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [28.6%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [57.1%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [85.7%]
+[2026-11-11 18:24:15.083] [CoACD] [info] Processing [71.4%]
+[2026-11-11 18:24:15.104] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:15.104] [CoACD] [info] iter 7 ---- waiting pool: 2
+[2026-11-11 18:24:15.105] [CoACD] [info] Processing [0.0%]
+[2026-11-11 18:24:15.105] [CoACD] [info] Processing [50.0%]
+[2026-11-11 18:24:15.108] [CoACD] [info] Processing [100.0%]
+[2026-11-11 18:24:15.108] [CoACD] [info] Compute Time: 0.3804962089925539s
+[2026-11-11 18:24:15.108] [CoACD] [info] # Convex Hulls: 25
+/workspace/s2r/src/sim/datagen/ik.py:307: UserWarning: Inertia validation corrected 1 bodies. Set validate_inertia_detailed=True for detailed per-body warnings.
+  model = builder.finalize(device='cpu')
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/base/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/shoulder/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/upper_arm/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/lower_arm/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/wrist/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/gripper/collisions. [python3.12]
+Warning: CollisionAPI applied to an unknown UsdGeomGPrim type, prim /so101_new_calib/jaw/collisions. [python3.12]
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/base/visuals/base_motor_holder_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/base/visuals/base_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/base/visuals/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/base/visuals/waveshare_mounting_plate_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/shoulder/visuals/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/shoulder/visuals/motor_holder_so101_base_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/shoulder/visuals/rotation_pitch_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/upper_arm/visuals/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/upper_arm/visuals/upper_arm_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/lower_arm/visuals/under_arm_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/lower_arm/visuals/motor_holder_so101_wrist_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/lower_arm/visuals/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/wrist/visuals/sts3215_03a_no_horn_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/wrist/visuals/wrist_roll_pitch_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/gripper/visuals/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/gripper/visuals/wrist_roll_follower_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/so101_new_calib/jaw/visuals/moving_jaw_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/base/base_motor_holder_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/base/base_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/base/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/base/waveshare_mounting_plate_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/shoulder/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/shoulder/motor_holder_so101_base_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/shoulder/rotation_pitch_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/upper_arm/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/upper_arm/upper_arm_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/lower_arm/under_arm_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/lower_arm/motor_holder_so101_wrist_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/lower_arm/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/wrist/sts3215_03a_no_horn_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/wrist/wrist_roll_pitch_so101_v2) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/gripper/sts3215_03a_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/gripper/wrist_roll_follower_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warning: in BindingsAtPrim at line 669 of .conan2/data/b/openu6ff0a704ef94d/b/pxr/usd/usdShade/materialBindingAPI.cpp -- Found material bindings on prim at path (/visuals/jaw/moving_jaw_so101_v1) but MaterialBindingAPI is not applied on the prim
+Warp 1.17.0 initialized:
+   CUDA Toolkit 12.9, Driver 13.0
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "NVIDIA GeForce RTX 4090" (24 GiB, sm_89, mempool enabled)
+   Kernel cache:
+     /root/.cache/warp/1.17.0
+Module newton._src.geometry.inertia 060c986 load on device 'cuda:0' took 1.82 ms  (cached)
+Module validate_and_correct_inertia_kernel_1ff2ac62 6ad45b8 load on device 'cpu' took 1.09 ms  (cached)
+Module newton._src.geometry.bvh 4a1c07f load on device 'cpu' took 0.26 ms  (cached)
+Module newton._src.sim.articulation 2e73608 load on device 'cpu' took 0.78 ms  (cached)
+{
+  "imported": "so101_urdf",
+  "reference": "so101",
+  "imported_action_dimension": 6,
+  "reference_action_dimension": 6,
+  "order_matches": true,
+  "types_match": true,
+  "max_tcp_distance_m": 0.5871841791115492,
+  "mean_tcp_distance_m": 0.27861405266799255,
+  "note": "Both USDs use their declared TCPs; base frames, zero conventions, limits and TCP offsets are reported, never corrected."
+}

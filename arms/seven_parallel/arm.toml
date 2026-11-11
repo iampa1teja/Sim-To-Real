@@ -1,0 +1,328 @@
+# Generated from URDF. Read import-report.json before confirming this arm.
+
+[arm]
+# from-flag: --name
+"name" = "seven_parallel"
+# derived: Converted USD in this arm folder
+"usd_path" = "usd/seven_parallel.usd"
+# derived: Optional hooks placeholder
+"utils" = "seven_parallel_utils.py"
+
+[arm.links]
+# confirm: --base_link or structural fixed-root proposal
+"base" = "Base_0"
+# from-flag: --ee_link
+"ee" = "Tool_0"
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_1"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_1"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = -2.532376784686346e-16
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_2"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_2"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = -1.215191125869751
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_3"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_3"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 60.160568488736445]
+# derived: Converged ready pose
+"initial" = -3.6914738750658716e-16
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_4"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_4"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = 2.038607120513916
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_5"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_5"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = 4.826600197735897e-16
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_6"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_6"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = 2.3203494548797607
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Axis_7"
+# derived: Unmerged converted URDF joint name
+"usd" = "Axis_7"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "revolute"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "arm"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [-180.0, 180.0]
+# derived: Converged ready pose
+"initial" = -8.186151506925962e-16
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Grip_L"
+# derived: Unmerged converted URDF joint name
+"usd" = "Grip_L"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "prismatic"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "gripper"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [0.0, 0.045]
+# derived: Converged ready pose
+"initial" = 0.0
+
+[[arm.joints]]
+# derived: URDF name or --rename
+"name" = "Grip_R"
+# derived: Unmerged converted URDF joint name
+"usd" = "Grip_R"
+# derived: URDF type; continuous joints receive declared finite limits
+"type" = "prismatic"
+# from-flag: base-to-ee chain from --ee_link / --gripper subtree
+"role" = "gripper"
+# derived: URDF radians converted to degrees, prismatic metres preserved
+"limits" = [0.0, 0.045]
+# derived: Converged ready pose
+"initial" = 0.0
+# derived: URDF mimic source, multiplier and SI offset
+"mimic" = {"joint" = "Grip_L", "multiplier" = 1.0, "offset" = 0.0}
+
+[arm.gripper]
+# derived: Types of explicitly selected gripper joints
+"kind" = "parallel"
+# from-flag: --gripper sources only
+"joints" = ["Grip_L"]
+# confirm: Child links of selected fingers including mimic joints
+"contact_bodies" = ["Finger_L", "Finger_R"]
+# derived: Contact bodies and ee link
+"friction_bodies" = ["Finger_L", "Finger_R", "Tool_0"]
+# measured; confirm: Converted collision geometry sweep
+"closed_gap_m" = 1.5832483768463135e-08
+# measured; confirm: Converted collision geometry sweep
+"open_gap_m" = 0.09000004921108484
+# measured; confirm: Converted collision geometry sweep
+"closed_position" = 0.0
+# measured; confirm: Converted collision geometry sweep
+"open_position" = 0.045
+# measured; confirm: Converted collision geometry sweep
+"closing_axis" = [1.0, 0.0, 0.0]
+# measured; confirm: Converted collision geometry sweep
+"approach_axis" = [0.0, 0.0, 1.0]
+
+[arm.ik]
+# confirm: Joint-count structural proposal; confirm controllable orientation axes
+"orientation_axes" = ["x", "y", "z"]
+# derived: Isaac Lab library IK
+"method" = "dls"
+# derived: Spare joint for seven-axis redundancy
+"joint_limit_avoidance_gain" = 0.5
+# measured; confirm: Measured inner fingertip centre minus grasp depth along approach axis
+"position_offset_m" = [0.0, 0.0, 0.0699999999254942]
+
+[arm.cameras."wrist_cam"]
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"parent_link" = "Tool_0"
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"position" = [0.5900000000000001, -0.05, 0.045]
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"euler_degrees" = [0.0, 0.0, 0.0]
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"width" = 640
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"height" = 480
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"horizontal_aperture" = 20.955
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"vertical_aperture" = 15.716249999999999
+# confirm: Fixed camera transform and default 640x480 60-degree horizontal FOV
+"focal_length" = 18.14756233630291
+
+[arm.actuators.joint_0]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_1"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 6.3614281646328985
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 0.856848828133212
+
+[arm.actuators.joint_1]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_2"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 293.57811422645284
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 6.401674973844237
+
+[arm.actuators.joint_2]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_3"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 68.62827911980574
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 1.3167087666304258
+
+[arm.actuators.joint_3]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_4"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 98.06702281996434
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 1.8988869964472106
+
+[arm.actuators.joint_4]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_5"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 18.515442434157936
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 0.38138460357915455
+
+[arm.actuators.joint_5]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_6"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 21.246806054942063
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 0.4481910700187178
+
+[arm.actuators.joint_6]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Axis_7"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 20.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 9.360337125395594
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 0.21351673259174656
+
+[arm.actuators.joint_7]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Grip_L"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 15.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 489.0061914920807
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 6.992897556414225
+
+[arm.actuators.joint_8]
+# derived: One actuator per converted joint
+"joint_names_expr" = ["Grip_R"]
+# derived: URDF effort; Newton gravity torque and mass matrix
+"effort_limit_sim" = 15.0
+# derived: URDF effort; Newton gravity torque and mass matrix
+"stiffness" = 489.0061914920807
+# derived: URDF effort; Newton gravity torque and mass matrix
+"damping" = 6.992897556414225
+
+[arm.spawn]
+# derived: Template default
+"activate_contact_sensors" = false
+
+[arm.spawn.articulation_props]
+# derived: Template default
+"self_collision_enabled" = false
+
+[arm.initial_state]
+# derived: Template default; scene anchor owns placement
+"position" = [0.0, 0.0, 0.0]
+# derived: Apply the ready-forward yaw relative to the shared mount anchor
+"rotation_relative_to_anchor" = true
+# derived; confirm: Forward direction aligned to default reference arm
+"rotation_euler_degrees" = [0.0, 0.0, -0.001190091804856169]
+
+[arm.hardware]
+# confirm: ros2_control ids; assumed encoder defaults require hardware confirmation
+"motor" = "unconfigured"
+# confirm: ros2_control ids; assumed encoder defaults require hardware confirmation
+"encoder_counts_per_turn" = 4096
+# confirm: ros2_control ids; assumed encoder defaults require hardware confirmation
+"zero_count" = 2048
+# confirm: ros2_control ids; assumed encoder defaults require hardware confirmation
+"joint_ids" = {"Axis_1" = "1", "Axis_2" = "2", "Axis_3" = "3", "Axis_4" = "4", "Axis_5" = "5", "Axis_6" = "6", "Axis_7" = "7", "Grip_L" = "8", "Grip_R" = "9"}
+
+# TODO: Real rollout needs an owner-supplied driver.
+# [arm.lerobot]
+# follower_type = "TODO"
+# leader_type = "TODO"
+
+[arm.import]
+# derived: Import provenance; no hardware or control configuration
+"source_hashes" = {"source/0_seven_parallel_pkg/robot.urdf.xacro" = "48cd9411640e7ccab04e8226e7bbfff2b9c0120a66323184f85b81957f2c743c", "source/0_seven_parallel_pkg/package.xml" = "74561142239e2a44b08045ffab27796681511e1276457fd449839781d8f2681d", "source/0_seven_parallel_pkg/gripper.xacro" = "9c6be5b616738c2174ad151e3bff97fc07aa012643269a2451977af3f7e74c35", "source/0_seven_parallel_pkg/arm.xacro" = "f2f8e8ba158353ca10fe569d8f09bfe9de8aba266c3375aa4126c3097b61fad4", "source/0_seven_parallel_pkg/ros2_control.xacro" = "48ae0ae4ebf703343b19984147d8b3c3d91e4dfd5ad29a530c4a1c987f426257", "source/0_seven_parallel_pkg/meshes/motor.stl" = "3b6816da9dac9ae8fe96928a799489db19b1eec8eef8ec7c9a6658ffcfde041b", "source/0_seven_parallel_pkg/meshes/body.stl" = "93e23cede7dcf365611a658ee7666848374b1930af960d870421a64013d32378", "source/0_seven_parallel_pkg/meshes/camera.obj" = "bcda2e267618b759bd28e530e00948ec49ef7d52d6d7c664aef2b7db779651cf", "source/0_seven_parallel_pkg/meshes/camera.dae" = "c6f6c9e13936a9693bc83fde65061dd83884d28f68e4988c15c6630776781de2", "source/0_seven_parallel_pkg/meshes/link.stl" = "43d7100fe2ff277e478e960262088c848e99c6234353e5612fb03512e62a8579", "source/0_seven_parallel_pkg/meshes/finger.stl" = "f13ed0ee3992a041993e68644b425388af866e3088dfff0cba05913241a09240"}
+# derived: Import provenance; no hardware or control configuration
+"command_line" = ["/workspace/s2r/src/sim/arms/urdf_import.py", "seven_parallel", "--urdf", "tests/fixtures/urdf/seven_parallel_pkg/robot.urdf.xacro", "--ee_link", "Tool_0", "--gripper", "Grip_L", "--camera", "Camera_1=wrist_cam", "--force"]
+# derived: Import provenance; no hardware or control configuration
+"importer_version" = "1"
+# derived: Import provenance; no hardware or control configuration
+"conversion_path" = "isaaclab.sim.converters.UrdfConverter (3.0 URDFImporterConfig)"
+# derived: Import provenance; no hardware or control configuration
+"report_path" = "import-report.json"
+# derived: Import provenance; no hardware or control configuration
+"mimic_runtime" = "constraint"

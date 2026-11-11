@@ -1,0 +1,35 @@
+[
+  {
+    "arm": "five_jaw",
+    "removed_unreferenced_intermediate_files": [
+      "usd/converted/.asset_hash",
+      "usd/converted/config.yaml",
+      "usd/converted/conversion/conversion.usda"
+    ],
+    "bytes": 84886,
+    "retained_usd": "arms/five_jaw/usd/five_jaw.usd",
+    "composed_layer_count": 1
+  },
+  {
+    "arm": "seven_parallel",
+    "removed_unreferenced_intermediate_files": [
+      "usd/converted/.asset_hash",
+      "usd/converted/config.yaml",
+      "usd/converted/conversion/conversion.usda"
+    ],
+    "bytes": 138416,
+    "retained_usd": "arms/seven_parallel/usd/seven_parallel.usd",
+    "composed_layer_count": 1
+  },
+  {
+    "arm": "so101_urdf",
+    "removed_unreferenced_intermediate_files": [
+      "usd/converted/.asset_hash",
+      "usd/converted/config.yaml",
+      "usd/converted/conversion/conversion.usda"
+    ],
+    "bytes": 60749223,
+    "retained_usd": "arms/so101_urdf/usd/so101_urdf.usd",
+    "composed_layer_count": 1
+  }
+]

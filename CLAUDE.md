@@ -19,7 +19,8 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   in generic source. Optional spawn/appearance hooks are loaded from the arm's `<arm>_utils.py`.
 - Isaac Lab 3.0 / Newton live tensors use XYZW quaternions. Dataset sidecars and benchmark JSON use WXYZ.
   Convert explicitly at those boundaries. Positions and translations are metres; articulation angles are radians.
-- `[[arm.joints]]` order is action/dataset order. Joint `limits` and calibrated physical spans use degrees for
+- Arms can be imported from URDF; mimic joints are not action dimensions; gripper commands may be physical gaps.
+- Non-mimic `[[arm.joints]]` order is action/dataset order. Joint `limits` and calibrated physical spans use degrees for
   revolute joints and metres for prismatic joints; `initial` and simulator state use radians/metres. Raw normalized
   body joints use -100..100 and gripper joints 0..100. LeRobot `use_degrees = true` changes body joints to a
   driver encoder-degree coordinate, centred on the calibration midpoint and scaled by resolution-1; this is not

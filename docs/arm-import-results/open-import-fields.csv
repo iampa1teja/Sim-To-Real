@@ -1,0 +1,77 @@
+arm,field,value,tag,confirm,reason
+five_jaw,arm.links.base,"""Base_0""",confirm,False,--base_link or structural fixed-root proposal
+five_jaw,arm.gripper.contact_bodies,"[""Jaw_1""]",confirm,False,Child links of selected fingers including mimic joints
+five_jaw,arm.gripper.closed_gap_m,0.0,measured,True,Converted collision geometry sweep
+five_jaw,arm.gripper.open_gap_m,0.031901710637219374,measured,True,Converted collision geometry sweep
+five_jaw,arm.gripper.closed_position,0.48,measured,True,Converted collision geometry sweep
+five_jaw,arm.gripper.open_position,0.0,measured,True,Converted collision geometry sweep
+five_jaw,arm.gripper.closing_axis,"[-0.8253356098653111,0.0,-0.5646424807683665]",measured,True,Converted collision geometry sweep
+five_jaw,arm.gripper.approach_axis,"[-0.5646424807683668,0.0,0.8253356098653107]",measured,True,Converted collision geometry sweep
+five_jaw,arm.ik.orientation_axes,"[""x"",""y""]",confirm,False,Joint-count structural proposal; confirm controllable orientation axes
+five_jaw,arm.ik.position_offset_m,"[-0.016235487736943804,0.0,0.06550882400608696]",measured,True,Measured inner fingertip centre minus grasp depth along approach axis
+five_jaw,arm.initial_state.rotation_euler_degrees,"[0.0,0.0,-0.0011887686938327007]",derived,True,Forward direction aligned to default reference arm
+five_jaw,arm.lerobot.driver,"""TODO""",TODO,False,Real rollout needs an owner-supplied driver
+seven_parallel,arm.links.base,"""Base_0""",confirm,False,--base_link or structural fixed-root proposal
+seven_parallel,arm.gripper.contact_bodies,"[""Finger_L"",""Finger_R""]",confirm,False,Child links of selected fingers including mimic joints
+seven_parallel,arm.gripper.closed_gap_m,1.5832483768463135e-08,measured,True,Converted collision geometry sweep
+seven_parallel,arm.gripper.open_gap_m,0.09000004921108484,measured,True,Converted collision geometry sweep
+seven_parallel,arm.gripper.closed_position,0.0,measured,True,Converted collision geometry sweep
+seven_parallel,arm.gripper.open_position,0.045,measured,True,Converted collision geometry sweep
+seven_parallel,arm.gripper.closing_axis,"[1.0,0.0,0.0]",measured,True,Converted collision geometry sweep
+seven_parallel,arm.gripper.approach_axis,"[0.0,0.0,1.0]",measured,True,Converted collision geometry sweep
+seven_parallel,arm.ik.orientation_axes,"[""x"",""y"",""z""]",confirm,False,Joint-count structural proposal; confirm controllable orientation axes
+seven_parallel,arm.ik.position_offset_m,"[0.0,0.0,0.0699999999254942]",measured,True,Measured inner fingertip centre minus grasp depth along approach axis
+seven_parallel,"arm.cameras.""wrist_cam"".parent_link","""Tool_0""",confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".position","[0.5900000000000001,-0.05,0.045]",confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".euler_degrees","[0.0,0.0,0.0]",confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".width",640,confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".height",480,confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".horizontal_aperture",20.955,confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".vertical_aperture",15.716249999999999,confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,"arm.cameras.""wrist_cam"".focal_length",18.14756233630291,confirm,False,Fixed camera transform and default 640x480 60-degree horizontal FOV
+seven_parallel,arm.initial_state.rotation_euler_degrees,"[0.0,0.0,-0.001190091804856169]",derived,True,Forward direction aligned to default reference arm
+seven_parallel,arm.hardware.motor,"""unconfigured""",confirm,False,ros2_control ids; assumed encoder defaults require hardware confirmation
+seven_parallel,arm.hardware.encoder_counts_per_turn,4096,confirm,False,ros2_control ids; assumed encoder defaults require hardware confirmation
+seven_parallel,arm.hardware.zero_count,2048,confirm,False,ros2_control ids; assumed encoder defaults require hardware confirmation
+seven_parallel,arm.hardware.joint_ids,"{""Axis_1"":""1"",""Axis_2"":""2"",""Axis_3"":""3"",""Axis_4"":""4"",""Axis_5"":""5"",""Axis_6"":""6"",""Axis_7"":""7"",""Grip_L"":""8"",""Grip_R"":""9""}",confirm,False,ros2_control ids; assumed encoder defaults require hardware confirmation
+seven_parallel,arm.hardware.Grip_L.counts_per_metre,"""TODO""",TODO,False,URDF linear stroke does not imply rotary motor transmission; excluded from factory unit
+seven_parallel,arm.hardware.Grip_R.counts_per_metre,"""TODO""",TODO,False,URDF linear stroke does not imply rotary motor transmission; excluded from factory unit
+seven_parallel,arm.lerobot.driver,"""TODO""",TODO,False,Real rollout needs an owner-supplied driver
+so101_urdf,arm.links.base,"""base_link""",confirm,False,--base_link or structural fixed-root proposal
+so101_urdf,arm.joints.0.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.joints.1.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.joints.2.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.joints.3.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.joints.4.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.joints.5.initial,0.0,TODO,False,Ready-pose fallback: zero clamped to URDF limits
+so101_urdf,arm.gripper.contact_bodies,"[""moving_jaw_so101_v1_link""]",confirm,False,Child links of selected fingers including mimic joints
+so101_urdf,arm.gripper.closed_gap_m,0.0,measured,True,Converted collision geometry sweep
+so101_urdf,arm.gripper.open_gap_m,0.10337092076163075,measured,True,Converted collision geometry sweep
+so101_urdf,arm.gripper.closed_position,-0.174533,measured,True,Converted collision geometry sweep
+so101_urdf,arm.gripper.open_position,1.6493368499999999,measured,True,Converted collision geometry sweep
+so101_urdf,arm.gripper.closing_axis,"[0.7315982212952723,-2.5280384457524878e-06,0.6817360505292372]",measured,True,Converted collision geometry sweep
+so101_urdf,arm.gripper.approach_axis,"[0.680903909114357,0.04939655861971962,-0.7307050338880362]",measured,True,Converted collision geometry sweep
+so101_urdf,arm.ik.orientation_axes,"[""x"",""y""]",confirm,False,Joint-count structural proposal; confirm controllable orientation axes
+so101_urdf,arm.ik.position_offset_m,"[-0.007563229020568307,-0.00012031216608555514,-0.09469287179436361]",measured,True,Measured inner fingertip centre minus grasp depth along approach axis
+so101_urdf,arm.actuators.joint_0.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_0.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_0.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_1.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_1.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_1.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_2.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_2.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_2.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_3.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_3.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_3.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_4.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_4.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_4.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_5.effort_limit_sim,10.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_5.stiffness,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.actuators.joint_5.damping,0.0,TODO,False,Actuator derivation unavailable
+so101_urdf,arm.initial_state.rotation_euler_degrees,"[0.0,0.0,-0.011834506898155886]",derived,True,Forward direction aligned to default reference arm
+so101_urdf,arm.lerobot.driver,"""TODO""",TODO,False,Real rollout needs an owner-supplied driver
+five_jaw,scene.mount.translation_correction_m,"[0.0,0.0,0.04778445403731637]",derived,True,Base collision support fitted above measured default tabletop
+seven_parallel,scene.mount.translation_correction_m,"[0.0,0.0,0.04778445403731681]",derived,True,Base collision support fitted above measured default tabletop

@@ -191,3 +191,42 @@ the pick-place augmentation recipe; it does not prove new physical successes.
 Inspect a plan with `--dry_run` and select the task's supported appearance terms.
 This differs from the global `s2r --dry-run ...`, which only prints the Docker
 command. `configs/datagen/` contains the available source examples.
+
+
+## Imported arms and physical gripper openings
+
+Set `S2R_ARM` to select an imported arm when reusing a generation recipe; an explicit
+`--arm` flag takes precedence over that selector. The existing SO-101 fractions and
+recipe values are unchanged. Simulation-only manifests encode actions from their
+declared physical limits, without a hardware calibration unit.
+
+For a gripper with measured gap fields, experts open to the smaller of its maximum
+gap and object width plus 20 mm, and close toward zero. Add
+`gripper_open_gap_m` / `gripper_closed_gap_m` to `expert_options` to override those
+metre values. Physical openings take precedence over the fraction options. Arms
+without measured gaps retain the existing fraction defaults. Jaw arms may supply
+an optional `gripper_q_for_gap(gap_m)` hook in their arm utility file; without that
+hook the fraction codec remains the fallback.
+
+Each waypoint declares exactly one of `gripper_open_fraction` or
+`gripper_open_gap_m`. Mimic followers are resolved at the articulation boundary and
+never appear in saved actions, states or policy contracts. For arms declaring `z`
+orientation control and a measured closing axis, the experts align that axis with
+the nearest cube face about the table normal, then retain the pickup orientation
+through transport.
+
+Live importer acceptance tests run in isolated temporary repositories:
+
+```bash
+docker exec -e S2R_RUN_IMPORT_TESTS=1 -w /workspace/s2r s2r-sim \
+  s2r-entrypoint python -m pytest tests/sim/test_urdf_import.py \
+  tests/sim/test_mimic_joints.py tests/sim/test_parallel_gripper_geometry.py -q
+```
+
+Run those tests on an idle GPU. The ordinary CPU suite skips the live imports but
+checks parsing, packages, manifests, codecs, expert options and command planning.
+
+For yaw-controlled stacking, object-centre goals retain the measured TCP-to-object
+translation acquired after the lift. This compensates small offsets introduced by
+contact while preserving the pickup orientation. The existing fraction-based,
+yaw-free reference path is unchanged.

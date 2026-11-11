@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "source": "mimic",
+  "dataset": "/workspace/datasets/arm_import_deterministic-base-mimic",
+  "repo_id": "local/pick_place_mimic",
+  "arm": "so101",
+  "task": "pick_place_cube",
+  "scene": "rpd_meeting_room",
+  "variant": "teleop",
+  "fps": 30,
+  "joint_names": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper"
+  ],
+  "joint_units": [
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "deg",
+    "deg"
+  ],
+  "joint_roles": [
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "arm",
+    "gripper"
+  ],
+  "joint_mapping": {
+    "shoulder_pan": {
+      "joint_min": -113.73046875,
+      "joint_max": 122.607421875
+    },
+    "shoulder_lift": {
+      "joint_min": -102.216796875,
+      "joint_max": 106.34765625
+    },
+    "elbow_flex": {
+      "joint_min": -102.919921875,
+      "joint_max": 91.0546875
+    },
+    "wrist_flex": {
+      "joint_min": -104.23828125,
+      "joint_max": 105.908203125
+    },
+    "wrist_roll": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "gripper": {
+      "joint_min": -10.000003814697266,
+      "joint_max": 124.29687118530273
+    }
+  },
+  "calibration": {
+    "arm": "so101",
+    "unit": "rpd_follower",
+    "follower_id": null,
+    "leader_id": null,
+    "follower_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "leader_calibration": {
+      "path": null,
+      "sha256": null
+    },
+    "unit_calibration": {
+      "path": "/workspace/s2r/outputs/arm-import/baseline/arms/so101/calibration/units/rpd_follower.json",
+      "sha256": "2da1a2431b001780775404520677471085e52669b525880abe17c2734d36432b"
+    },
+    "mapping_calibration": {
+      "path": "/workspace/s2r/outputs/arm-import/baseline/arms/so101/calibration/units/rpd_follower.json",
+      "sha256": "2da1a2431b001780775404520677471085e52669b525880abe17c2734d36432b"
+    },
+    "mapping": {
+      "shoulder_pan": {
+        "joint_min": -113.73046875,
+        "joint_max": 122.607421875
+      },
+      "shoulder_lift": {
+        "joint_min": -102.216796875,
+        "joint_max": 106.34765625
+      },
+      "elbow_flex": {
+        "joint_min": -102.919921875,
+        "joint_max": 91.0546875
+      },
+      "wrist_flex": {
+        "joint_min": -104.23828125,
+        "joint_max": 105.908203125
+      },
+      "wrist_roll": {
+        "joint_min": -180.0,
+        "joint_max": 179.912109375
+      },
+      "gripper": {
+        "joint_min": -10.000003814697266,
+        "joint_max": 124.29687118530273
+      }
+    },
+    "mapping_parameters": {
+      "gripper": {
+        "closed": -10.000003814697266,
+        "contact_units": 0.0
+      },
+      "wrist_roll": {
+        "offset": 0.0
+      }
+    },
+    "mapping_source": "unit_file",
+    "explicit_selection": false,
+    "selected_calibrations": {
+      "follower": null,
+      "leader": null
+    },
+    "embedded_follower_sha256": "7705cc34a847e7dd99a9549e9022fc164b640ddcf90f7a807d35fe0e579f7c26",
+    "gripper_anchor_status": "unresolved"
+  },
+  "control_offset_m": [
+    0.00210000038146979,
+    -0.00022491104015922092,
+    -0.09442529333488692
+  ],
+  "ik_controller": {
+    "library": "isaaclab.controllers.DifferentialIKController",
+    "method": "dls",
+    "joint_limit_avoidance_gain": 0.0,
+    "mode": "bounded_command_pose_inverse",
+    "integral_feedback_applied": false,
+    "control_dt_s": 0.03333333333333333,
+    "options": {
+      "damping": 0.0125,
+      "orientation_weight": 0.05,
+      "max_position_step_m": 0.01,
+      "max_orientation_step_rad": 3.141592653589793,
+      "max_joint_step_rad": 0.08,
+      "max_joint_step_m": 0.005,
+      "position_tolerance_m": 0.001,
+      "orientation_tolerance_rad": 0.03,
+      "integral_gain": 1.0,
+      "max_integral_bias_rad": 0.08,
+      "max_integral_bias_m": 0.005
+    },
+    "command_inverse": {
+      "max_iterations": 32,
+      "position_tolerance_m": 1e-08,
+      "orientation_tolerance_rad": 1e-07
+    }
+  },
+  "seed": 1984,
+  "git_commit": "unknown",
+  "source_provenance": {
+    "source_dataset": "/workspace/datasets/arm_import_base_pick",
+    "annotation_sha256": {
+      "episode_000000.json": "a01225881077260d974dd8b64f4897af7a5e000e8971ee1ad8fd05f2e1195808"
+    },
+    "source_joint_mapping": {
+      "shoulder_pan": {
+        "joint_min": -113.73046875,
+        "joint_max": 122.607421875
+      },
+      "shoulder_lift": {
+        "joint_min": -102.216796875,
+        "joint_max": 106.34765625
+      },
+      "elbow_flex": {
+        "joint_min": -102.919921875,
+        "joint_max": 91.0546875
+      },
+      "wrist_flex": {
+        "joint_min": -104.23828125,
+        "joint_max": 105.908203125
+      },
+      "wrist_roll": {
+        "joint_min": -180.0,
+        "joint_max": 179.912109375
+      },
+      "gripper": {
+        "joint_min": -10.000003814697266,
+        "joint_max": 124.29687118530273
+      }
+    },
+    "control_offset_m": [
+      0.00210000038146979,
+      -0.00022491104015922092,
+      -0.09442529333488692
+    ],
+    "engine": "isaaclab_mimic.datagen.DataGenerator",
+    "sdk_version": "2.0.12",
+    "subtasks": [
+      {
+        "object_ref": "blue_cube",
+        "subtask_term_signal": "grasped",
+        "num_interpolation_steps": 5,
+        "action_noise": 0.0
+      },
+      {
+        "object_ref": "white_box",
+        "subtask_term_signal": "placed",
+        "num_interpolation_steps": 5,
+        "action_noise": 0.0
+      },
+      {
+        "object_ref": "white_box",
+        "num_interpolation_steps": 0,
+        "action_noise": 0.0
+      }
+    ]
+  },
+  "episodes": [
+    {
+      "attempt": 0,
+      "index": null,
+      "accepted": false,
+      "success": false,
+      "latched_success": false,
+      "final_success": false,
+      "stages": {
+        "reached": true,
+        "grasped": true,
+        "lifted": true,
+        "over_box": false,
+        "placed": false,
+        "success": false
+      },
+      "failure_mode": "dropped_before_box",
+      "frames": 402,
+      "steps": 402,
+      "seed": 1984,
+      "first_success_step": null,
+      "last_state": {
+        "objects": {
+          "white_box": {
+            "position": [
+              0.9440419673919678,
+              -0.593982458114624,
+              0.7951637506484985
+            ],
+            "quat_xyzw": [
+              -0.0009490871452726424,
+              -0.009222361259162426,
+              0.999157190322876,
+              -0.03998761251568794
+            ]
+          },
+          "blue_cube": {
+            "position": [
+              0.7715660929679871,
+              -0.3602856397628784,
+              0.8082900643348694
+            ],
+            "quat_xyzw": [
+              -0.0011869532754644752,
+              -0.009196941740810871,
+              0.9977837204933167,
+              -0.06589189171791077
+            ]
+          }
+        },
+        "ee": {
+          "position": [
+            0.882046103477478,
+            -0.5965805053710938,
+            0.9686667323112488
+          ],
+          "quat_xyzw": [
+            -0.2583717107772827,
+            0.23969914019107819,
+            0.6764093637466431,
+            -0.6467298269271851
+          ]
+        },
+        "gripper": 0.8431965708732605,
+        "signals": {
+          "grasped": false,
+          "placed": false,
+          "success": false,
+          "holding": false,
+          "lifted": false,
+          "reach_distance": 0.30675479769706726
+        }
+      },
+      "camera_frames": {
+        "realsense_rgb": 402,
+        "wrist_cam": 402
+      },
+      "object_frames": {
+        "blue_cube": 402
+      },
+      "metadata_path": null,
+      "reason": "mimic_trajectory_finished"
+    }
+  ],
+  "accepted_episodes": 0,
+  "requested_episodes": 1,
+  "attempt_limit": 1,
+  "attempts_completed": 1,
+  "complete": false,
+  "request_fulfilled": false
+}

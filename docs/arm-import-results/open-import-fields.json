@@ -1,0 +1,651 @@
+[
+  {
+    "arm": "five_jaw",
+    "field": "arm.links.base",
+    "value": "Base_0",
+    "tag": "confirm",
+    "reason": "--base_link or structural fixed-root proposal"
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.contact_bodies",
+    "value": [
+      "Jaw_1"
+    ],
+    "tag": "confirm",
+    "reason": "Child links of selected fingers including mimic joints"
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.closed_gap_m",
+    "value": 0.0,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.open_gap_m",
+    "value": 0.031901710637219374,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.closed_position",
+    "value": 0.48,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.open_position",
+    "value": 0.0,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.closing_axis",
+    "value": [
+      -0.8253356098653111,
+      0.0,
+      -0.5646424807683665
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.gripper.approach_axis",
+    "value": [
+      -0.5646424807683668,
+      0.0,
+      0.8253356098653107
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.ik.orientation_axes",
+    "value": [
+      "x",
+      "y"
+    ],
+    "tag": "confirm",
+    "reason": "Joint-count structural proposal; confirm controllable orientation axes"
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.ik.position_offset_m",
+    "value": [
+      -0.016235487736943804,
+      0.0,
+      0.06550882400608696
+    ],
+    "tag": "measured",
+    "reason": "Measured inner fingertip centre minus grasp depth along approach axis",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.initial_state.rotation_euler_degrees",
+    "value": [
+      0.0,
+      0.0,
+      -0.0011887686938327007
+    ],
+    "tag": "derived",
+    "reason": "Forward direction aligned to default reference arm",
+    "confirm": true
+  },
+  {
+    "arm": "five_jaw",
+    "field": "arm.lerobot.driver",
+    "value": "TODO",
+    "tag": "TODO",
+    "reason": "Real rollout needs an owner-supplied driver"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.links.base",
+    "value": "Base_0",
+    "tag": "confirm",
+    "reason": "--base_link or structural fixed-root proposal"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.contact_bodies",
+    "value": [
+      "Finger_L",
+      "Finger_R"
+    ],
+    "tag": "confirm",
+    "reason": "Child links of selected fingers including mimic joints"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.closed_gap_m",
+    "value": 1.5832483768463135e-08,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.open_gap_m",
+    "value": 0.09000004921108484,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.closed_position",
+    "value": 0.0,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.open_position",
+    "value": 0.045,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.closing_axis",
+    "value": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.gripper.approach_axis",
+    "value": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.ik.orientation_axes",
+    "value": [
+      "x",
+      "y",
+      "z"
+    ],
+    "tag": "confirm",
+    "reason": "Joint-count structural proposal; confirm controllable orientation axes"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.ik.position_offset_m",
+    "value": [
+      0.0,
+      0.0,
+      0.0699999999254942
+    ],
+    "tag": "measured",
+    "reason": "Measured inner fingertip centre minus grasp depth along approach axis",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".parent_link",
+    "value": "Tool_0",
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".position",
+    "value": [
+      0.5900000000000001,
+      -0.05,
+      0.045
+    ],
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".euler_degrees",
+    "value": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".width",
+    "value": 640,
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".height",
+    "value": 480,
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".horizontal_aperture",
+    "value": 20.955,
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".vertical_aperture",
+    "value": 15.716249999999999,
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.cameras.\"wrist_cam\".focal_length",
+    "value": 18.14756233630291,
+    "tag": "confirm",
+    "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.initial_state.rotation_euler_degrees",
+    "value": [
+      0.0,
+      0.0,
+      -0.001190091804856169
+    ],
+    "tag": "derived",
+    "reason": "Forward direction aligned to default reference arm",
+    "confirm": true
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.motor",
+    "value": "unconfigured",
+    "tag": "confirm",
+    "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.encoder_counts_per_turn",
+    "value": 4096,
+    "tag": "confirm",
+    "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.zero_count",
+    "value": 2048,
+    "tag": "confirm",
+    "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.joint_ids",
+    "value": {
+      "Axis_1": "1",
+      "Axis_2": "2",
+      "Axis_3": "3",
+      "Axis_4": "4",
+      "Axis_5": "5",
+      "Axis_6": "6",
+      "Axis_7": "7",
+      "Grip_L": "8",
+      "Grip_R": "9"
+    },
+    "tag": "confirm",
+    "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.Grip_L.counts_per_metre",
+    "value": "TODO",
+    "tag": "TODO",
+    "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.hardware.Grip_R.counts_per_metre",
+    "value": "TODO",
+    "tag": "TODO",
+    "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "arm.lerobot.driver",
+    "value": "TODO",
+    "tag": "TODO",
+    "reason": "Real rollout needs an owner-supplied driver"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.links.base",
+    "value": "base_link",
+    "tag": "confirm",
+    "reason": "--base_link or structural fixed-root proposal"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.0.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.1.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.2.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.3.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.4.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.joints.5.initial",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Ready-pose fallback: zero clamped to URDF limits"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.contact_bodies",
+    "value": [
+      "moving_jaw_so101_v1_link"
+    ],
+    "tag": "confirm",
+    "reason": "Child links of selected fingers including mimic joints"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.closed_gap_m",
+    "value": 0.0,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.open_gap_m",
+    "value": 0.10337092076163075,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.closed_position",
+    "value": -0.174533,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.open_position",
+    "value": 1.6493368499999999,
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.closing_axis",
+    "value": [
+      0.7315982212952723,
+      -2.5280384457524878e-06,
+      0.6817360505292372
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.gripper.approach_axis",
+    "value": [
+      0.680903909114357,
+      0.04939655861971962,
+      -0.7307050338880362
+    ],
+    "tag": "measured",
+    "reason": "Converted collision geometry sweep",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.ik.orientation_axes",
+    "value": [
+      "x",
+      "y"
+    ],
+    "tag": "confirm",
+    "reason": "Joint-count structural proposal; confirm controllable orientation axes"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.ik.position_offset_m",
+    "value": [
+      -0.007563229020568307,
+      -0.00012031216608555514,
+      -0.09469287179436361
+    ],
+    "tag": "measured",
+    "reason": "Measured inner fingertip centre minus grasp depth along approach axis",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_0.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_0.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_0.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_1.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_1.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_1.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_2.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_2.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_2.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_3.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_3.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_3.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_4.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_4.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_4.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_5.effort_limit_sim",
+    "value": 10.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_5.stiffness",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.actuators.joint_5.damping",
+    "value": 0.0,
+    "tag": "TODO",
+    "reason": "Actuator derivation unavailable"
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.initial_state.rotation_euler_degrees",
+    "value": [
+      0.0,
+      0.0,
+      -0.011834506898155886
+    ],
+    "tag": "derived",
+    "reason": "Forward direction aligned to default reference arm",
+    "confirm": true
+  },
+  {
+    "arm": "so101_urdf",
+    "field": "arm.lerobot.driver",
+    "value": "TODO",
+    "tag": "TODO",
+    "reason": "Real rollout needs an owner-supplied driver"
+  },
+  {
+    "arm": "five_jaw",
+    "field": "scene.mount.translation_correction_m",
+    "value": [
+      0.0,
+      0.0,
+      0.04778445403731637
+    ],
+    "tag": "derived",
+    "confirm": true,
+    "reason": "Base collision support fitted above measured default tabletop"
+  },
+  {
+    "arm": "seven_parallel",
+    "field": "scene.mount.translation_correction_m",
+    "value": [
+      0.0,
+      0.0,
+      0.04778445403731681
+    ],
+    "tag": "derived",
+    "confirm": true,
+    "reason": "Base collision support fitted above measured default tabletop"
+  }
+]

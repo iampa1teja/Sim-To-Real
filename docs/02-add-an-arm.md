@@ -8,7 +8,81 @@ does not require an entry in a source-code registry.
 
 Run commands from the repository root after the [host/container setup](01-getting-started.md).
 
-## Create and inspect a complete example
+## Import from URDF
+
+With the simulator container running, import a ROS description package directly:
+
+```bash
+./s2r new arm my_arm --urdf /path/to/description/robot.urdf.xacro \
+  --ee_link Tool --gripper FingerDrive --camera CameraLink=wrist_cam
+S2R_ARM=my_arm ./s2r check
+S2R_ARM=my_arm ./s2r datagen --config_path configs/datagen/scripted.yaml \
+  --destination /workspace/datasets/my_arm_pick
+```
+
+Plain URDF and split xacro are supported. Xacro handles includes, properties and
+`ros2_control`; package names resolve through nearby `package.xml` files or explicit
+`--package_path pkg=/path/to/pkg` mappings. Mesh origins, scales, arbitrary joint axes,
+fixed brackets, uppercase names, and prismatic mimic fingers are preserved. Joint and
+link names do not determine their roles: supply the ee link and gripper source joints.
+The importer automatically includes each selected source's mimic followers.
+
+The command creates `arms/my_arm/source/`, `usd/my_arm.usd`, `arm.toml`, an optional
+hooks file, and `import-report.json`. Source files are copied unchanged and hashed.
+The expanded URDF and a resolved converter input are retained separately. Inputs
+outside the checkout receive read-only container mounts; repository inputs use the
+running container's existing mount. `--dry-run` prints that executable command.
+
+| Flag | Meaning |
+| --- | --- |
+| `--urdf FILE` | Expanded URDF or xacro entry point. Omit it for the manual template path below. |
+| `--ee_link LINK` | Required tool body; its base-to-tool chain defines arm joints. |
+| `--gripper JOINT` | Required, repeatable source joints below the ee; followers are added automatically. |
+| `--base_link LINK` | Explicit base; otherwise the fixed-root child is proposed for confirmation. |
+| `--camera LINK=NAME` | Repeatable fixed wrist camera declarations. |
+| `--package_path PKG=DIR` | Repeatable explicit ROS package directories. |
+| `--ros2_control FILE` | Additional control XML for hardware placeholders. |
+| `--rename URDF_NAME=NAME` | Repeatable public action-name changes; USD names remain the URDF names. |
+| `--grasp_depth_m NUMBER` | Distance back from collision fingertips; default 0.010 metres. |
+| `--continuous_limit_deg NUMBER` | Symmetric bounds for continuous joints; default ±180 degrees, marked for confirmation. |
+| `--force` | Overwrite an existing imported folder only; a manual arm without `[arm.import]` is protected. |
+| `--dry-run` | Print the actual host/container plan. |
+
+Read every field in the report before accepting an imported arm. Each generated field
+has a value, reason and one of `derived`, `from-flag`, `measured`, `confirm`, or `TODO`.
+Measured grasp geometry also requests confirmation. Review the base proposal, contact
+bodies, orientation axes, grasp centre, source opening direction, camera optics and
+forward yaw. The report includes numeric FK errors, gravity-hold drift, mimic tracking,
+workspace coverage/unreachable cells, bilateral cube contact and lift, and camera PNGs.
+A simulator-step failure still leaves the folder and its evidence; source/flag failures
+publish no arm. Fix the reported cause and repeat with `--force`.
+
+Conversion uses Isaac Lab's URDF converter, with the Isaac Sim extension as fallback.
+Named fixed links remain separate. Newton supplies FK, dynamics and the library IK
+adapter. A placement failure caused by the imported base intersecting the tabletop may
+produce a scene mount fitted from its collision support; that translation is reported
+as derived and requires confirmation. Production physics is unchanged.
+
+Mimic followers are physical joints, with source/multiplier/offset metadata, but do not
+add action or dataset dimensions. A seven-axis arm with one source and one follower
+therefore has eight actions. Converted Newton mimic constraints are preferred; their
+followers have passive drives. Manual follower targets cover missing constraints.
+
+Hardware output is a placeholder. Motor IDs and assumed encoder parameters require
+confirmation. A prismatic joint without `counts_per_metre` has a transmission TODO
+and is excluded from the factory unit. The driver section stays commented out. A
+simulation-only arm uses its declared limits for its dataset codec and never reads
+these hardware placeholders. Real rollout requires an owner-supplied driver and
+calibration.
+
+Closed loops, floating/planar joints, arm-joint mimics and multiple movable end-effector
+branches fail with the offending element named. The importer does not promise that an
+arbitrary arm can reach an arbitrary task: inspect the reach report and accepted episode
+before expanding start coverage or attempting stacking.
+
+## Add an arm manually
+
+### Create and inspect a complete example
 
 ```bash
 ./s2r new arm guide_arm

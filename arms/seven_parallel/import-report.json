@@ -1,0 +1,3817 @@
+{
+  "importer_version": "1",
+  "arm": "seven_parallel",
+  "fields": {
+    "arm.name": {
+      "value": "seven_parallel",
+      "tag": "from-flag",
+      "reason": "--name"
+    },
+    "arm.usd_path": {
+      "value": "usd/seven_parallel.usd",
+      "tag": "derived",
+      "reason": "Converted USD in this arm folder"
+    },
+    "arm.utils": {
+      "value": "seven_parallel_utils.py",
+      "tag": "derived",
+      "reason": "Optional hooks placeholder"
+    },
+    "arm.links.base": {
+      "value": "Base_0",
+      "tag": "confirm",
+      "reason": "--base_link or structural fixed-root proposal"
+    },
+    "arm.links.ee": {
+      "value": "Tool_0",
+      "tag": "from-flag",
+      "reason": "--ee_link"
+    },
+    "arm.joints.0.name": {
+      "value": "Axis_1",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.0.usd": {
+      "value": "Axis_1",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.0.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.0.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.0.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.0.initial": {
+      "value": -2.532376784686346e-16,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.1.name": {
+      "value": "Axis_2",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.1.usd": {
+      "value": "Axis_2",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.1.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.1.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.1.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.1.initial": {
+      "value": -1.215191125869751,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.2.name": {
+      "value": "Axis_3",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.2.usd": {
+      "value": "Axis_3",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.2.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.2.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.2.limits": {
+      "value": [
+        -180.0,
+        60.160568488736445
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.2.initial": {
+      "value": -3.6914738750658716e-16,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.3.name": {
+      "value": "Axis_4",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.3.usd": {
+      "value": "Axis_4",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.3.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.3.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.3.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.3.initial": {
+      "value": 2.038607120513916,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.4.name": {
+      "value": "Axis_5",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.4.usd": {
+      "value": "Axis_5",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.4.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.4.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.4.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.4.initial": {
+      "value": 4.826600197735897e-16,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.5.name": {
+      "value": "Axis_6",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.5.usd": {
+      "value": "Axis_6",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.5.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.5.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.5.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.5.initial": {
+      "value": 2.3203494548797607,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.6.name": {
+      "value": "Axis_7",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.6.usd": {
+      "value": "Axis_7",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.6.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.6.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.6.limits": {
+      "value": [
+        -180.0,
+        180.0
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.6.initial": {
+      "value": -8.186151506925962e-16,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.7.name": {
+      "value": "Grip_L",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.7.usd": {
+      "value": "Grip_L",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.7.type": {
+      "value": "prismatic",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.7.role": {
+      "value": "gripper",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.7.limits": {
+      "value": [
+        0.0,
+        0.045
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.7.initial": {
+      "value": 0.0,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.8.name": {
+      "value": "Grip_R",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.8.usd": {
+      "value": "Grip_R",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.8.type": {
+      "value": "prismatic",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.8.role": {
+      "value": "gripper",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.8.limits": {
+      "value": [
+        0.0,
+        0.045
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.8.initial": {
+      "value": 0.0,
+      "tag": "derived",
+      "reason": "Converged ready pose"
+    },
+    "arm.joints.8.mimic": {
+      "value": {
+        "joint": "Grip_L",
+        "multiplier": 1.0,
+        "offset": 0.0
+      },
+      "tag": "derived",
+      "reason": "URDF mimic source, multiplier and SI offset"
+    },
+    "arm.gripper.kind": {
+      "value": "parallel",
+      "tag": "derived",
+      "reason": "Types of explicitly selected gripper joints"
+    },
+    "arm.gripper.joints": {
+      "value": [
+        "Grip_L"
+      ],
+      "tag": "from-flag",
+      "reason": "--gripper sources only"
+    },
+    "arm.gripper.contact_bodies": {
+      "value": [
+        "Finger_L",
+        "Finger_R"
+      ],
+      "tag": "confirm",
+      "reason": "Child links of selected fingers including mimic joints"
+    },
+    "arm.gripper.friction_bodies": {
+      "value": [
+        "Finger_L",
+        "Finger_R",
+        "Tool_0"
+      ],
+      "tag": "derived",
+      "reason": "Contact bodies and ee link"
+    },
+    "arm.gripper.closed_gap_m": {
+      "value": 1.5832483768463135e-08,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.open_gap_m": {
+      "value": 0.09000004921108484,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.closed_position": {
+      "value": 0.0,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.open_position": {
+      "value": 0.045,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.closing_axis": {
+      "value": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.approach_axis": {
+      "value": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.ik.orientation_axes": {
+      "value": [
+        "x",
+        "y",
+        "z"
+      ],
+      "tag": "confirm",
+      "reason": "Joint-count structural proposal; confirm controllable orientation axes"
+    },
+    "arm.ik.method": {
+      "value": "dls",
+      "tag": "derived",
+      "reason": "Isaac Lab library IK"
+    },
+    "arm.ik.joint_limit_avoidance_gain": {
+      "value": 0.5,
+      "tag": "derived",
+      "reason": "Spare joint for seven-axis redundancy"
+    },
+    "arm.ik.position_offset_m": {
+      "value": [
+        0.0,
+        0.0,
+        0.0699999999254942
+      ],
+      "tag": "measured",
+      "reason": "Measured inner fingertip centre minus grasp depth along approach axis",
+      "confirm": true
+    },
+    "arm.cameras.\"wrist_cam\".parent_link": {
+      "value": "Tool_0",
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".position": {
+      "value": [
+        0.5900000000000001,
+        -0.05,
+        0.045
+      ],
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".euler_degrees": {
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".width": {
+      "value": 640,
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".height": {
+      "value": 480,
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".horizontal_aperture": {
+      "value": 20.955,
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".vertical_aperture": {
+      "value": 15.716249999999999,
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.cameras.\"wrist_cam\".focal_length": {
+      "value": 18.14756233630291,
+      "tag": "confirm",
+      "reason": "Fixed camera transform and default 640x480 60-degree horizontal FOV"
+    },
+    "arm.actuators.joint_0.joint_names_expr": {
+      "value": [
+        "Axis_1"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_0.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_0.stiffness": {
+      "value": 6.3614281646328985,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_0.damping": {
+      "value": 0.856848828133212,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.joint_names_expr": {
+      "value": [
+        "Axis_2"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_1.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.stiffness": {
+      "value": 293.57811422645284,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.damping": {
+      "value": 6.401674973844237,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.joint_names_expr": {
+      "value": [
+        "Axis_3"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_2.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.stiffness": {
+      "value": 68.62827911980574,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.damping": {
+      "value": 1.3167087666304258,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.joint_names_expr": {
+      "value": [
+        "Axis_4"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_3.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.stiffness": {
+      "value": 98.06702281996434,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.damping": {
+      "value": 1.8988869964472106,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.joint_names_expr": {
+      "value": [
+        "Axis_5"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_4.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.stiffness": {
+      "value": 18.515442434157936,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.damping": {
+      "value": 0.38138460357915455,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.joint_names_expr": {
+      "value": [
+        "Axis_6"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_5.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.stiffness": {
+      "value": 21.246806054942063,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.damping": {
+      "value": 0.4481910700187178,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.joint_names_expr": {
+      "value": [
+        "Axis_7"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_6.effort_limit_sim": {
+      "value": 20.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.stiffness": {
+      "value": 9.360337125395594,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.damping": {
+      "value": 0.21351673259174656,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.joint_names_expr": {
+      "value": [
+        "Grip_L"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_7.effort_limit_sim": {
+      "value": 15.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.stiffness": {
+      "value": 489.0061914920807,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.damping": {
+      "value": 6.992897556414225,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.joint_names_expr": {
+      "value": [
+        "Grip_R"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_8.effort_limit_sim": {
+      "value": 15.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.stiffness": {
+      "value": 489.0061914920807,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.damping": {
+      "value": 6.992897556414225,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.spawn.activate_contact_sensors": {
+      "value": false,
+      "tag": "derived",
+      "reason": "Template default"
+    },
+    "arm.spawn.articulation_props.self_collision_enabled": {
+      "value": false,
+      "tag": "derived",
+      "reason": "Template default"
+    },
+    "arm.initial_state.position": {
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "tag": "derived",
+      "reason": "Template default; scene anchor owns placement"
+    },
+    "arm.initial_state.rotation_relative_to_anchor": {
+      "value": true,
+      "tag": "derived",
+      "reason": "Apply the ready-forward yaw relative to the shared mount anchor"
+    },
+    "arm.initial_state.rotation_euler_degrees": {
+      "value": [
+        0.0,
+        0.0,
+        -0.001190091804856169
+      ],
+      "tag": "derived",
+      "reason": "Forward direction aligned to default reference arm",
+      "confirm": true
+    },
+    "arm.hardware.motor": {
+      "value": "unconfigured",
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.encoder_counts_per_turn": {
+      "value": 4096,
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.zero_count": {
+      "value": 2048,
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.joint_ids": {
+      "value": {
+        "Axis_1": "1",
+        "Axis_2": "2",
+        "Axis_3": "3",
+        "Axis_4": "4",
+        "Axis_5": "5",
+        "Axis_6": "6",
+        "Axis_7": "7",
+        "Grip_L": "8",
+        "Grip_R": "9"
+      },
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.Grip_L.counts_per_metre": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+    },
+    "arm.hardware.Grip_R.counts_per_metre": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+    },
+    "arm.lerobot.driver": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "Real rollout needs an owner-supplied driver"
+    },
+    "arm.import.source_hashes": {
+      "value": {
+        "source/0_seven_parallel_pkg/robot.urdf.xacro": "48cd9411640e7ccab04e8226e7bbfff2b9c0120a66323184f85b81957f2c743c",
+        "source/0_seven_parallel_pkg/package.xml": "74561142239e2a44b08045ffab27796681511e1276457fd449839781d8f2681d",
+        "source/0_seven_parallel_pkg/gripper.xacro": "9c6be5b616738c2174ad151e3bff97fc07aa012643269a2451977af3f7e74c35",
+        "source/0_seven_parallel_pkg/arm.xacro": "f2f8e8ba158353ca10fe569d8f09bfe9de8aba266c3375aa4126c3097b61fad4",
+        "source/0_seven_parallel_pkg/ros2_control.xacro": "48ae0ae4ebf703343b19984147d8b3c3d91e4dfd5ad29a530c4a1c987f426257",
+        "source/0_seven_parallel_pkg/meshes/motor.stl": "3b6816da9dac9ae8fe96928a799489db19b1eec8eef8ec7c9a6658ffcfde041b",
+        "source/0_seven_parallel_pkg/meshes/body.stl": "93e23cede7dcf365611a658ee7666848374b1930af960d870421a64013d32378",
+        "source/0_seven_parallel_pkg/meshes/camera.obj": "bcda2e267618b759bd28e530e00948ec49ef7d52d6d7c664aef2b7db779651cf",
+        "source/0_seven_parallel_pkg/meshes/camera.dae": "c6f6c9e13936a9693bc83fde65061dd83884d28f68e4988c15c6630776781de2",
+        "source/0_seven_parallel_pkg/meshes/link.stl": "43d7100fe2ff277e478e960262088c848e99c6234353e5612fb03512e62a8579",
+        "source/0_seven_parallel_pkg/meshes/finger.stl": "f13ed0ee3992a041993e68644b425388af866e3088dfff0cba05913241a09240"
+      },
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.command_line": {
+      "value": [
+        "/workspace/s2r/src/sim/arms/urdf_import.py",
+        "seven_parallel",
+        "--urdf",
+        "tests/fixtures/urdf/seven_parallel_pkg/robot.urdf.xacro",
+        "--ee_link",
+        "Tool_0",
+        "--gripper",
+        "Grip_L",
+        "--camera",
+        "Camera_1=wrist_cam",
+        "--force"
+      ],
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.importer_version": {
+      "value": "1",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.conversion_path": {
+      "value": "isaaclab.sim.converters.UrdfConverter (3.0 URDFImporterConfig)",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.report_path": {
+      "value": "import-report.json",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.mimic_runtime": {
+      "value": "constraint",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    }
+  },
+  "checks": [
+    {
+      "name": "convert_to_usd",
+      "passed": true
+    },
+    {
+      "name": "load_spec",
+      "passed": true
+    },
+    {
+      "name": "conversion_cross_check",
+      "passed": true
+    },
+    {
+      "name": "conversion_names",
+      "passed": true,
+      "missing_links": [],
+      "missing_joints": [],
+      "metres_per_unit": 1.0
+    },
+    {
+      "name": "fk_cross_check",
+      "passed": true,
+      "poses": [
+        {
+          "position_error_m": 3.33806797745728e-08,
+          "orientation_error_rad": 0.0,
+          "q": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "position_error_m": 5.115930548654312e-08,
+          "orientation_error_rad": 1.2467205919833125e-07,
+          "q": [
+            2.7867969225087794,
+            -0.8832836978067165,
+            0.14799194572107366,
+            0.5735177522994568,
+            -1.2922717623939464,
+            2.6560638218998607,
+            2.320578535002328,
+            0.016386229183073527
+          ]
+        },
+        {
+          "position_error_m": 5.506382710749402e-08,
+          "orientation_error_rad": 1.9768624248238833e-07,
+          "q": [
+            2.9730576093994383,
+            -1.7308646776104866,
+            0.2347179089146576,
+            1.1366045425079596,
+            -0.18183210783211745,
+            -2.9480361736429357,
+            2.480590268910732,
+            0.025813463571660363
+          ]
+        },
+        {
+          "position_error_m": 9.293225499537237e-08,
+          "orientation_error_rad": 2.0754915888881898e-07,
+          "q": [
+            -0.6892135438324849,
+            -0.9130785381965127,
+            -0.4087873348808042,
+            -0.961148754889749,
+            0.047625967512635814,
+            -0.8109348964120318,
+            -2.794742892754302,
+            0.011268414014836517
+          ]
+        },
+        {
+          "position_error_m": 2.860023128019322e-08,
+          "orientation_error_rad": 1.7120130796843874e-07,
+          "q": [
+            2.1423339519588973,
+            1.999023143388274,
+            -0.3444362994258472,
+            -0.1848036154612771,
+            2.9521200132901857,
+            2.1379213700144755,
+            -1.6017883817736494,
+            0.025539619022424152
+          ]
+        },
+        {
+          "position_error_m": 4.0170170783312124e-08,
+          "orientation_error_rad": 2.8817474254688297e-07,
+          "q": [
+            2.864826177618516,
+            1.7945880853273568,
+            -1.5934267344642674,
+            -0.18897518025118343,
+            0.11200925926979055,
+            2.525170716584956,
+            1.3464586235961855,
+            0.01791620655810358
+          ]
+        },
+        {
+          "position_error_m": 5.8437514827122274e-08,
+          "orientation_error_rad": 1.429269171748377e-07,
+          "q": [
+            -0.23850123404158818,
+            -2.561593036375503,
+            -1.079182539152347,
+            -1.7026027022418018,
+            -2.556426863913262,
+            -2.568083478244678,
+            -1.7855212973734935,
+            0.03146068759382145
+          ]
+        },
+        {
+          "position_error_m": 3.533366775673863e-08,
+          "orientation_error_rad": 1.5485740967710726e-07,
+          "q": [
+            -2.015751247474028,
+            0.42968918825664293,
+            -0.6156590343079271,
+            2.9296320788569137,
+            -0.2626381000935023,
+            1.7249059680647036,
+            -2.922345170731669,
+            0.029007297840675638
+          ]
+        },
+        {
+          "position_error_m": 7.226853019045215e-08,
+          "orientation_error_rad": 2.8585383434967613e-07,
+          "q": [
+            3.0178348215315953,
+            -2.843877772660331,
+            0.6629056696186941,
+            -2.162808320687788,
+            1.1011201066150917,
+            -2.9827667901993404,
+            -2.755392952170523,
+            0.006061349528498683
+          ]
+        },
+        {
+          "position_error_m": 3.0699737426294724e-08,
+          "orientation_error_rad": 1.8128044993574107e-07,
+          "q": [
+            2.5215865148104966,
+            1.77744362328475,
+            -0.36764549388391377,
+            0.9390650342546545,
+            -1.2958381919325155,
+            0.17659072690840638,
+            -0.11392335555904953,
+            0.04280016804073356
+          ]
+        },
+        {
+          "position_error_m": 2.070619674018766e-08,
+          "orientation_error_rad": 2.021291846968317e-07,
+          "q": [
+            -0.28774414111992597,
+            1.5514659421289902,
+            -1.638264978068118,
+            2.6730238009793386,
+            2.2140205892475304,
+            3.0906091509182128,
+            -1.7150417452617985,
+            0.03916733081905887
+          ]
+        },
+        {
+          "position_error_m": 2.6449844589276734e-08,
+          "orientation_error_rad": 6.664001874625058e-08,
+          "q": [
+            -0.14457384275540042,
+            0.05894956209677549,
+            -0.8705957302806642,
+            -2.5645422976022765,
+            2.3943822091619342,
+            0.6559333328657919,
+            -2.4799322921694604,
+            0.033257569091684064
+          ]
+        },
+        {
+          "position_error_m": 1.001174950155493e-07,
+          "orientation_error_rad": 1.2818463544611084e-07,
+          "q": [
+            -2.428859011713799,
+            -0.7461392187968725,
+            -0.3352096817640593,
+            -0.21826313625642024,
+            -2.7333768551391695,
+            0.7681944836619485,
+            -0.8373737182700327,
+            0.017160252430541447
+          ]
+        },
+        {
+          "position_error_m": 3.968054086489503e-08,
+          "orientation_error_rad": 3.146933329394901e-07,
+          "q": [
+            -2.117737203789125,
+            -1.98603762038019,
+            1.0210319235925107,
+            0.6562500557214559,
+            0.5493064411834023,
+            1.7654233849067777,
+            -0.7317470179074146,
+            0.006937208881558337
+          ]
+        },
+        {
+          "position_error_m": 6.645026009017119e-08,
+          "orientation_error_rad": 1.698993779866605e-07,
+          "q": [
+            0.6733435386264408,
+            -0.5979403938761205,
+            -1.450470052589323,
+            -2.5897343036466203,
+            -0.4969679170101644,
+            -2.8152684118706874,
+            2.5255698247091773,
+            0.01686824677549643
+          ]
+        },
+        {
+          "position_error_m": 1.3288728451137204e-07,
+          "orientation_error_rad": 1.9542689693874154e-07,
+          "q": [
+            1.3528827653203646,
+            0.5549928762490688,
+            -1.2966866926928093,
+            -1.0150404259106942,
+            -2.9409018058272816,
+            0.9713384863162311,
+            -2.5167011050103163,
+            0.010566094102300302
+          ]
+        },
+        {
+          "position_error_m": 1.0556804640656732e-08,
+          "orientation_error_rad": 2.632069845893345e-07,
+          "q": [
+            2.883404738242165,
+            -0.7801327376795792,
+            -1.6221563219427835,
+            1.19311682725235,
+            -1.4467199941250697,
+            -0.828188355139913,
+            -1.2096530669678078,
+            0.03128958239901758
+          ]
+        },
+        {
+          "position_error_m": 3.1242790278852587e-08,
+          "orientation_error_rad": 1.7120130796843874e-07,
+          "q": [
+            -2.6560081684699868,
+            -0.7482674800129043,
+            1.0385277869864638,
+            0.8856263293520987,
+            -0.1561355799873798,
+            -1.3245228327286063,
+            -2.9991144760361155,
+            0.04092721750894538
+          ]
+        },
+        {
+          "position_error_m": 1.007111960432018e-07,
+          "orientation_error_rad": 1.6726511955740805e-07,
+          "q": [
+            2.643981929238474,
+            3.006602350235691,
+            -1.1318144410709219,
+            0.5861689591362835,
+            -1.3257696772612504,
+            2.063384654671917,
+            0.5193343061713462,
+            0.0133502687492033
+          ]
+        },
+        {
+          "position_error_m": 5.53356674606544e-08,
+          "orientation_error_rad": 1.591008641128439e-07,
+          "q": [
+            -1.287681443688743,
+            -0.9033365031863023,
+            -0.33031063293523033,
+            1.693757856444786,
+            -2.489836018555646,
+            2.69476843044196,
+            1.5904624789715252,
+            0.0362194237700661
+          ]
+        },
+        {
+          "position_error_m": 2.151187424284354e-08,
+          "orientation_error_rad": 1.8848643661548996e-07,
+          "q": [
+            -1.9004424929640404,
+            -2.2438895507457035,
+            -0.0640715393041118,
+            2.7580988379534634,
+            -0.9630277962266294,
+            -2.513277123075625,
+            -1.0898258502230718,
+            0.03769855629868185
+          ]
+        }
+      ],
+      "max_position_error_m": 1.3288728451137204e-07,
+      "max_orientation_error_rad": 3.146933329394901e-07
+    },
+    {
+      "name": "measure_gripper",
+      "passed": true
+    },
+    {
+      "name": "measure_cameras",
+      "passed": true
+    },
+    {
+      "name": "newton_kinematics",
+      "passed": true
+    },
+    {
+      "name": "ready_pose",
+      "passed": true
+    },
+    {
+      "name": "base_yaw",
+      "passed": true
+    },
+    {
+      "name": "derive_actuators",
+      "passed": true
+    },
+    {
+      "name": "hardware_placeholders",
+      "passed": true
+    },
+    {
+      "name": "validate_import",
+      "passed": true
+    },
+    {
+      "name": "workspace_mount_fallback",
+      "passed": true
+    },
+    {
+      "name": "spec_action_dimension",
+      "passed": true,
+      "action_dimension": 8,
+      "physical_joints": 9
+    },
+    {
+      "passed": true,
+      "duration_s": 2.0,
+      "drift_si": {
+        "Axis_1": 0.003831536741927266,
+        "Axis_2": 0.002960801124572754,
+        "Axis_3": 0.000151281405123882,
+        "Axis_4": 0.0027141571044921875,
+        "Axis_5": 0.0004054209857713431,
+        "Axis_6": 0.008725643157958984,
+        "Axis_7": 0.00015670855646021664,
+        "Grip_L": 2.1159552178440753e-15
+      },
+      "tolerance_si": [
+        0.017453292519943295,
+        0.017453292519943295,
+        0.017453292519943295,
+        0.017453292519943295,
+        0.017453292519943295,
+        0.017453292519943295,
+        0.017453292519943295,
+        0.001
+      ],
+      "name": "ready_pose_gravity_hold"
+    },
+    {
+      "passed": true,
+      "max_error_si": 6.459426367655396e-05,
+      "samples": 100,
+      "reset_count": 2,
+      "action_steps": 100,
+      "runtime": "constraint",
+      "tolerance_si": 0.001,
+      "name": "mimic_tracking"
+    },
+    {
+      "name": "reach_sweep",
+      "passed": true,
+      "grid_spacing_m": 0.05,
+      "fraction_reached": 1.0,
+      "cells": [
+        {
+          "region": "start",
+          "world_m": [
+            0.6031264282748751,
+            -0.43463114900623445,
+            0.8067172586093252
+          ],
+          "base_m": [
+            0.08002028790171004,
+            -0.17985862363607114,
+            -0.00770171348128483
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0004152236777223361,
+          "orientation_error_rad": 5.7538647788564614e-05,
+          "q": [
+            -0.8693749904632568,
+            -0.7804604172706604,
+            0.006527533754706383,
+            2.359225273132324,
+            -0.4200620651245117,
+            1.5636224746704102,
+            -0.45395201444625854,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.6071216589771731,
+            -0.48446282588119016,
+            0.8057995922417401
+          ],
+          "base_m": [
+            0.08002028790184885,
+            -0.1298586236351034,
+            -0.007701713534006416
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00046202809497633925,
+          "orientation_error_rad": 0.0018467310611545611,
+          "q": [
+            -0.6847837567329407,
+            -0.7523530721664429,
+            0.11712377518415451,
+            2.589353561401367,
+            -0.308117151260376,
+            1.2969903945922852,
+            -0.46771758794784546,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.611116889679471,
+            -0.5342945027561459,
+            0.804881925874155
+          ],
+          "base_m": [
+            0.08002028790198779,
+            -0.07985862363413564,
+            -0.007701713586728112
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0008639955814480424,
+          "orientation_error_rad": 0.002780464476907356,
+          "q": [
+            -0.49820762872695923,
+            -0.6490297317504883,
+            0.11824484914541245,
+            2.821211338043213,
+            -0.15986882150173187,
+            0.9689708948135376,
+            -0.4385194778442383,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.615112120381769,
+            -0.5841261796311015,
+            0.8039642595065699
+          ],
+          "base_m": [
+            0.0800202879021266,
+            -0.02985862363316799,
+            -0.007701713639449699
+          ],
+          "reached": true,
+          "ik_seed_attempts": 2,
+          "position_error_m": 0.0009977912869906535,
+          "orientation_error_rad": 0.006520015196242703,
+          "q": [
+            -2.534517765045166,
+            2.8719966411590576,
+            -0.710180938243866,
+            2.371551513671875,
+            -2.0616512298583984,
+            -0.7708895802497864,
+            1.2974869012832642,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.6191073510840669,
+            -0.6339578565060572,
+            0.8030465931389849
+          ],
+          "base_m": [
+            0.08002028790226552,
+            0.020141376367799755,
+            -0.007701713692171284
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00033792897998390135,
+          "orientation_error_rad": 0.0006692719396824211,
+          "q": [
+            -2.2843291759490967,
+            2.8066179752349854,
+            -0.5476050972938538,
+            2.3418023586273193,
+            -2.1605701446533203,
+            -0.940153181552887,
+            1.5388342142105103,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5532863362469542,
+            -0.4386246293186784,
+            0.8065855710603009
+          ],
+          "base_m": [
+            0.13002028790139067,
+            -0.17985862363829666,
+            -0.007701713360050247
+          ],
+          "reached": true,
+          "ik_seed_attempts": 3,
+          "position_error_m": 0.00014776777285155905,
+          "orientation_error_rad": 7.599411053862681e-05,
+          "q": [
+            2.161125659942627,
+            2.8388047218322754,
+            0.5329250693321228,
+            1.387113332748413,
+            -2.311753511428833,
+            -2.2855911254882812,
+            -0.11711521446704865,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5572815669492522,
+            -0.48845630619363417,
+            0.8056679046927159
+          ],
+          "base_m": [
+            0.1300202879015295,
+            -0.12985862363732886,
+            -0.007701713412771831
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0004892457323143538,
+          "orientation_error_rad": 0.0009102526337117674,
+          "q": [
+            2.396599531173706,
+            2.7565181255340576,
+            0.3695116639137268,
+            1.6403628587722778,
+            -2.3247499465942383,
+            -2.045762777328491,
+            0.1579178273677826,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5612767976515501,
+            -0.5382879830685898,
+            0.8047502383251308
+          ],
+          "base_m": [
+            0.13002028790166842,
+            -0.07985862363636113,
+            -0.007701713465493417
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0003852751267586161,
+          "orientation_error_rad": 0.0008947608108259041,
+          "q": [
+            2.7124006748199463,
+            2.7103824615478516,
+            0.19867856800556183,
+            1.8028907775878906,
+            -2.409636974334717,
+            -1.8421204090118408,
+            0.3681836426258087,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5652720283538482,
+            -0.5881196599435455,
+            0.8038325719575458
+          ],
+          "base_m": [
+            0.13002028790180722,
+            -0.029858623635393395,
+            -0.007701713518215003
+          ],
+          "reached": true,
+          "ik_seed_attempts": 3,
+          "position_error_m": 0.0007758950498907354,
+          "orientation_error_rad": 0.0013467744494887923,
+          "q": [
+            -0.01618349179625511,
+            0.2873252034187317,
+            -0.23459520936012268,
+            -2.5957369804382324,
+            0.329343318939209,
+            -0.8106185793876648,
+            0.16084985435009003,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5692672590561461,
+            -0.6379513368185012,
+            0.8029149055899606
+          ],
+          "base_m": [
+            0.13002028790194614,
+            0.020141376365574355,
+            -0.0077017135709367
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0002608315105567537,
+          "orientation_error_rad": 0.00047340321447505366,
+          "q": [
+            0.19457487761974335,
+            0.29180964827537537,
+            -0.13290353119373322,
+            -2.6011383533477783,
+            0.18794108927249908,
+            -0.8238253593444824,
+            0.2953144311904907,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5034462442190335,
+            -0.44261810963112247,
+            0.8064538835112768
+          ],
+          "base_m": [
+            0.18002028790107114,
+            -0.17985862364052202,
+            -0.007701713238815551
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0002488992372105725,
+          "orientation_error_rad": 0.00208377376020451,
+          "q": [
+            -0.573678731918335,
+            0.4546293020248413,
+            0.033556725829839706,
+            -1.9970864057540894,
+            0.8754499554634094,
+            -1.6096796989440918,
+            0.3166382908821106,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5074414749213314,
+            -0.4924497865060782,
+            0.8055362171436916
+          ],
+          "base_m": [
+            0.1800202879012101,
+            -0.1298586236395543,
+            -0.007701713291537248
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00017314434566434423,
+          "orientation_error_rad": 0.000743899671615668,
+          "q": [
+            -0.36173638701438904,
+            0.44666939973831177,
+            -0.11594465374946594,
+            -2.139091730117798,
+            0.7151857018470764,
+            -1.4107025861740112,
+            0.29715219140052795,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5114367056236293,
+            -0.5422814633810339,
+            0.8046185507761066
+          ],
+          "base_m": [
+            0.18002028790134902,
+            -0.07985862363858653,
+            -0.007701713344258833
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00018925805401980177,
+          "orientation_error_rad": 0.0003816382431011117,
+          "q": [
+            -0.17466174066066742,
+            0.43054360151290894,
+            -0.1621357500553131,
+            -2.2405612468719482,
+            0.5650531053543091,
+            -1.2930163145065308,
+            0.30498263239860535,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5154319363259273,
+            -0.5921131402559896,
+            0.8037008844085215
+          ],
+          "base_m": [
+            0.18002028790148786,
+            -0.02985862363761879,
+            -0.007701713396980418
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00020776149528482944,
+          "orientation_error_rad": 0.00013231432881300075,
+          "q": [
+            0.006281156092882156,
+            0.42107224464416504,
+            -0.14755596220493317,
+            -2.2942862510681152,
+            0.42948347330093384,
+            -1.2424322366714478,
+            0.3549453616142273,
+            0.0
+          ]
+        },
+        {
+          "region": "start",
+          "world_m": [
+            0.5194271670282253,
+            -0.6419448171309453,
+            0.8027832180409364
+          ],
+          "base_m": [
+            0.1800202879016267,
+            0.020141376363348965,
+            -0.007701713449702002
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0002117603548556395,
+          "orientation_error_rad": 0.0003514513218985167,
+          "q": [
+            0.183039128780365,
+            0.4252896010875702,
+            -0.10016187280416489,
+            -2.289496421813965,
+            0.3061773180961609,
+            -1.2637922763824463,
+            0.4345742166042328,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            1.0061944216207022,
+            -0.5484459670345916,
+            0.8078806287066067
+          ],
+          "base_m": [
+            -0.31267134906434085,
+            -0.03424131819307376,
+            -0.004899552692349011
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 2.717146167594071e-05,
+          "orientation_error_rad": 3.486625430616584e-05,
+          "q": [
+            0.043746426701545715,
+            -2.4335076808929443,
+            -0.09457805752754211,
+            -1.8099002838134766,
+            -0.15824666619300842,
+            1.096699833869934,
+            0.2462654411792755,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            1.0101906877488722,
+            -0.5982775609333005,
+            0.8069629650716142
+          ],
+          "base_m": [
+            -0.31267238781309414,
+            0.015758681796136167,
+            -0.004899552748502817
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00020649963011972483,
+          "orientation_error_rad": 7.197454756482508e-05,
+          "q": [
+            -0.15523166954517365,
+            -2.4308063983917236,
+            -0.1037537232041359,
+            -1.822130560874939,
+            -0.1752336025238037,
+            1.104706883430481,
+            0.0693400651216507,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            0.9563544126043594,
+            -0.55244048259795,
+            0.807748921968171
+          ],
+          "base_m": [
+            -0.26267134907513084,
+            -0.034240279444320586,
+            -0.004899552696039221
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00038386323870433876,
+          "orientation_error_rad": 0.00010683336999189045,
+          "q": [
+            0.0846542939543724,
+            -2.366745710372925,
+            -0.054788898676633835,
+            -2.1225075721740723,
+            -0.17731894552707672,
+            1.3456367254257202,
+            0.2959582209587097,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            0.9603506787325293,
+            -0.602272076496659,
+            0.8068312583331786
+          ],
+          "base_m": [
+            -0.26267238782388413,
+            0.015759720544889447,
+            -0.004899552752193025
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.00024906562073056534,
+          "orientation_error_rad": 0.0001464473652312986,
+          "q": [
+            -0.165888249874115,
+            -2.3656952381134033,
+            -0.06667027622461319,
+            -2.1344144344329834,
+            -0.22268901765346527,
+            1.354443073272705,
+            0.09846322238445282,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            0.9065144035880165,
+            -0.5564349981613084,
+            0.8076172152297354
+          ],
+          "base_m": [
+            -0.21267134908592086,
+            -0.034239240695567406,
+            -0.00489955269972943
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0005700968029685799,
+          "orientation_error_rad": 0.000715109321822292,
+          "q": [
+            0.17616955935955048,
+            -2.3472506999969482,
+            0.018526537343859673,
+            -2.4272360801696777,
+            -0.18376266956329346,
+            1.636059284210205,
+            0.34642133116722107,
+            0.0
+          ]
+        },
+        {
+          "region": "container",
+          "world_m": [
+            0.9105106697161864,
+            -0.6062665920600174,
+            0.8066995515947429
+          ],
+          "base_m": [
+            -0.21267238783467407,
+            0.015760759293642623,
+            -0.004899552755883234
+          ],
+          "reached": true,
+          "ik_seed_attempts": 1,
+          "position_error_m": 0.0003540316247252955,
+          "orientation_error_rad": 0.00045593320086696146,
+          "q": [
+            -0.14183400571346283,
+            -2.3490405082702637,
+            0.03452964499592781,
+            -2.439927816390991,
+            -0.2987651526927948,
+            1.652979850769043,
+            0.1314908266067505,
+            0.0
+          ]
+        }
+      ],
+      "ik_options": {
+        "damping": 0.005,
+        "orientation_weight": 0.2,
+        "multistart_seed": 404
+      },
+      "unreachable_cells": []
+    },
+    {
+      "passed": true,
+      "commanded_lift_m": 0.05,
+      "measured_lift_m": 0.0501827597618103,
+      "contact_forces_n": {
+        "Finger_L": 3.897439479827881,
+        "Finger_R": 3.3563342094421387
+      },
+      "start_cell_world_m": [
+        0.5034462442190335,
+        -0.44261810963112247,
+        0.8064538835112768
+      ],
+      "joint_limit_margin": 0.18617880030225553,
+      "name": "gripper_cube_lift"
+    },
+    {
+      "passed": true,
+      "rendered_frames": {
+        "wrist_cam": "validation/wrist_cam.png"
+      },
+      "name": "wrist_camera_frames"
+    }
+  ],
+  "fallbacks": [],
+  "measurements": {
+    "closed_gap_m": 1.5832483768463135e-08,
+    "open_gap_m": 0.09000004921108484,
+    "closed_position": 0.0,
+    "open_position": 0.045,
+    "closing_axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "approach_axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "position_offset_m": [
+      0.0,
+      0.0,
+      0.0699999999254942
+    ],
+    "fingertip_points": {
+      "Finger_L": [
+        [
+          7.916241884231567e-09,
+          -0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          7.916241884231567e-09,
+          0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          0.008000008296221495,
+          0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          0.008000008296221495,
+          -0.012500000186264515,
+          0.0799999999254942
+        ]
+      ],
+      "Finger_R": [
+        [
+          -0.008000008296221495,
+          -0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          -0.008000008296221495,
+          0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          -7.916241884231567e-09,
+          0.012500000186264515,
+          0.0799999999254942
+        ],
+        [
+          -7.916241884231567e-09,
+          -0.012500000186264515,
+          0.0799999999254942
+        ]
+      ]
+    },
+    "sweep": [
+      {
+        "q": 0.0,
+        "gap_m": 1.5832483768463135e-08,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.00225,
+        "gap_m": 0.00450004730373621,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.0045,
+        "gap_m": 0.0089999595656991,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.006749999999999999,
+        "gap_m": 0.013499991036951542,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.009,
+        "gap_m": 0.018000022508203983,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.01125,
+        "gap_m": 0.022500053979456425,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.013499999999999998,
+        "gap_m": 0.026999966241419315,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.01575,
+        "gap_m": 0.03149999771267176,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.018,
+        "gap_m": 0.0360000291839242,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.020249999999999997,
+        "gap_m": 0.04050006065517664,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.0225,
+        "gap_m": 0.04499997291713953,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.024749999999999998,
+        "gap_m": 0.04950000438839197,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.026999999999999996,
+        "gap_m": 0.05400003585964441,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.029249999999999998,
+        "gap_m": 0.058500067330896854,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.0315,
+        "gap_m": 0.06299997959285975,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.033749999999999995,
+        "gap_m": 0.06750001106411219,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.036,
+        "gap_m": 0.07200004253536463,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.03825,
+        "gap_m": 0.07650007400661707,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.040499999999999994,
+        "gap_m": 0.08099998626857996,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.042749999999999996,
+        "gap_m": 0.0855000177398324,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      },
+      {
+        "q": 0.045,
+        "gap_m": 0.09000004921108484,
+        "centre_m": [
+          0.0,
+          0.0,
+          0.0699999999254942
+        ]
+      }
+    ]
+  },
+  "ready_pose": {
+    "converged": true,
+    "maximum_horizontal_reach_m": 0.5900000333786011,
+    "candidates": [
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.1
+        ],
+        "converged": true,
+        "position_error_m": 0.0009677980262592223,
+        "orientation_error_rad": 0.002172708951669108,
+        "limit_margin": 0.1307049145553013,
+        "q": [
+          -2.532376784686346e-16,
+          -1.215191125869751,
+          -3.6914738750658716e-16,
+          2.038607120513916,
+          4.826600197735897e-16,
+          2.3203494548797607,
+          -8.186151506925962e-16,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0007801773912549104,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        }
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.1
+        ],
+        "converged": true,
+        "position_error_m": 0.0002987740880033695,
+        "orientation_error_rad": 0.003437222788035261,
+        "limit_margin": 0.10533580853959067,
+        "q": [
+          -1.6583893961658416e-16,
+          -1.0516353845596313,
+          -2.6796877256146895e-16,
+          1.7100424766540527,
+          4.0924897125425993e-16,
+          2.479748249053955,
+          -7.421106055009957e-16,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0007796686421978061,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        }
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.1
+        ],
+        "converged": true,
+        "position_error_m": 0.0005280850727143505,
+        "orientation_error_rad": 0.005349374231454072,
+        "limit_margin": 0.07208974891806744,
+        "q": [
+          -9.877974484660013e-17,
+          -0.8731274604797363,
+          -1.9077885860153157e-16,
+          1.3207314014434814,
+          3.6640218019431557e-16,
+          2.6886394023895264,
+          -6.706496121147026e-16,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0007789714531216685,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        }
+      },
+      {
+        "target_m": [
+          0.35400002002716063,
+          0.0,
+          0.1
+        ],
+        "converged": true,
+        "position_error_m": 5.30825345854987e-05,
+        "orientation_error_rad": 0.0005879764021014226,
+        "limit_margin": 0.11566258930208673,
+        "q": [
+          -0.3036867380142212,
+          -0.043139323592185974,
+          0.5651895403862,
+          -1.335548996925354,
+          -1.8518015146255493,
+          -0.9797845482826233,
+          -2.236001968383789,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.0074411093550312835
+        }
+      },
+      {
+        "target_m": [
+          0.41300002336502073,
+          0.0,
+          0.1
+        ],
+        "converged": true,
+        "position_error_m": 0.0009355946284432698,
+        "orientation_error_rad": 0.0055786497636100595,
+        "limit_margin": 0.08611053357329727,
+        "q": [
+          -0.2394285500049591,
+          -0.12182209640741348,
+          0.6835967898368835,
+          -0.9333741068840027,
+          -2.0951130390167236,
+          -0.7593934535980225,
+          -2.6005442142486572,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.007090489907320641
+        }
+      },
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 8.195755874477973e-05,
+        "orientation_error_rad": 0.0019213851193028279,
+        "limit_margin": 0.15779053810023624,
+        "q": [
+          -0.35961470007896423,
+          -0.26044416427612305,
+          0.38860633969306946,
+          -1.8911137580871582,
+          -0.6051557660102844,
+          -0.8748309016227722,
+          -0.9529898166656494,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.0012139089120549729
+        }
+      },
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 8.195755874477973e-05,
+        "orientation_error_rad": 0.0019213851193028279,
+        "limit_margin": 0.07985962033589238,
+        "q": [
+          -4.477158343532911e-16,
+          -1.3302268981933594,
+          -5.789338904376318e-16,
+          1.832184910774231,
+          7.46966751266723e-16,
+          2.639819860458374,
+          -9.512524104800615e-16,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0007718480576481834,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        },
+        "alternative_seed": true
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 2.810138023259589e-05,
+        "orientation_error_rad": 0.001953692591372959,
+        "limit_margin": 0.1815354215258696,
+        "q": [
+          -0.27185189723968506,
+          -0.16410508751869202,
+          0.2890774607658386,
+          -1.6391551494598389,
+          -0.8853577375411987,
+          -1.20042085647583,
+          -1.1709810495376587,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.0007274498522035211
+        }
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 2.810138023259589e-05,
+        "orientation_error_rad": 0.001953692591372959,
+        "limit_margin": 0.06051181936498804,
+        "q": [
+          -4.645530493996937e-16,
+          -1.1388044357299805,
+          -6.778044994201597e-16,
+          1.5180120468139648,
+          8.754613317278452e-16,
+          2.761385679244995,
+          -9.860491592279786e-16,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0007741094616683375,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        },
+        "alternative_seed": true
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 0.00022391389737699466,
+        "orientation_error_rad": 0.00986866898833922,
+        "limit_margin": 0.2173739248707532,
+        "q": [
+          -0.1195538267493248,
+          -0.1234905794262886,
+          0.007209247909486294,
+          -1.4369354248046875,
+          -1.6569982767105103,
+          -1.5630817413330078,
+          -1.7757920026779175,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.0022977355513515985
+        }
+      },
+      {
+        "target_m": [
+          0.35400002002716063,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 3.277037728640514e-05,
+        "orientation_error_rad": 0.0007928290530775337,
+        "limit_margin": 0.1127090736396102,
+        "q": [
+          -0.18828719854354858,
+          -0.162856325507164,
+          0.30289503931999207,
+          -1.190719485282898,
+          -2.163215398788452,
+          -1.207518458366394,
+          -2.4334206581115723,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach IK branch does not converge",
+          "position_error_m": 0.015110358076084183,
+          "orientation_error_rad": 0.5232024946375159
+        }
+      },
+      {
+        "target_m": [
+          0.41300002336502073,
+          0.0,
+          0.15
+        ],
+        "converged": true,
+        "position_error_m": 9.590244178856534e-05,
+        "orientation_error_rad": 0.0015619092597779617,
+        "limit_margin": 0.056185046307766516,
+        "q": [
+          -0.1533990055322647,
+          -0.2712072730064392,
+          0.5140476226806641,
+          -0.7093288898468018,
+          -2.3432364463806152,
+          -0.8463609218597412,
+          -2.78857159614563,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach IK branch does not converge",
+          "position_error_m": 0.009546733257700616,
+          "orientation_error_rad": 0.6455782871570847
+        }
+      },
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.2
+        ],
+        "converged": true,
+        "position_error_m": 6.0527499924696575e-05,
+        "orientation_error_rad": 0.0008193265056552039,
+        "limit_margin": 0.07689148574107256,
+        "q": [
+          0.33978351950645447,
+          -0.6551163196563721,
+          -0.7345826029777527,
+          -1.7583158016204834,
+          -2.498642921447754,
+          -2.6584692001342773,
+          -1.9640376567840576,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach IK branch does not converge",
+          "position_error_m": 0.006938434904478694,
+          "orientation_error_rad": 0.7589023018493389
+        }
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.2
+        ],
+        "converged": true,
+        "position_error_m": 5.3323896811745435e-05,
+        "orientation_error_rad": 0.002539768361111955,
+        "limit_margin": 0.12947787107090852,
+        "q": [
+          0.22304008901119232,
+          -0.47714224457740784,
+          -0.6727210879325867,
+          -1.497022032737732,
+          -2.20808482170105,
+          -2.328059196472168,
+          -1.791329026222229,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach IK branch does not converge",
+          "position_error_m": 0.018515675251730666,
+          "orientation_error_rad": 0.8378383544428678
+        }
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.2
+        ],
+        "converged": true,
+        "position_error_m": 8.96100757986621e-05,
+        "orientation_error_rad": 0.0025647822351100177,
+        "limit_margin": 0.1569815629842297,
+        "q": [
+          0.11916594952344894,
+          -0.4092874228954315,
+          -0.6253179907798767,
+          -0.9266655445098877,
+          -1.3403592109680176,
+          -2.1552484035491943,
+          -0.8968592286109924,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.004795603502521839
+        }
+      },
+      {
+        "target_m": [
+          0.35400002002716063,
+          0.0,
+          0.2
+        ],
+        "converged": false,
+        "position_error_m": 0.015527975548496506,
+        "orientation_error_rad": 0.9758745446526791,
+        "limit_margin": 0.06599961074462556,
+        "q": [
+          0.00018124282360076904,
+          -0.3032577335834503,
+          0.2536603808403015,
+          -1.0244178771972656,
+          -2.72690486907959,
+          -1.4375801086425781,
+          2.5063157081604004,
+          0.0
+        ]
+      },
+      {
+        "target_m": [
+          0.41300002336502073,
+          0.0,
+          0.2
+        ],
+        "converged": false,
+        "position_error_m": 0.02017503233795206,
+        "orientation_error_rad": 1.0201323067523511,
+        "limit_margin": 0.08780860286877147,
+        "q": [
+          0.1476263552904129,
+          -0.6516214609146118,
+          0.6819421052932739,
+          0.2092495858669281,
+          -2.432628631591797,
+          -0.5334637761116028,
+          2.177950620651245,
+          0.0
+        ]
+      },
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.25
+        ],
+        "converged": true,
+        "position_error_m": 0.0009055984987264646,
+        "orientation_error_rad": 0.007688811035714239,
+        "limit_margin": 0.19349448110031872,
+        "q": [
+          -0.27519115805625916,
+          -0.5563274621963501,
+          0.2389499545097351,
+          -1.3337494134902954,
+          -0.5799853801727295,
+          -1.1860498189926147,
+          -0.945480227470398,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.006078026966506944
+        }
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.25
+        ],
+        "converged": true,
+        "position_error_m": 8.535373859106199e-05,
+        "orientation_error_rad": 0.004577681250098411,
+        "limit_margin": 0.24930329477502722,
+        "q": [
+          -0.11511388421058655,
+          -0.5018490552902222,
+          -0.0023504383862018585,
+          -1.0622308254241943,
+          -0.9832043051719666,
+          -1.5751738548278809,
+          -1.0969278812408447,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.005779178775975002
+        }
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.25
+        ],
+        "converged": true,
+        "position_error_m": 0.0006702331260062538,
+        "orientation_error_rad": 0.004984080347857081,
+        "limit_margin": 0.12708074029070177,
+        "q": [
+          0.05193804204463959,
+          -0.698228120803833,
+          -0.9981241822242737,
+          -0.20626932382583618,
+          -1.172713041305542,
+          -2.343120813369751,
+          -0.2020849734544754,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach IK branch does not converge",
+          "position_error_m": 0.010890600430965217,
+          "orientation_error_rad": 0.5042891206069392
+        }
+      },
+      {
+        "target_m": [
+          0.35400002002716063,
+          0.0,
+          0.25
+        ],
+        "converged": false,
+        "position_error_m": 0.058480137270529566,
+        "orientation_error_rad": 1.7499410739138783,
+        "limit_margin": 0.07150800652825928,
+        "q": [
+          0.12513649463653564,
+          -0.5045299530029297,
+          0.21510322391986847,
+          -0.6327537894248962,
+          -2.6922945976257324,
+          -1.2946336269378662,
+          1.826513648033142,
+          0.0
+        ]
+      },
+      {
+        "target_m": [
+          0.41300002336502073,
+          0.0,
+          0.25
+        ],
+        "converged": false,
+        "position_error_m": 0.012007885352363601,
+        "orientation_error_rad": 1.4151892938272093,
+        "limit_margin": 0.04717843029700407,
+        "q": [
+          0.25921136140823364,
+          -0.8643447160720825,
+          0.8522472381591797,
+          0.4425079822540283,
+          -2.449295997619629,
+          -0.5421315431594849,
+          1.6512006521224976,
+          0.0
+        ]
+      },
+      {
+        "target_m": [
+          0.17700001001358032,
+          0.0,
+          0.3
+        ],
+        "converged": true,
+        "position_error_m": 0.0002394135906561662,
+        "orientation_error_rad": 0.009743592508099459,
+        "limit_margin": 0.20933508382441757,
+        "q": [
+          -0.23775899410247803,
+          -0.7399389147758484,
+          0.17255260050296783,
+          -0.9703146815299988,
+          -0.7651098966598511,
+          -1.3803820610046387,
+          -1.110424280166626,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.004788580745352822
+        }
+      },
+      {
+        "target_m": [
+          0.2360000133514404,
+          0.0,
+          0.3
+        ],
+        "converged": true,
+        "position_error_m": 0.00011969488688919178,
+        "orientation_error_rad": 0.005101207393824998,
+        "limit_margin": 0.18544299920116822,
+        "q": [
+          -0.16044777631759644,
+          -0.7209568023681641,
+          0.0566256158053875,
+          -0.834969699382782,
+          -1.7791411876678467,
+          -1.5256309509277344,
+          -1.9764199256896973,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.010751348542824224
+        }
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.3
+        ],
+        "converged": true,
+        "position_error_m": 0.0003450393972811105,
+        "orientation_error_rad": 0.006830810895904407,
+        "limit_margin": 0.07871787832513397,
+        "q": [
+          -0.1882248818874359,
+          -0.7823887467384338,
+          0.505462646484375,
+          -0.5226306319236755,
+          -2.053269147872925,
+          -1.1664851903915405,
+          -2.646993637084961,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": false,
+          "reason": "task approach branch intersects tabletop",
+          "minimum_clearance_m": -0.009720237136380594
+        }
+      },
+      {
+        "target_m": [
+          0.29500001668930054,
+          0.0,
+          0.3
+        ],
+        "converged": true,
+        "position_error_m": 0.0003450393972811105,
+        "orientation_error_rad": 0.006830810895904407,
+        "limit_margin": 0.08024749918975832,
+        "q": [
+          0.30366382002830505,
+          -0.9169935584068298,
+          -1.331400990486145,
+          -0.49668312072753906,
+          1.1660771369934082,
+          -0.8721423149108887,
+          2.637382745742798,
+          0.0
+        ],
+        "workspace_route": {
+          "passed": true,
+          "minimum_clearance_m": 0.0008016515546352965,
+          "targets_base_m": [
+            [
+              0.14986171584774524,
+              -0.08096349161343751,
+              0.05248796684252527
+            ],
+            [
+              0.150019763936223,
+              -0.07986229523420592,
+              -0.007501718832064682
+            ],
+            [
+              0.14978269180350634,
+              -0.0815140898030533,
+              0.08248280967982013
+            ],
+            [
+              0.21986171584737874,
+              -0.18096349161599112,
+              0.0524879669816342
+            ],
+            [
+              0.22001976393585648,
+              -0.17986229523675953,
+              -0.007501718692955746
+            ],
+            [
+              0.21978269180313986,
+              -0.18151408980560693,
+              0.08248280981892907
+            ]
+          ],
+          "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+        },
+        "alternative_seed": true
+      },
+      {
+        "target_m": [
+          0.35400002002716063,
+          0.0,
+          0.3
+        ],
+        "converged": false,
+        "position_error_m": 0.027148127769034563,
+        "orientation_error_rad": 0.26425853181536274,
+        "limit_margin": 0.01504484377101949,
+        "q": [
+          0.043741628527641296,
+          -0.8478842377662659,
+          -1.1868896484375,
+          0.10557875037193298,
+          1.893816351890564,
+          -0.6423017382621765,
+          3.047063112258911,
+          0.0
+        ]
+      },
+      {
+        "target_m": [
+          0.41300002336502073,
+          0.0,
+          0.3
+        ],
+        "converged": false,
+        "position_error_m": 0.11682192766452074,
+        "orientation_error_rad": 0.12263312526633979,
+        "limit_margin": 0.03479843386961337,
+        "q": [
+          0.3542718291282654,
+          -0.6015519499778748,
+          -0.4032471477985382,
+          -0.4924001395702362,
+          2.3024539947509766,
+          -0.9764025211334229,
+          2.922947645187378,
+          0.0
+        ]
+      }
+    ],
+    "collision_safe_route": true,
+    "tag": "derived",
+    "selected": {
+      "target_m": [
+        0.17700001001358032,
+        0.0,
+        0.1
+      ],
+      "converged": true,
+      "position_error_m": 0.0009677980262592223,
+      "orientation_error_rad": 0.002172708951669108,
+      "limit_margin": 0.1307049145553013,
+      "q": [
+        -2.532376784686346e-16,
+        -1.215191125869751,
+        -3.6914738750658716e-16,
+        2.038607120513916,
+        4.826600197735897e-16,
+        2.3203494548797607,
+        -8.186151506925962e-16,
+        0.0
+      ],
+      "workspace_route": {
+        "passed": true,
+        "minimum_clearance_m": 0.0007801773912549104,
+        "targets_base_m": [
+          [
+            0.14986171584774524,
+            -0.08096349161343751,
+            0.05248796684252527
+          ],
+          [
+            0.150019763936223,
+            -0.07986229523420592,
+            -0.007501718832064682
+          ],
+          [
+            0.14978269180350634,
+            -0.0815140898030533,
+            0.08248280967982013
+          ],
+          [
+            0.21986171584737874,
+            -0.18096349161599112,
+            0.0524879669816342
+          ],
+          [
+            0.22001976393585648,
+            -0.17986229523675953,
+            -0.007501718692955746
+          ],
+          [
+            0.21978269180313986,
+            -0.18151408980560693,
+            0.08248280981892907
+          ]
+        ],
+        "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+      }
+    }
+  },
+  "base_yaw": {
+    "derived": true,
+    "confirm": true
+  },
+  "actuator_evidence": {
+    "Axis_1": {
+      "worst_gravity_torque_or_force": 0.055513933300971985,
+      "effective_inertia": 0.02885318733751774,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_2": {
+      "worst_gravity_torque_or_force": 2.5619523525238037,
+      "effective_inertia": 0.034898243844509125,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_3": {
+      "worst_gravity_torque_or_force": 0.5988947153091431,
+      "effective_inertia": 0.00631562527269125,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_4": {
+      "worst_gravity_torque_or_force": 0.855796217918396,
+      "effective_inertia": 0.00919211097061634,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_5": {
+      "worst_gravity_torque_or_force": 0.1615777164697647,
+      "effective_inertia": 0.0019639581441879272,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_6": {
+      "worst_gravity_torque_or_force": 0.18541336059570312,
+      "effective_inertia": 0.002363593317568302,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Axis_7": {
+      "worst_gravity_torque_or_force": 0.08168435096740723,
+      "effective_inertia": 0.001217621611431241,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Grip_L": {
+      "worst_gravity_torque_or_force": 0.24450309574604034,
+      "effective_inertia": 0.02499999850988388,
+      "sag_limit_si": 0.0005,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "Grip_R": {
+      "worst_gravity_torque_or_force": 0.24450309574604034,
+      "effective_inertia": 0.02499999850988388,
+      "sag_limit_si": 0.0005,
+      "samples": 122,
+      "gravity_import_frame_m_s2": [
+        0.02584086357144129,
+        0.18004561570570551,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    }
+  },
+  "validation_history": [
+    [
+      {
+        "name": "spec_action_dimension",
+        "passed": true,
+        "action_dimension": 8,
+        "physical_joints": 9
+      },
+      {
+        "passed": true,
+        "duration_s": 2.0,
+        "drift_si": {
+          "Axis_1": 0.003831536741927266,
+          "Axis_2": 0.002960801124572754,
+          "Axis_3": 0.000151281405123882,
+          "Axis_4": 0.0027141571044921875,
+          "Axis_5": 0.0004054209857713431,
+          "Axis_6": 0.008725643157958984,
+          "Axis_7": 0.00015670855646021664,
+          "Grip_L": 2.1159552178440753e-15
+        },
+        "tolerance_si": [
+          0.017453292519943295,
+          0.017453292519943295,
+          0.017453292519943295,
+          0.017453292519943295,
+          0.017453292519943295,
+          0.017453292519943295,
+          0.017453292519943295,
+          0.001
+        ],
+        "name": "ready_pose_gravity_hold"
+      },
+      {
+        "passed": true,
+        "max_error_si": 6.459426367655396e-05,
+        "samples": 100,
+        "reset_count": 2,
+        "action_steps": 100,
+        "runtime": "constraint",
+        "tolerance_si": 0.001,
+        "name": "mimic_tracking"
+      },
+      {
+        "name": "reach_sweep",
+        "passed": true,
+        "grid_spacing_m": 0.05,
+        "fraction_reached": 1.0,
+        "cells": [
+          {
+            "region": "start",
+            "world_m": [
+              0.6031264282748751,
+              -0.43463114900623445,
+              0.8067172586093252
+            ],
+            "base_m": [
+              0.08002028790171004,
+              -0.17985862363607114,
+              -0.00770171348128483
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0004152236777223361,
+            "orientation_error_rad": 5.7538647788564614e-05,
+            "q": [
+              -0.8693749904632568,
+              -0.7804604172706604,
+              0.006527533754706383,
+              2.359225273132324,
+              -0.4200620651245117,
+              1.5636224746704102,
+              -0.45395201444625854,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.6071216589771731,
+              -0.48446282588119016,
+              0.8057995922417401
+            ],
+            "base_m": [
+              0.08002028790184885,
+              -0.1298586236351034,
+              -0.007701713534006416
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00046202809497633925,
+            "orientation_error_rad": 0.0018467310611545611,
+            "q": [
+              -0.6847837567329407,
+              -0.7523530721664429,
+              0.11712377518415451,
+              2.589353561401367,
+              -0.308117151260376,
+              1.2969903945922852,
+              -0.46771758794784546,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.611116889679471,
+              -0.5342945027561459,
+              0.804881925874155
+            ],
+            "base_m": [
+              0.08002028790198779,
+              -0.07985862363413564,
+              -0.007701713586728112
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0008639955814480424,
+            "orientation_error_rad": 0.002780464476907356,
+            "q": [
+              -0.49820762872695923,
+              -0.6490297317504883,
+              0.11824484914541245,
+              2.821211338043213,
+              -0.15986882150173187,
+              0.9689708948135376,
+              -0.4385194778442383,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.615112120381769,
+              -0.5841261796311015,
+              0.8039642595065699
+            ],
+            "base_m": [
+              0.0800202879021266,
+              -0.02985862363316799,
+              -0.007701713639449699
+            ],
+            "reached": true,
+            "ik_seed_attempts": 2,
+            "position_error_m": 0.0009977912869906535,
+            "orientation_error_rad": 0.006520015196242703,
+            "q": [
+              -2.534517765045166,
+              2.8719966411590576,
+              -0.710180938243866,
+              2.371551513671875,
+              -2.0616512298583984,
+              -0.7708895802497864,
+              1.2974869012832642,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.6191073510840669,
+              -0.6339578565060572,
+              0.8030465931389849
+            ],
+            "base_m": [
+              0.08002028790226552,
+              0.020141376367799755,
+              -0.007701713692171284
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00033792897998390135,
+            "orientation_error_rad": 0.0006692719396824211,
+            "q": [
+              -2.2843291759490967,
+              2.8066179752349854,
+              -0.5476050972938538,
+              2.3418023586273193,
+              -2.1605701446533203,
+              -0.940153181552887,
+              1.5388342142105103,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5532863362469542,
+              -0.4386246293186784,
+              0.8065855710603009
+            ],
+            "base_m": [
+              0.13002028790139067,
+              -0.17985862363829666,
+              -0.007701713360050247
+            ],
+            "reached": true,
+            "ik_seed_attempts": 3,
+            "position_error_m": 0.00014776777285155905,
+            "orientation_error_rad": 7.599411053862681e-05,
+            "q": [
+              2.161125659942627,
+              2.8388047218322754,
+              0.5329250693321228,
+              1.387113332748413,
+              -2.311753511428833,
+              -2.2855911254882812,
+              -0.11711521446704865,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5572815669492522,
+              -0.48845630619363417,
+              0.8056679046927159
+            ],
+            "base_m": [
+              0.1300202879015295,
+              -0.12985862363732886,
+              -0.007701713412771831
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0004892457323143538,
+            "orientation_error_rad": 0.0009102526337117674,
+            "q": [
+              2.396599531173706,
+              2.7565181255340576,
+              0.3695116639137268,
+              1.6403628587722778,
+              -2.3247499465942383,
+              -2.045762777328491,
+              0.1579178273677826,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5612767976515501,
+              -0.5382879830685898,
+              0.8047502383251308
+            ],
+            "base_m": [
+              0.13002028790166842,
+              -0.07985862363636113,
+              -0.007701713465493417
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0003852751267586161,
+            "orientation_error_rad": 0.0008947608108259041,
+            "q": [
+              2.7124006748199463,
+              2.7103824615478516,
+              0.19867856800556183,
+              1.8028907775878906,
+              -2.409636974334717,
+              -1.8421204090118408,
+              0.3681836426258087,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5652720283538482,
+              -0.5881196599435455,
+              0.8038325719575458
+            ],
+            "base_m": [
+              0.13002028790180722,
+              -0.029858623635393395,
+              -0.007701713518215003
+            ],
+            "reached": true,
+            "ik_seed_attempts": 3,
+            "position_error_m": 0.0007758950498907354,
+            "orientation_error_rad": 0.0013467744494887923,
+            "q": [
+              -0.01618349179625511,
+              0.2873252034187317,
+              -0.23459520936012268,
+              -2.5957369804382324,
+              0.329343318939209,
+              -0.8106185793876648,
+              0.16084985435009003,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5692672590561461,
+              -0.6379513368185012,
+              0.8029149055899606
+            ],
+            "base_m": [
+              0.13002028790194614,
+              0.020141376365574355,
+              -0.0077017135709367
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0002608315105567537,
+            "orientation_error_rad": 0.00047340321447505366,
+            "q": [
+              0.19457487761974335,
+              0.29180964827537537,
+              -0.13290353119373322,
+              -2.6011383533477783,
+              0.18794108927249908,
+              -0.8238253593444824,
+              0.2953144311904907,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5034462442190335,
+              -0.44261810963112247,
+              0.8064538835112768
+            ],
+            "base_m": [
+              0.18002028790107114,
+              -0.17985862364052202,
+              -0.007701713238815551
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0002488992372105725,
+            "orientation_error_rad": 0.00208377376020451,
+            "q": [
+              -0.573678731918335,
+              0.4546293020248413,
+              0.033556725829839706,
+              -1.9970864057540894,
+              0.8754499554634094,
+              -1.6096796989440918,
+              0.3166382908821106,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5074414749213314,
+              -0.4924497865060782,
+              0.8055362171436916
+            ],
+            "base_m": [
+              0.1800202879012101,
+              -0.1298586236395543,
+              -0.007701713291537248
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00017314434566434423,
+            "orientation_error_rad": 0.000743899671615668,
+            "q": [
+              -0.36173638701438904,
+              0.44666939973831177,
+              -0.11594465374946594,
+              -2.139091730117798,
+              0.7151857018470764,
+              -1.4107025861740112,
+              0.29715219140052795,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5114367056236293,
+              -0.5422814633810339,
+              0.8046185507761066
+            ],
+            "base_m": [
+              0.18002028790134902,
+              -0.07985862363858653,
+              -0.007701713344258833
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00018925805401980177,
+            "orientation_error_rad": 0.0003816382431011117,
+            "q": [
+              -0.17466174066066742,
+              0.43054360151290894,
+              -0.1621357500553131,
+              -2.2405612468719482,
+              0.5650531053543091,
+              -1.2930163145065308,
+              0.30498263239860535,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5154319363259273,
+              -0.5921131402559896,
+              0.8037008844085215
+            ],
+            "base_m": [
+              0.18002028790148786,
+              -0.02985862363761879,
+              -0.007701713396980418
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00020776149528482944,
+            "orientation_error_rad": 0.00013231432881300075,
+            "q": [
+              0.006281156092882156,
+              0.42107224464416504,
+              -0.14755596220493317,
+              -2.2942862510681152,
+              0.42948347330093384,
+              -1.2424322366714478,
+              0.3549453616142273,
+              0.0
+            ]
+          },
+          {
+            "region": "start",
+            "world_m": [
+              0.5194271670282253,
+              -0.6419448171309453,
+              0.8027832180409364
+            ],
+            "base_m": [
+              0.1800202879016267,
+              0.020141376363348965,
+              -0.007701713449702002
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0002117603548556395,
+            "orientation_error_rad": 0.0003514513218985167,
+            "q": [
+              0.183039128780365,
+              0.4252896010875702,
+              -0.10016187280416489,
+              -2.289496421813965,
+              0.3061773180961609,
+              -1.2637922763824463,
+              0.4345742166042328,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              1.0061944216207022,
+              -0.5484459670345916,
+              0.8078806287066067
+            ],
+            "base_m": [
+              -0.31267134906434085,
+              -0.03424131819307376,
+              -0.004899552692349011
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 2.717146167594071e-05,
+            "orientation_error_rad": 3.486625430616584e-05,
+            "q": [
+              0.043746426701545715,
+              -2.4335076808929443,
+              -0.09457805752754211,
+              -1.8099002838134766,
+              -0.15824666619300842,
+              1.096699833869934,
+              0.2462654411792755,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              1.0101906877488722,
+              -0.5982775609333005,
+              0.8069629650716142
+            ],
+            "base_m": [
+              -0.31267238781309414,
+              0.015758681796136167,
+              -0.004899552748502817
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00020649963011972483,
+            "orientation_error_rad": 7.197454756482508e-05,
+            "q": [
+              -0.15523166954517365,
+              -2.4308063983917236,
+              -0.1037537232041359,
+              -1.822130560874939,
+              -0.1752336025238037,
+              1.104706883430481,
+              0.0693400651216507,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              0.9563544126043594,
+              -0.55244048259795,
+              0.807748921968171
+            ],
+            "base_m": [
+              -0.26267134907513084,
+              -0.034240279444320586,
+              -0.004899552696039221
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00038386323870433876,
+            "orientation_error_rad": 0.00010683336999189045,
+            "q": [
+              0.0846542939543724,
+              -2.366745710372925,
+              -0.054788898676633835,
+              -2.1225075721740723,
+              -0.17731894552707672,
+              1.3456367254257202,
+              0.2959582209587097,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              0.9603506787325293,
+              -0.602272076496659,
+              0.8068312583331786
+            ],
+            "base_m": [
+              -0.26267238782388413,
+              0.015759720544889447,
+              -0.004899552752193025
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.00024906562073056534,
+            "orientation_error_rad": 0.0001464473652312986,
+            "q": [
+              -0.165888249874115,
+              -2.3656952381134033,
+              -0.06667027622461319,
+              -2.1344144344329834,
+              -0.22268901765346527,
+              1.354443073272705,
+              0.09846322238445282,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              0.9065144035880165,
+              -0.5564349981613084,
+              0.8076172152297354
+            ],
+            "base_m": [
+              -0.21267134908592086,
+              -0.034239240695567406,
+              -0.00489955269972943
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0005700968029685799,
+            "orientation_error_rad": 0.000715109321822292,
+            "q": [
+              0.17616955935955048,
+              -2.3472506999969482,
+              0.018526537343859673,
+              -2.4272360801696777,
+              -0.18376266956329346,
+              1.636059284210205,
+              0.34642133116722107,
+              0.0
+            ]
+          },
+          {
+            "region": "container",
+            "world_m": [
+              0.9105106697161864,
+              -0.6062665920600174,
+              0.8066995515947429
+            ],
+            "base_m": [
+              -0.21267238783467407,
+              0.015760759293642623,
+              -0.004899552755883234
+            ],
+            "reached": true,
+            "ik_seed_attempts": 1,
+            "position_error_m": 0.0003540316247252955,
+            "orientation_error_rad": 0.00045593320086696146,
+            "q": [
+              -0.14183400571346283,
+              -2.3490405082702637,
+              0.03452964499592781,
+              -2.439927816390991,
+              -0.2987651526927948,
+              1.652979850769043,
+              0.1314908266067505,
+              0.0
+            ]
+          }
+        ],
+        "ik_options": {
+          "damping": 0.005,
+          "orientation_weight": 0.2,
+          "multistart_seed": 404
+        },
+        "unreachable_cells": []
+      },
+      {
+        "passed": false,
+        "commanded_lift_m": 0.05,
+        "measured_lift_m": 0.0,
+        "contact_forces_n": {
+          "Finger_L": 0.0,
+          "Finger_R": 0.0
+        },
+        "start_cell_world_m": [
+          0.5034462442190335,
+          -0.44261810963112247,
+          0.8064538835112768
+        ],
+        "joint_limit_margin": 0.1821538267426101,
+        "name": "gripper_cube_lift"
+      },
+      {
+        "passed": true,
+        "rendered_frames": {
+          "wrist_cam": "validation/wrist_cam.png"
+        },
+        "name": "wrist_camera_frames"
+      }
+    ]
+  ]
+}
