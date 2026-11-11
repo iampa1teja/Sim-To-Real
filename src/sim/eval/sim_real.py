@@ -63,6 +63,8 @@ def parse_args(argv=None):
     parser.add_argument('--leader-port', default=os.getenv('TELEOP_PORT'))
     parser.add_argument('--leader-id', default=os.getenv('TELEOP_ID'))
     parser.add_argument('--no-leader', action='store_true', help='Disable operator positioning through the leader')
+    parser.add_argument('--no-object', action='store_true',
+                        help='Allow Start without Spawn and skip task object spawning/restoration')
     parser.add_argument('--headless', action='store_true')
     parser.add_argument('--shadow', action='store_true', help='Preview/infer without sending real arm commands')
     parser.add_argument('--backend', choices=('s2r', 'local-lerobot'), default='s2r')
@@ -216,17 +218,20 @@ def run(args, app):
         gui = RecordingWebGui(gui_panes(sim_cameras, real_cameras), host=args.gui_host, port=args.gui_port)
         gui.mode = 'eval-sim-real'
         print(f'[eval-sim-real] Open {gui.url}; output: {output}', flush=True)
-        print('[eval-sim-real] Place the real cube beside the OPEN fixed jaw, Spawn, then Start. '
+        print(('[eval-sim-real] No-object trial: position near home, then Start. ' if args.no_object else
+               '[eval-sim-real] Place the real cube beside the OPEN fixed jaw, Spawn, then Start. ') +
               'Real runs first, then sim. Stop cancels both. Physical arm holds after its trial.', flush=True)
         phase = 'idle'
         positioning = leader is not None
-        ready = False
+        ready = args.no_object
         start_raw = start_objects = None
         phase_started = 0.0
         steps = 0
         began = time.monotonic()
         status = 'Leader positioning: move the leader, open the gripper, then Spawn and Start.' if positioning else (
             'Read-only positioning: place the real arm/cube, then Spawn and Start.')
+        if args.no_object:
+            status = 'No-object trial ready. Position near home, then Start.'
 
         def mirror(raw):
             target = mapping.to_sim(torch.as_tensor(raw, device=env.unwrapped.device)).unsqueeze(0)
@@ -270,13 +275,15 @@ def run(args, app):
                 real_state = np.asarray([observation[key] for key in keys], dtype=np.float32)
                 real_images = {real_names[name]: observation[name] for name in real_cameras}
                 if phase == 'idle':
+                    if args.no_object and not report['trials']:
+                        ready = True
                     positioned = position_with_leader(
                         leader, follower, real_state, keys, ranges,
                         enabled=positioning and not requests.get('start'), motion=args.enable_motion,
                         step_limit=args.max_relative_target)
                     # Physical readback is authoritative when moving the real arm.
                     target = mirror(real_state if args.enable_motion or not positioning else positioned)
-                    if requests.get('spawn'):
+                    if requests.get('spawn') and not args.no_object:
                         if any(real_state[i] < 40 for i, joint in enumerate(arm.joints) if joint.role == 'gripper'):
                             status = 'Open the gripper before spawning; the cube needs jaw clearance.'
                         else:
@@ -301,7 +308,7 @@ def run(args, app):
                                 gui.set_state(False, False, status)
                                 continue
                             start_objects = {name: as_torch(env.unwrapped.scene[name].data.root_state_w).clone()
-                                             for name in sim.envs.TASK.spec.tracked_objects}
+                                             for name in (() if args.no_object else sim.envs.TASK.spec.tracked_objects)}
                             report['start_raw'] = start_raw.tolist()
                             report['joint_names'] = list(arm.joint_names)
                             report['sim_objects_start_base_wxyz'] = {

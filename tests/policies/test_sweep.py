@@ -1,0 +1,172 @@
+"""CPU checks for calibration bounds, timed playback and target-aligned measurements."""
+import importlib.util
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def module(path):
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    result = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(result)
+    return result
+
+
+@pytest.fixture
+def sweep():
+    return module(ROOT / 'policies/sweep/make_sweep.py').make_sweep()
+
+
+def test_sweep_bounds_speed_and_exact_holds(sweep):
+    ticks = np.asarray(sweep['ticks'])
+    assert len(sweep['holds']) == 54
+    assert sweep['joint_names'][-2:] == ['wrist_roll', 'gripper']
+    assert np.all(ticks >= sweep['raw_min']) and np.all(ticks <= sweep['raw_max'])
+    assert np.all(ticks[:, :-1] >= -100) and np.all(ticks <= 100) and np.all(ticks[:, -1] >= 0)
+    speeds = np.abs(np.diff(ticks, axis=0)) * sweep['deg_per_raw'] * sweep['fps']
+    assert speeds.max() <= 15 + 1e-9
+    for hold in sweep['holds']:
+        start, end = hold['start_tick'], hold['end_tick']
+        assert end - start == sweep['hold_s'] * sweep['fps']
+        np.testing.assert_allclose(ticks[start:end], np.tile(hold['raw'], (end - start, 1)))
+        # Only the swept joint leaves home, including every transition.
+        j = sweep['joint_names'].index(hold['joint'])
+        others = [k for k in range(len(sweep['joint_names'])) if k != j]
+        np.testing.assert_allclose(ticks[start, others], np.asarray(sweep['home_raw'])[others])
+        assert not np.allclose(ticks[start - 1], hold['raw'], atol=1e-10, rtol=0)
+        assert not np.allclose(ticks[end], hold['raw'], atol=1e-10, rtol=0)
+        raw = np.asarray(hold['raw'])
+        source = json.loads((ROOT / 'arms/so101/calibration/units/rpd_follower.json').read_text())['source']['joints']
+        for i, name in enumerate(sweep['joint_names']):
+            fraction = (raw[i] - sweep['raw_min'][i]) / (sweep['raw_max'][i] - sweep['raw_min'][i])
+            assert hold['expected_encoder_counts'][i] == pytest.approx(
+                source[name]['range_min'] + fraction * (source[name]['range_max'] - source[name]['range_min']))
+    np.testing.assert_allclose(ticks[-1], sweep['home_raw'])
+
+
+def test_home_uses_scene_mount_and_exclusion_preserves_indices(sweep):
+    from core.arms.calibration import load_unit
+    from core.arms.spec import load_arm_spec
+    from core.arms.mapping import units_to_physical
+    from core.scenes import load_scene_spec, load_mount_spec, mount_joint_positions
+    arm = load_arm_spec('so101')[0]
+    mount = mount_joint_positions(arm, load_mount_spec(load_scene_spec('rpd_meeting_room'), arm))
+    physical = units_to_physical(sweep['home_raw'], load_unit(arm, 'rpd_follower').mapping,
+                                 arm.joint_names, gripper_joints=arm.gripper_joint_names)
+    np.testing.assert_allclose(physical, np.rad2deg([mount[j.usd] for j in arm.joints]))
+    excluded = module(ROOT / 'policies/sweep/make_sweep.py').make_sweep(exclude='wrist_roll:0,gripper:8')
+    assert len(excluded['holds']) == 52
+    assert not any((h['joint'], h['index']) in {('wrist_roll', 0), ('gripper', 8)} for h in excluded['holds'])
+    assert np.max(np.abs(np.diff(excluded['ticks'], axis=0)) * excluded['deg_per_raw'] * excluded['fps']) <= 15
+
+
+def test_server_ramp_reset_padding_and_independent_clients(sweep, tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / 'src/core'))
+    server = module(ROOT / 'policies/sweep/server.py').create()
+    path = tmp_path / 'sweep.json'
+    # Shorten playback while keeping a non-home endpoint to test end padding.
+    sweep['ticks'] = [sweep['home_raw'], sweep['holds'][0]['raw']]
+    path.write_text(json.dumps(sweep))
+    server.load('none', 'cpu', {'trajectory': str(path), 'horizon': '30'})
+    home = np.asarray(sweep['home_raw'])
+    start = np.clip(home + 20, sweep['raw_min'], sweep['raw_max'])
+    request = dict(state=start, sweep_stream='real')
+    chunks = [server.infer(request)['actions']]
+    assert chunks[0].dtype == np.float32 and chunks[0].shape == (30, 6)
+    np.testing.assert_allclose(chunks[0][0], start, atol=1e-5)
+    np.testing.assert_allclose(server.observed_start, start)
+    # A second client begins from its own start even while real is in flight.
+    other = server.infer(dict(state=home, sweep_stream='sim'))['actions']
+    np.testing.assert_allclose(other[0], home, atol=1e-5)
+    while sum(len(c) for c in chunks) < 400:
+        chunks.append(server.infer(request)['actions'])
+    rows = np.concatenate(chunks)
+    ramp_count = int(np.ceil(1.5 * np.max(np.abs(home - start) * sweep['deg_per_raw']) / 15 * sweep['fps']))
+    assert np.max(np.abs(np.diff(rows[:ramp_count + 1], axis=0)) * sweep['deg_per_raw'] * sweep['fps']) < 15.001
+    np.testing.assert_allclose(rows[ramp_count], home, atol=1e-5)
+    np.testing.assert_allclose(rows[-1], home, atol=1e-5)
+    assert server.info()['tick'] >= server.info()['total_ticks']
+    server.reset()
+    assert server.info()['tick'] == 0
+    np.testing.assert_equal(server.infer(request)['actions'], chunks[0])
+
+
+def synthetic_logs(sweep, folder, gap_degrees=None):
+    # Different trial delays and rates; short decoy matches must be ignored.
+    factors = np.asarray(sweep['deg_per_raw'])
+    for side, delay, fps in [('real', 3, 30), ('sim', 7, 25)]:
+        rows = []
+        time = 0
+        def append(target, duration, offset=0):
+            nonlocal time
+            for _ in range(round(duration * fps)):
+                rows.append(dict(seconds=time, target=list(target), state=(np.asarray(target) + offset).tolist()))
+                time += 1 / fps
+        append(np.asarray(sweep['home_raw']) + 3, delay)
+        for hold in sweep['holds']:
+            append(hold['raw'], .4)  # Short duplicate must not qualify.
+            append(np.asarray(hold['raw']) + 3, 1)
+            degrees = 2 if gap_degrees is None else gap_degrees(hold)
+            append(hold['raw'], 2, degrees / factors if side == 'sim' else 0)
+            append(np.asarray(hold['raw']) + 3, 1)
+        (folder / f'{side}.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in rows))
+
+
+def test_gap_aligns_by_target_and_reports_two_degrees(sweep, tmp_path):
+    gap = module(ROOT / 'tools/sweep_gap.py')
+    sweep['holds'] = sweep['holds'][::9]  # One hold for every joint, at independent wall times.
+    synthetic_logs(sweep, tmp_path)
+    report = gap.analyze(sweep, tmp_path)
+    for hold in report['holds']:
+        assert hold['alignment']['sim']['end_seconds'] != hold['alignment']['real']['end_seconds']
+        for metric, expected in [('real_target', 0), ('sim_target', 2), ('sim_real', 2)]:
+            for stat in ('median', 'max', 'max_abs'):
+                np.testing.assert_allclose(hold[metric]['degrees'][stat], expected, atol=1e-10)
+    for summary in report['per_joint'].values():
+        assert summary['worst_abs_sim_real_deg'] == pytest.approx(2)
+    # No matching hold is an explicit error, never an invented measurement.
+    sweep['holds'][0]['raw'][0] += 1
+    with pytest.raises(ValueError, match='No target hold'):
+        gap.analyze(sweep, tmp_path)
+
+
+def test_gap_room_crop_and_full_artifacts(sweep, tmp_path):
+    import av
+    gap = module(ROOT / 'tools/sweep_gap.py')
+    sweep['holds'] = sweep['holds'][:1]
+    synthetic_logs(sweep, tmp_path)
+    for side in ('real', 'sim'):
+        with av.open(str(tmp_path / f'{side}.mp4'), 'w') as container:
+            stream = container.add_stream('mpeg4', rate=10)
+            stream.width, stream.height, stream.pix_fmt = 1280, 480, 'yuv420p'
+            pixels = np.zeros((480, 1280, 3), dtype=np.uint8)
+            pixels[:, :640, 0], pixels[:, 640:, 1] = 240, 240
+            for _ in range(130):
+                for packet in stream.encode(av.VideoFrame.from_ndarray(pixels, format='rgb24')):
+                    container.mux(packet)
+            for packet in stream.encode():
+                container.mux(packet)
+    frames = gap.room_frames(tmp_path / 'real.mp4', [1, 2])
+    assert frames[0].shape == (480, 640, 3)
+    assert frames[0][..., 0].mean() > 220 and frames[0][..., 1].mean() < 10
+    out = tmp_path / 'analysis'
+    gap.write_outputs(gap.analyze(sweep, tmp_path), tmp_path, out)
+    assert (out / 'gap.csv').is_file() and (out / 'gap.json').is_file()
+    assert len(list(out.glob('gap_*.png'))) == 6
+    assert (out / 'contact_sheet_shoulder_pan.png').is_file()
+
+
+def test_gap_summary_distinguishes_constant_from_range_growth(sweep, tmp_path):
+    gap = module(ROOT / 'tools/sweep_gap.py')
+    sweep['holds'] = [sweep['holds'][i] for i in (0, 4, 8)]
+    synthetic_logs(sweep, tmp_path)
+    summary = gap.analyze(sweep, tmp_path)['per_joint']['shoulder_pan']
+    assert summary['constant_across_holds'] and not summary['grows_toward_range_ends']
+    synthetic_logs(sweep, tmp_path, gap_degrees=lambda h: 2 + abs(h['index'] - 4) / 2)
+    summary = gap.analyze(sweep, tmp_path)['per_joint']['shoulder_pan']
+    assert summary['grows_toward_range_ends'] and not summary['constant_across_holds']
+    assert summary['worst_abs_sim_real_deg'] == pytest.approx(4)

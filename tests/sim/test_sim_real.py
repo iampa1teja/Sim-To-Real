@@ -134,3 +134,83 @@ def test_failed_policy_pair_closes_connections_and_can_retry():
         result = connect_trial_policies(Policy, executor)
         assert len(result) == 2
         assert events[-2:] == [('reset', 2), ('reset', 3)]
+
+
+def test_no_object_is_opt_in_and_default_gui_requires_spawn():
+    from sim.eval.sim_real import parse_args
+    from sim.recording.web_gui import RecordingWebGui
+    default = parse_args([])
+    assert default.no_object is False
+    assert parse_args(['--no-object', '--shadow']).no_object is True
+    gui = RecordingWebGui([], port=0)
+    try:
+        gui.set_state(False, default.no_object, 'Positioning')
+        assert not gui._command('start')
+        assert gui._command('spawn')
+        assert gui.consume_requests()['spawn']
+        gui.set_state(False, True, 'Spawned')
+        assert gui._command('start')
+        gui.consume_requests()
+        # Opt-in reaches the same ready state without a Spawn command.
+        gui.set_state(False, parse_args(['--no-object']).no_object, 'No object')
+        assert gui._command('start')
+    finally:
+        gui.destroy()
+
+
+@pytest.mark.parametrize('no_object,spawn,connects', [(False, False, False), (False, True, True), (True, False, True)])
+def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, tmp_path, monkeypatch):
+    """Exercise actual Start gating with fake hardware and no simulator launch."""
+    import sys
+    import torch
+    import gymnasium
+    from core.arms.calibration import resolve_calibration
+    from core.arms.mapping import JointMapping
+    from core.arms.spec import load_arm_spec
+    from sim.eval.sim_real import parse_args, run
+    from core.rollout import real_rollout
+    from sim.teleop import agent, loop
+    from sim.datagen import spawner
+    from sim.recording import web_gui
+
+    arm = load_arm_spec('so101')[0]
+    selection = resolve_calibration(arm, unit='rpd_follower', environ={})
+    raw = np.array([0, 0, 0, 0, 0, 60], dtype=np.float32)
+    mapping = JointMapping.from_arm(arm, selection)
+    observation = {'policy': {'joint_pos_obs': mapping.to_sim(raw)[None, :]}, 'visual': {}}
+    noop = lambda *a, **k: None
+    robot = SimpleNamespace(find_joints=lambda *a, **k: (list(range(6)),), find_bodies=lambda *a: ([0],),
+                            write_joint_state_to_sim_index=noop, set_joint_position_target_index=noop)
+    env = SimpleNamespace(scene={'robot': robot}, device='cpu', reset=lambda: (observation, {}),
+                          step=lambda _: (observation, 0, False, False, {}), close=noop)
+    env.unwrapped = env
+    monkeypatch.setattr(gymnasium, 'make', lambda *a, **k: env)
+    fake_envs = SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
+    import sim
+    monkeypatch.setitem(sys.modules, 'sim.envs', fake_envs)
+    monkeypatch.setitem(sys.modules, 'sim.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
+    monkeypatch.setattr(sim, 'envs', fake_envs, raising=False)
+    monkeypatch.setattr(agent, '_env_id', lambda _: 'fake')
+    monkeypatch.setattr(agent, '_make_env_cfg', lambda *a: None)
+    monkeypatch.setattr(agent, '_sim_cameras', lambda _: [])
+    monkeypatch.setattr(real_rollout, 'camera_specs', lambda _: {})
+    monkeypatch.setattr(real_rollout, 'connect_follower', lambda _: SimpleNamespace(
+        get_observation=lambda: dict(zip(arm.feature_names, raw)), disconnect=noop))
+    attempted = []
+    def policy_factory(_):
+        attempted.append(True)
+        raise ConnectionRefusedError('Test reached policy connection, before motion')
+    monkeypatch.setattr(real_rollout, 'make_policy', policy_factory)
+    spawned = []
+    monkeypatch.setattr(spawner, 'ObjectSpawner', lambda *a, **k: SimpleNamespace(
+        spawn=lambda: spawned.append(True), hold=noop, close=noop))
+    requests = iter([{'spawn': True} if spawn else {}, {'start': True}, {'exit': True}])
+    monkeypatch.setattr(web_gui, 'RecordingWebGui', lambda *a, **k: SimpleNamespace(
+        url='fake', set_state=noop, update_images=noop, destroy=noop,
+        consume_requests=lambda: next(requests)))
+    monkeypatch.setattr(loop, 'gui_frames', lambda *a: {})
+    args = parse_args(['--shadow', '--no-leader', '--output', str(tmp_path)] + (['--no-object'] if no_object else []))
+    args.arm_spec, args.calibration_selection = arm, selection
+    run(args, SimpleNamespace(is_running=lambda: True))
+    assert bool(attempted) is connects
+    assert bool(spawned) is spawn

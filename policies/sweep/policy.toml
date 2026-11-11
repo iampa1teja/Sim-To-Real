@@ -1,0 +1,16 @@
+[policy]
+name = "sweep"
+description = "Calibrated single-joint sweep for matched real/sim measurements."
+enabled = true
+default_port = 5610
+
+[environment]
+python = "3.12"
+
+[observation]
+cameras = ["room", "wrist"]
+language = false
+
+[action]
+default_horizon = 30
+representation = "absolute_joint"
