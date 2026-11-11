@@ -18,4 +18,10 @@ class SweepClientPolicy(DefaultClientPolicy):
 
 
 def create(manifest, options):
-    return SweepClientPolicy.from_manifest(manifest, options)
+    policy = SweepClientPolicy.from_manifest(manifest, options)
+    if 'cameras' in options:
+        cameras = tuple(options['cameras'].split(','))
+        if not cameras or not set(cameras) <= set(manifest.cameras):
+            raise ValueError('cameras must be a nonempty subset of the manifest cameras')
+        policy.cameras = cameras
+    return policy

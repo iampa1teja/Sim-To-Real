@@ -127,8 +127,16 @@ class TrialVideo:
 
     def write(self, images, label, elapsed):
         cv2 = self.cv2
-        frame = np.concatenate([cv2.resize(np.asarray(images[key])[..., :3], (640, 480))
-                                for key in ('room', 'wrist')], axis=1)
+        panels = []
+        for key in ('room', 'wrist'):
+            if key in images:
+                panel = cv2.resize(np.asarray(images[key])[..., :3], (640, 480))
+            else:
+                panel = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(panel, f'{key} camera disabled', (110, 240), cv2.FONT_HERSHEY_SIMPLEX,
+                            .7, (180, 180, 180), 2)
+            panels.append(panel)
+        frame = np.concatenate(panels, axis=1)
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         cv2.putText(frame, label, (12, 28), cv2.FONT_HERSHEY_SIMPLEX, .7, (0, 255, 255), 2)
         expected = int(elapsed * self.fps)

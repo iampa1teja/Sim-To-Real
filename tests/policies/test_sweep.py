@@ -182,3 +182,17 @@ def test_gap_last_second_accepts_capture_jitter():
     assert match['end_seconds'] == pytest.approx(2.1001)
     assert times[match['indices'][0]] == pytest.approx(1.14)
     assert np.all(times[match['indices']] >= match['end_seconds'] - 1)
+
+
+def test_sweep_client_supports_room_camera_only():
+    from core.policy_client.discovery import get_manifest
+    client = module(ROOT / 'policies/sweep/client.py')
+    manifest = get_manifest('sweep')
+    policy = client.create(manifest, {'cameras': 'room'})
+    image = np.zeros((8, 8, 3), dtype=np.uint8)
+    request = policy.build_request(np.zeros(6), {'room': image}, '')
+    assert list(request['images']) == ['room']
+    assert policy.cameras == ('room',)
+    assert client.create(manifest, {}).cameras == ('room', 'wrist')
+    with pytest.raises(ValueError, match='subset'):
+        client.create(manifest, {'cameras': 'unknown'})

@@ -77,6 +77,24 @@ def test_video_preserves_wall_time_when_capture_drops_frames(tmp_path):
     reader.release()
 
 
+def test_trial_video_keeps_room_panel_when_wrist_camera_is_disabled(tmp_path):
+    cv2 = pytest.importorskip('cv2')
+    from sim.eval.sim_real import TrialVideo
+    path = tmp_path / 'room-only.mp4'
+    room = np.zeros((32, 32, 3), dtype=np.uint8)
+    room[..., 1] = 200
+    writer = TrialVideo(path, 10)
+    writer.write({'room': room}, 'REAL', 0)
+    writer.close(.1)
+    reader = cv2.VideoCapture(str(path))
+    ok, frame = reader.read()
+    reader.release()
+    assert ok and frame.shape == (480, 1280, 3)
+    assert frame[100:200, 100:200, 1].mean() > 180
+    assert frame[300:400, 800:900].max() < 5
+    assert frame[210:250, 740:1150].max() > 100  # Disabled-camera label is visible.
+
+
 def test_leader_positions_before_start_and_is_not_read_when_control_hands_off():
     from sim.eval.sim_real import position_with_leader
     commands = []
