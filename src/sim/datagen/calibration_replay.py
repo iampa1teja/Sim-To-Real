@@ -124,11 +124,11 @@ def main(argv=None):
                     rollout.recorder.abort()
                     raise
                 tracking = {joint.name: value * 180 / np.pi if joint.type == "revolute" else value
-                            for joint, value in zip(arm.joints, maximum_errors.cpu().tolist())}
+                            for joint, value in zip(arm.action_joints, maximum_errors.cpu().tolist())}
                 row.update(source_episode=episode.index, maximum_tracking_error_by_joint=tracking,
-                           maximum_tracking_error_degrees=max((tracking[j.name] for j in arm.joints if j.type == "revolute"), default=0.),
-                           maximum_tracking_error_metres=max((tracking[j.name] for j in arm.joints if j.type == "prismatic"), default=0.),
-                           tracking_units={joint.name: joint.unit for joint in arm.joints})
+                           maximum_tracking_error_degrees=max((tracking[j.name] for j in arm.action_joints if j.type == "revolute"), default=0.),
+                           maximum_tracking_error_metres=max((tracking[j.name] for j in arm.action_joints if j.type == "prismatic"), default=0.),
+                           tracking_units={joint.name: joint.unit for joint in arm.action_joints})
                 report["episodes"].append(row)
                 publish_report(context, report)
                 print("[REPLAY_EPISODE] " + json.dumps(row), flush=True)

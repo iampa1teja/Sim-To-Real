@@ -35,14 +35,14 @@ def make_sweep(*, arm='so101', unit='rpd_follower', scene='rpd_meeting_room', fp
     mount = load_mount_spec(load_scene_spec(scene), spec)
     starts = mount_joint_positions(spec, mount)
     physical = np.array([np.rad2deg(starts[j.usd]) if j.type == 'revolute' else starts[j.usd]
-                         for j in spec.joints])
+                         for j in spec.action_joints])
     limits = raw_joint_limits(spec, calibration.mapping)
     raw_min, raw_max = np.array([limits[n] for n in names]).T
     factors = np.array([(calibration.mapping[n]['joint_max'] - calibration.mapping[n]['joint_min'])
                         / (raw_max[i] - raw_min[i]) for i, n in enumerate(names)])
     home = physical_to_units(physical, calibration.mapping, names, gripper_joints=spec.gripper_joint_names)
     home = np.clip(home, raw_min, raw_max)
-    if any(not j.limits[0] <= value <= j.limits[1] for j, value in zip(spec.joints, physical)):
+    if any(not j.limits[0] <= value <= j.limits[1] for j, value in zip(spec.action_joints, physical)):
         raise ValueError('Home is outside runtime joint limits')
     ticks, records = [home.tolist()], []
     current = home.copy()
@@ -57,7 +57,7 @@ def make_sweep(*, arm='so101', unit='rpd_follower', scene='rpd_meeting_room', fp
             ticks.append(np.clip(current + (destination - current) * t*t*(3 - 2*t), raw_min, raw_max).tolist())
         current = destination.copy()
 
-    for i, joint in enumerate(spec.joints):
+    for i, joint in enumerate(spec.action_joints):
         span = calibration.mapping[joint.name]
         lower = max(joint.limits[0], span['joint_min']) + margin_deg
         upper = min(joint.limits[1], span['joint_max']) - margin_deg

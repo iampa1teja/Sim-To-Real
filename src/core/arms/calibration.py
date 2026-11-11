@@ -27,7 +27,7 @@ def validate_mapping(arm: ArmSpec, mapping: dict) -> dict:
     if not isinstance(mapping, dict) or set(mapping) != set(arm.joint_names):
         raise ValueError(f"Mapping must specify exactly the arm joints {arm.joint_names}")
     result = {}
-    for joint in arm.joints:
+    for joint in arm.action_joints:
         row = mapping[joint.name]
         if not isinstance(row, dict):
             raise ValueError(f"Mapping for {joint.name} must contain joint_min and joint_max")
@@ -73,7 +73,7 @@ def with_device_codec(arm: ArmSpec, mapping: dict, calibration=None, *, apply_dr
         raise ValueError("source.apply_drive_mode must be a boolean")
     if isinstance(calibration, (str, Path)):
         calibration = json.loads(Path(calibration).read_text())
-    for joint in arm.joints:
+    for joint in arm.action_joints:
         span = result[joint.name]
         if "raw_min" in span:
             continue
@@ -101,7 +101,7 @@ def _source_parameters(arm, source):
     # Existing SO101 evidence uses scalar labels. Resolve them through declared
     # roles, never a hard-coded motor name or position in the action vector.
     if "gripper_closed_degrees" in source:
-        gripper_axes = [joint for joint in arm.joints if joint.role == "gripper"]
+        gripper_axes = [joint for joint in arm.action_joints if joint.role == "gripper"]
         if len(gripper_axes) != 1 or gripper_axes[0].type != "revolute":
             raise ValueError("Scalar degree gripper anchor requires exactly one revolute gripper joint")
         parameters.setdefault(arm.gripper_joint_names[0], {}).update(
@@ -182,7 +182,7 @@ def follower_mapping_from_calibration(calibration, arm: ArmSpec, *, parameters=N
     if not isinstance(calibration, dict):
         raise ValueError(f"Follower calibration {label} must contain a joint object")
     result = {}
-    for joint in arm.joints:
+    for joint in arm.action_joints:
         row = calibration.get(joint.name)
         if not isinstance(row, dict):
             raise ValueError(f"Follower calibration {label} is missing joint {joint.name}")
@@ -234,7 +234,7 @@ def factory_mapping(arm: ArmSpec) -> dict:
     its raw normalized endpoints map to those metres directly.
     """
     result = {}
-    for joint in arm.joints:
+    for joint in arm.action_joints:
         if joint.type == "prismatic":
             low, high = joint.limits
         else:
@@ -242,7 +242,7 @@ def factory_mapping(arm: ArmSpec) -> dict:
             high = (arm.hardware.encoder_counts_per_turn - 1 - arm.hardware.zero_count) * 360 / arm.hardware.encoder_counts_per_turn
         result[joint.name] = dict(joint_min=low, joint_max=high)
     calibration = {joint.name: dict(range_min=0, range_max=arm.hardware.encoder_counts_per_turn - 1,
-                                   drive_mode=0) for joint in arm.joints}
+                                   drive_mode=0) for joint in arm.action_joints}
     return with_device_codec(arm, result, calibration)
 
 

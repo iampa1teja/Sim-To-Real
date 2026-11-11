@@ -20,12 +20,12 @@ def mapping_for_arm(arm: ArmSpec, mapping):
     spans = {name: dict(span) for name, span in arm.runtime_joint_limits.items()}
     spans.update({name: dict(span) for name, span in mapping.items()})
     if arm.lerobot.use_degrees:
-        missing = [joint.name for joint in arm.joints if joint.role == "arm"
+        missing = [joint.name for joint in arm.action_joints if joint.role == "arm"
                    and ("raw_min" not in spans[joint.name] or "raw_max" not in spans[joint.name])]
         if missing:
             raise ValueError(f"Degree mode requires an explicit device codec from calibration for joints {missing}")
     _raw_endpoints(spans, arm.joint_names, arm.gripper_joint_names)
-    for joint in arm.joints:
+    for joint in arm.action_joints:
         # A stored explicit default codec is equivalent to the omitted default.
         # Degree-mode body endpoints remain explicit because their calibrated
         # zero/span cannot be inferred from the conventional normalized range.
@@ -124,8 +124,8 @@ class JointMapping:
             if not (torch.isfinite(low).all() and torch.isfinite(high).all() and (high > low).all()):
                 raise ValueError(f"{label.capitalize()} joint bounds must be finite and increasing")
         return cls(names, mins, maxs, clamp_mins, clamp_maxs,
-                   torch.tensor([joint.role == "gripper" for joint in arm.joints], device=device),
-                   torch.tensor([joint.type == "revolute" for joint in arm.joints], device=device),
+                   torch.tensor([joint.role == "gripper" for joint in arm.action_joints], device=device),
+                   torch.tensor([joint.type == "revolute" for joint in arm.action_joints], device=device),
                    arm.lerobot.use_degrees,
                    *(torch.tensor(value, dtype=torch.float32, device=device) for value in
                      _raw_endpoints(calibrated, names, arm.gripper_joint_names)))
@@ -173,7 +173,7 @@ class JointMapping:
 def usd_limits_deg(arm=None):
     """Declared physical limits: degrees for revolute joints, metres for prismatic."""
     arm = arm or load_arm_spec()[0]
-    return {joint.name: tuple(joint.limits) for joint in arm.joints}
+    return {joint.name: tuple(joint.limits) for joint in arm.action_joints}
 
 
 def dataset_state_to_radians(state, joint_mapping=None, *, arm=None):
@@ -194,5 +194,5 @@ def dataset_state_to_radians(state, joint_mapping=None, *, arm=None):
     physical = units_to_physical(state, spans, names, gripper_joints=arm.gripper_joint_names)
     low, high = np.asarray([limits[name] for name in names]).T
     physical = np.clip(physical, low, high)
-    revolute = np.asarray([joint.type == "revolute" for joint in arm.joints])
+    revolute = np.asarray([joint.type == "revolute" for joint in arm.action_joints])
     return np.where(revolute, np.deg2rad(physical), physical)

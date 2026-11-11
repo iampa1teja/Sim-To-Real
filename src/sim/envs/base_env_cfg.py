@@ -23,6 +23,7 @@ from sim.envs.mdp import (
     randomize_robot_color,
     reset_joints_by_offset,
 )
+from sim.envs.mdp.mimic import MimicJointPositionAction, reset_joints_with_mimic
 from sim.scene.arm import load_arm_cfg, load_arm_spec
 from core.arms.spec import ArmSpec
 
@@ -113,12 +114,14 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
         self.arm_spec = arm
         self.scene.robot = load_arm_cfg(arm).replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.actions.joint_positions = JointPositionActionCfg(
-            asset_name="robot", joint_names=list(arm.usd_joint_names),
+            asset_name="robot", joint_names=list(arm.action_usd_joint_names),
             scale=1.0, use_default_offset=False, preserve_order=True,
         )
+        if arm.mimic_joints:
+            self.actions.joint_positions.class_type = MimicJointPositionAction
         for observation in (self.observations.policy.joint_pos_obs, self.observations.policy.joint_pos_rel):
             observation.params = {"asset_cfg": SceneEntityCfg(
-                "robot", joint_names=list(arm.usd_joint_names), preserve_order=True,
+                "robot", joint_names=list(arm.action_usd_joint_names), preserve_order=True,
             )}
         self.observations.policy.ee_frame_state = ObsTerm(
             func=ee_frame_state,
@@ -127,9 +130,9 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
             )},
         )
         self.events.reset_robot_position = EventTerm(
-            func=reset_joints_by_offset, mode="reset",
+            func=reset_joints_with_mimic if arm.mimic_joints else reset_joints_by_offset, mode="reset",
             params={
-                "asset_cfg": SceneEntityCfg("robot", joint_names=list(arm.usd_joint_names), preserve_order=True),
+                "asset_cfg": SceneEntityCfg("robot", joint_names=list(arm.action_usd_joint_names), preserve_order=True),
                 "position_range": (0.0, 0.0), "velocity_range": (0.0, 0.0),
             },
         )

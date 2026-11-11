@@ -55,7 +55,7 @@ class SceneReplayer:
         self.objects = {name: env.scene[name] for name in names}
         self.task_mdp = load_task_module("mdp", self.task.name)
         self.base_body_id = self.robot.find_bodies(self.arm.links.base)[0][0]
-        self.joint_ids, _ = self.robot.find_joints(list(self.arm.usd_joint_names), preserve_order=True)
+        self.joint_ids, _ = self.robot.find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)
         self.env_ids = torch.arange(env.num_envs, device=env.device)
 
     def apply(self, color_rgb, color_name, draw: DRDraw | None) -> None:
@@ -96,6 +96,8 @@ class SceneReplayer:
         self.robot.write_joint_state_to_sim_index(position=q, velocity=torch.zeros_like(q),
                                                   joint_ids=self.joint_ids, env_ids=self.env_ids)
 
+        from sim.envs.mdp.mimic import write_mimic_state
+        write_mimic_state(self.env, self.env_ids)
         base_pos = as_torch(self.robot.data.body_link_pos_w)[:, self.base_body_id]
         base_quat = as_torch(self.robot.data.body_link_quat_w)[:, self.base_body_id]
         if not isinstance(pose_base, dict):

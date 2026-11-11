@@ -22,8 +22,8 @@ def recording_contract(*, follower_id, leader_id, calibration_selection=None, ar
                        parameters=selection.provenance["mapping_parameters"], selected_calibrations=selected)
     contract = dict(
         version=4, arm=arm.name, unit=selection.provenance.get("unit"),
-        joint_names=list(arm.joint_names), joint_units=[joint.unit for joint in arm.joints],
-        joint_roles=[joint.role for joint in arm.joints], use_degrees=arm.lerobot.use_degrees,
+        joint_names=list(arm.joint_names), joint_units=[joint.unit for joint in arm.action_joints],
+        joint_roles=[joint.role for joint in arm.action_joints], use_degrees=arm.lerobot.use_degrees,
         joint_mapping=selection.mapping, follower_id=follower_id, leader_id=leader_id,
         calibration_sha256=hashlib.sha256(json.dumps(calibration, sort_keys=True).encode()).hexdigest(),
         start_sync="follower_state", synced_joints=list(arm.joint_names),

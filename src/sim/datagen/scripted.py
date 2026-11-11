@@ -121,7 +121,7 @@ class GenerationContext:
         """Interpolate each gripper's declared physical closed/open codec endpoints."""
         result = target.clone()
         raw = self.mapping.to_raw(result)
-        ids = [index for index, joint in enumerate(self.arm.joints) if joint.role == "gripper"]
+        ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
         raw[:, ids] = self.mapping.raw_mins[ids] + float(fraction) * (
             self.mapping.raw_maxs[ids] - self.mapping.raw_mins[ids])
         decoded = self.mapping.to_sim(raw)
@@ -138,7 +138,7 @@ class GenerationContext:
         if reset:
             self.env.reset()
         if warmup:
-            ids = self.raw.scene["robot"].find_joints(list(self.arm.usd_joint_names), preserve_order=True)[0]
+            ids = self.raw.scene["robot"].find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)[0]
             hold = as_torch(self.raw.scene["robot"].data.joint_pos)[:, ids].clone()
             hold = self.gripper_target(hold, self.args.expert_options.get("gripper_open_fraction", .45))
             for _ in range(self.args.warmup_steps):
@@ -232,7 +232,7 @@ def make_report(context, *, source_provenance=None):
     return {"schema_version": 1, "source": context.source, "dataset": str(Path(args.destination).resolve()),
             "repo_id": args.repo_id, "arm": arm.name, "task": context.task.name, "scene": args.scene,
             "variant": args.variant, "fps": args.fps, "joint_names": list(arm.joint_names),
-            "joint_units": [joint.unit for joint in arm.joints], "joint_roles": [joint.role for joint in arm.joints],
+            "joint_units": [joint.unit for joint in arm.action_joints], "joint_roles": [joint.role for joint in arm.action_joints],
             "joint_mapping": context.calibration.mapping, "calibration": context.calibration.provenance,
             "control_offset_m": np.asarray(context.ik.position_offset_m).tolist(),
             "ik_controller": {
@@ -317,7 +317,7 @@ def execute_expert(context, rollout, expert):
         actual = rollout.control_pose(rollout.last_state)
         final = context.ik.solve(waypoint.pose.position, waypoint.pose.quat_xyzw, advance=False)
         robot = context.raw.scene["robot"]
-        ids = robot.find_joints(list(context.arm.usd_joint_names), preserve_order=True)[0]
+        ids = robot.find_joints(list(context.arm.action_usd_joint_names), preserve_order=True)[0]
         measured = LiveRollout._numpy(as_torch(robot.data.joint_pos)[:, ids])[0]
         commanded = LiveRollout._numpy(command).reshape(-1)
         rollout.diagnostics = {
@@ -333,7 +333,7 @@ def execute_expert(context, rollout, expert):
             "position_tolerance_m": waypoint.tolerance_m,
             "orientation_tolerance_rad": context.ik.options.orientation_tolerance_rad,
             "joint_names": list(context.arm.joint_names),
-            "sim_joint_units": ["rad" if joint.type == "revolute" else "m" for joint in context.arm.joints],
+            "sim_joint_units": ["rad" if joint.type == "revolute" else "m" for joint in context.arm.action_joints],
             "measured_joint_positions_sim": measured.tolist(),
             "last_commanded_joint_positions_sim": commanded.tolist(),
             "joint_command_error_sim": (commanded - measured).tolist(),

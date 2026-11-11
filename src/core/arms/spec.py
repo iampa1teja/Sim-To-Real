@@ -76,6 +76,13 @@ def _relative_file(directory, value, label):
 
 
 @dataclass(frozen=True, slots=True)
+class MimicSpec:
+    joint: str
+    multiplier: float = 1.0
+    offset: float = 0.0  # simulator radians/metres
+
+
+@dataclass(frozen=True, slots=True)
 class JointSpec:
     name: str
     usd: str
@@ -83,6 +90,7 @@ class JointSpec:
     role: Literal["arm", "gripper"]
     limits: tuple[float, float]
     initial: float
+    mimic: MimicSpec | None = None
 
     @property
     def unit(self) -> str:
@@ -102,6 +110,27 @@ class GripperSpec:
     contact_bodies: tuple[str, ...]
     friction_bodies: tuple[str, ...]
     tip_mesh: str | None = None
+    closed_gap_m: float | None = None
+    open_gap_m: float | None = None
+    # Source coordinates are simulator radians/metres; opening may decrease q.
+    closed_position: float | None = None
+    open_position: float | None = None
+
+    def gap_m(self, q):
+        self._require_gap_map()
+        return self.closed_gap_m + (q - self.closed_position) / (
+            self.open_position - self.closed_position) * (self.open_gap_m - self.closed_gap_m)
+
+    def q_for_gap(self, gap):
+        self._require_gap_map()
+        gap = max(self.closed_gap_m, min(self.open_gap_m, _number(gap, "gripper gap")))
+        return self.closed_position + (gap - self.closed_gap_m) / (
+            self.open_gap_m - self.closed_gap_m) * (self.open_position - self.closed_position)
+
+    def _require_gap_map(self):
+        if self.kind != "parallel" or any(value is None for value in (
+                self.closed_gap_m, self.open_gap_m, self.closed_position, self.open_position)):
+            raise ValueError("A parallel gripper with measured gap and source endpoints is required")
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +176,7 @@ class HardwareSpec:
     motor: str
     encoder_counts_per_turn: int
     zero_count: float
+    joint_ids: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,10 +207,25 @@ class ArmSpec:
     lerobot: LeRobotSpec
     hardware: HardwareSpec
     ik: IKSpec = field(default_factory=IKSpec)
+    provenance: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def action_joints(self) -> tuple[JointSpec, ...]:
+        return tuple(joint for joint in self.joints if joint.mimic is None)
+
+    @property
+    def mimic_joints(self) -> tuple[tuple[int, int, float, float], ...]:
+        indices = {joint.name: index for index, joint in enumerate(self.joints)}
+        return tuple((index, indices[joint.mimic.joint], joint.mimic.multiplier, joint.mimic.offset)
+                     for index, joint in enumerate(self.joints) if joint.mimic is not None)
+
+    @property
+    def action_usd_joint_names(self) -> tuple[str, ...]:
+        return tuple(joint.usd for joint in self.action_joints)
 
     @property
     def joint_names(self) -> tuple[str, ...]:
-        return tuple(joint.name for joint in self.joints)
+        return tuple(joint.name for joint in self.action_joints)
 
     @property
     def usd_joint_names(self) -> tuple[str, ...]:
@@ -192,15 +237,15 @@ class ArmSpec:
 
     @property
     def gripper_joint_names(self) -> tuple[str, ...]:
-        return tuple(joint.name for joint in self.joints if joint.role == "gripper")
+        return tuple(joint.name for joint in self.action_joints if joint.role == "gripper")
 
     @property
     def joint_name_pairs(self) -> tuple[tuple[str, str], ...]:
-        return tuple(zip(self.joint_names, self.usd_joint_names))
+        return tuple(zip(self.joint_names, self.action_usd_joint_names))
 
     @property
     def runtime_joint_limits(self) -> dict[str, dict[str, float]]:
-        return {joint.name: dict(joint_min=joint.limits[0], joint_max=joint.limits[1]) for joint in self.joints}
+        return {joint.name: dict(joint_min=joint.limits[0], joint_max=joint.limits[1]) for joint in self.action_joints}
 
     @property
     def initial_joint_positions(self) -> dict[str, float]:
@@ -250,13 +295,34 @@ def _parse_spec(name, directory, raw):
         physical_initial = math.degrees(initial) if kind == "revolute" else initial
         if not limits[0] <= physical_initial <= limits[1]:
             raise ValueError(f"joint {row['name']!r} initial value lies outside its limits")
+        mimic_raw = row.get("mimic")
+        mimic = None if mimic_raw is None else MimicSpec(
+            _text(mimic_raw["joint"], "mimic.joint"),
+            _number(mimic_raw.get("multiplier", 1.0), "mimic.multiplier"),
+            _number(mimic_raw.get("offset", 0.0), "mimic.offset"))
         joints.append(JointSpec(_text(row["name"], "joint.name"), _text(row["usd"], "joint.usd"),
-                                kind, role, limits, initial))
+                                kind, role, limits, initial, mimic))
     for field_name in ("name", "usd"):
         values = [getattr(joint, field_name) for joint in joints]
         if len(values) != len(set(values)):
             raise ValueError(f"Duplicate joint {field_name}")
-    gripper_names = {joint.name for joint in joints if joint.role == "gripper"}
+    by_name = {joint.name: joint for joint in joints}
+    for joint in joints:
+        if joint.mimic is None:
+            continue
+        source = by_name.get(joint.mimic.joint)
+        if source is None:
+            raise ValueError(f"mimic joint {joint.name!r} has missing source {joint.mimic.joint!r}")
+        if source is joint or source.mimic is not None:
+            raise ValueError(f"mimic joint {joint.name!r}: source must not itself be a mimic")
+        if source.type != joint.type:
+            raise ValueError(f"mimic joint {joint.name!r}: source and follower types must match")
+        if joint.role != "gripper" or source.role != "gripper":
+            raise ValueError(f"mimic joint {joint.name!r}: only gripper mimics are supported")
+        source_initial = source.initial * joint.mimic.multiplier + joint.mimic.offset
+        if not math.isclose(joint.initial, source_initial, abs_tol=1e-8):
+            raise ValueError(f"mimic joint {joint.name!r}: initial must follow its source")
+    gripper_names = {joint.name for joint in joints if joint.role == "gripper" and joint.mimic is None}
     grip = raw.get("gripper")
     gripper = None
     if grip is not None:
@@ -269,6 +335,22 @@ def _parse_spec(name, directory, raw):
                               _names(grip.get("contact_bodies", []), "gripper.contact_bodies"),
                               _names(grip.get("friction_bodies", []), "gripper.friction_bodies"),
                               grip.get("tip_mesh"))
+        closed, opened = grip.get("closed_gap_m"), grip.get("open_gap_m")
+        if (closed is None) != (opened is None):
+            raise ValueError("gripper closed_gap_m and open_gap_m must be provided together")
+        if closed is not None:
+            closed = _number(closed, "gripper.closed_gap_m")
+            opened = _number(opened, "gripper.open_gap_m")
+            if closed < 0 or opened <= closed:
+                raise ValueError("gripper gaps must be nonnegative and open_gap_m > closed_gap_m")
+            source = by_name[grip_names[0]]
+            limits = tuple(math.radians(v) for v in source.limits) if source.type == "revolute" else source.limits
+            q_closed = _number(grip.get("closed_position", limits[0]), "gripper.closed_position")
+            q_open = _number(grip.get("open_position", limits[1]), "gripper.open_position")
+            if q_closed == q_open or not all(limits[0] <= v <= limits[1] for v in (q_closed, q_open)):
+                raise ValueError("gripper source endpoints must be distinct and within limits")
+            gripper = GripperSpec(gripper.kind, gripper.joints, gripper.contact_bodies,
+                                  gripper.friction_bodies, gripper.tip_mesh, closed, opened, q_closed, q_open)
     elif gripper_names:
         raise ValueError("Joints with role='gripper' require an [arm.gripper] table")
     roll = raw.get("wrist_roll")
@@ -286,7 +368,7 @@ def _parse_spec(name, directory, raw):
     initial_state = InitialStateSpec(_vector(initial.get("position", [0, 0, 0]), 3, "initial_state.position"),
                                      _vector(initial.get("rotation_euler_degrees", [0, 0, 0]), 3,
                                              "initial_state.rotation_euler_degrees"))
-    robot = raw["lerobot"]
+    robot = raw.get("lerobot", {"follower_type": "unconfigured", "leader_type": "unconfigured"})
     calibration = robot.get("calibration", "per_unit")
     if calibration not in ("per_unit", "factory"):
         raise ValueError("lerobot.calibration must be per_unit or factory")
@@ -297,12 +379,13 @@ def _parse_spec(name, directory, raw):
                           _text(robot["leader_type"], "lerobot.leader_type"),
                           _names(robot.get("modules", []), "lerobot.modules"), use_degrees, calibration,
                           robot.get("follower_calibration_dir", ""), robot.get("leader_calibration_dir", ""))
-    hardware_raw = raw["hardware"]
+    hardware_raw = raw.get("hardware", {"motor": "unconfigured", "encoder_counts_per_turn": 4096, "zero_count": 2048})
     counts = hardware_raw["encoder_counts_per_turn"]
     if type(counts) is not int or counts < 2:
         raise ValueError("hardware.encoder_counts_per_turn must be an integer >= 2")
     hardware = HardwareSpec(_text(hardware_raw["motor"], "hardware.motor"), counts,
-                             _number(hardware_raw["zero_count"], "hardware.zero_count"))
+                             _number(hardware_raw["zero_count"], "hardware.zero_count"),
+                             copy.deepcopy(hardware_raw.get("joint_ids", {})))
     cameras = {}
     for camera_name, camera in raw.get("cameras", {}).items():
         for dim in ("width", "height"):
@@ -351,7 +434,7 @@ def _parse_spec(name, directory, raw):
                    _relative_file(directory, raw["utils"], "utils") if raw.get("utils") else None,
                    links, tuple(joints), gripper, wrist_roll, cameras,
                    copy.deepcopy(raw.get("appearance", {})), actuators,
-                   copy.deepcopy(raw.get("spawn", {})), initial_state, lerobot, hardware, ik)
+                   copy.deepcopy(raw.get("spawn", {})), initial_state, lerobot, hardware, ik, copy.deepcopy(raw.get("import", {})))
 
 
 def load_arm_utils(spec: ArmSpec) -> ModuleType | None:

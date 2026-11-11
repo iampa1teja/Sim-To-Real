@@ -48,7 +48,7 @@ def _tensor(value):
 def _arm_bounds(arm, options):
     """Manifest-order arm IDs and limits, in simulator radians/metres."""
     bounds = {key: [] for key in ('ids', 'step_caps', 'bias_caps', 'lower', 'upper')}
-    for index, joint in enumerate(arm.joints):
+    for index, joint in enumerate(arm.action_joints):
         if joint.role != 'arm':
             continue
         revolute = joint.type == 'revolute'
@@ -95,7 +95,7 @@ class _JointStep:
             q = q.unsqueeze(0)
         if not q.is_floating_point():
             q = q.to(torch.float64)
-        count = len(self.arm.joints)
+        count = len(self.arm.action_joints)
         if q.ndim != 2 or q.shape[1] != count or not torch.isfinite(q).all():
             raise ValueError(f'IK joint_positions must have finite shape (N,{count})')
         if q.shape[0] != self.num_envs:
@@ -181,8 +181,8 @@ class ArticulationIK:
                                             else position_offset_m, dtype=float)
         if self.position_offset_m.shape != (3,) or not np.isfinite(self.position_offset_m).all():
             raise ValueError('IK position_offset_m must contain three finite metre values')
-        self.joint_ids, names = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)
-        if tuple(names) != arm.usd_joint_names:
+        self.joint_ids, names = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)
+        if tuple(names) != arm.action_usd_joint_names:
             raise ValueError('IK articulation joints do not match the manifest order')
         ee, _ = robot.find_bodies(arm.links.ee)
         base, _ = robot.find_bodies(arm.links.base)
@@ -320,7 +320,7 @@ class ArmKinematics:
         # Newton 1.6.1 imports rigid assets in authored stage units. Convert only
         # at the library boundary; public coordinates and TCP offsets stay SI.
         self._coordinate_units = np.asarray([1. if joint.type == 'revolute' else self._meters_per_unit
-                                             for joint in arm.joints])
+                                             for joint in arm.action_joints])
         self.position_offset_m = np.asarray(arm.ik.position_offset_m if position_offset_m is None
                                             else position_offset_m, dtype=float)
         if self.position_offset_m.shape != (3,) or not np.isfinite(self.position_offset_m).all():
@@ -336,11 +336,11 @@ class ArmKinematics:
 
         self.base_id = named_index(model.body_label, arm.links.base, 'base body')
         self.ee_id = named_index(model.body_label, arm.links.ee, 'ee body')
-        joint_ids = [named_index(model.joint_label, name, 'joint') for name in arm.usd_joint_names]
+        joint_ids = [named_index(model.joint_label, name, 'joint') for name in arm.action_usd_joint_names]
         coordinate_starts = model.joint_q_start.numpy()
         dof_starts = model.joint_qd_start.numpy()
         joint_types = model.joint_type.numpy()
-        for manifest_joint, joint_id in zip(arm.joints, joint_ids):
+        for manifest_joint, joint_id in zip(arm.action_joints, joint_ids):
             expected_type = (newton.JointType.REVOLUTE if manifest_joint.type == 'revolute'
                              else newton.JointType.PRISMATIC)
             if (joint_types[joint_id] != expected_type
@@ -349,6 +349,14 @@ class ArmKinematics:
                 raise ValueError(f'USD FK joint {manifest_joint.usd!r} differs from its declared joint type')
         self._coordinate_ids = coordinate_starts[joint_ids].astype(int)
         self._dof_ids = dof_starts[joint_ids].astype(int)
+        action_indices = {joint.name: index for index, joint in enumerate(arm.action_joints)}
+        self._mimic_coordinates = []
+        for joint in arm.joints:
+            if joint.mimic is not None:
+                index = named_index(model.joint_label, joint.usd, 'mimic joint')
+                unit = 1. if joint.type == 'revolute' else self._meters_per_unit
+                self._mimic_coordinates.append((int(coordinate_starts[index]),
+                    action_indices[joint.mimic.joint], joint.mimic.multiplier, joint.mimic.offset, unit))
 
         # Newton computes exact structural dependencies here; no IK optimizer is
         # constructed or run. This remains reliable at singular configurations.
@@ -369,7 +377,7 @@ class ArmKinematics:
         if missing_dofs.size:
             joint_id = int(np.searchsorted(dof_starts, missing_dofs[0], side='right') - 1)
             name = model.joint_label[joint_id].rsplit('/', 1)[-1]
-            raise ValueError(f'USD FK joint {name!r} must be fixed or declared in arm.joints')
+            raise ValueError(f'USD FK joint {name!r} must be fixed or declared in arm.action_joints')
 
         child_joints = np.flatnonzero(model.joint_child.numpy() == self.ee_id)
         if child_joints.size != 1:
@@ -385,7 +393,7 @@ class ArmKinematics:
         # Newton's importer, before evaluating the declared joints at zero.
         position, orientation = self._tcp_pose(model.body_q.numpy())
         expected = make_pose(position, matrix_from_quat(orientation)).numpy()
-        if not np.allclose(self.fk(np.zeros(len(arm.joints))), expected, atol=2e-5, rtol=0):
+        if not np.allclose(self.fk(np.zeros(len(arm.action_joints))), expected, atol=2e-5, rtol=0):
             raise ValueError('USD FK zero pose disagrees with authored base/ee transforms')
 
     def _tcp_pose(self, body_poses):
@@ -402,10 +410,12 @@ class ArmKinematics:
         import newton
 
         q = np.asarray(joint_positions, dtype=float)
-        if q.shape != (len(self.arm.joints),) or not np.isfinite(q).all():
-            raise ValueError(f'FK requires {len(self.arm.joints)} finite action-order radians/metres')
+        if q.shape != (len(self.arm.action_joints),) or not np.isfinite(q).all():
+            raise ValueError(f'FK requires {len(self.arm.action_joints)} finite action-order radians/metres')
         coordinates = self._default_q.copy()
         coordinates[self._coordinate_ids] = q / self._coordinate_units
+        for coordinate, source, multiplier, offset, unit in self._mimic_coordinates:
+            coordinates[coordinate] = (q[source] * multiplier + offset) / unit
         # eval_jacobian reads state.joint_q, so FK and Jacobian share this buffer.
         self._joint_q.assign(coordinates)
         newton.eval_fk(self._model, self._joint_q, self._joint_qd, self._state)
@@ -434,11 +444,11 @@ class ArmKinematics:
         result[:3] *= self._meters_per_unit
         com = ee.new_tensor(self._model.body_com.numpy()[self.ee_id]) * self._meters_per_unit
         offset_world = quat_apply(ee[3:], ee.new_tensor(self.position_offset_m) - com)
-        result[:3] += torch.cross(result[3:].T, offset_world.expand(len(self.arm.joints), -1), dim=-1).T
+        result[:3] += torch.cross(result[3:].T, offset_world.expand(len(self.arm.action_joints), -1), dim=-1).T
         for half in (slice(0, 3), slice(3, 6)):
             result[half] = quat_apply_inverse(base[3:], result[half].T).T
         result /= result.new_tensor(self._coordinate_units)
-        gripper_ids = [index for index, joint in enumerate(self.arm.joints) if joint.role != 'arm']
+        gripper_ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role != 'arm']
         result[:, gripper_ids] = 0
         return result.numpy()
 

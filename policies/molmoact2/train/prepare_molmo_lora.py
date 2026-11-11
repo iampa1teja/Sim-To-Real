@@ -52,7 +52,7 @@ def source_mapping(source, arm_name, unit):
             if any(not np.isclose(saved[name][key], selected[name][key], atol=1e-8, rtol=0)
                    for key in ('joint_min', 'joint_max')):
                 raise ValueError('Explicit unit differs from the source mapping')
-    for name, joint in zip(arm.joint_names, arm.joints):
+    for name, joint in zip(arm.joint_names, arm.action_joints):
         expected = (0, 100) if joint.role == 'gripper' else (-100, 100)
         row = saved[name]
         if (row.get('raw_min', expected[0]), row.get('raw_max', expected[1])) != expected:
@@ -92,7 +92,7 @@ def prepare(source: Path, output: Path, *, arm_name='so101', unit=None):
     if alignment_path.exists():
         alignment_path.rename(output / 'meta/source_recording_alignment.json')
     alignment.update(version=4, arm=arm.name, joint_names=list(arm.joint_names),
-                     joint_roles=[joint.role for joint in arm.joints], joint_units=[joint.unit for joint in arm.joints],
+                     joint_roles=[joint.role for joint in arm.action_joints], joint_units=[joint.unit for joint in arm.action_joints],
                      use_degrees=False, joint_mapping=prepared_mapping,
                      recorded_action='absolute_joint_pose_in_molmo_centered_degrees',
                      preparation={'source': str(source), 'mapping_source': mapping_source})

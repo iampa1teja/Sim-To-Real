@@ -157,10 +157,10 @@ class LiveRollout:
         self.observer, self.target_pose_fn = observer, target_pose_fn
         self.control_offset = np.asarray(control_offset if control_offset is not None else (0., 0., 0.), dtype=float)
         self.robot = self.raw.scene["robot"]
-        self.joint_ids = self.robot.find_joints(list(arm.usd_joint_names), preserve_order=True)[0]
+        self.joint_ids = self.robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)[0]
         self.ee_id = self.robot.find_bodies(arm.links.ee)[0][0]
         self.base_id = self.robot.find_bodies(arm.links.base)[0][0]
-        self.gripper_ids = [index for index, joint in enumerate(arm.joints) if joint.role == "gripper"]
+        self.gripper_ids = [index for index, joint in enumerate(arm.action_joints) if joint.role == "gripper"]
         self.last_state = None
 
     @staticmethod
@@ -200,7 +200,7 @@ class LiveRollout:
         from sim.recording.lerobot_recorder import split_visual_obs
 
         target = torch.as_tensor(target_sim, device=self.raw.device, dtype=torch.float32).reshape(1, -1)
-        if target.shape[1] != len(self.arm.joints) or not torch.isfinite(target).all():
+        if target.shape[1] != len(self.arm.action_joints) or not torch.isfinite(target).all():
             raise ValueError("Generated action must contain finite values in manifest joint order")
         before = self.snapshot()
         base = Pose.from_lists(self._numpy(self.robot.data.body_link_pos_w)[0, self.base_id],

@@ -208,7 +208,7 @@ def run(args, app):
         arm = args.arm_spec
         mapping = JointMapping.from_arm(arm, args.calibration_selection, device=env.unwrapped.device)
         robot = env.unwrapped.scene['robot']
-        joint_ids = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)[0]
+        joint_ids = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)[0]
         base_id = robot.find_bodies(arm.links.base)[0][0]
         ids = torch.tensor([0], device=env.unwrapped.device)
         spawner = ObjectSpawner(env, task=sim.envs.TASK)
@@ -292,7 +292,7 @@ def run(args, app):
                     # Physical readback is authoritative when moving the real arm.
                     target = mirror(real_state if args.enable_motion or not positioning else positioned)
                     if requests.get('spawn') and not args.no_object:
-                        if any(real_state[i] < 40 for i, joint in enumerate(arm.joints) if joint.role == 'gripper'):
+                        if any(real_state[i] < 40 for i, joint in enumerate(arm.action_joints) if joint.role == 'gripper'):
                             status = 'Open the gripper before spawning; the cube needs jaw clearance.'
                         else:
                             env.step(target)

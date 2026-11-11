@@ -10,8 +10,8 @@ from .display import JointAngleTable
 
 def telemetry_provenance(selection, **extra):
     details = dict(selection.provenance)
-    details.update(joint_units=[joint.unit for joint in selection.arm.joints],
-                   joint_roles=[joint.role for joint in selection.arm.joints],
+    details.update(joint_units=[joint.unit for joint in selection.arm.action_joints],
+                   joint_roles=[joint.role for joint in selection.arm.action_joints],
                    gripper_joints=list(selection.arm.gripper_joint_names))
     root = Path(__file__).resolve().parents[3]
     details.update(git_identity(root, timeout=5, untracked_files="normal"))
@@ -26,11 +26,11 @@ class JointAngleTelemetry:
         self.arm = self.selection.arm
         self.names = self.arm.joint_names
         self.keys = self.arm.feature_names
-        self.units = tuple(joint.unit for joint in self.arm.joints)
+        self.units = tuple(joint.unit for joint in self.arm.action_joints)
         self.legacy_degrees = all(unit == "deg" for unit in self.units)
         details = telemetry_provenance(self.selection, **(provenance or {}))
         self.logger = CalibrationGapLogger(path, joint_order=self.names,
-                                           runtime_limits=[joint.limits for joint in self.arm.joints],
+                                           runtime_limits=[joint.limits for joint in self.arm.action_joints],
                                            provenance=details, thresholds=thresholds)
         self.path, self.stream = self.logger.path, self.logger.stream
         self.frames, self.last_print = 0, 0.0
@@ -44,7 +44,7 @@ class JointAngleTelemetry:
         target = mapping.to_sim(raw)
         if not bool(target.isfinite().all()):
             raise ValueError("Mapped follower joints must be finite")
-        ids = [sim_robot.joint_names.index(usd) for usd in self.arm.usd_joint_names]
+        ids = [sim_robot.joint_names.index(usd) for usd in self.arm.action_usd_joint_names]
         state = sim_robot.data.joint_pos
         state = state.torch if hasattr(state, "torch") else state
         actual = state[0, ids]

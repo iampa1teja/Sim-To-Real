@@ -69,7 +69,7 @@ def sim_start_roll_units(mapping, mount=None, arm=None):
     arm = arm or load_arm_spec()[0]
     if arm.wrist_roll is None:
         return None
-    joint = next(joint for joint in arm.joints if joint.name == arm.wrist_roll.joint)
+    joint = next(joint for joint in arm.action_joints if joint.name == arm.wrist_roll.joint)
     mount = load_mount_spec(load_scene_spec(), arm) if mount is None else mount
     initial = mount.start_joint_positions.get(joint.name, joint.initial)
     physical = math.degrees(initial) if joint.type == "revolute" else initial

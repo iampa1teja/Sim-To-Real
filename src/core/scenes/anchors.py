@@ -144,7 +144,13 @@ def mount_joint_positions(arm, mount):
     unknown = set(mount.start_joint_positions) - set(arm.joint_names)
     if unknown:
         raise ValueError(f"Mount start pose has unknown joints for {arm.name!r}: {sorted(unknown)}")
-    return {joint.usd: mount.start_joint_positions.get(joint.name, joint.initial) for joint in arm.joints}
+    positions = {joint.usd: mount.start_joint_positions.get(joint.name, joint.initial)
+                 for joint in arm.action_joints}
+    for joint in arm.joints:
+        if joint.mimic is not None:
+            source = next(source for source in arm.action_joints if source.name == joint.mimic.joint)
+            positions[joint.usd] = positions[source.usd] * joint.mimic.multiplier + joint.mimic.offset
+    return positions
 
 
 def _frame(frame, scene, arm_pose):

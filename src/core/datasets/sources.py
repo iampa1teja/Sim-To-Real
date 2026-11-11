@@ -50,8 +50,8 @@ def recorded_joint_mapping(root, arm):
             raise ValueError(f"Dataset {path} belongs to arm {data['arm']!r}, selected {arm.name!r}")
         if data.get("joint_names") is not None and tuple(data["joint_names"]) != arm.joint_names:
             raise ValueError(f"Dataset {path} joint order differs from arm {arm.name!r}")
-        for key, expected in (("joint_units", [joint.unit for joint in arm.joints]),
-                              ("joint_roles", [joint.role for joint in arm.joints]),
+        for key, expected in (("joint_units", [joint.unit for joint in arm.action_joints]),
+                              ("joint_roles", [joint.role for joint in arm.action_joints]),
                               ("use_degrees", arm.lerobot.use_degrees)):
             if key in data and data[key] != expected:
                 raise ValueError(f"Dataset {path} {key} differs from arm {arm.name!r}")

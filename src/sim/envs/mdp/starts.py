@@ -83,7 +83,7 @@ def reset_from_starts(
         env._task_start_zone = [None] * env.num_envs
     object_rows = {name: [] for name in task.spec.tracked_objects}
     joint_starts = []
-    joint_ids, _ = robot.find_joints(list(arm.usd_joint_names), preserve_order=True)
+    joint_ids, _ = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)
     for index in ids.tolist():
         live = capture_scene(env, task, index)
         base_p = body_pos[index, base_id].detach().cpu().numpy()
@@ -131,6 +131,8 @@ def reset_from_starts(
         robot.write_joint_state_to_sim_index(position=joints, velocity=torch.zeros_like(joints),
                                             joint_ids=joint_ids, env_ids=ids)
         robot.set_joint_position_target_index(target=joints, joint_ids=joint_ids, env_ids=ids)
+        from sim.envs.mdp.mimic import write_mimic_state
+        write_mimic_state(env, ids)
     for name, rows in object_rows.items():
         asset = env.scene[name]
         position = torch.as_tensor(np.asarray([row[0] for row in rows]), device=env.device,

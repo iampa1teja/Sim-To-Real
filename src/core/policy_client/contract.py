@@ -57,18 +57,18 @@ class ArmInfo:
     def from_arm(cls, arm, mapping=None):
         if mapping is not None and hasattr(mapping, 'mins'):
             result = cls.from_mapping(mapping, name=arm.name)
-            if result.joint_names != arm.joint_names or result.roles != tuple(joint.role for joint in arm.joints):
+            if result.joint_names != arm.joint_names or result.roles != tuple(joint.role for joint in arm.action_joints):
                 raise ValueError('Mapping joint order or roles differ from the selected arm')
             return result
         spans = {name: dict(span) for name, span in arm.runtime_joint_limits.items()}
         spans.update({name: dict(span) for name, span in getattr(mapping, 'mapping', mapping or {}).items()})
         if arm.lerobot.use_degrees:
-            missing = [joint.name for joint in arm.joints if joint.role == 'arm'
+            missing = [joint.name for joint in arm.action_joints if joint.role == 'arm'
                        and not all(key in spans[joint.name] for key in ('raw_min', 'raw_max'))]
             if missing:
                 raise ValueError(f'Degree mode needs an explicit calibrated device codec for {missing}')
-        return cls(arm.name, arm.joint_names, tuple(joint.role for joint in arm.joints),
-                   tuple(joint.type for joint in arm.joints), spans)
+        return cls(arm.name, arm.joint_names, tuple(joint.role for joint in arm.action_joints),
+                   tuple(joint.type for joint in arm.action_joints), spans)
 
     @classmethod
     def from_mapping(cls, mapping, *, name=''):

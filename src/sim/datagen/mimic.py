@@ -186,7 +186,7 @@ def __getattr__(name):
             solved = self.s2r_fk.inverse(target.detach().cpu().numpy(), measured[0].detach().cpu().numpy(),
                                          options=self.s2r_ik.options, **COMMAND_INVERSE_OPTIONS)
             action = solved.joint_positions.to(dtype=measured.dtype, device=self.device)
-            indices = [index for index, joint in enumerate(self.s2r_arm.joints) if joint.role == 'gripper']
+            indices = [index for index, joint in enumerate(self.s2r_arm.action_joints) if joint.role == 'gripper']
             grip = torch.as_tensor(gripper_action_dict[eef_name], dtype=action.dtype, device=action.device).flatten()
             if grip.shape != (len(indices),):
                 raise ValueError('Mimic gripper action differs from the declared gripper joints')
@@ -203,7 +203,7 @@ def __getattr__(name):
             return {self.s2r_arm.links.ee: torch.as_tensor(poses, dtype=torch.float32, device=self.device)}
 
         def actions_to_gripper_actions(self, actions):
-            indices = [index for index, joint in enumerate(self.s2r_arm.joints) if joint.role == 'gripper']
+            indices = [index for index, joint in enumerate(self.s2r_arm.action_joints) if joint.role == 'gripper']
             return {self.s2r_arm.links.ee: actions[..., indices]}
 
         def get_subtask_term_signals(self, env_ids=None):
@@ -315,7 +315,7 @@ class _DiagnosticTrace:
             raise ValueError('Mimic diagnostic traces must be outside the dataset destination')
         self.data = {'schema_version': 1, 'source': 'isaaclab_mimic', 'attempt': attempt, 'seed': seed,
                      'joint_names': list(context.arm.joint_names),
-                     'sim_joint_units': ['rad' if joint.type == 'revolute' else 'm' for joint in context.arm.joints],
+                     'sim_joint_units': ['rad' if joint.type == 'revolute' else 'm' for joint in context.arm.action_joints],
                      'alignment': 'annotations are pre-action; states, signals and measured joints are post-step',
                      'initial_state': None, 'initial_joint_positions_sim': None, 'steps': []}
 

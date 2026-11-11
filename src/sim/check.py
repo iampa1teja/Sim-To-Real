@@ -38,7 +38,8 @@ def check(args):
             if len(found) != 1 or resolved != [name]:
                 raise ValueError(f"Arm body {name!r} does not resolve uniquely: {resolved}")
         obs, _ = env.reset()
-        target = as_torch(robot.data.joint_pos)[:, ids].clone()
+        action_ids = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)[0]
+        target = as_torch(robot.data.joint_pos)[:, action_ids].clone()
         for _ in range(args.steps):
             obs, *_ = env.step(target)
         if not torch.isfinite(as_torch(robot.data.joint_pos)).all():

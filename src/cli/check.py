@@ -88,8 +88,8 @@ def check_static(repo, *, arm=None, scene=None, task=None, policy=None, unit=Non
                 errors.append(f"Selected {label} {selected!r} is unavailable or invalid")
         if arm in loaded_arms and policy in policies:
             dimension = getattr(policies[policy], "action_dim", "arm")
-            if dimension != "arm" and dimension != len(loaded_arms[arm].joints):
-                errors.append(f"Policy {policy!r} has {dimension} action axes; arm {arm!r} has {len(loaded_arms[arm].joints)}")
+            if dimension != "arm" and dimension != len(loaded_arms[arm].action_joints):
+                errors.append(f"Policy {policy!r} has {dimension} action axes; arm {arm!r} has {len(loaded_arms[arm].action_joints)}")
         if unit and arm in loaded_arms:
             try:
                 from core.arms.calibration import resolve_calibration

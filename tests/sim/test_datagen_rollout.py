@@ -148,7 +148,7 @@ def test_gripper_interpolation_uses_selected_reversed_codec_endpoints():
         raw_maxs = torch.tensor([100., 20.])
         to_raw = staticmethod(lambda value: value.clone())
         to_sim = staticmethod(lambda value: value.clone())
-    context = SimpleNamespace(mapping=Mapping(), arm=SimpleNamespace(joints=[SimpleNamespace(role="arm"), SimpleNamespace(role="gripper")]))
+    context = SimpleNamespace(mapping=Mapping(), arm=SimpleNamespace(action_joints=[SimpleNamespace(role="arm"), SimpleNamespace(role="gripper")]))
     result = GenerationContext.gripper_target(context, torch.tensor([[.25, 60.]]), .25)
     torch.testing.assert_close(result, torch.tensor([[.25, 95.]]))
 

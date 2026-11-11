@@ -260,8 +260,8 @@ def main(argv=None):
 
         manifest = build_manifest(plan, _json_args(args), git_commit(REPO_ROOT))
         manifest.update(arm=arm.name, joint_names=list(arm.joint_names), joint_mapping=joint_mapping,
-                        joint_units=[joint.unit for joint in arm.joints],
-                        joint_roles=[joint.role for joint in arm.joints], use_degrees=arm.lerobot.use_degrees,
+                        joint_units=[joint.unit for joint in arm.action_joints],
+                        joint_roles=[joint.role for joint in arm.action_joints], use_degrees=arm.lerobot.use_degrees,
                         calibration=calibration)
         write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json", manifest)
         print(f"[INFO]: Wrote {len(plan)} episodes to {args.dst_root}")

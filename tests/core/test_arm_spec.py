@@ -104,3 +104,68 @@ def test_ik_settings_with_a_spare_arm_joint(synthetic_arm):
     raw['joints'].pop()
     with pytest.raises(ValueError, match='no spare joint for limit avoidance'):
         _parse_spec('synthetic', synthetic_arm.directory, raw)
+
+
+def _with_mimic(synthetic_arm):
+    raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
+    raw['joints'][3]['mimic'] = dict(joint='left', multiplier=0.5, offset=0.01)
+    raw['gripper']['joints'] = ['left']
+    raw['gripper'].update(closed_gap_m=0.0, open_gap_m=0.08)
+    raw['import'] = dict(version='test', report='import-report.json')
+    return raw
+
+
+def test_mimics_are_physical_joints_but_never_codec_or_action_axes(synthetic_arm):
+    import numpy as np
+    from core.arms.mapping import JointMapping, raw_joint_limits
+    from core.arms.calibration import validate_mapping
+
+    arm = _parse_spec('synthetic', synthetic_arm.directory, _with_mimic(synthetic_arm))
+    assert arm.joint_names == ('pan', 'left', 'slide')
+    assert arm.usd_joint_names == ('Pan', 'Left', 'Slide', 'Right')
+    assert arm.action_usd_joint_names == ('Pan', 'Left', 'Slide')
+    assert arm.mimic_joints == ((3, 1, 0.5, 0.01),)
+    assert arm.gripper_joint_names == ('left',)
+    assert arm.initial_joint_positions['Right'] == 0.02
+    mapping = JointMapping.from_arm(arm)
+    assert mapping.names == arm.joint_names
+    assert set(raw_joint_limits(arm, {})) == set(arm.joint_names)
+    assert set(validate_mapping(arm, arm.runtime_joint_limits)) == set(arm.joint_names)
+    np.testing.assert_allclose(mapping.to_sim_np([0, 50, 0]), [0, 0.02, 0])
+    assert arm.provenance['version'] == 'test'
+
+
+@pytest.mark.parametrize('change,error', [
+    (lambda raw: raw['joints'][3]['mimic'].update(joint='missing'), 'missing source'),
+    (lambda raw: raw['joints'][1].update(mimic=dict(joint='right')), 'must not itself be a mimic'),
+    (lambda raw: raw['joints'][3]['mimic'].update(joint='pan'), 'types must match'),
+    (lambda raw: raw['joints'][3].update(role='arm'), 'only gripper mimics'),
+    (lambda raw: raw['joints'][3]['mimic'].update(offset=float('nan')), 'finite'),
+    (lambda raw: raw['joints'][3].update(initial=0.03), 'initial must follow'),
+])
+def test_invalid_mimics(synthetic_arm, change, error):
+    raw = _with_mimic(synthetic_arm)
+    change(raw)
+    with pytest.raises(ValueError, match=error):
+        _parse_spec('synthetic', synthetic_arm.directory, raw)
+
+
+def test_gap_maps_include_reversed_open_direction_and_clamp(synthetic_arm):
+    raw = _with_mimic(synthetic_arm)
+    gripper = _parse_spec('synthetic', synthetic_arm.directory, raw).gripper
+    assert gripper.gap_m(0.02) == pytest.approx(0.04)
+    assert gripper.q_for_gap(0.04) == pytest.approx(0.02)
+    assert gripper.q_for_gap(100) == pytest.approx(0.04)
+    assert gripper.q_for_gap(-1) == 0.0
+    raw['gripper'].update(closed_position=0.04, open_position=0.0)
+    gripper = _parse_spec('synthetic', synthetic_arm.directory, raw).gripper
+    assert gripper.q_for_gap(0.08) == pytest.approx(0.0)
+    assert gripper.gap_m(0.04) == 0.0
+
+
+def test_simulation_manifest_needs_no_hardware_driver(synthetic_arm):
+    raw = _with_mimic(synthetic_arm)
+    del raw['lerobot'], raw['hardware']
+    arm = _parse_spec('synthetic', synthetic_arm.directory, raw)
+    assert not arm.lerobot.use_degrees
+    assert arm.lerobot.follower_type == 'unconfigured'
