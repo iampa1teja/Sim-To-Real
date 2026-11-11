@@ -3206,6 +3206,8 @@ If any check fails: do not commit, do not start Part B, and report the failing o
 
 ## B0. Preconditions
 
+> Part B (B0 to B3-V) is superseded by `docs/ik-library-spec.md`. Do not apply it.
+
 Part A is committed. B1, B2 and B3 are applied in that order; each ends in its own verification. B3 requires B1.
 Shared helpers for the verification blocks (run once per shell):
 
