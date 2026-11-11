@@ -38,7 +38,7 @@ def install_stage_tracking(env, task=None):
     ee_ids, _ = robot.find_bodies(arm.links.ee)
     if len(ee_ids) != 1:
         raise ValueError(f"Expected exactly one robot body named {arm.links.ee!r}")
-    gripper_ids = robot.find_joints([joint.usd for joint in arm.joints if joint.role == "gripper"],
+    gripper_ids = robot.find_joints([joint.usd for joint in arm.action_joints if joint.role == "gripper"],
                                   preserve_order=True)[0] if arm.gripper_joint_names else []
     env._stage_task = task
     env._stage_traces = [StageTrace(task) for _ in range(env.num_envs)]

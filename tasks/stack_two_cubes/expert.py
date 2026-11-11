@@ -48,26 +48,30 @@ class StackExpert:
         timeout = float(options.get("waypoint_timeout_seconds", 8.0))
         tolerance = float(options.get("position_tolerance_m", .004))
         precise = min(tolerance, self.task.spec.raw["success"]["xy_tolerance"] / 4)
+        controls_yaw = context.arm is not None and "z" in context.arm.ik.orientation_axes
+        if controls_yaw:
+            precise = min(precise, .0005)
         fps = float(options.get("control_fps", 30.))
         if not math.isfinite(fps) or fps <= 0:
             raise ValueError("control_fps must be positive")
         settle = max(float(options.get("settle_seconds", 1.2)),
                      (self.task.spec.raw["success"]["confirm_steps"] + 1) / fps)
 
-        def point(name, position, opening, seconds=duration, tolerance_m=tolerance):
+        def point(name, position, opening, seconds=duration, tolerance_m=tolerance, object_goal=False):
             return Waypoint(name, Pose.from_lists(position, orientation), duration_s=seconds,
-                            tolerance_m=tolerance_m, timeout_s=max(timeout, seconds), **opening)
+                            tolerance_m=tolerance_m, timeout_s=max(timeout, seconds),
+                            object_ref="cube_a" if controls_yaw and object_goal else None, **opening)
 
         return (
             point("approach", source + normal * approach, opened),
             point("descend", source, opened),
             point("close", source, closed, float(options.get("grasp_seconds", .8))),
             point("lift", source + normal * lift, closed),
-            point("transport", stacked + normal * lift, closed, transport),
-            point("lower", stacked, closed, tolerance_m=precise),
-            point("release", stacked, opened, float(options.get("release_seconds", .8)), precise),
-            point("retreat", stacked + normal * lift, opened),
-            point("settle", stacked + normal * lift, opened, settle),
+            point("transport", stacked + normal * lift, closed, transport, object_goal=True),
+            point("lower", stacked, closed, tolerance_m=precise, object_goal=True),
+            point("release", stacked, opened, float(options.get("release_seconds", .8)), precise, object_goal=True),
+            point("retreat", stacked + normal * lift, opened, object_goal=True),
+            point("settle", stacked + normal * lift, opened, settle, object_goal=True),
         )
 
 

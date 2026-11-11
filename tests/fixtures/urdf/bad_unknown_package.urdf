@@ -1,0 +1,1 @@
+<robot name="bad_unknown_package"><link name="A"><visual><geometry><mesh filename="package://missing/shape.stl"/></geometry></visual></link></robot>

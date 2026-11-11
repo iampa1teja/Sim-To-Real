@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import math
 import os
@@ -137,7 +137,12 @@ class GenerationContext:
             if grip.kind == "parallel":
                 q = grip.q_for_gap(gap_m)
                 ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
-                result[:, ids] = q
+                primary=self.arm.action_joints[ids[0]]
+                low,high=primary.limits
+                fraction=(q-low)/(high-low)
+                for index in ids:
+                    joint=self.arm.action_joints[index]
+                    result[:,index]=joint.limits[0]+fraction*(joint.limits[1]-joint.limits[0])
                 return result
             from core.arms.spec import load_arm_utils
             hook = getattr(load_arm_utils(self.arm), 'gripper_q_for_gap', None)
@@ -146,8 +151,11 @@ class GenerationContext:
                 result[:, ids] = hook(gap_m)
                 return result
             if grip.closed_gap_m is None or grip.open_gap_m is None:
-                raise ValueError("Jaw gap command needs measured gaps or gripper_q_for_gap hook")
-            fraction = max(0., min(1., (gap_m - grip.closed_gap_m) / (grip.open_gap_m - grip.closed_gap_m)))
+                fraction = 0. if gap_m <= 0 else float(self.args.expert_options.get('gripper_open_fraction', .45))
+            else:
+                fraction = max(0., min(1., (gap_m - grip.closed_gap_m) / (grip.open_gap_m - grip.closed_gap_m)))
+                if grip.open_position is not None and grip.closed_position is not None and grip.open_position < grip.closed_position:
+                    fraction = 1. - fraction
         if fraction is None:
             raise ValueError("A gripper opening is required")
         raw = self.mapping.to_raw(result)
@@ -376,8 +384,18 @@ def execute_expert(context, rollout, expert):
             "final_ik_limited": bool(final.limited[0]),
         }
 
+    attachment_offsets={}
     for waypoint in waypoints:
-        start = rollout.control_pose(rollout.last_state or initial)
+        state=rollout.last_state or initial
+        start = rollout.control_pose(state)
+        if waypoint.object_ref is not None:
+            name=waypoint.object_ref
+            if name not in state.objects:
+                raise ValueError(f"Waypoint object reference {name!r} is not in the task state")
+            if name not in attachment_offsets:
+                attachment_offsets[name]=np.asarray(start.position)-state.objects[name].position
+            waypoint=replace(waypoint,pose=Pose.from_lists(
+                np.asarray(waypoint.pose.position)+attachment_offsets[name],waypoint.pose.quat_xyzw))
         boundary("start", waypoint, 0.)
         for tick in range(1, math.ceil(waypoint.timeout_s / dt) + 1):
             elapsed = tick * dt

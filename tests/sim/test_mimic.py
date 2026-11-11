@@ -105,7 +105,7 @@ def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
         return SimpleNamespace(joint_positions=torch.tensor([[3.01, 1., 4.02, 2.003]], dtype=torch.float64))
 
     arm = SimpleNamespace(links=SimpleNamespace(ee='tool'),
-                          joints=[SimpleNamespace(role=role) for role in ('arm', 'gripper', 'arm', 'arm')])
+                          action_joints=[SimpleNamespace(role=role) for role in ('arm', 'gripper', 'arm', 'arm')])
     ik = SimpleNamespace(options=options, joint_ids=[2, 0, 3, 1],
                          robot=SimpleNamespace(data=SimpleNamespace(joint_pos=torch.tensor([[1., 2., 3., 4.]]))),
                          solve=lambda *a, **k: pytest.fail('Mimic must not reapply the scripted feedback controller'))
@@ -208,7 +208,7 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(
         return Rollout()
 
     arm = SimpleNamespace(joint_names=('first', 'slide', 'third', 'grip'),
-        joints=[SimpleNamespace(type=kind) for kind in ('revolute', 'prismatic', 'revolute', 'revolute')])
+        action_joints=[SimpleNamespace(type=kind) for kind in ('revolute', 'prismatic', 'revolute', 'revolute')])
     report_path = tmp_path / 'mimic.json'
     diagnostic_path = tmp_path / 'mimic-diagnostics/attempt_0000.json'
     context = SimpleNamespace(raw=env, task=task, arm=arm,
@@ -275,7 +275,7 @@ def test_source_raw_units_are_decoded_before_sdk_gripper_extraction():
 
     arm = load_arm_spec('so101')[0]
     mapping = JointMapping.from_arm(arm, arm.runtime_joint_limits, device='cpu')
-    raw = np.zeros((12, len(arm.joints)), dtype=np.float32)
+    raw = np.zeros((12, len(arm.action_joints)), dtype=np.float32)
     raw[:, -1] = 100
     episode = episode_from_annotations(raw, source_frames(), eef_name=arm.links.ee, mapping=mapping)
     torch.testing.assert_close(episode.data['actions'], mapping.to_sim(raw))

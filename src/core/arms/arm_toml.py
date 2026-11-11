@@ -56,7 +56,7 @@ class ImportChoices:
         selected = set(self.gripper)
         fingers = [model.joints[name] for name in self.gripper]
         fingers += [joint for joint in subtree.values() if joint.mimic is not None and joint.mimic[0] in selected]
-        undeclared = set(subtree) - {joint.name for joint in fingers}
+        undeclared = {joint.name for joint in model.subtree_joints(base)} - {joint.name for joint in (*arm,*fingers)}
         if undeclared:
             raise ValueError(f'More than one end effector or unassigned movable ee subtree joints: {sorted(undeclared)}')
         if any(joint.mimic is not None for joint in arm):
@@ -181,7 +181,7 @@ def _render(model: UrdfModel, choices: ImportChoices):
     emit('arm.initial_state', 'rotation_relative_to_anchor', True, 'derived', 'Apply the ready-forward yaw relative to the shared mount anchor')
     emit('arm.initial_state', 'rotation_euler_degrees', [0., 0., choices.base_yaw_degrees],
          'derived' if choices.yaw_info.get('derived') else 'TODO', 'Forward direction aligned to default reference arm', confirm=True)
-    if any(j.ros2_control for j in (*arm, *fingers)) or choices.ros2_control:
+    if model.has_ros2_control or choices.ros2_control:
         table('arm.hardware')
         for key, value in dict(motor='unconfigured', encoder_counts_per_turn=4096, zero_count=2048,
                 joint_ids={choices.rename.get(j.name, j.name): j.ros2_control['id']

@@ -1,4 +1,8 @@
-"""Create one extension folder from its versioned template."""
+"""Create one extension folder from its versioned template.
+
+URDF requests are dispatched by cli.plan.plan_new to sim.arms.urdf_import; this
+module deliberately retains the SDK-free template-copy behavior.
+"""
 import argparse
 from pathlib import Path
 import re

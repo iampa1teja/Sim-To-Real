@@ -169,3 +169,14 @@ def test_simulation_manifest_needs_no_hardware_driver(synthetic_arm):
     arm = _parse_spec('synthetic', synthetic_arm.directory, raw)
     assert not arm.lerobot.use_degrees
     assert arm.lerobot.follower_type == 'unconfigured'
+
+
+def test_simulation_codec_ignores_hardware_placeholders(synthetic_arm):
+    from core.arms.calibration import resolve_sim_calibration,resolve_calibration
+    from core.arms.spec import LeRobotSpec
+    arm=replace(synthetic_arm,lerobot=LeRobotSpec('unconfigured','unconfigured',calibration='simulation'))
+    selection=resolve_sim_calibration(arm,unit='unrelated_config_default')
+    assert selection.mapping==arm.runtime_joint_limits
+    assert selection.provenance['mapping_source']=='simulation_manifest'
+    with pytest.raises(ValueError,match='simulation-only'):
+        resolve_calibration(arm)

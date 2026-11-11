@@ -18,10 +18,12 @@ def workspace_sweep(spec, kin, task, geometry):
     width=np.asarray(task.spec.objects[tracked].size)
     q=np.array([joint.initial for joint in spec.action_joints])
     orientation=kin.fk(q)[:3,:3]
-    options=IKOptions(max_joint_step_rad=2*math.pi,max_joint_step_m=1.,max_position_step_m=.05,integral_gain=0.)
+    options=IKOptions(damping=.005,orientation_weight=.2,max_joint_step_rad=2*math.pi,
+                      max_joint_step_m=1.,max_position_step_m=.02,integral_gain=0.)
     from sim.arms.ready_pose import reach_samples
     seeds,seed_positions=reach_samples(spec,kin,count=60)
     previous=q.copy()
+    multistart_rng=np.random.default_rng(404)
     cells=[]
     start=task.spec.start
     for x in np.arange(start['xy_min'][0],start['xy_max'][0]+1e-8,.05):
@@ -44,12 +46,29 @@ def workspace_sweep(spec, kin, task, geometry):
     rows=[]
     for region,world in cells:
         target=np.eye(4);target[:3,:3]=orientation;target[:3,3]=rotation.T@(world-base)
+        attempts=1
         result=kin.inverse(target,previous,options=options,max_iterations=150,
                            position_tolerance_m=.001,orientation_tolerance_rad=.01)
         if not result.converged.item():
             nearest=np.argsort(np.linalg.norm(seed_positions-target[:3,3],axis=1))[:5]
             for seed in seeds[nearest]:
+                attempts+=1
                 candidate=kin.inverse(target,seed,options=options,max_iterations=200,
+                                     position_tolerance_m=.001,orientation_tolerance_rad=.01)
+                if candidate.position_error.item()+.05*candidate.orientation_error.item() < result.position_error.item()+.05*result.orientation_error.item():
+                    result=candidate
+                if result.converged.item():
+                    break
+        if not result.converged.item():
+            from sim.arms.ready_pose import bounds
+            limits=bounds(spec)
+            for _ in range(30):
+                seed=multistart_rng.uniform(limits[:,0],limits[:,1])
+                for index,joint in enumerate(spec.action_joints):
+                    if joint.role=='gripper':
+                        seed[index]=joint.initial
+                attempts+=1
+                candidate=kin.inverse(target,seed,options=options,max_iterations=300,
                                      position_tolerance_m=.001,orientation_tolerance_rad=.01)
                 if candidate.position_error.item()+.05*candidate.orientation_error.item() < result.position_error.item()+.05*result.orientation_error.item():
                     result=candidate
@@ -58,11 +77,12 @@ def workspace_sweep(spec, kin, task, geometry):
         if result.converged.item():
             previous=result.joint_positions[0].numpy().copy()
         rows.append(dict(region=region,world_m=world.tolist(),base_m=target[:3,3].tolist(),
-                         reached=bool(result.converged.item()),position_error_m=float(result.position_error.item()),
+                         reached=bool(result.converged.item()),ik_seed_attempts=attempts,position_error_m=float(result.position_error.item()),
                          orientation_error_rad=float(result.orientation_error.item()),q=result.joint_positions[0].tolist()))
     reached=sum(row['reached'] for row in rows)
     return dict(name='reach_sweep',passed=bool(rows) and reached==len(rows),grid_spacing_m=.05,
                 fraction_reached=reached/max(len(rows),1),cells=rows,
+                ik_options=dict(damping=.005,orientation_weight=.2,multistart_seed=404),
                 unreachable_cells=[row for row in rows if not row['reached']])
 
 
@@ -113,22 +133,25 @@ def validate_import(name,*,repo=None):
         check('ready_pose_gravity_hold',hold)
         def mimic():
             errors=[]
-            for name in spec.gripper_joint_names:
-                index=spec.joint_names.index(name)
-                joint=spec.action_joints[index]
-                limits=np.deg2rad(joint.limits) if joint.type=='revolute' else joint.limits
-                for coordinate in np.linspace(*limits,11):
-                    target[:,index]=float(coordinate)
-                    for _ in range(10):
-                        env.step(target)
-                    positions=as_torch(robot.data.joint_pos)[0]
-                    for follower in spec.joints:
-                        if follower.mimic and follower.mimic.joint==name:
-                            follower_id=robot.find_joints([follower.usd])[0][0]
-                            source_id=action_ids[index]
-                            errors.append(float(abs(positions[follower_id]-positions[source_id]*follower.mimic.multiplier-follower.mimic.offset)))
+            steps=0
+            for repeat in range(2):
+                env.reset()
+                target[:]=target.new_tensor([[joint.initial for joint in spec.action_joints]])
+                for name in spec.gripper_joint_names:
+                    index=spec.joint_names.index(name)
+                    joint=spec.action_joints[index]
+                    limits=np.deg2rad(joint.limits) if joint.type=='revolute' else joint.limits
+                    for coordinate in np.linspace(*limits,50):
+                        target[:,index]=float(coordinate)
+                        env.step(target);steps+=1
+                        positions=as_torch(robot.data.joint_pos)[0]
+                        for follower in spec.joints:
+                            if follower.mimic and follower.mimic.joint==name:
+                                follower_id=robot.find_joints([follower.usd])[0][0]
+                                source_id=action_ids[index]
+                                errors.append(float(abs(positions[follower_id]-positions[source_id]*follower.mimic.multiplier-follower.mimic.offset)))
             return dict(passed=max(errors,default=0.)<=.001,max_error_si=max(errors,default=0.),samples=len(errors),
-                        runtime=getattr(robot,'_s2r_mimic_runtime','manual'),tolerance_si=.001)
+                        reset_count=2,action_steps=steps,runtime=getattr(robot,'_s2r_mimic_runtime','manual'),tolerance_si=.001)
         check('mimic_tracking',mimic)
         kin=ArmKinematics.from_arm(spec)
         geometry=capture_scene(raw,task)
@@ -143,7 +166,30 @@ def validate_import(name,*,repo=None):
             reachable=[row for row in sweep.get('cells',[]) if row['reached'] and row['region']=='start']
             if not reachable:
                 raise ValueError('No reachable default-task start cell for grasp validation')
-            selected=reachable[len(reachable)//2]
+            from sim.arms.ready_pose import bounds
+            limits=bounds(spec)
+            arm_indices=[i for i,joint in enumerate(spec.action_joints) if joint.role=='arm']
+            def margin(row):
+                q=np.asarray(row['q'])
+                return float(np.min((np.minimum(q-limits[:,0],limits[:,1]-q)/(limits[:,1]-limits[:,0]))[arm_indices]))
+            from sim.arms.clearance import ready_route_validator
+            from sim.datagen.ik import IKOptions
+            validator=ready_route_validator(spec,kin)
+            ready=np.array([joint.initial for joint in spec.action_joints])
+            desired=np.eye(4);desired[:3,:3]=kin.fk(ready)[:3,:3]
+            selected=None
+            for candidate in sorted(reachable,key=margin,reverse=True):
+                desired[:3,3]=candidate['base_m']
+                solved=kin.inverse(desired,ready,options=IKOptions(damping=.005,orientation_weight=.2,
+                    max_joint_step_rad=2*math.pi,max_joint_step_m=1.,max_position_step_m=.02,integral_gain=0.),
+                    max_iterations=150,position_tolerance_m=.001,orientation_tolerance_rad=.01)
+                if solved.converged.item():
+                    positions=solved.joint_positions[0].numpy().copy()
+                    if validator.clearance(positions)>=-.0005:
+                        selected=dict(candidate,q=positions.tolist())
+                        break
+            if selected is None:
+                raise ValueError('No collision-clear grasp cell on the ready IK branch')
             command=target.new_tensor([selected['q']]);command[:,source_index]=opened
             robot.write_joint_state_to_sim_index(position=command,velocity=torch.zeros_like(command),joint_ids=action_ids)
             robot.set_joint_position_target_index(target=command,joint_ids=action_ids)
@@ -180,7 +226,7 @@ def validate_import(name,*,repo=None):
             lifted=float(as_torch(cube.data.root_pos_w)[0,2])-start_height
             return dict(passed=lifted>=.04 and all(value>0 for value in contact.values()),
                         commanded_lift_m=.05,measured_lift_m=lifted,contact_forces_n=contact,
-                        start_cell_world_m=selected['world_m'])
+                        start_cell_world_m=selected['world_m'],joint_limit_margin=margin(selected))
         check('gripper_cube_lift',grasp)
         def cameras():
             from PIL import Image

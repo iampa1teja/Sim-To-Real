@@ -100,10 +100,17 @@ def stage_sources(args):
     temporary = Path(tempfile.mkdtemp(prefix='.'+args.name+'-import-', dir=target.parent))
     temporary.chmod(0o755)
     copied = []
+    def ignore_sources(directory,names):
+        ignored=set(shutil.ignore_patterns('.git','__pycache__','.venv')(directory,names))
+        if Path(directory).resolve()==target.parent:
+            # A standalone URDF may live at repository root. Never recursively
+            # copy the staging directory into itself or capture its old output.
+            ignored.update({temporary.name,target.name}&set(names))
+        return ignored
     try:
         for index, directory in enumerate(sorted(roots)):
             destination = temporary/'source'/f'{index}_{directory.name}'
-            shutil.copytree(directory, destination, ignore=shutil.ignore_patterns('.git','__pycache__','.venv'))
+            shutil.copytree(directory, destination, ignore=ignore_sources)
             copied.append((directory, destination.relative_to(temporary)))
         if args.ros2_control:
             destination = temporary/'source'/'external_ros2_control.xml'
@@ -259,6 +266,7 @@ def measure_gripper(stage, spec, *, grasp_depth_m=.01):
     grip = spec.gripper
     limits = bounds(spec)
     source_id = spec.joint_names.index(grip.joints[0])
+    source_ids = [spec.joint_names.index(name) for name in grip.joints]
     q = np.clip(0.,limits[:,0],limits[:,1])
     body_names = list(grip.contact_bodies)
     if len(body_names) == 1:
@@ -268,7 +276,9 @@ def measure_gripper(stage, spec, *, grasp_depth_m=.01):
     body_prims = {prim.GetName():prim for prim in stage.Traverse() if prim.GetName() in body_names}
     clouds = {name:collision_body_points(stage,str(body_prims[name].GetPath())) for name in body_names}
     def points(coordinate):
-        q[source_id]=coordinate
+        fraction=(coordinate-limits[source_id,0])/(limits[source_id,1]-limits[source_id,0])
+        for index in source_ids:
+            q[index]=limits[index,0]+fraction*(limits[index,1]-limits[index,0])
         poses = torch.as_tensor(kin._evaluate(q),dtype=torch.float64)
         ee=poses[kin.ee_id]
         result={}
@@ -310,7 +320,8 @@ def measure_gripper(stage, spec, *, grasp_depth_m=.01):
     return dict(closed_gap_m=closed['gap_m'],open_gap_m=opened['gap_m'],
                 closed_position=closed['q'],open_position=opened['q'],closing_axis=closing.tolist(),
                 approach_axis=approach.tolist(),position_offset_m=closed['centre_m'],
-                fingertip_points=closed['fingertips'],sweep=sampled)
+                fingertip_points=closed['fingertips'],
+                sweep=[{key:value for key,value in row.items() if key!='fingertips'} for row in sampled])
 
 
 def measure_cameras(stage,model,choices):
@@ -338,7 +349,16 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
     from sim.arms.ready_pose import reach_samples
 
     kin=kinematics
-    positions=sample_positions if sample_positions is not None else reach_samples(spec,kin,count=100)[0]
+    from core.paths import DEFAULT_SCENE
+    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
+    from core.scenes.anchors import quaternion_matrix
+    scene=load_scene_spec(DEFAULT_SCENE)
+    pose=mount_pose(scene,load_mount_spec(scene,spec),spec)
+    gravity_original=kin._model.gravity.numpy().copy()
+    gravity_local=gravity_original@quaternion_matrix(pose.orientation_xyzw)
+    kin._model.gravity.assign(gravity_local)
+    broad_positions=reach_samples(spec,kin,count=100)[0]
+    positions=np.vstack([sample_positions,broad_positions]) if sample_positions is not None else broad_positions
     maximum=np.zeros(kin._model.joint_dof_count)
     gravity_buffer=wp.zeros(kin._model.joint_dof_count,dtype=wp.float32,device=kin._model.device)
     for q in positions:
@@ -346,6 +366,7 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
         newton.eval_inverse_dynamics_passive(kin._model,kin._state,gravity_force=gravity_buffer)
         gravity=gravity_buffer.numpy()
         maximum=np.maximum(maximum,np.abs(gravity))
+    kin._model.gravity.assign(gravity_original)
     ready=np.array([joint.initial for joint in spec.action_joints])
     kin._evaluate(ready)
     matrix=newton.eval_mass_matrix(kin._model,kin._state).numpy()[0]
@@ -368,7 +389,7 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
         damping=2*math.sqrt(stiffness*inertia)
         result[joint.usd]=dict(effort_limit_sim=effort,stiffness=stiffness,damping=damping,
             evidence=dict(worst_gravity_torque_or_force=float(maximum[dof]),effective_inertia=inertia,
-                          sag_limit_si=sag,samples=len(positions),rule='critical damping; gravity sag; effort cap',
+                          sag_limit_si=sag,samples=len(positions),gravity_import_frame_m_s2=gravity_local[0].tolist(),rule='critical damping; gravity sag; effort cap',
                           stiffness_clamped=bool(float(maximum[dof])/sag>effort/.02)))
     return result
 
@@ -391,7 +412,7 @@ def _spec(paths):
     return _parse_spec(paths['choices'].name,paths['directory'],tomllib.loads((paths['directory']/'arm.toml').read_text())['arm'])
 
 
-def main(argv=None):
+def run_import(argv=None):
     import sys
     from sim.app import launch,close_app
     args=parser().parse_args(argv)
@@ -403,6 +424,9 @@ def main(argv=None):
     choices.command_line=list(sys.argv if argv is None else argv)
     checks=[]
     app=None
+    # Publish the pure source/flag result before loading native code, so even
+    # a startup crash has a manifest and report for the supervisor to finalize.
+    _write(paths,model,checks)
     try:
         app=launch(headless=True,enable_cameras=True)
         def step(name,operation,fallback):
@@ -463,6 +487,19 @@ def main(argv=None):
                         choices.fallbacks.append(dict(step='validate_import',error='Default mount intersects tabletop',
                             fallback='Derived world translation from base collision support; confirm mount',
                             previous_checks=rows,mount=correction))
+                        # The mount changes task heights in the arm frame. Re-select
+                        # a branch against that actual workspace before validating.
+                        spec=_spec(paths)
+                        kin=ArmKinematics.from_arm(spec)
+                        q,choices.ready_info=ready_pose(spec,kin)
+                        choices.ready_positions={joint.usd:float(value) for joint,value in zip(spec.action_joints,q)}
+                        _write(paths,model,checks);spec=_spec(paths)
+                        choices.actuators=derive_actuators(spec,kin,model,
+                            sample_positions=np.array([row['q'] for row in choices.ready_info.get('candidates',[]) if row['converged']])
+                                if choices.ready_info.get('converged') else None)
+                        choices.fallbacks.append(dict(step='ready_pose',
+                            fallback='Re-select collision-clear library IK branch and Newton gains after measured mount correction'))
+                        _write(paths,model,checks)
                         rows=step('validate_with_derived_mount',lambda:validate_import(args.name,repo=args.repo),
                                   'Keep failed check evidence; never change physics')
                 checks.extend(rows or [])
@@ -496,7 +533,7 @@ def main(argv=None):
 def write_hardware_placeholders(model,paths):
     choices=paths['choices']
     arm,fingers=choices.selected_joints(model)
-    if not any(j.ros2_control for j in (*arm,*fingers)) and not choices.ros2_control:
+    if not model.has_ros2_control and not choices.ros2_control:
         return None
     mapping={}
     excluded=[]
@@ -559,12 +596,70 @@ def derive_workspace_mount(spec,paths):
     destination.write_text('[mount]\nanchor = '+json.dumps(mount.anchor)+'\ntranslation_correction_m = '+json.dumps(current.tolist())+
         '\n\n[mount.source]\nimporter = "urdf"\ntag = "derived"\nconfirm = true\nreason = "Base collision support fitted above measured default tabletop"\n')
     destination.chmod(0o644)
+    import os
+    owner=paths['directory'].parent.stat()
+    try:
+        os.chown(destination,owner.st_uid,owner.st_gid)
+    except PermissionError:
+        pass
     return dict(path=str(destination),translation_correction_m=current.tolist(),base_penetration_m=-float(clearance.min()),tag='derived',confirm=True)
 
 
 def validate_import(name,*,repo=None):
     from sim.arms.validation import validate_import as validate
     return validate(name,repo=repo)
+
+
+def main(argv=None):
+    """Keep native SDK crashes from losing the published folder's failure report."""
+    import os
+    import subprocess
+    import sys
+    if os.environ.get('S2R_IMPORT_WORKER')=='1':
+        return run_import(argv)
+    arguments=list(sys.argv[1:] if argv is None else argv)
+    args=parser().parse_args(arguments)
+    environment=dict(os.environ,S2R_IMPORT_WORKER='1')
+    # Preserve a selected temporary checkout after the SDK entrypoint has set
+    # its own paths. The worker must execute the same implementation as parent.
+    environment['PYTHONPATH']=os.pathsep.join(sys.path)
+    result=subprocess.run([sys.executable,'-m','sim.arms.urdf_import',*arguments],env=environment)
+    if result.returncode in (0,2):
+        return result.returncode
+    return recover_native_failure(args,result.returncode)
+
+
+def recover_native_failure(args,returncode):
+    """Finalize evidence from a confirmed terminal native SDK process."""
+    import os
+    directory=args.repo.resolve()/'arms'/args.name
+    report_path=directory/'import-report.json'
+    if not report_path.is_file():
+        return returncode
+    report=json.loads(report_path.read_text())
+    for row in report.get('measurements',{}).get('sweep',[]):
+        row.pop('fingertips',None)  # closed fingertip clouds remain at measurements.fingertip_points
+    report['checks'].append(dict(name='simulator_worker',passed=False,exit_code=returncode,
+        error='Native simulator worker terminated; converted sources and partial results retained'))
+    report['fallbacks'].append(dict(step='simulator_worker',error=f'worker exit {returncode}',
+        fallback='Retain converted USD; record missing live checks and validate separately in a fresh simulator process'))
+    for name in ('spec_action_dimension','conversion_names','fk_cross_check','ready_pose_gravity_hold',
+                 'mimic_tracking','reach_sweep','gripper_cube_lift','wrist_camera_frames'):
+        if not any(row['name']==name for row in report['checks']):
+            report['checks'].append(dict(name=name,passed=False,error='Unavailable after native worker termination'))
+    report_path.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
+    report_path.chmod(0o644)
+    owner=args.repo.stat()
+    for path in (directory,*directory.rglob('*')):
+        try:
+            os.chown(path,owner.st_uid,owner.st_gid,follow_symlinks=False)
+        except PermissionError:
+            pass
+    print(f'FAILED simulator_worker: exit {returncode}; fallback report: {report_path}',flush=True)
+    for key,row in report['fields'].items():
+        if row['tag'] in ('confirm','TODO') or row.get('confirm'):
+            print(f"{row['tag'].upper()} {key}: {row['value']}")
+    return 0
 
 
 if __name__=='__main__':

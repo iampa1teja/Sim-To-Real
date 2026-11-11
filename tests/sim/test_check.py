@@ -16,7 +16,7 @@ def check_environment(monkeypatch, *, bad_camera=False):
     calls = []
     task = SimpleNamespace(name='guide_task', spec=SimpleNamespace(default_variant='teleop', objects={'cube': object()}),
                            gym_id=lambda variant: 'S2R-guide-task-' + variant)
-    arm = SimpleNamespace(name='guide_arm', usd_joint_names=('Shoulder', 'Finger'),
+    arm = SimpleNamespace(name='guide_arm', usd_joint_names=('Shoulder', 'Finger'), action_usd_joint_names=('Shoulder', 'Finger'),
                           links=SimpleNamespace(base='base', ee='tool'), gripper=None, cameras={})
     camera = SimpleNamespace(width=2, height=1)
     cfg = SimpleNamespace(arm_spec=arm, scene_spec=SimpleNamespace(cameras={'room': camera}))

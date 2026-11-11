@@ -24,6 +24,7 @@ class Waypoint:
     tolerance_m: float = .004
     timeout_s: float = 8.0
     gripper_open_gap_m: float | None = None
+    object_ref: str | None = None  # world object-centre goal, with fixed pickup TCP offset
 
     def __post_init__(self):
         if (self.gripper_open_fraction is None) == (self.gripper_open_gap_m is None):

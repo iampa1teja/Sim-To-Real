@@ -1,0 +1,1 @@
+<robot name="bad_missing_mesh"><link name="A"><visual><geometry><mesh filename="missing.stl"/></geometry></visual></link></robot>

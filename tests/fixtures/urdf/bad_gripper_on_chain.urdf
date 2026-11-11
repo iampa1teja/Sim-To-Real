@@ -1,0 +1,5 @@
+<robot name="bad_gripper_on_chain"><link name="A"/><link name="B"/><link name="C"/><joint name="Arm" type="revolute"><parent link="A"/><child link="B"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint><joint name="Grip" type="prismatic"><parent link="B"/><child link="C"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="0" upper=".1" effort="15" velocity="0.2"/></joint></robot>

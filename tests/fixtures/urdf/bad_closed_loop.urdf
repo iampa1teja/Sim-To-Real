@@ -1,0 +1,5 @@
+<robot name="bad_closed_loop"><link name="A"/><link name="B"/><joint name="AB" type="fixed"><parent link="A"/><child link="B"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint><joint name="BA" type="fixed"><parent link="B"/><child link="A"/>
+ <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint></robot>

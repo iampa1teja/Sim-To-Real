@@ -45,3 +45,21 @@ def test_settle_cannot_be_shorter_than_confirmation_and_no_carry_roll():
     assert points[-1].duration_s >= 26 / 30
     with pytest.raises(ValueError, match="pickup orientation"):
         task.expert().plan(context({"transport_roll_degrees": 90.}))
+
+
+def test_yaw_controlled_stack_preserves_pickup_offset_without_changing_legacy(synthetic_arm):
+    from dataclasses import replace
+    from core.arms.spec import IKSpec
+    from core.tasks.expert import ExpertContext
+    from core.tasks.base import Pose,StepState
+    from core.tasks.loader import load_task
+    task=load_task('stack_two_cubes')
+    state=StepState({'cube_a':Pose((.14,-.12,.8)),'cube_b':Pose((.20,-.08,.8))},Pose((.15,-.1,.9)),0.)
+    arm=replace(synthetic_arm,ik=IKSpec(orientation_axes=('x','y','z')))
+    points=task.expert().plan(ExpertContext(state,state.ee,(0.,0.,1.),arm=arm))
+    assert all(point.object_ref is None for point in points[:4])
+    assert all(point.object_ref=='cube_a' for point in points[4:])
+    assert next(point for point in points if point.name=='lower').tolerance_m==.0005
+    legacy=task.expert().plan(ExpertContext(state,state.ee,(0.,0.,1.)))
+    assert all(point.object_ref is None for point in legacy)
+    assert next(point for point in legacy if point.name=='lower').tolerance_m==.001

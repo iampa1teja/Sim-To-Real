@@ -131,6 +131,7 @@ class UrdfModel:
     links: dict[str, UrdfLink]
     joints: dict[str, UrdfJoint]
     root: str
+    has_ros2_control: bool = False
 
     @property
     def root_link(self):
@@ -250,7 +251,7 @@ class UrdfModel:
         roots = set(links) - set(incoming)
         if len(roots) != 1:
             raise ValueError(f'URDF must be one connected tree; roots: {sorted(roots)}')
-        return cls(robot.get('name', 'robot'), links, joints, roots.pop())
+        return cls(robot.get('name', 'robot'), links, joints, roots.pop(), bool(robot.findall('ros2_control')))
 
     def chain(self, base_link, ee_link):
         if base_link not in self.links or ee_link not in self.links:
@@ -311,7 +312,12 @@ def find_packages(start):
     candidates = set()
     # ROS packages are normally adjacent under src/, with URDF one or two levels
     # below their package root. Avoid recursively scanning unrelated workspaces.
-    for directory in (start, *list(start.parents)[:3]):
+    ancestors=(start,*start.parents)
+    for directory in ancestors:
+        candidates.add(directory/'package.xml')
+    nearest=next((directory for directory in ancestors if (directory/'package.xml').is_file()),None)
+    neighbours=(start,*list(start.parents)[:3]) if nearest is None else (start,nearest,nearest.parent)
+    for directory in neighbours:
         candidates.add(directory / 'package.xml')
         candidates.update(directory.glob('*/package.xml'))
         candidates.update(directory.glob('*/*/package.xml'))

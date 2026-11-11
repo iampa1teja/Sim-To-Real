@@ -35,6 +35,15 @@ def downward_rotation(spec):
 def ready_pose(spec, kinematics):
     from sim.datagen.ik import IKOptions
 
+    from core.paths import DEFAULT_SCENE
+    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
+    scene=load_scene_spec(DEFAULT_SCENE)
+    mounting=mount_pose(scene,load_mount_spec(scene,spec),spec)
+    cache_key=(tuple(spec.ik.position_offset_m),tuple(mounting.position),tuple(mounting.orientation_xyzw))
+    cached=getattr(kinematics,'_import_ready_cache',{})
+    if cache_key in cached:
+        q,info=cached[cache_key]
+        return q.copy(),info
     limits = bounds(spec)
     zero = np.clip(0., limits[:, 0], limits[:, 1])
     samples, positions = reach_samples(spec, kinematics)
@@ -44,6 +53,14 @@ def ready_pose(spec, kinematics):
     target = np.eye(4)
     target[:3, :3] = downward_rotation(spec)
     best, candidates = None, []
+    from sim.arms.clearance import ready_route_validator
+    try:
+        validate_route=ready_route_validator(spec,kinematics)
+        route_error=None
+    except Exception as error:
+        validate_route=None
+        route_error=str(error)
+    best_safe=None
     previous = zero.copy()
     # Sweep the declared range, including both endpoints. Nearby grid candidates
     # share a converged seed; random in-limit seeds resolve singular starts.
@@ -72,11 +89,43 @@ def ready_pose(spec, kinematics):
                 previous = q
                 if best is None or margin > best[0]:
                     best = margin, q, row
-    info = dict(converged=best is not None, maximum_horizontal_reach_m=maximum, candidates=candidates)
+                if validate_route is not None:
+                    row['workspace_route']=validate_route(q,target[:3,:3])
+                    if row['workspace_route']['passed'] and (best_safe is None or margin>best_safe[0]):
+                        best_safe=margin,q,row
+                    if not row['workspace_route']['passed'] and row['workspace_route']['reason']!='ready geometry intersects tabletop':
+                        # A different library IK seed can reach the same ready
+                        # TCP on a branch that stays above the table on approach.
+                        for seed in samples[::20]:
+                            alternative=kinematics.inverse(target,seed,options=options,max_iterations=150,
+                                position_tolerance_m=.001,orientation_tolerance_rad=.01)
+                            if not alternative.converged.item():
+                                continue
+                            proposed=alternative.joint_positions[0].numpy().copy()
+                            route=validate_route(proposed,target[:3,:3])
+                            if route['passed']:
+                                alt_margin=float(np.min((np.minimum(proposed-limits[:,0],limits[:,1]-proposed)/(limits[:,1]-limits[:,0]))[arm_ids]))
+                                alt=dict(row,q=proposed.tolist(),limit_margin=alt_margin,workspace_route=route,alternative_seed=True)
+                                candidates.append(alt)
+                                if best_safe is None or alt_margin>best_safe[0]:
+                                    best_safe=alt_margin,proposed,alt
+                                break
+    if best_safe is not None:
+        best=best_safe
+    info = dict(converged=best is not None, maximum_horizontal_reach_m=maximum, candidates=candidates,
+                collision_safe_route=best_safe is not None)
+    if route_error:
+        info['workspace_route_error']=route_error
+    elif best_safe is None:
+        info['workspace_route_fallback']='No safe representative route; retain best joint-margin proposal for validation'
     if best is None:
         info.update(tag='TODO', fallback='zero clamped to limits')
+        cached[cache_key]=(zero.copy(),info)
+        kinematics._import_ready_cache=cached
         return zero, info
     info.update(tag='derived', selected=best[2])
+    cached[cache_key]=(best[1].copy(),info)
+    kinematics._import_ready_cache=cached
     return best[1], info
 
 

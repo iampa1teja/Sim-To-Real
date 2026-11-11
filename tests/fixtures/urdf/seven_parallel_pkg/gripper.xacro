@@ -1,0 +1,29 @@
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="seven_parallel">
+<link name="Finger_L">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/finger.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/finger.stl"/></geometry></collision>
+</link>
+<link name="Finger_R">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.025"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/finger.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 .035" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/finger.stl"/></geometry></collision>
+</link>
+<joint name="Grip_L" type="prismatic"><parent link="Tool_0"/><child link="Finger_L"/>
+ <origin xyz=".004 0 .01" rpy="0 0 0"/><axis xyz="1 0 0"/>
+ <limit lower="0" upper=".045" effort="15" velocity="0.2"/></joint>
+<joint name="Grip_R" type="prismatic"><parent link="Tool_0"/><child link="Finger_R"/>
+ <origin xyz="-.004 0 .01" rpy="0 0 0"/><axis xyz="-1 0 0"/>
+ <limit lower="0" upper=".045" effort="15" velocity="0.2"/><mimic joint="Grip_L" multiplier="1" offset="0"/></joint>
+<link name="Camera_1">
+ <inertial><origin xyz="0.005 0 0" rpy="0.1 0.2 0.3"/><mass value="0.015"/>
+ <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.00012" iyz="0" izz="0.00015"/></inertial>
+ <visual><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/body.stl"/></geometry></visual>
+ <collision><origin xyz="0 0 0" rpy="0 0 0"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/body.stl"/></geometry></collision>
+<visual><origin xyz="0 0 .005" rpy=".1 0 .2"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/camera.obj" scale=".5 .5 .5"/></geometry></visual><visual><origin xyz="0 0 .005" rpy=".1 0 .2"/><geometry><mesh filename="package://seven_parallel_pkg/meshes/camera.dae" scale=".5 .5 .5"/></geometry></visual></link>
+<joint name="CameraMount" type="fixed"><parent link="Tool_0"/><child link="Camera_1"/>
+ <origin xyz="0 -.05 .02" rpy="0 0 0"/><axis xyz="0 1 0"/>
+ <limit lower="-2.9" upper="2.9" effort="20" velocity="2"/></joint>
+</robot>

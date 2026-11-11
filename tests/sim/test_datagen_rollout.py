@@ -298,3 +298,20 @@ def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monk
     assert events == ["reset", "warmup", "warmup", "tracking_reset", "controller_reset"]
     context.begin_attempt(102, reset=False, warmup=False)
     assert events[-1] == "controller_reset" and events.count("controller_reset") == 2
+
+
+def test_measured_jaw_gap_respects_reversed_open_direction(monkeypatch):
+    import core.arms.spec
+    monkeypatch.setattr(core.arms.spec,'load_arm_utils',lambda arm:None)
+    class Mapping:
+        raw_mins=torch.tensor([-100.,0.])
+        raw_maxs=torch.tensor([100.,100.])
+        to_raw=staticmethod(lambda value:value.clone())
+        to_sim=staticmethod(lambda value:value.clone())
+    grip=SimpleNamespace(kind='jaw',closed_gap_m=0.,open_gap_m=.08,closed_position=1.,open_position=-1.)
+    arm=SimpleNamespace(gripper=grip,action_joints=[SimpleNamespace(role='arm'),SimpleNamespace(role='gripper')])
+    context=SimpleNamespace(arm=arm,mapping=Mapping())
+    closed=GenerationContext.gripper_target(context,torch.tensor([[.25,50.]]),gap_m=0.)
+    opened=GenerationContext.gripper_target(context,torch.tensor([[.25,50.]]),gap_m=.08)
+    assert closed.tolist()==[[.25,100.]]
+    assert opened.tolist()==[[.25,0.]]
