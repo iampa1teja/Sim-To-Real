@@ -326,10 +326,25 @@ class CalibrationSelection:
             print(f"[calibration] {role}: {item['path']} SHA-256={item['sha256']}", flush=True)
 
 
+def resolve_sim_calibration(arm, *, unit=None):
+    """Simulation-only manifests use declared physical bounds, without hardware data."""
+    if arm.lerobot.calibration != 'simulation':
+        return resolve_calibration(arm, unit=unit)
+    empty = dict(path=None, sha256=None)
+    mapping = arm.runtime_joint_limits
+    provenance = dict(arm=arm.name,unit=None,follower_calibration=dict(empty),leader_calibration=dict(empty),
+                      mapping_calibration=dict(empty),unit_calibration=dict(empty),mapping_parameters={},
+                      mapping=mapping,mapping_source='simulation_manifest',selected_calibrations={},
+                      explicit_selection=False)
+    return CalibrationSelection(arm,None,mapping,None,None,provenance)
+
+
 def resolve_calibration(arm: ArmSpec | None = None, *, unit=None, environ=None, follower_id=None,
                         leader_id=None, follower_path=None, leader_path=None) -> CalibrationSelection:
     arm = load_arm_spec()[0] if arm is None else arm
     environ = os.environ if environ is None else environ
+    if arm.lerobot.calibration == 'simulation':
+        raise ValueError(f"Arm {arm.name!r} is simulation-only; real rollout requires a driver and calibration")
     root = Path(environ.get("HF_LEROBOT_CALIBRATION") or "~/.cache/huggingface/lerobot/calibration").expanduser()
     explicit_follower = follower_path or environ.get("S2R_FOLLOWER_CALIBRATION")
     explicit_leader = leader_path or environ.get("S2R_LEADER_CALIBRATION")

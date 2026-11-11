@@ -236,8 +236,64 @@ def plan_host(module, args, repo):
                 env={"PYTHONPATH": str(Path(repo).resolve() / "src")})
 
 
-def plan_new(kind, name, repo):
-    return plan_host("cli.scaffold", (kind, name, "--repo", str(Path(repo).resolve())), repo)
+def plan_new(kind, name, repo, *, urdf=None, ee_link=None, gripper=(), base_link=None,
+             camera=(), package_path=(), ros2_control=None, rename=(), grasp_depth_m=.01,
+             continuous_limit_deg=180., force=False, container=SIM_CONTAINER,
+             git_commit="", selection_env=None):
+    if urdf is None:
+        if ee_link or gripper or base_link or camera or package_path or ros2_control or rename or force:
+            raise CliError("URDF import flags require --urdf")
+        return plan_host("cli.scaffold", (kind, name, "--repo", str(Path(repo).resolve())), repo)
+    if kind != "arm":
+        raise CliError("--urdf is only supported for new arm")
+    if not ee_link or not gripper:
+        raise CliError("URDF import requires --ee_link and at least one --gripper")
+    from core.arms.urdf import find_packages
+    root = Path(repo).resolve()
+    source = Path(urdf).expanduser().resolve()
+    packages = find_packages(source)
+    for pair in package_path:
+        package, sep, path = pair.partition('=')
+        if not sep or not package or not path:
+            raise CliError(f"--package_path expects pkg=dir: {pair!r}")
+        packages[package] = Path(path).expanduser().resolve()
+    external = set()
+    def mounted(path):
+        path = Path(path).expanduser().resolve()
+        if path.is_relative_to(root):
+            return str(Path(SIM_REPO) / path.relative_to(root))
+        external.add(path if path.is_dir() else path.parent)
+        return str(path)
+    command = [name, '--urdf', mounted(source), '--ee_link', ee_link]
+    for joint in gripper:
+        command += ['--gripper', joint]
+    if base_link:
+        command += ['--base_link', base_link]
+    for flag, values in (('camera', camera), ('rename', rename)):
+        for value in values:
+            command += ['--' + flag, value]
+    for package, directory in sorted(packages.items()):
+        command += ['--package_path', package + '=' + mounted(directory)]
+    if ros2_control:
+        command += ['--ros2_control', mounted(ros2_control)]
+    command += ['--grasp_depth_m', str(grasp_depth_m), '--continuous_limit_deg', str(continuous_limit_deg)]
+    if force:
+        command.append('--force')
+    if not external:
+        # Repository paths already have the running sim container's bind mount.
+        return plan_sim('sim.arms.urdf_import', command, container, git_commit=git_commit,
+                        selection_env=selection_env)
+    mounts = bind(str(root), SIM_REPO)
+    if (root / 'datasets').is_dir():
+        mounts += bind(str(root / 'datasets'), '/workspace/datasets')
+    for directory in sorted(external):
+        mounts += bind(str(directory), str(directory), readonly=True)
+    env = ['-e', 'S2R_GIT_COMMIT=' + git_commit] if git_commit else []
+    for key, value in (selection_env or {}).items():
+        env += ['-e', key + '=' + value]
+    return Plan(('docker', 'run', '--rm', '--gpus', 'all', '--network', 'host', *env, *mounts,
+                 '-w', SIM_REPO, 's2r-sim:latest', 's2r-entrypoint', 'python', '-m',
+                 'sim.arms.urdf_import', *command))
 
 
 def plan_check(repo, *, arm=None, scene=None, task=None, policy=None, unit=None, variant="teleop",

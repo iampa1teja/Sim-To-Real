@@ -71,7 +71,10 @@ def stage_signals(env):
     ee_position = as_torch(robot.data.body_link_pos_w)[:, ee_index]
     ee_quaternion = as_torch(robot.data.body_link_quat_w)[:, ee_index]
     gripper = env.cfg.arm_spec.gripper
-    if gripper is not None and gripper.tip_mesh:
+    if gripper is not None and (gripper.kind == "parallel" or not gripper.tip_mesh):
+        offset = ee_position.new_tensor(env.cfg.arm_spec.ik.position_offset_m)
+        ee_position = ee_position + math_utils.quat_apply(ee_quaternion, offset.expand_as(ee_position))
+    elif gripper is not None and gripper.tip_mesh:
         from sim.scene.geometry import gripper_tip_local_offset
         if not hasattr(env, "_stack_grasp_offset"):
             env._stack_grasp_offset = ee_position.new_tensor(gripper_tip_local_offset(

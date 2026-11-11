@@ -15,3 +15,9 @@ def repo_dir(folder: str) -> Path:
         if (parent / folder).is_dir() and not (parent / folder / "__init__.py").exists():
             return parent / folder
     raise FileNotFoundError(f"No {folder}/ directory above {here}")
+
+
+def plan_new(*args, **kwargs):
+    """Compatibility entrypoint for SDK-free extension/import planning."""
+    from cli.plan import plan_new as plan
+    return plan(*args, **kwargs)

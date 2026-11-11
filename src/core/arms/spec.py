@@ -160,6 +160,7 @@ class CameraSpec:
 class InitialStateSpec:
     position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     rotation_euler_degrees: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    rotation_relative_to_anchor: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -371,11 +372,14 @@ def _parse_spec(name, directory, raw):
     initial = raw.get("initial_state", {})
     initial_state = InitialStateSpec(_vector(initial.get("position", [0, 0, 0]), 3, "initial_state.position"),
                                      _vector(initial.get("rotation_euler_degrees", [0, 0, 0]), 3,
-                                             "initial_state.rotation_euler_degrees"))
-    robot = raw.get("lerobot", {"follower_type": "unconfigured", "leader_type": "unconfigured"})
+                                             "initial_state.rotation_euler_degrees"),
+                                     initial.get("rotation_relative_to_anchor", False))
+    if type(initial_state.rotation_relative_to_anchor) is not bool:
+        raise ValueError("initial_state.rotation_relative_to_anchor must be a boolean")
+    robot = raw.get("lerobot", {"follower_type": "unconfigured", "leader_type": "unconfigured", "calibration": "simulation"})
     calibration = robot.get("calibration", "per_unit")
-    if calibration not in ("per_unit", "factory"):
-        raise ValueError("lerobot.calibration must be per_unit or factory")
+    if calibration not in ("per_unit", "factory", "simulation"):
+        raise ValueError("lerobot.calibration must be per_unit, factory or simulation")
     use_degrees = robot.get("use_degrees", False)
     if type(use_degrees) is not bool:
         raise ValueError("lerobot.use_degrees must be a boolean")

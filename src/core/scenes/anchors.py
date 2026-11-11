@@ -137,7 +137,10 @@ def mount_pose(scene, mount, arm=None):
     # Calibration corrections were measured in world metres, not along the
     # tilted mount axes. Adding them after transforming would change the fit.
     position = tuple(float(value + delta) for value, delta in zip(anchor.position, mount.translation_correction_m))
-    return Pose(position, anchor_quaternion(anchor))
+    orientation = anchor_quaternion(anchor)
+    if arm is not None and arm.initial_state.rotation_relative_to_anchor:
+        orientation = quaternion_multiply(orientation, euler_xyz_degrees_to_xyzw(arm.initial_state.rotation_euler_degrees))
+    return Pose(position, orientation)
 
 
 def mount_joint_positions(arm, mount):

@@ -314,9 +314,11 @@ def stage_signals(env):
     if not hasattr(env, "_pick_place_grasp_offset"):
         half = float(obj.cfg.spawn.size[0]) / 2
         arm = env.cfg.arm_spec
-        env._pick_place_grasp_offset = ee_position.new_tensor(gripper_tip_local_offset(
-            get_current_stage(), half, 0.0, ee_path, arm.gripper.tip_mesh,
-        ))
+        if arm.gripper.kind == "parallel" or not arm.gripper.tip_mesh:
+            offset = arm.ik.position_offset_m
+        else:
+            offset = gripper_tip_local_offset(get_current_stage(), half, 0.0, ee_path, arm.gripper.tip_mesh)
+        env._pick_place_grasp_offset = ee_position.new_tensor(offset)
     point = ee_position + math_utils.quat_apply(ee_quaternion, env._pick_place_grasp_offset.expand_as(ee_position))
     return {"grasped": grasped, "placed": placed, "success": success, "holding": env._pick_place_holding,
             "lifted": (position[:, 2] - env._pick_place_rest_z).double() >= params["min_lift"],

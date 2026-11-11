@@ -13,6 +13,7 @@ dependencies = []
 [dependency-groups]
 # Host-side tools (uv sync) for CPU tests and result scripts; not pulled into the Isaac image.
 host = [
+    "xacro>=2.1,<3",
     "numpy",
     "pandas<3",
     "pyarrow",

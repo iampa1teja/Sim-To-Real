@@ -57,7 +57,14 @@ def build_parser():
 
 def parse_args(argv=None, *, parser=None):
     parser = parser or build_parser()
-    args = parse_yaml_args(parser, argv, json_fields=("expert_options",))
+    import sys
+    words=list(sys.argv[1:] if argv is None else argv)
+    explicit=lambda key: any(word=='--'+key or word.startswith('--'+key+'=') for word in words)
+    for key in ('arm','scene','task'):
+        value=os.environ.get('S2R_'+key.upper())
+        if value and not explicit(key):
+            words += ['--'+key,value]
+    args = parse_yaml_args(parser, words, json_fields=("expert_options",))
     if min(args.attempts, args.max_steps, args.fps) < 1 or args.episodes < 0 or args.warmup_steps < 0:
         parser.error("attempts/max_steps/fps must be positive; episodes/warmup_steps must be nonnegative")
     args.expert_options = json.loads(args.expert_options) if isinstance(args.expert_options, str) else args.expert_options
@@ -194,7 +201,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from isaaclab.managers import EventTermCfg
     import sim.envs
     from core.arms.spec import load_arm_spec
-    from core.arms.calibration import resolve_calibration
+    from core.arms.calibration import resolve_sim_calibration
     from core.arms.mapping import JointMapping
     from core.datasets.alignment import mark_recording_root, recording_contract
     from sim.envs.mdp.starts import reset_from_starts
@@ -207,7 +214,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
         raise FileExistsError(args.destination)
     task = sim.envs.register_envs(scene=args.scene, task=args.task)
     arm, _ = load_arm_spec(args.arm)
-    calibration = resolve_calibration(arm, unit=args.unit)
+    calibration = resolve_sim_calibration(arm, unit=args.unit)
     cfg = parse_env_cfg(task.gym_id(args.variant), device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
     cfg.seed = args.seed
     cfg.sim_joint_mapping = calibration.mapping

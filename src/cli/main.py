@@ -80,6 +80,16 @@ def build_parser():
     new.add_argument("kind", choices=("arm", "scene", "task", "policy"))
     new.add_argument("name")
     new.add_argument("--dry-run", action="store_true")
+    new.add_argument("--urdf", type=Path)
+    new.add_argument("--ee_link")
+    new.add_argument("--gripper", action="append", default=[])
+    new.add_argument("--base_link")
+    for flag in ("camera", "package_path", "rename"):
+        new.add_argument("--" + flag, action="append", default=[])
+    new.add_argument("--ros2_control", type=Path)
+    new.add_argument("--grasp_depth_m", type=float, default=.01)
+    new.add_argument("--continuous_limit_deg", type=float, default=180.)
+    new.add_argument("--force", action="store_true")
     check = commands.add_parser("check", help="validate all extensions, then spawn the selected composition headlessly")
     check.add_argument("--arm")
     check.add_argument("--scene")
@@ -122,7 +132,13 @@ def make_plan(args, repo, policies):
         return paths.plan_sim(paths.SIM_PROGRAMS[args.command], args.args, container, git_commit=source_revision(repo),
                                selection_env=selection_env)
     if args.command == "new":
-        return paths.plan_new(args.kind, args.name, repo)
+        return paths.plan_new(args.kind, args.name, repo, urdf=args.urdf, ee_link=args.ee_link,
+                              gripper=args.gripper, base_link=args.base_link, camera=args.camera,
+                              package_path=args.package_path, ros2_control=args.ros2_control,
+                              rename=args.rename, grasp_depth_m=args.grasp_depth_m,
+                              continuous_limit_deg=args.continuous_limit_deg, force=args.force,
+                              container=os.environ.get("S2R_SIM_CONTAINER", paths.SIM_CONTAINER),
+                              git_commit=source_revision(repo), selection_env=selection_env)
     if args.command == "check":
         compositions = check_compositions(repo, args.arm, args.scene, args.task)
         arm, scene, task = compositions[0]
