@@ -170,3 +170,15 @@ def test_gap_summary_distinguishes_constant_from_range_growth(sweep, tmp_path):
     summary = gap.analyze(sweep, tmp_path)['per_joint']['shoulder_pan']
     assert summary['grows_toward_range_ends'] and not summary['constant_across_holds']
     assert summary['worst_abs_sim_real_deg'] == pytest.approx(4)
+
+
+def test_gap_last_second_accepts_capture_jitter():
+    gap = module(ROOT / 'tools/sweep_gap.py')
+    times = np.r_[np.arange(0, 1.1, .01), np.arange(1.14, 2.09, .04), 2.1001]
+    target = np.zeros((len(times), 1))
+    target[-1] = 3
+    log = dict(times=times, target=target, state=target.copy())
+    match = gap.align_hold(log, [0], hold_s=2, fps=30)
+    assert match['end_seconds'] == pytest.approx(2.1001)
+    assert times[match['indices'][0]] == pytest.approx(1.14)
+    assert np.all(times[match['indices']] >= match['end_seconds'] - 1)

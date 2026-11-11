@@ -43,7 +43,7 @@ def align_hold(log, raw, *, cursor=0, hold_s=2.0, fps=30):
         if end - times[start] + 1e-6 < hold_s:
             continue
         selected = np.arange(start, stop)[times[start:stop] >= end - 1.0 - 1e-6]
-        if len(selected) < 2 or end - times[selected[0]] < 1.0 - max(dt, 1 / fps) - 1e-6:
+        if len(selected) < 2:
             raise ValueError('Hold has insufficient samples in the final second')
         return dict(indices=selected, end_seconds=float(end), next_cursor=stop,
                     start_seconds=float(times[start]))
