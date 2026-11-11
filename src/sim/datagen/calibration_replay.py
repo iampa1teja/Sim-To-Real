@@ -13,6 +13,8 @@ from sim.datagen.scripted import add_generation_launch_arguments, make_report, p
 
 
 def build_parser():
+    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--source_repo_id")
@@ -25,7 +27,7 @@ def build_parser():
     parser.add_argument("--seed", type=int, default=1984)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--disable_fabric", action="store_true")
-    for key, default in (("arm", "so101"), ("scene", "rpd_meeting_room"), ("task", "pick_place_cube")):
+    for key, default in (("arm", DEFAULT_ARM), ("scene", DEFAULT_SCENE), ("task", DEFAULT_TASK)):
         parser.add_argument("--" + key, default=os.environ.get("S2R_" + key.upper(), default))
     parser.add_argument("--variant", default="teleop")
     parser.add_argument("--unit", help="Target unit; source interpretation comes from the audit")

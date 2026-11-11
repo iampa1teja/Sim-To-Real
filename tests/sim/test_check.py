@@ -7,6 +7,7 @@ import torch
 
 
 def check_environment(monkeypatch, *, bad_camera=False):
+    pytest.importorskip("isaaclab_tasks")
     import gymnasium
     import isaaclab_tasks.utils
     import sim.envs as registry

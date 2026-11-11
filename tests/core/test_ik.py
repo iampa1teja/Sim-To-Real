@@ -291,6 +291,7 @@ def test_local_inverse_rank_deficient_unreachable_pose_stays_finite_and_bounded(
 
 
 def test_mimic_actual_inverse_handles_native_permutation_and_two_gripper_roles(synthetic_arm):
+    pytest.importorskip("isaaclab")
     from sim.datagen.mimic import S2RMimicEnv
 
     arm = replace(synthetic_arm, ik=IKSpec(('z',)))

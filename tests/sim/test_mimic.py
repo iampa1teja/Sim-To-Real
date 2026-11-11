@@ -28,6 +28,7 @@ def source_frames():
 
 
 def test_actual_mimic_pool_segments_then_retargets_reference_object():
+    pytest.importorskip("isaaclab")
     from isaaclab.envs import MimicEnvCfg
     from isaaclab_mimic.datagen.data_generator import DataGenerator
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
@@ -63,6 +64,7 @@ def test_actual_mimic_pool_segments_then_retargets_reference_object():
 
 
 def test_source_annotation_requires_latched_aligned_signals():
+    pytest.importorskip("isaaclab")
     frames = source_frames()
     frames[5]['subtask_term_signals']['grasped'] = False
     with pytest.raises(ValueError, match='must be latched'):
@@ -84,6 +86,7 @@ def test_subtasks_declare_objects_and_nonfinal_stage_boundaries():
 
 
 def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
+    pytest.importorskip("isaaclab")
     from sim.datagen import mimic
     from sim.datagen.ik import IKOptions
 
@@ -123,6 +126,7 @@ def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
 @pytest.mark.parametrize('diagnostic_trace', [False, True])
 def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(
         max_steps, accepted, reason, step_error, diagnostic_trace, tmp_path, monkeypatch):
+    pytest.importorskip("isaaclab")
     from isaaclab.envs import MimicEnvCfg
     from isaaclab.managers import RecorderManager
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
@@ -254,6 +258,7 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(
 
 
 def test_mimic_attempt_refuses_physics_from_a_running_coroutine():
+    pytest.importorskip("isaaclab")
     from sim.datagen.mimic import generate_attempt
 
     async def nested():
@@ -264,6 +269,7 @@ def test_mimic_attempt_refuses_physics_from_a_running_coroutine():
 
 
 def test_source_raw_units_are_decoded_before_sdk_gripper_extraction():
+    pytest.importorskip("isaaclab")
     from core.arms.spec import load_arm_spec
     from core.arms.mapping import JointMapping
 
@@ -277,6 +283,7 @@ def test_source_raw_units_are_decoded_before_sdk_gripper_extraction():
 
 
 def test_source_reflections_are_rejected():
+    pytest.importorskip("isaaclab")
     frames = source_frames()
     frames[0]['eef_pose'][0][0] = -1
     with pytest.raises(ValueError, match='right-handed'):
@@ -284,6 +291,7 @@ def test_source_reflections_are_rejected():
 
 
 def test_mimic_entrypoint_uses_shared_selectors_and_source_validation(tmp_path):
+    pytest.importorskip("isaaclab")
     from sim.datagen.mimic import parse_args
 
     source = tmp_path / 'source'

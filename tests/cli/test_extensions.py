@@ -99,6 +99,7 @@ def test_default_check_covers_all_extensions_without_a_cartesian_product(monkeyp
 
 
 def test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits(guide_extensions):
+    pytest.importorskip("isaaclab_tasks")
     from isaaclab_tasks.utils import parse_env_cfg
 
     assert not (guide_extensions / 'src').exists()

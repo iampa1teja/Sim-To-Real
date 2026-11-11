@@ -107,7 +107,6 @@ def main():
         import numpy as np
         import torch
         from scipy.spatial.transform import Rotation
-        from pxr import Usd, UsdGeom, UsdPhysics
         from isaaclab_tasks.utils import parse_env_cfg
         from isaaclab_newton.physics import NewtonManager
         import isaaclab.utils.math as math_utils

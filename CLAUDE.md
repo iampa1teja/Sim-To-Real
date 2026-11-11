@@ -79,30 +79,17 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 - Run CPU checks with `PYTHONPATH=src python -m pytest tests -q`. The existing `s2r-sim` container includes the
   required Python/Isaac dependencies; run simulator scripts through `s2r-entrypoint python` there.
 - `s2r check --static` runs host manifest/entrypoint validation without Isaac/USD or Torch imports; NumPy is its
-  only external dependency. The complete host test/tool environment is available with `uv sync --group host`.
+  only external dependency. `uv sync --group host` installs the host tools; it is not a complete test
+  environment, and tests that need Isaac Lab, USD, LeRobot or MJWarp fail or skip there. Run the full suite
+  inside `s2r-sim`.
   Without `--static`, the command additionally launches selected headless simulator checks; coordinate GPU use.
 - Keep local hardware settings in ignored `.env`; `.env.example` contains portable example values.
 - Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
 
-The arm, declarative scene and generic task phases have passed their acceptance checks; consult the status file
-for evidence and renderer limitations. Phase 4's full CPU suite, static/plugin checks, production recording,
-example evaluation and live GR00T/Molmo serving/evaluation pass. Phase 5 CPU implementation passes, including
-real SDK Mimic configuration/retargeting and schema-2 GR00T preparation. A no-roll scripted episode now passes
-physical success, dataset validation and real GR00T preparation/verification. Mimic passes physical success and
-dataset validation at the source start and a nearby changed start. A two-step GR00T optimizer update and source
-integrity check pass; Phase 5 is complete. Phase 7 guides were exercised through new folders, headless
-composition, policy serving/evaluation and paired comparison. The user deferred Phase 6 on 2026-11-10;
-second-arm hardware validation remains outstanding. Training recipes and the retained visual DR recipe still
-have their documented SO-101/pick-place scope; do not claim arbitrary-model training or learned task performance.
+Training recipes and the retained visual DR recipe have their documented SO-101/pick-place scope; do not claim
+arbitrary-model training or learned task performance.
 
-
-The paired-motion follow-up isolated a float32 MJWarp Cholesky failure during table contact. The same replay
-fails identically on an isolated copy of main in the current container. `sim.solver_numerics` repairs only
-failed Newton search directions: double-precision factorization, then positive-diagonal descent if needed.
-The existing contact objective/line search and every physical parameter remain unchanged. Install before
-CUDA graph capture; do not edit installed SDK files. Captured-matrix CPU tests and a 1,140-step contact/retreat
-replay pass. Teleop rejects invalid simulation joints immediately, including outside active recording.
-
-The user confirmed the restarted paired real/sim recorder now keeps motion and both simulation cameras working.
-Phases 0–5 and 7 are complete; Phase 6 remains deferred. Do not infer a saved hardware episode from this motion check.
+`sim.solver_numerics` repairs only failed Newton search directions of the MJWarp contact solve: double-precision
+factorization, then positive-diagonal descent if needed. The contact objective, line search and every physical
+parameter stay unchanged. Install it before CUDA graph capture; do not edit installed SDK files.

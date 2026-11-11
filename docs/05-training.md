@@ -131,7 +131,7 @@ its explicit `RESUME=1` recipe environment is configured. Use a new run director
 
 A completed run has `train.log` and `checkpoint-<step>/trainer_state.json`, `optimizer.pt`, model weights,
 and copied processor/experiment configuration. Confirm finite loss, a nonzero completed global step and a real
-weight update before accepting a training smoke check. The repository's Phase 5 check verified step 2,
+weight update before accepting a training smoke check. The repository's recorded two-step check verified step 2,
 finite/nonzero Adam moments and a trained projector tensor changed from the immutable base after accounting for
 dtype conversion. Evaluate any quality claim on the fixed benchmark in [evaluation](06-evaluation.md).
 
@@ -230,10 +230,47 @@ GPU window. `--gpu` explicitly requests GPU access for this command:
 
 Replace the checkpoint placeholder with actual compatible weights. The report
 defaults to `verification.json` inside the output. Ordinary `s2r verify` remains
-CPU-only unless `--gpu` is supplied. The restructure validated Molmo preparation
-and argument contracts; the completed Phase 5 optimizer acceptance used GR00T.
+CPU-only unless `--gpu` is supplied. Molmo preparation and argument contracts
+are validated; the recorded optimizer-update check used GR00T.
 It does not establish Molmo fine-tuning convergence or broaden either recipe to
 arbitrary arms/tasks.
+
+### Export a trained LoRA checkpoint for serving
+
+The Molmo server loads an original-layout Hugging Face checkpoint. `train/export_molmo_lora.py` turns a
+trained LeRobot MolmoAct2 LoRA checkpoint into that layout: it merges only the VLM LoRA deltas into the base
+weights on the CPU, keeps the action-expert weights bit-identical, and checks that the merged tensor names
+equal the base checkpoint's. It takes three paths:
+
+- `--checkpoint`: the saved LeRobot policy folder, containing `config.json` and `policy_preprocessor.json`.
+- `--base`: the original MolmoAct2 Hugging Face checkpoint folder, containing `model.safetensors.index.json`.
+- `--output`: a new folder. The script refuses to overwrite an existing path.
+
+It accepts only the workshop H30 LoRA configuration: `train_mode_vlm = "lora"`, `chunk_size = 30`,
+`n_action_steps = 30`, joint signs `[1, -1, 1, 1, 1, 1]` and joint offsets `[0, 90, 90, 0, 0, 0]`. The
+checkpoint's preprocessor must contain the `workshop_molmo_joint_frame` and `molmoact2_masked_normalizer`
+steps. The output holds the merged safetensors shards, the base folder's `.py`, `.json` and `.jinja` files
+except `model.safetensors.index.json` and `norm_stats.json`, a `norm_stats.json` built from the checkpoint's
+saved normalizer under the tag `workshop_pick_place_v1_as_real`, and `workshop_export_report.json`.
+Run it in the MolmoAct2 training environment of the train image:
+
+```bash
+export S2R_DOC_MOLMO_CHECKPOINT=/absolute/host/path/to/pretrained_model
+export S2R_DOC_MOLMO_BASE=/absolute/host/path/to/molmoact2-base
+export S2R_DOC_MOLMO_MODELS=/absolute/host/path/to/molmo-models
+docker run --rm --init \
+  -v "$PWD/policies:/policies" -v policy-cache:/opt/cache \
+  -v "$S2R_DOC_MOLMO_CHECKPOINT:/data/checkpoint:ro" \
+  -v "$S2R_DOC_MOLMO_BASE:/data/base_model:ro" \
+  -v "$S2R_DOC_MOLMO_MODELS:/data/output" \
+  s2r-train:local --env molmoact2 -- \
+  sh -c 'exec "$S2R_PYTHON" "$@"' s2r /policies/molmoact2/train/export_molmo_lora.py \
+  --checkpoint /data/checkpoint --base /data/base_model \
+  --output /data/output/molmoact2_so101_workshop_lora
+```
+
+`configs/eval/pick_place_molmo_so101_lora_as_real.yaml` names this output folder,
+`molmoact2_so101_workshop_lora`, as `policy.checkpoint` and selects `norm_tag: workshop_pick_place_v1_as_real`.
 
 ## CPU preparation regression tests
 
@@ -245,5 +282,5 @@ PYTHONPATH=src uv run --group host python -m pytest \
 ```
 
 These check schema-2/legacy sidecars and bounded training-flag forwarding without loading a model. The real
-prepare/verify commands above remain the data-reader acceptance checks. See [phase status](restructure-status.md)
+prepare/verify commands above remain the data-reader acceptance checks. See the [verification record](restructure-status.md)
 for the recorded physical generation and two-step training evidence.

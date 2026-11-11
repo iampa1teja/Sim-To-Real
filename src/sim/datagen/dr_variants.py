@@ -4,7 +4,6 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
-from pathlib import Path
 import random
 import tempfile
 
@@ -19,8 +18,6 @@ def cube_colors(scene=None) -> dict[str, tuple[float, float, float]]:
 
 
 DR_TERMS = ("light", "robot_color", "camera_external", "camera_wrist")
-# Cameras are calibrated to the real setup, so the default keeps camera views fixed.
-DEFAULT_DR = ("light", "robot_color")
 
 
 @dataclass

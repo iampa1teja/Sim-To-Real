@@ -3,6 +3,7 @@ import os
 
 import gymnasium as gym
 
+from core.paths import DEFAULT_TASK
 from core.scenes import load_scene_spec, selected_scene_name
 from core.tasks.loader import load_task, resolve
 
@@ -57,7 +58,7 @@ def register_envs(scene=None, task=None):
     _register(BASE_GYM_ID, f"{__name__}.base_env_cfg:BaseEnvCfg")
     scene_entry_point(scene)
     _register(scene_gym_id(scene), _scene_builder(scene))
-    task_name = task if task is not None else os.environ.get("S2R_TASK", "pick_place_cube")
+    task_name = task if task is not None else os.environ.get("S2R_TASK", DEFAULT_TASK)
     if not task_name:
         return None
     loaded = load_task(task_name)

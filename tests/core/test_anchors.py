@@ -1,12 +1,11 @@
 """World/table/arm-base frames preserve the measured mount and placement."""
-from dataclasses import replace
 
 import numpy as np
 import pytest
 
 from core.arms.spec import load_arm_spec
 from core.scenes import (
-    AnchorSpec, MountSpec, Pose, anchor_basis, anchor_position, anchor_quaternion, camera_quaternion,
+    AnchorSpec, MountSpec, Pose, anchor_basis, anchor_position, camera_quaternion,
     euler_xyz_degrees_to_xyzw, frame_to_world, load_mount_spec, load_scene_spec,
     mount_joint_positions, mount_pose, quaternion_matrix, transform_pose, world_to_frame,
 )

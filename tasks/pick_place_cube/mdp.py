@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
 import torch
 from pxr import Gf, Usd, UsdShade
 
@@ -24,7 +23,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 from isaaclab.sim import get_current_stage
 
-from sim.envs.mdp._common import _env_prim_path, _wxyz, _xyzw, as_torch, env_indices
+from sim.envs.mdp._common import _env_prim_path, as_torch, env_indices
 
 
 # ---------------------------------------------------------------------------

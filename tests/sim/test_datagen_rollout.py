@@ -154,6 +154,7 @@ def test_gripper_interpolation_uses_selected_reversed_codec_endpoints():
 
 
 def test_supplied_scripted_yaml_parses_without_launching_kit(tmp_path):
+    pytest.importorskip("isaaclab")
     path = Path(__file__).resolve().parents[2] / "configs/datagen/scripted.yaml"
     args = parse_args(["--config_path", str(path), "--destination", str(tmp_path / "generated"), "--attempts", "2"])
     assert (args.arm, args.scene, args.task, args.variant) == ("so101", "rpd_meeting_room", "pick_place_cube", "teleop")
@@ -194,6 +195,7 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
 
 
 def test_live_step_records_before_action_and_observes_success_after_it(tmp_path):
+    pytest.importorskip("isaaclab")
     from core.arms.mapping import JointMapping
     from core.arms.spec import load_arm_spec
     original = load_arm_spec()[0]
@@ -272,6 +274,7 @@ def test_live_step_records_before_action_and_observes_success_after_it(tmp_path)
 
 
 def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monkeypatch):
+    pytest.importorskip("isaaclab")
     from core.arms.mapping import JointMapping
     from core.arms.spec import load_arm_spec
     import sim.datagen.scripted

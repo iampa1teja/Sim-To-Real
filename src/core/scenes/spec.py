@@ -11,11 +11,11 @@ from pathlib import Path
 import tomllib
 from typing import Any
 
-from core.paths import repo_dir
+from core.paths import DEFAULT_SCENE, repo_dir
 
 
 def selected_scene_name() -> str:
-    return os.environ.get("S2R_SCENE", "rpd_meeting_room")
+    return os.environ.get("S2R_SCENE", DEFAULT_SCENE)
 
 
 def scenes_dir() -> Path:

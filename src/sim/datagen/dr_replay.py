@@ -1,4 +1,3 @@
-# sim/datagen/dr_replay.py  (ported from v1 scripts/dr_replay.py)
 """Re-render recorded pick-place episodes with blue/red cubes and domain randomization.
 
 Kinematic replay: for every frame the recorded joint state and cube pose are written into the
@@ -12,9 +11,9 @@ plus task_meta/ object sidecars and meta/dr_replay_manifest.json.
   # fidelity check: blue, no DR, 2 episodes -> frames must match the originals
   s2r datagen --source dr_replay ... --colors blue --dr "" --limit 2 --headless
 """
-# Changes from v1:
-# - --arm/--scene/--task/--variant select the env (S2R_* exported before core/sim imports); v1's --task gym id is gone.
-# - DR ranges come from task.toml [task.dr] (the same values apply_eval_dr uses) instead of PickPlaceEvalDREnvCfg.
+# - --arm/--scene/--task/--variant select the env. S2R_* are exported before importing any core/sim module
+#   that reads them at import.
+# - DR ranges come from task.toml [task.dr] (the same values apply_eval_dr uses).
 # - Joint units go through JointMapping; the recorder is sim.recording.lerobot_recorder.LeRobotRecorder.
 
 import argparse
@@ -22,6 +21,7 @@ import json
 import os
 from pathlib import Path
 
+from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.utils.provenance import git_commit
 from sim.app import apply_selection, add_launch_arguments, launch, close_app
 
@@ -50,10 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dry_run", action="store_true", help="Print the plan and exit (no Isaac Sim)")
     parser.add_argument("--limit", type=int, default=0,
                         help="Replay only the first N planned episodes (0 = all); for quick checks")
-    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
+    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", DEFAULT_ARM))
     parser.add_argument("--unit", help="Calibration unit; required for legacy per-unit datasets without saved mapping")
-    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
-    parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
+    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", DEFAULT_SCENE))
+    parser.add_argument("--task", default=os.environ.get("S2R_TASK", DEFAULT_TASK))
     parser.add_argument("--variant", default="teleop", help="Task variant without terminations")
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--disable_fabric", action="store_true")

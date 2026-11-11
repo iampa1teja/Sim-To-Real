@@ -1,24 +1,27 @@
 # sim-to-real (s2r)
 
-The s2r restructure of the SO-101 sim-to-real platform: Isaac Lab 3.0 (Newton / MJWarp) for simulation,
+A sim-to-real platform for tabletop manipulation arms: Isaac Lab 3.0 (Newton / MJWarp) for simulation,
 LeRobot v0.6.1 for teleop and datasets, and pluggable policy servers (GR00T N1.7, MolmoAct2).
+Arms, scenes, tasks and policies are folders: `s2r new` scaffolds one and `s2r check` validates it.
 The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
-The `v2` restructure has passed Phases 0–5 and 7; Phase 6 is deferred. The contact-solver fix passes motion replay and CPU regressions, and paired real/sim motion and camera
-updates have been confirmed on hardware. [Phase status and verification](docs/restructure-status.md) records the
-acceptance gates; [repository conventions](CLAUDE.md) covers units, quaternion order and import boundaries.
-Copy `.env.example` to `.env` for local device settings. The arm, declarative scene and generic task phases passed
-their CPU, recording and simulator checks; the evidence and renderer limitations are tracked in the status file.
-Generic stages, named-object benchmarks and multiobject recording work for pick-place and stacking.
-The CLI uses module entrypoints, provides `s2r new` scaffolds and `s2r check` validation.
-Phase 4's full CPU suite, host checks, three simulator compositions and production recording pass.
-The renamed evaluator reproduced the example policy's nine-episode schedule; live GR00T and Molmo also
-served and evaluated with finite joint commands. Phase 4 is complete. Scripted generation has produced a
-physically successful pick-place episode without a post-pickup wrist roll; dataset validation and real GR00T
-preparation/verification pass. Mimic episodes pass physical and dataset validation at the source start and a
-nearby changed start. A two-step GR00T training check verifies a real optimizer update on the generated data.
-Eight workflow guides and their folder-extension conformance checks are complete.
-Second-arm hardware work is deferred at the user's request.
+Copy `.env.example` to `.env` for local device settings. [Repository conventions](CLAUDE.md) covers units,
+quaternion order and import boundaries.
+
+What has been verified, and what has not:
+
+- The SO-101 in the meeting-room and blank-table scenes on the pick-place and stacking tasks: recording,
+  paired real/sim motion and cameras, named-object benchmarks and evaluation.
+- Scripted generation produced a physically successful pick-place episode that passes dataset validation and
+  GR00T preparation/verification. Mimic episodes pass at the source start and a nearby changed start. These
+  show physical success and valid datasets, not a measured success rate over every start.
+- GR00T and MolmoAct2 serve and evaluate with real inference and finite joint commands, and a two-step GR00T
+  run verifies a real optimizer update. That establishes integration, not learned-policy success.
+- The GR00T and MolmoAct2 training recipes and the visual DR replay recipe still assume the SO-101 and
+  pick-place.
+- No second arm has been validated on hardware. The template arm establishes composition only.
+
+The [verification record](docs/restructure-status.md) holds the evidence and the renderer limitations.
 
 ## Guides
 

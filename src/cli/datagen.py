@@ -1,6 +1,5 @@
 """Dispatch data generation to a source-specific module."""
 import argparse
-import importlib.util
 from pathlib import Path
 import runpy
 
@@ -34,8 +33,6 @@ def resolve_source(argv=None):
 def main(argv=None):
     source, extra = resolve_source(argv)
     module = DATAGEN_MODULES[source]
-    if importlib.util.find_spec(module) is None:
-        raise SystemExit(f"Data source {source!r} is not implemented yet ({module}).")
     import sys
     previous_argv = sys.argv
     try:

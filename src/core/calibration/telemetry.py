@@ -2,8 +2,6 @@
 from pathlib import Path
 import time
 
-import numpy as np
-
 from core.arms.calibration import resolve_calibration
 from core.utils.provenance import git_identity
 from .gap import CalibrationGapLogger

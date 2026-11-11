@@ -171,12 +171,3 @@ def supported_on_table(xy, yaw, scene, object_name=None):
     projected = footprint(centre, base_rotation.T @ rotation, scene['objects'][object_name]['size'])
     return all(inside_polygon(p, scene['table_outline_base_xy']) for p in projected)
 
-
-def inside_convex(point, corners):
-    """Test a projected point against the ordered convex hull of cuboid corners."""
-    centre = corners.mean(axis=0)
-    ordered = corners[np.argsort(np.arctan2(corners[:, 1] - centre[1], corners[:, 0] - centre[0]))]
-    edges = np.roll(ordered, -1, axis=0) - ordered
-    rel = point - ordered
-    return bool(np.all(edges[:, 0] * rel[:, 1] - edges[:, 1] * rel[:, 0] >= 0))
-

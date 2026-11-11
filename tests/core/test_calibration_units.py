@@ -1,5 +1,4 @@
 """Mixed-joint telemetry keeps metre fields and thresholds separate from degrees."""
-import json
 
 import pytest
 

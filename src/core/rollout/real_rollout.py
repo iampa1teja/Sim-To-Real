@@ -27,9 +27,6 @@ import time
 import numpy as np
 
 DEFAULT_RENAME_MAP = '{"external": "room", "gripper": "wrist"}'
-BODY_RANGE = (-100.0, 100.0)
-GRIPPER_RANGE = (0.0, 100.0)
-OUTCOMES = ("success", "failure", "unlabeled")
 
 
 # ---------------------------------------------------------------------------
@@ -178,12 +175,14 @@ def write_report(path, header, episodes):
 
 
 def build_parser():
+    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config_path", type=Path, help="rollout YAML; explicit flags override its defaults")
-    parser.add_argument("--arm", default=env("S2R_ARM", "so101"))
-    parser.add_argument("--scene", default=env("S2R_SCENE", "rpd_meeting_room"))
-    parser.add_argument("--task", default=env("S2R_TASK", "pick_place_cube"))
+    parser.add_argument("--arm", default=env("S2R_ARM", DEFAULT_ARM))
+    parser.add_argument("--scene", default=env("S2R_SCENE", DEFAULT_SCENE))
+    parser.add_argument("--task", default=env("S2R_TASK", DEFAULT_TASK))
     parser.add_argument("--variant", default=env("S2R_VARIANT", "teleop"))
     parser.add_argument("--unit", default=env("S2R_UNIT"), help="arm calibration unit ID")
     parser.add_argument("--policy", required=True, help="policy folder name under policies/")

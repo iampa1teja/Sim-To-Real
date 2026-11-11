@@ -35,20 +35,18 @@ Task stages and benchmark reporting are driven by the selected task plugin. Sche
 tracked object's poses in `task_meta/`; legacy `pick_place_meta/` datasets remain readable. Fixed eval sets carry
 task/arm identity, joint order and their saved raw-unit mapping. Their final declared stage determines success.
 The three approved frozen-set conversions retain `legacy_eval_set_id` for paired comparisons; geometry checks
-still apply. See the phase status for hold-state smoke evidence, which does not establish learned-policy success.
+still apply. Hold-state smoke runs do not establish learned-policy success.
 
 Clients receive `configure(ArmInfo)` with the selected joint names, roles, types and raw-unit mapping.
 The default/example client derives its action dimension from this metadata. A fixed-embodiment plugin declares
 `[action].dim = 6` (as GR00T and Molmo do); incompatible arms are rejected before inference.
 `s2r check --static --arm <arm> --policy <name>` checks that selected pairing without rejecting unrelated policies.
 
-The Phase 4 serving image `s2r-serve:v2-phase4` is built, and the renamed evaluation entrypoint completed the
-example hold-state policy's nine-episode schedule. Actual GR00T and Molmo each completed a short simulator
-evaluation with real model inference and finite joint commands. These checks establish serving/evaluation
-integration, not learned-policy task success or benchmark performance. Final documentation/conformance is pending.
-The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
-a generic arm loader alone does not make those model recipes embodiment-independent. See
-[phase status](../docs/restructure-status.md) for the acceptance gates still being verified.
+GR00T and Molmo each completed a short simulator evaluation with real model inference and finite joint
+commands. That establishes serving/evaluation integration, not learned-policy task success or benchmark
+performance. The current GR00T and Molmo training recipes retain their SO101/pick-place assumptions;
+a generic arm loader alone does not make those model recipes embodiment-independent. See the
+[verification record](../docs/restructure-status.md) for the evidence.
 
 ## Training a policy
 

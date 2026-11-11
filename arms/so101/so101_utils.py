@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics, UsdShade, Vt
 
 
 def prepare_collisions(root_prim):
@@ -44,9 +44,7 @@ def _split_moving_finger(root):
 
 def _split_link_mesh(root, *, link_name, mesh_name, axis, coordinate):
     """Clip the source CAD at a link-local plane and cook two convex pieces."""
-    import numpy as np
     from scipy.spatial import ConvexHull
-    from pxr import Gf, Vt
 
     link = root.GetStage().GetPrimAtPath(root.GetPath().AppendChild(link_name))
     if not link:
@@ -104,8 +102,6 @@ def _split_link_mesh(root, *, link_name, mesh_name, axis, coordinate):
 
 
 def _mesh_triangles(root, link_name, mesh_name):
-    import numpy as np
-    from pxr import Gf, Usd, UsdGeom
 
     link = root.GetStage().GetPrimAtPath(root.GetPath().AppendChild(link_name))
     mesh = next(prim for prim in Usd.PrimRange(link, Usd.TraverseInstanceProxies())
@@ -125,7 +121,6 @@ def _mesh_triangles(root, link_name, mesh_name):
 
 def _covered_by_triangles(points, triangles):
     """Membership in the actual planar CAD triangles, including their boundaries."""
-    import numpy as np
 
     covered = np.zeros(len(points), dtype=bool)
     for triangle in triangles:
@@ -143,7 +138,6 @@ def _covered_by_triangles(points, triangles):
 
 def _rectangle_covered_area(rectangle, triangles):
     """Exact polygon clipping verifies that a proposed pad face adds no area."""
-    import numpy as np
 
     total = 0.0
     for triangle in triangles:
@@ -171,7 +165,6 @@ def _rectangle_covered_area(rectangle, triangles):
 
 def _inscribed_pad_face(triangles, plane_x, long_axis):
     """Find a rectangle strictly inside one measured CAD step, at its actual X."""
-    import numpy as np
 
     plane_triangles = triangles[np.max(np.abs(triangles[:, :, 0] - plane_x), axis=1) < 2e-6]
     if len(plane_triangles) < 2:
@@ -227,7 +220,6 @@ def _inscribed_pad_face(triangles, plane_x, long_axis):
 
 def _clipped_cad_points(triangles, constraints):
     """Clip CAD triangles to axis halfspaces, retaining exact cut intersections."""
-    import numpy as np
 
     polygons = triangles
     for axis, coordinate, sign in constraints:
@@ -255,8 +247,6 @@ def _clipped_cad_points(triangles, constraints):
 
 
 def _author_cad_support(root, link, name, points):
-    import numpy as np
-    from pxr import Gf, UsdGeom, UsdPhysics, Vt
     from scipy.spatial import ConvexHull
 
     hull = ConvexHull(points)
@@ -289,8 +279,6 @@ def apply_primitive_pads(root):
     Returns ``(disabled_hull_paths, created_collider_paths)`` for material binding.
     """
     import json
-    import numpy as np
-    from pxr import Gf, UsdGeom, UsdPhysics
 
     stage = root.GetStage()
     metre = UsdGeom.GetStageMetersPerUnit(stage)
@@ -406,69 +394,4 @@ def apply_real_wrist_mount_visual(stage, robot_root):
     if material.IsValid():
         UsdShade.MaterialBindingAPI.Apply(replacement).Bind(
             UsdShade.Material(material), bindingStrength=UsdShade.Tokens.strongerThanDescendants)
-
-
-
-
-def _rotation_matrix(quaternion_wxyz):
-    q = np.asarray(quaternion_wxyz, dtype=float)
-    if q.shape != (4,) or not np.isfinite(q).all() or np.linalg.norm(q) == 0:
-        raise ValueError("orientation_wxyz must contain four finite values and be nonzero")
-    w, x, y, z = q / np.linalg.norm(q)
-    return np.array([
-        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
-    ])
-
-
-def measure_grasp(fixed_position, fixed_quaternion, moving_position, moving_quaternion,
-                  cube_position, fixed_tip, moving_tip, cube_size_m):
-    """Measure the opposing CAD fingertip centres using live rigid-body poses (quaternions WXYZ).
-
-    Gap is projected on the fixed jaw's closing axis, not the distance between
-    link origins. Tool error is expressed in the fixed gripper frame.
-    """
-    rotation = _rotation_matrix(fixed_quaternion)
-    fixed = np.asarray(fixed_position) + rotation @ fixed_tip
-    moving = np.asarray(moving_position) + _rotation_matrix(moving_quaternion) @ moving_tip
-    gap = float(((moving - fixed) @ rotation)[0])
-    tool = fixed + rotation[:, 0] * (cube_size_m / 2)
-    error = (tool - cube_position) @ rotation
-    return dict(tool_error_xyz_mm=(error * 1000).tolist(),
-                tool_error_mm=float(np.linalg.norm(error) * 1000),
-                jaw_gap_mm=gap * 1000, cube_width_mm=cube_size_m * 1000)
-
-
-def grasp_tip_offsets(stage, root, arm, half_size):
-    """Read mesh vertices once, then retain only two body-local contact points."""
-    from pxr import Gf, Usd, UsdGeom
-
-    fixed_body = arm.links.ee
-    moving_body = arm.gripper.contact_bodies[0]
-    cache = UsdGeom.XformCache()
-    gripper = stage.GetPrimAtPath(f"{root}/{fixed_body}")
-    jaw = stage.GetPrimAtPath(f"{root}/{moving_body}")
-    gripper_matrix = cache.GetLocalToWorldTransform(gripper)
-    scale = UsdGeom.GetStageMetersPerUnit(stage)
-    result = []
-    for body, fragment in ((gripper, f'/visuals/{arm.gripper.tip_mesh}/'),
-                           (jaw, f'/visuals/moving_jaw_so101_v1/')):
-        mesh = next((p for p in Usd.PrimRange(body, Usd.TraverseInstanceProxies())
-                     if p.IsA(UsdGeom.Mesh) and fragment in str(p.GetPath())), None)
-        if mesh is None:
-            raise RuntimeError(f'Cannot measure grasp: missing fingertip mesh under {body.GetPath()}')
-        transform = cache.GetLocalToWorldTransform(mesh) * gripper_matrix.GetInverse()
-        points = np.asarray([transform.Transform(Gf.Vec3d(*map(float, p)))
-                             for p in UsdGeom.Mesh(mesh).GetPointsAttr().Get()]) * scale
-        tip_z = points[:, 2].min()
-        band = points[points[:, 2] <= tip_z + 2 * half_size]
-        # The fixed jaw is left of the moving jaw in the authored zero pose.
-        x = band[:, 0].max() if body == gripper else band[:, 0].min()
-        point = np.array([x, (band[:, 1].min() + band[:, 1].max()) / 2, tip_z + half_size])
-        body_from_gripper = gripper_matrix * cache.GetLocalToWorldTransform(body).GetInverse()
-        local = body_from_gripper.Transform(Gf.Vec3d(*(point / scale)))
-        result.append(np.asarray(local) * scale)
-    return result
-
 

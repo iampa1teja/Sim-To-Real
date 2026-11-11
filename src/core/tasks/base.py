@@ -9,9 +9,9 @@ from typing import Any
 
 import numpy as np
 
-from core.paths import repo_dir
+from core.paths import DEFAULT_TASK, repo_dir
 
-TASK_NAME = os.environ.get("S2R_TASK", "pick_place_cube")
+TASK_NAME = os.environ.get("S2R_TASK", DEFAULT_TASK)
 TASK_PACKAGE = "s2r_tasks"
 
 
@@ -277,14 +277,6 @@ class Task(ABC):
     def progress_label(self, flags: dict[str, bool], state: StepState | None) -> str:
         stage = self.furthest_stage(flags) or "approaching"
         return "stage=" + stage.replace("_", " ")
-
-    def start_from_row(self, row: dict[str, Any]) -> dict[str, Pose]:
-        objects = row.get("objects", {})
-        unknown = set(objects) - set(self.spec.objects)
-        if unknown:
-            raise KeyError(f"Eval-set row has unknown objects {sorted(unknown)} for task {self.name!r}")
-        return {name: Pose.from_lists(value["position"], value.get("quat_xyzw", (0.0, 0.0, 0.0, 1.0)))
-                for name, value in objects.items()}
 
     def is_success(self, flags: dict[str, bool]) -> bool:
         return bool(flags.get(self.stages[-1], False))

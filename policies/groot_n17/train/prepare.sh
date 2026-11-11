@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `s2r prepare --policy groot_n17 --generic`: turn the S2R_* contract into the script's own flags.
+# `s2r prepare --policy groot_n17`: turn the S2R_* contract into the script's own flags.
 # Extra arguments (for example --exclude_episodes 3,7 or --resume) are passed through.
 set -euo pipefail
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

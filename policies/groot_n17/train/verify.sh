@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `s2r verify --policy groot_n17 --generic`: check a prepared dataset with the pinned GR00T reader.
+# `s2r verify --policy groot_n17`: check a prepared dataset with the pinned GR00T reader.
 set -euo pipefail
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 : "${S2R_PYTHON:?run this through s2r verify (the train container sets S2R_PYTHON)}"

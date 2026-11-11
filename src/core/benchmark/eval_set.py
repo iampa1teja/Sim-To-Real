@@ -14,8 +14,8 @@ from core.arms.spec import load_arm_spec
 from core.arms.mapping import mapping_for_arm
 from core.arms.calibration import validate_mapping
 from core.utils.hashing import json_sha256
-from .geometry import (circular_mean, face_yaw, footprint, hull, hull_distance, inside_polygon,
-                       pose_for_xy, rotation_matrix, sample_yaw, supported_on_table, wrap_yaw)
+from .geometry import (circular_mean, face_yaw, hull, hull_distance, inside_polygon,
+                       rotation_matrix, sample_yaw, supported_on_table, wrap_yaw)
 from .starts import (RecordedStarts, copy_objects, objects_to_poses, poses_to_objects, primary_object, task_instance)
 
 SPLITS = ('id', 'ood', 'yaw', 'train')

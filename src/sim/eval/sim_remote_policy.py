@@ -1,4 +1,4 @@
-"""Drive the simulated arm from a served policy (v1 lerobot_interface.SimRemotePolicy, split in two).
+"""Drive the simulated arm from a served policy.
 
 core.policy_client.remote_policy.RemotePolicy does the robot-agnostic work in raw LeRobot units; this
 wrapper converts the sim side: joint radians <-> raw units through the arm's JointMapping, and Isaac

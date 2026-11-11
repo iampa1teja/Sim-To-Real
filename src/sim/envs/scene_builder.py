@@ -16,7 +16,7 @@ from isaaclab.sim.spawners.from_files import spawn_from_usd
 from isaaclab.utils import configclass
 from isaaclab_visualizers.kit import KitVisualizerCfg
 
-from core.arms.spec import ArmSpec, load_arm_spec
+from core.arms.spec import ArmSpec
 from core.scenes import SceneSpec, load_mount_spec, load_scene_spec, mount_joint_positions, mount_pose
 from sim.envs.base_env_cfg import BaseEnvCfg, _config_to_dict
 from sim.envs.mdp import env_indices, image_raw, image_rgb_raw

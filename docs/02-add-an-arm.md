@@ -228,5 +228,5 @@ longer execution, successful episodes and dataset validation.
 
 Static checks do not inspect USD physics or open a device. Headless checks do not prove calibration,
 grasp quality, policy success or hardware fidelity. Validate paired recording separately with the real
-leader/follower and compare joint order, units, poses and synchronized camera frames. Phase 6 second-arm
-hardware validation is deferred; this guide does not claim OMX or other untested hardware acceptance.
+leader/follower and compare joint order, units, poses and synchronized camera frames. No second arm has
+been validated on hardware; this guide does not claim OMX or other untested hardware acceptance.

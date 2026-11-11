@@ -1,9 +1,7 @@
 """`s2r calibration-report --gap <telemetry.jsonl>`: tracking report from a recording joint-angle log.
 
-Port of v1 utils/calibration_report.py without the reference-pose half: the pose capture
-(calibration_poses) and the hash-guarded lock were removed, so this report is tracking evidence only
-(sim vs real vs commanded on still frames) and never a calibration verdict. Writes report.json,
-report.md and tracking-gaps.png into --output.
+This report is tracking evidence only (sim vs real vs commanded on still frames) and never a
+calibration verdict. Writes report.json, report.md and tracking-gaps.png into --output.
 """
 from __future__ import annotations
 

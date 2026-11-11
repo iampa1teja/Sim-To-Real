@@ -5,13 +5,6 @@ from statistics import median
 import numpy as np
 from .stats import wilson_interval
 
-def select_instruction(color, default, by_color=None):
-    if by_color is None:
-        return default
-    if not isinstance(by_color, dict) or color not in by_color or not isinstance(by_color[color], str) or not by_color[color].strip():
-        raise ValueError(f'--lang_instruction_by_color requires a non-empty instruction for {color!r}')
-    return by_color[color]
-
 
 def results_report(episodes, task, checkpoint, seed, *, random_fraction=0.0,
                    episode_length_s=None, action_horizon=16, step_dt=None):

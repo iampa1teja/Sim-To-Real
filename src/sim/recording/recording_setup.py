@@ -1,6 +1,6 @@
 """Shared setup for the recording agents: signals, serial ports, real cameras, recorders, cleanup.
 
-Takes plain values instead of v1's argparse namespace so the same code serves CLI and
+Takes plain values so the same code serves CLI and
 YAML configs. Device connection lives in ``sim.teleop.devices``. LeRobot imports are
 delayed until a recorder is built (after the Isaac app has launched).
 """

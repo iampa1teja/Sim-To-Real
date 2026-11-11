@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import sys
 import pytest
 
-from cli.plan import (CliError, DATAGEN_MODULES, DOCKERFILES, SIM_PROGRAMS, SYNC_PATHS, Plan,
+from cli.plan import (CliError, DATAGEN_MODULES, DOCKERFILES, SIM_PROGRAMS, SYNC_PATHS,
     plan_build, plan_check, plan_datagen, plan_host, plan_new, plan_pull, plan_serve,
     plan_sim, plan_sync, plan_train, plan_tunnel)
 
@@ -42,12 +42,14 @@ def test_runtime_file_overrides_are_explicit_container_environment(tmp_path, mon
     overrides = {'S2R_ROOM_USD': '/workspace/s2r/scenes/custom/room.usda',
                  'S2R_EVAL_STARTS': '/workspace/datasets/starts',
                  'S2R_FOLLOWER_CALIBRATION': '/calibration/follower.json',
-                 'S2R_LEADER_CALIBRATION': '/calibration/leader.json'}
+                 'S2R_LEADER_CALIBRATION': '/calibration/leader.json',
+                 'S2R_EVAL_CHECKPOINT': 'checkpoint-2'}
     plan = plan_sim('sim.eval.run', (), selection_env=overrides)
-    assert plan.argv[:11] == ('docker', 'exec', '-it', '-e', 'S2R_ROOM_USD=' + overrides['S2R_ROOM_USD'],
+    assert plan.argv[:13] == ('docker', 'exec', '-it', '-e', 'S2R_ROOM_USD=' + overrides['S2R_ROOM_USD'],
                               '-e', 'S2R_EVAL_STARTS=' + overrides['S2R_EVAL_STARTS'],
                               '-e', 'S2R_FOLLOWER_CALIBRATION=' + overrides['S2R_FOLLOWER_CALIBRATION'],
-                              '-e', 'S2R_LEADER_CALIBRATION=' + overrides['S2R_LEADER_CALIBRATION'])
+                              '-e', 'S2R_LEADER_CALIBRATION=' + overrides['S2R_LEADER_CALIBRATION'],
+                              '-e', 'S2R_EVAL_CHECKPOINT=' + overrides['S2R_EVAL_CHECKPOINT'])
     checks = plan_check(tmp_path, arm='guide_arm', scene='guide_scene', task='guide_task', selection_env=overrides)
     assert checks[0].env['S2R_ROOM_USD'] == ''  # Host validates manifest assets, not container-only overrides.
     assert 'S2R_ROOM_USD=' + overrides['S2R_ROOM_USD'] in checks[1].argv

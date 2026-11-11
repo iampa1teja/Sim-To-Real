@@ -74,10 +74,12 @@ def check(args):
 
 
 def main(argv=None):
+    from core.paths import DEFAULT_ARM, DEFAULT_TASK
+
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
+    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", DEFAULT_ARM))
     parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "blank_table"))
-    parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
+    parser.add_argument("--task", default=os.environ.get("S2R_TASK", DEFAULT_TASK))
     parser.add_argument("--variant", default=None)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--steps", type=int, default=3)

@@ -190,11 +190,6 @@ def finish_report(context, state):
             }
             for row in state.episodes
         ]
-        for item, row in zip(smoke_result["episodes"], state.episodes):
-            diagnostics = row.get("grasp_diagnostics") or {}
-            item["grasp_diagnostics"] = diagnostics
-            item["closest_tool_error_mm"] = (diagnostics.get("closest") or {}).get("tool_error_mm")
-            item["closest_closing_tool_error_mm"] = (diagnostics.get("closest_closing") or {}).get("tool_error_mm")
         print("[SMOKE_RESULT] " + json.dumps(smoke_result, separators=(",", ":"), allow_nan=False), flush=True)
     elif not context.smoke_test:
         print(json.dumps(report, indent=2, allow_nan=False))

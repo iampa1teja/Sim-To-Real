@@ -26,8 +26,6 @@ HF_HUB_OFFLINE = "1"
 TRANSFORMERS_OFFLINE = "1"
 PYTHONDONTWRITEBYTECODE = "1"
 
-# Other recipes in train/ (train_pick_place_sim_100k.sh, train_pick_place_failures_ft.sh, train_dit.sh)
-# are variants of the commands below and are selected by the training CLI.
 [train]
 dataset_format = "lerobot_v2.1"
 

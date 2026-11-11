@@ -1,5 +1,4 @@
 """Factory recordings still validate and retain their arm alignment marker."""
-from types import SimpleNamespace
 
 import pytest
 

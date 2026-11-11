@@ -1,14 +1,12 @@
-# sim/recording/replay_scene.py  (ported from v1 utils/replay_scene.py)
 """Pose recorded task frames in the live scene and render them with a chosen appearance.
 
 Kinematic replay: joint states and the object pose are written directly and the scene is
 rendered without stepping physics, so the motion is exactly the recorded one.
 """
-# Changes from v1 for Isaac Lab 3.0 / Newton:
-# - Joints: raw dataset units -> radians through core.arms.mapping.JointMapping (v1 LeRobotSO101Interface is gone),
+# - Joints: raw dataset units -> radians through core.arms.mapping.JointMapping,
 #   written to the arm.toml joints in order with the *_index write APIs.
-# - Sidecar poses are WXYZ (v1 format); converted to XYZW and composed with Isaac Lab's combine_frame_transforms
-#   (v1 replay_math.base_to_world is gone). Base body comes from arm.toml.
+# - Sidecar poses are WXYZ; they are converted to XYZW and composed with Isaac Lab's combine_frame_transforms.
+#   The base body comes from arm.toml.
 # - Object colour comes from the task; declared scene lighting is independent of the task.
 
 import numpy as np

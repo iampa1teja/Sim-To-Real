@@ -99,7 +99,6 @@ def build_parser():
 
 
 def load_policies(repo):
-    sys.path.insert(0, str(repo / "src"))
     from core.policy_client.discovery import discover
 
     return discover(repo / "policies")
@@ -168,8 +167,10 @@ def source_revision(repo):
 
 
 def check_compositions(repo, arm=None, scene=None, task=None):
-    base = (arm or os.environ.get("S2R_ARM", "so101"), scene or os.environ.get("S2R_SCENE", "rpd_meeting_room"),
-            task or os.environ.get("S2R_TASK", "pick_place_cube"))
+    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+
+    base = (arm or os.environ.get("S2R_ARM", DEFAULT_ARM), scene or os.environ.get("S2R_SCENE", DEFAULT_SCENE),
+            task or os.environ.get("S2R_TASK", DEFAULT_TASK))
     rows = [base]
     if not any((arm, scene, task)):
         for index, (folder, marker) in enumerate((("arms", "arm.toml"), ("scenes", "scene.toml"), ("tasks", "task.toml"))):
@@ -240,9 +241,4 @@ def main(argv=None, repo=REPO):
     except CliError as error:
         print(f"s2r: error: {error}", file=sys.stderr)
         return 2
-    if args.command == "datagen" and args.source is not None and not leading_dry_run:
-        module = Path(repo) / "src" / "sim" / "datagen" / (args.source + ".py")
-        if not module.is_file():
-            print(f"s2r: data source {args.source!r} is not implemented yet ({module.name}).", file=sys.stderr)
-            return 2
     return execute(plan, getattr(args, "dry_run", False) or leading_dry_run)

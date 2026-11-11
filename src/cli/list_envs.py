@@ -1,8 +1,8 @@
 # `list_envs`: print the arms, scenes and tasks in this repo and the gym ids they register.
 #
 # Isaac-free: sim.envs registration only reads scene.toml / task.toml and imports the task's __init__
-# (TASK), so this runs on the host or in the sim image without launching Isaac Sim (v1 launched the app
-# just to read the gym registry). Env cfg classes are not built here.
+# (TASK), so this runs on the host or in the sim image without launching Isaac Sim. Env cfg classes are
+# not built here.
 
 import argparse
 import os
@@ -31,11 +31,11 @@ def _rows(scene, tasks):
 
 # Print the folders and the gym ids as aligned plain-text tables.
 def main(argv=None):
-    from core.paths import repo_dir
+    from core.paths import DEFAULT_SCENE, repo_dir
     from core.tasks.base import available_tasks
 
     parser = argparse.ArgumentParser(description="List arms, scenes, tasks and their S2R gym ids.")
-    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
+    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", DEFAULT_SCENE))
     args = parser.parse_args(argv)
 
     def folders(kind, marker):

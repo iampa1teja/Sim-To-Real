@@ -1,7 +1,6 @@
 """Pre-reset stage capture handles each environment and preserves terminal returns."""
 from dataclasses import replace
 from types import SimpleNamespace
-import numpy as np
 import pytest
 import torch
 pytest.importorskip("isaaclab")

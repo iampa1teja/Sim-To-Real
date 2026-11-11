@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
+from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.tasks.base import Pose
 from core.tasks.expert import ExpertContext
 from core.utils.config import parse_yaml_args
@@ -28,7 +29,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config_path", type=Path)
     parser.add_argument("--source", choices=("scripted",), default="scripted")
-    for key, default in (("arm", "so101"), ("scene", "rpd_meeting_room"), ("task", "pick_place_cube")):
+    for key, default in (("arm", DEFAULT_ARM), ("scene", DEFAULT_SCENE), ("task", DEFAULT_TASK)):
         parser.add_argument("--" + key, default=os.environ.get("S2R_" + key.upper(), default))
     parser.add_argument("--variant", default="teleop")
     parser.add_argument("--unit")

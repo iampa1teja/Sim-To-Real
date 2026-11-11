@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 pytest.importorskip("isaaclab")
-from pxr import Usd, UsdGeom, UsdPhysics, UsdShade
+from pxr import Usd, UsdPhysics, UsdShade
 
 from core.scenes import load_scene_spec
 from core.arms.spec import load_arm_spec

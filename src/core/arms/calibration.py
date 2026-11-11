@@ -331,7 +331,6 @@ def resolve_calibration(arm: ArmSpec | None = None, *, unit=None, environ=None, 
     arm = load_arm_spec()[0] if arm is None else arm
     environ = os.environ if environ is None else environ
     root = Path(environ.get("HF_LEROBOT_CALIBRATION") or "~/.cache/huggingface/lerobot/calibration").expanduser()
-    # Environment names are migrated with all commands in Phase 4.
     explicit_follower = follower_path or environ.get("S2R_FOLLOWER_CALIBRATION")
     explicit_leader = leader_path or environ.get("S2R_LEADER_CALIBRATION")
     selected_unit = None

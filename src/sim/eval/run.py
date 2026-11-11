@@ -12,19 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Evaluate a served policy in simulation (ported from v1 scripts/lerobot_eval.py).
+"""Evaluate a served policy in simulation.
 
     s2r eval --config_path configs/eval/pick_place.yaml [--flag value ...]
 
 The env is S2R-<task>-<variant> (default variant: eval). Flags override the YAML.
 """
 
-# Changes from v1:
-# - --arm/--scene/--task/--variant pick the env through sim.envs (S2R_* exported before any core/sim import);
-#   v1's --task gym id and --robot_usd are gone (the arm USD comes from arms/<arm>/arm.toml).
-# - --config_path reads the configs/eval YAML directly (v1 docker/eval_config.py turned it into flags).
-# - Joint units go through core.arms.mapping.JointMapping and sim.eval.sim_remote_policy.SimRemotePolicy
-#   (v1 LeRobotSO101Interface is gone). Settling holds the reset pose from the first observation.
+# - --arm/--scene/--task/--variant pick the env through sim.envs. S2R_* are exported before importing any
+#   core/sim module that reads them at import. The arm USD comes from arms/<arm>/arm.toml.
+# - --config_path reads the configs/eval YAML directly.
+# - Joint units go through core.arms.mapping.JointMapping and sim.eval.sim_remote_policy.SimRemotePolicy.
+#   Settling holds the reset pose from the first observation.
 # - Task plugins supply signals/stages; benchmark and dataset handling are shared core modules.
 import argparse
 import json
@@ -135,11 +134,13 @@ def load_yaml_config(path):
 
 
 def _build_parser():
+    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+
     parser = argparse.ArgumentParser(description="S2R policy evaluation in simulation (remote policy server).")
     parser.add_argument("--config_path", type=Path, default=None, help="configs/eval YAML; flags override it")
-    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", "so101"))
-    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", "rpd_meeting_room"))
-    parser.add_argument("--task", default=os.environ.get("S2R_TASK", "pick_place_cube"))
+    parser.add_argument("--arm", default=os.environ.get("S2R_ARM", DEFAULT_ARM))
+    parser.add_argument("--scene", default=os.environ.get("S2R_SCENE", DEFAULT_SCENE))
+    parser.add_argument("--task", default=os.environ.get("S2R_TASK", DEFAULT_TASK))
     parser.add_argument("--unit", default=os.environ.get("S2R_UNIT"), help="arm calibration unit ID")
     parser.add_argument("--variant", default="eval", help="Task variant (eval, eval_dr, ...)")
     parser.add_argument(
@@ -273,9 +274,7 @@ def _build_parser():
         "--resume", action="store_true", help="Continue completed attempts from --results_json (fixed benchmark only)"
     )
     parser.add_argument("--config_fingerprint", default=None, help=argparse.SUPPRESS)
-    parser.add_argument(
-        "--checkpoint", default=os.environ.get("PICK_PLACE_EVAL_CHECKPOINT", os.environ.get("MODEL", "unknown"))
-    )
+    parser.add_argument("--checkpoint", default=os.environ.get("S2R_EVAL_CHECKPOINT", "unknown"))
     return parser
 
 
@@ -288,7 +287,7 @@ def parse_args(argv=None):
     known, _ = pre.parse_known_args(argv)
     defaults = load_yaml_config(known.config_path) if known.config_path else {}
 
-    # Arm/scene/task must be exported before anything imports core or sim (they read S2R_* at import).
+    # Arm/scene/task must be exported before importing any core or sim module that reads S2R_* at import.
 
     parser = _build_parser()
     selection = SimpleNamespace(

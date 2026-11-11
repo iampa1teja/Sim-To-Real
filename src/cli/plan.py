@@ -1,4 +1,4 @@
-"""Pure command planners for the s2r CLI (v1 cli/so101_cli/plan.py, renamed).
+"""Pure command planners for the s2r CLI.
 
 Every function returns a Plan and never runs Docker, ssh or rsync, so tests can assert exact commands.
 Paths given with a remote host are paths on that host: Docker resolves bind mounts where the daemon runs.
@@ -24,7 +24,7 @@ SIM_CONTAINER = "s2r-sim"          # running sim container (override with S2R_SI
 SIM_REPO = "/workspace/s2r"        # repo path inside the sim image (docker/sim/Dockerfile WORKDIR)
 SIM_SELECTION_ENV = ("S2R_ARM", "S2R_SCENE", "S2R_TASK", "S2R_UNIT")
 SIM_RUNTIME_ENV = (*SIM_SELECTION_ENV, "S2R_ROOM_USD", "S2R_EVAL_STARTS",
-                   "S2R_FOLLOWER_CALIBRATION", "S2R_LEADER_CALIBRATION")
+                   "S2R_FOLLOWER_CALIBRATION", "S2R_LEADER_CALIBRATION", "S2R_EVAL_CHECKPOINT")
 SIM_PROGRAMS = {
     "eval-sim-real": "sim.eval.sim_real",
     "record": "sim.teleop.agent", "eval": "sim.eval.run", "rollout": "core.rollout.real_rollout",

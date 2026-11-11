@@ -1,4 +1,4 @@
-"""Robot-agnostic driver for a served policy (port of v1 SimRemotePolicy's core).
+"""Robot-agnostic driver for a served policy.
 
 Owns the action queue, optional smoothing (prefetch / blending / EMA / temporal ensembling), the optional
 grasp controller, per-episode seeding and timing. The policy plugin (policies/<name>/client.py) decides

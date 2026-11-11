@@ -12,6 +12,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal
 
+from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from sim.app import add_launch_arguments
 
 
@@ -82,9 +83,9 @@ class GuiConfig:
 
 @dataclass
 class AgentConfig:
-    arm: str = _env("S2R_ARM", "so101")
-    scene: str = _env("S2R_SCENE", "rpd_meeting_room")
-    task: str = _env("S2R_TASK", "pick_place_cube")
+    arm: str = _env("S2R_ARM", DEFAULT_ARM)
+    scene: str = _env("S2R_SCENE", DEFAULT_SCENE)
+    task: str = _env("S2R_TASK", DEFAULT_TASK)
     variant: str | None = None
     num_envs: int | None = None
     use_fabric: bool = True

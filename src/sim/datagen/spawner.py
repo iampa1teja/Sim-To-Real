@@ -1,10 +1,9 @@
-# Object spawner for teleop / paired sim+real recording (replaces v1's cube_spawner).
+# Object spawner for teleop / paired sim+real recording.
 #
-# Newton builds its physics model once, so objects cannot be created while the sim runs (v1 added a new
-# USD cube prim per request; that only worked on PhysX). Instead, spawnable task objects are declared up
-# front in the task's env cfg with a `park_object` reset event: they sit parked out of the scene, this
-# module re-parks them after substantial drift, and a spawn request teleports one next to the fixed jaw tip (same
-# placement as v1: jaw-tip offset, oriented like the end effector, snapped onto the table plane).
+# Newton builds its physics model once, so objects cannot be created while the sim runs. Instead, spawnable
+# task objects are declared up front in the task's env cfg with a `park_object` reset event: they sit parked
+# out of the scene, this module re-parks them after substantial drift, and a spawn request teleports one next
+# to the fixed jaw tip (jaw-tip offset, oriented like the end effector, snapped onto the table plane).
 # One copy per object: spawning an object that is already out re-places it at the jaw.
 #
 # Requests come from `s2r spawn --object <name>` (cli/spawn.py) over a localhost HTTP listener;

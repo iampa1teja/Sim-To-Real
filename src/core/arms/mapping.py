@@ -6,9 +6,6 @@ import torch
 from core.arms.spec import ArmSpec, load_arm_spec
 from core.arms.calibration import raw_endpoints
 
-ARM_SCALE, GRIPPER_SCALE = 200.0, 100.0
-
-
 def _raw_endpoints(mapping, joint_order, gripper_joints):
     low, high = raw_endpoints(mapping, joint_order, gripper_joints)
     return np.asarray(low, dtype=np.float64), np.asarray(high, dtype=np.float64)
@@ -171,14 +168,6 @@ class JointMapping:
             return np.deg2rad(physical)
         return np.where(self.revolute_mask.detach().cpu().numpy(), np.deg2rad(physical), physical)
 
-    @property
-    def raw_limits(self):
-        low, high = self.raw_mins, self.raw_maxs
-        if low is None:
-            low = torch.where(self.gripper_mask, 0.0, -100.0)
-            high = torch.full_like(self.mins, 100.0)
-        return {name: (float(min(a, b)), float(max(a, b)))
-                for name, a, b in zip(self.names, low.detach().cpu(), high.detach().cpu())}
 
 
 def usd_limits_deg(arm=None):

@@ -44,7 +44,6 @@ def test_bad_action_cannot_reach_robot():
 
 
 def test_degree_mode_wrist_start_is_encoded_with_calibrated_zero(monkeypatch):
-    import math
     from dataclasses import replace
     from core.arms.spec import load_arm_spec
     from core.arms.calibration import resolve_calibration

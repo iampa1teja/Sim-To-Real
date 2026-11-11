@@ -95,7 +95,7 @@ docker compose -f compose.yaml -f compose.hardware.yaml up -d sim
 Before recording, copy the YAML to your run config and set `dataset.repo_id`,
 `dataset.root`, and `dataset.task_name`; their template values are null. Configure
 the terminal controls and display/GUI mode for your session. The browser GUI is
-outside this restructure. For paired recording use the paired-real config and
+not covered by these guides. For paired recording use the paired-real config and
 configure the follower, camera devices, raw LeRobot device calibration, and unit
 mapping together. Do not assume the example USB paths or camera indices identify
 your devices. [Adding an arm](02-add-an-arm.md) explains calibration boundaries.

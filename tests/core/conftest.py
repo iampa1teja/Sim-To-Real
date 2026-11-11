@@ -1,5 +1,4 @@
 """CPU fixtures for arms with layouts different from the production SO101."""
-from pathlib import Path
 
 import pytest
 

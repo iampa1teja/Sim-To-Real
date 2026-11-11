@@ -8,7 +8,6 @@ import shlex
 import subprocess
 
 import numpy as np
-import pytest
 
 from core.datasets.task_meta import read_task_meta, save_task_trajectory
 
@@ -51,7 +50,7 @@ def test_schema1_preparation_keeps_legacy_layout(tmp_path):
 
 
 def test_small_training_flags_reach_the_existing_recipe_without_starting_cuda(tmp_path):
-    environment = dict(os.environ, S2R_TRAIN_IN_CONTAINER='1', GROOT=str(tmp_path),
+    environment = dict(os.environ, GROOT=str(tmp_path),
                        DATASET=str(tmp_path / 'data'), OUT=str(tmp_path / 'out'),
                        BASE_MODEL=str(tmp_path / 'base'))
     result = subprocess.run(['bash', str(SCRIPTS / 'train_pick_place.sh'), '--batch', '1',

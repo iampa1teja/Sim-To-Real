@@ -10,6 +10,7 @@ from core.tasks.loader import load_task, load_task_module
 
 @pytest.mark.parametrize("with_termination", [False, True])
 def test_placement_confirmation_counts_physics_steps_and_requires_grasp_history(with_termination):
+    pytest.importorskip("isaaclab")
     task = load_task("pick_place_cube")
     mdp = load_task_module("mdp", task.name)
     config = load_task_module("env_cfg", task.name)

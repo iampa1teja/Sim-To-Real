@@ -119,7 +119,6 @@ class ActionSmoother:
         self.last_sent = None if initial_target is None else np.asarray(initial_target).copy()
         self.last_chunk_id = -1
         self.last_latency = 0.0
-        self.stale_actions_dropped = 0
         self.ema.reset()
 
     def remaining(self, step):
@@ -132,7 +131,6 @@ class ActionSmoother:
         if self.grasp is not None:
             self.grasp.observe_chunk(actions, chunk_id)
         stale = max(0, step - observation_step)
-        self.stale_actions_dropped += min(stale, len(values))
         values = values[stale:]
         if len(values) == 0:
             return False

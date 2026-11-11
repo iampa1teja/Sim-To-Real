@@ -22,6 +22,8 @@ host = [
     "draccus",
     "pytest",
     "scipy",
+    "av",
+    "warp-lang",
 ]
 
 [tool.setuptools.packages.find]

@@ -1,6 +1,10 @@
-"""Repository data folders (arms/, scenes/, tasks/) without any Isaac imports."""
+"""Repository data folders (arms/, scenes/, tasks/) and default selectors, without any Isaac imports."""
 
 from pathlib import Path
+
+DEFAULT_ARM = "so101"
+DEFAULT_SCENE = "rpd_meeting_room"
+DEFAULT_TASK = "pick_place_cube"
 
 
 def repo_dir(folder: str) -> Path:

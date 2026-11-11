@@ -1,10 +1,9 @@
-# sim/recording/rerecording.py  (ported from v1 utils/rerecording.py for LeRobot 0.6.1; used by the browser GUI)
 """Replace a recorded episode in private copies, keeping recoverable originals.
 
 Recording always appends using LeRobot's writer. Only after Save do we splice
 that new episode into its selected slot and publish the complete datasets.
 
-LeRobot 0.6.1 differences from v1: ``finalize()`` is final (it stops the image writer and the
+In LeRobot 0.6.1 ``finalize()`` is final (it stops the image writer and the
 streaming encoder), so the live datasets are copied without finalizing them. That is safe between
 episodes because RecordingDataset closes its parquet writers after every save. Videos are encoded
 while recording, so there is no pending-encode step.

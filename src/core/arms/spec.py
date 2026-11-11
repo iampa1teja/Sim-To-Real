@@ -14,7 +14,7 @@ import tomllib
 from types import ModuleType
 from typing import Any, Literal
 
-from core.paths import repo_dir
+from core.paths import DEFAULT_ARM, repo_dir
 
 
 def arms_dir() -> Path:
@@ -24,7 +24,7 @@ def arms_dir() -> Path:
 
 def selected_arm_name() -> str:
     """Read the selector when requested, rather than freezing it during import."""
-    return os.environ.get("S2R_ARM", "so101")
+    return os.environ.get("S2R_ARM", DEFAULT_ARM)
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -253,7 +253,6 @@ def _parse_spec(name, directory, raw):
         values = [getattr(joint, field_name) for joint in joints]
         if len(values) != len(set(values)):
             raise ValueError(f"Duplicate joint {field_name}")
-    names = {joint.name for joint in joints}
     gripper_names = {joint.name for joint in joints if joint.role == "gripper"}
     grip = raw.get("gripper")
     gripper = None

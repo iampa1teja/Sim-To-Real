@@ -11,6 +11,7 @@ from sim.datagen.mimic import MimicSpec, make_mimic_cfg
 
 @pytest.mark.parametrize('scene_name', ['rpd_meeting_room', 'blank_table'])
 def test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch(scene_name, monkeypatch):
+    pytest.importorskip("isaaclab")
     from isaaclab.envs import MimicEnvCfg
     from isaaclab.managers import RecorderManager
     from isaaclab_tasks.utils import parse_env_cfg
@@ -52,6 +53,7 @@ def test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch(scene_
 
 
 def test_mimic_adapter_matches_installed_constructor_and_generator_interface():
+    pytest.importorskip("isaaclab")
     from isaaclab.envs import ManagerBasedRLMimicEnv
     from isaaclab.managers import TerminationTermCfg
     from isaaclab_mimic.datagen.data_generator import DataGenerator
