@@ -356,6 +356,28 @@ parameters are also captured, with a deterministic CPU response replay for check
   decision remain outside this restructure. Main was not modified, and no changes were pushed.
 
 
+## Open item: scripted pick-place start coverage
+
+The IK library work on 2026-11-11 reproduced zero accepted pick-place episodes for the old
+seed-1984 ten-attempt recipe, both with `rpd_follower` and with `rpd_robot`. Failures included
+approach timeouts near the shoulder-lift runtime stop, missed grasps, transport slips, and an
+oriented cube protruding 0.334 mm beyond a container wall. The last case is a correct success-rule
+rejection. No runtime-limit widening or task-signal change was justified by these trials.
+
+The reference recipe now uses Phase 5's documented seed 101 and retains `rpd_follower`. Its
+opening fraction is calibrated to the historical 48.3374-degree physical jaw opening, rather
+than reusing a fraction that opens this unit 2.096 degrees farther. With unchanged physics,
+heights and durations, the verified old controller accepted a 391-step episode and the library
+controller accepted a 377-step episode. Stacking accepted 304 steps with both controllers.
+These are reproducible reference checks; broad start-distribution success remains an open item.
+Phase 5 used a fixed seed, not a `starts_dir`, and no fixed-start directory was invented.
+
+The per-attempt joint/limit diagnosis, images, corrected worktree import provenance and waypoint
+comparisons are retained under `outputs/ik-library-gates/`. Two exploratory recipe runs initially
+attributed to old IK actually imported the new controller through the container entrypoint; their
+attribution was corrected and they are excluded from old/new acceptance comparisons.
+
+
 ## Paired-recording contact failure and fix
 
 - The user's motion-only paired run produced nonfinite simulated joints before spawning. Both simulation

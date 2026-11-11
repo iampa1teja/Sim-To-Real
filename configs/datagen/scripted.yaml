@@ -8,7 +8,8 @@ destination: /workspace/datasets/pick_place_scripted
 repo_id: local/pick_place_scripted
 report: /workspace/s2r/outputs/datagen/scripted-report.json
 fps: 30
-seed: 1984
+# Reproduce the documented Phase 5 reference start; broad start coverage remains unverified.
+seed: 101
 attempts: 10
 episodes: 1
 max_steps: 1500
@@ -22,5 +23,6 @@ expert_options:
   # Open above the box while the cube is still held, then let it settle.
   release_height_m: 0.09
   final_transport_seconds: 0.5
-  gripper_open_fraction: 0.45
+  # 48.3374 degrees on this follower, matching the retained successful opening.
+  gripper_open_fraction: 0.4343913612565445
   gripper_closed_fraction: 0.0
