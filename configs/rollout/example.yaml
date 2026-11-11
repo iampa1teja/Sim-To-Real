@@ -3,12 +3,12 @@ arm: so101
 scene: rpd_meeting_room
 task: pick_place_cube
 variant: eval
-unit: rpd_robot
+unit: rpd_follower
 policy: example
 policy_host: localhost
 policy_port: 5555
 follower_port: /dev/ttyACM1
-follower_id: rpd_robot
+follower_id: rpd_follower
 camera_gripper: /dev/video0
 camera_external: /dev/video6
 rename_map: '{"gripper":"wrist","external":"room"}'

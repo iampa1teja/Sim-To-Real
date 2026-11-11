@@ -11,7 +11,7 @@ leader:
   id: leader_arm_1
 
 follower:
-  unit: rpd_robot
+  unit: rpd_follower
   enabled: false
 
 dataset:

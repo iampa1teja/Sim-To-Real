@@ -2,7 +2,7 @@ arm: so101
 scene: rpd_meeting_room
 task: pick_place_cube
 variant: teleop
-unit: rpd_robot
+unit: rpd_follower
 source: mimic
 # First generate successful annotated episodes with the scripted source.
 source_dataset: /workspace/datasets/pick_place_scripted

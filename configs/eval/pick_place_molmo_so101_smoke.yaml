@@ -1,4 +1,4 @@
-unit: rpd_robot
+unit: rpd_follower
 # MolmoAct2 SO-101 one-per-zone smoke run: s2r eval --config_path <this> --smoke-test
 arm: so101
 scene: rpd_meeting_room

@@ -3,7 +3,7 @@ arm: so101
 scene: rpd_meeting_room
 task: stack_two_cubes
 variant: teleop
-unit: rpd_robot
+unit: rpd_follower
 destination: /workspace/datasets/stack_two_cubes_scripted
 repo_id: local/stack_two_cubes_scripted
 report: /workspace/s2r/outputs/datagen/stack_two_cubes-scripted.json

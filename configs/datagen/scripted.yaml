@@ -3,7 +3,7 @@ arm: so101
 scene: rpd_meeting_room
 task: pick_place_cube
 variant: teleop
-unit: rpd_robot
+unit: rpd_follower
 destination: /workspace/datasets/pick_place_scripted
 repo_id: local/pick_place_scripted
 report: /workspace/s2r/outputs/datagen/scripted-report.json

@@ -1,4 +1,4 @@
-unit: rpd_robot
+unit: rpd_follower
 # Pick-and-place evaluation. Start the server first, then run (inside s2r-sim):
 #   s2r serve --policy groot_n17 --checkpoint stage_2_main/checkpoint-60000 --models-dir /external_storage/gr00t_20261011_130632 \
 #       --option embodiment_tag=NEW_EMBODIMENT
