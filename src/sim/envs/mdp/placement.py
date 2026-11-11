@@ -51,11 +51,23 @@ def reset_object_pose(
     half_size = max(float(v) for v in half_extents)
     stage = get_current_stage()
     gripper = _arm_spec(env).gripper
-    if gripper is None or not gripper.tip_mesh:
+    if gripper is None or (gripper.kind != "parallel" and not gripper.tip_mesh):
         raise ValueError("Jaw-relative placement needs [arm.gripper] tip_mesh")
-    local_offset = eef_pos_w.new_tensor(
-        gripper_tip_local_offset(stage, half_size, side_clearance_m, ee_path, gripper.tip_mesh)
-    ).unsqueeze(0).repeat(len(env_ids), 1)
+    offsets = []
+    for index in env_ids.tolist():
+        transforms = None
+        if gripper.kind == "parallel":
+            transforms = {}
+            for name in gripper.contact_bodies:
+                body_id = robot.find_bodies(name)[0][0]
+                position, orientation = math_utils.subtract_frame_transforms(
+                    eef_pos_w[index], eef_quat_w[index],
+                    as_torch(robot.data.body_link_pos_w)[index, body_id],
+                    as_torch(robot.data.body_link_quat_w)[index, body_id])
+                transforms[name] = math_utils.make_pose(position, math_utils.matrix_from_quat(orientation)).cpu().numpy()
+        offsets.append(gripper_tip_local_offset(stage, half_size, side_clearance_m, ee_path,
+                                               gripper.tip_mesh, gripper=gripper, body_to_ee=transforms))
+    local_offset = eef_pos_w.new_tensor(offsets)
 
     world_offset = math_utils.quat_apply(eef_quat_w[env_ids], local_offset)
     cube_pos_w = eef_pos_w[env_ids] + world_offset

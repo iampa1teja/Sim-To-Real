@@ -115,6 +115,8 @@ class GripperSpec:
     # Source coordinates are simulator radians/metres; opening may decrease q.
     closed_position: float | None = None
     open_position: float | None = None
+    closing_axis: tuple[float, float, float] | None = None
+    approach_axis: tuple[float, float, float] | None = None
 
     def gap_m(self, q):
         self._require_gap_map()
@@ -350,7 +352,9 @@ def _parse_spec(name, directory, raw):
             if q_closed == q_open or not all(limits[0] <= v <= limits[1] for v in (q_closed, q_open)):
                 raise ValueError("gripper source endpoints must be distinct and within limits")
             gripper = GripperSpec(gripper.kind, gripper.joints, gripper.contact_bodies,
-                                  gripper.friction_bodies, gripper.tip_mesh, closed, opened, q_closed, q_open)
+                                  gripper.friction_bodies, gripper.tip_mesh, closed, opened, q_closed, q_open,
+                                  _vector(grip["closing_axis"], 3, "gripper.closing_axis") if "closing_axis" in grip else None,
+                                  _vector(grip["approach_axis"], 3, "gripper.approach_axis") if "approach_axis" in grip else None)
     elif gripper_names:
         raise ValueError("Joints with role='gripper' require an [arm.gripper] table")
     roll = raw.get("wrist_roll")

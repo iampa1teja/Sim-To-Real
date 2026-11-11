@@ -122,3 +122,41 @@ def test_raised_release_opens_without_extra_closed_hold_over_container():
     assert points[-2].pose.position[2] >= release.pose.position[2]
     with pytest.raises(ValueError, match="release_height_m"):
         task.expert().plan(replace(context, options={"release_height_m": -.01}))
+
+
+def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
+    from core.arms.spec import IKSpec
+    from core.scenes.anchors import quaternion_matrix
+    from core.tasks.expert import Waypoint
+
+    grip = replace(synthetic_arm.gripper, closed_gap_m=0., open_gap_m=.08,
+                   closed_position=0., open_position=.04, closing_axis=(1., 0., 0.))
+    arm = replace(synthetic_arm, gripper=grip, ik=IKSpec(orientation_axes=('x', 'y', 'z')))
+    task = load_task('pick_place_cube')
+    yaw = .2
+    cube = Pose((.1, -.1, .76), (0., 0., np.sin(yaw / 2), np.cos(yaw / 2)))
+    state = StepState({'blue_cube': cube, 'white_box': Pose((-.1, -.1, .75))}, Pose((0., 0., 1.)), 0.)
+    points = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.),
+                               arm_base=Pose((0., 0., .75)), arm=arm))
+    assert points[0].gripper_open_gap_m == pytest.approx(.04)
+    assert points[2].gripper_open_gap_m == 0.
+    assert all(point.gripper_open_fraction is None for point in points)
+    assert all(point.pose.quat_xyzw == points[0].pose.quat_xyzw for point in points)
+    closing = quaternion_matrix(points[0].pose.quat_xyzw) @ grip.closing_axis
+    np.testing.assert_allclose(closing, [np.cos(yaw), np.sin(yaw), 0.], atol=1e-12)
+    with pytest.raises(ValueError, match='Exactly one'):
+        Waypoint('bad', state.ee, .5, gripper_open_gap_m=.04)
+    with pytest.raises(ValueError, match='Exactly one'):
+        Waypoint('bad', state.ee)
+
+
+def test_gap_options_take_precedence_and_legacy_orientation_is_preserved(synthetic_arm):
+    from core.tasks.expert import gripper_commands, grasp_orientation
+    state = StepState({}, Pose((0., 0., 1.)), 0.)
+    context = ExpertContext(state, state.ee, (0., 0., 1.),
+                           {'gripper_open_gap_m': .031, 'gripper_closed_gap_m': .002,
+                            'gripper_open_fraction': .9}, arm=synthetic_arm)
+    opened, closed = gripper_commands(context, .02)
+    assert opened == {'gripper_open_gap_m': .031}
+    assert closed == {'gripper_open_gap_m': .002}
+    assert grasp_orientation(context, state.ee, state.ee.quat_xyzw) == state.ee.quat_xyzw

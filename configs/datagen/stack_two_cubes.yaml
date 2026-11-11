@@ -21,3 +21,4 @@ expert_options:
   transport_seconds: 0.5
   gripper_open_fraction: 0.45
   gripper_closed_fraction: 0.0
+# Optional expert_options for measured grippers: gripper_open_gap_m / gripper_closed_gap_m (metres).

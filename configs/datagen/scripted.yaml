@@ -26,3 +26,5 @@ expert_options:
   # 48.3374 degrees on this follower, matching the retained successful opening.
   gripper_open_fraction: 0.4343913612565445
   gripper_closed_fraction: 0.0
+# Imported grippers with measured gap fields use physical openings by default.
+# Optional expert_options: gripper_open_gap_m: 0.04, gripper_closed_gap_m: 0.0

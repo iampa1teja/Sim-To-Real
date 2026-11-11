@@ -4,7 +4,7 @@ import numpy as np
 
 from core.benchmark.geometry import rotation_matrix
 from core.tasks.base import Pose
-from core.tasks.expert import Waypoint
+from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 
 
 class StackExpert:
@@ -43,8 +43,8 @@ class StackExpert:
             raise ValueError("Approach and lift heights must be positive")
         duration = float(options.get("move_seconds", 1.5))
         transport = float(options.get("transport_seconds", .5))
-        opened = float(options.get("gripper_open_fraction", .45))
-        closed = float(options.get("gripper_closed_fraction", 0.0))
+        opened, closed = gripper_commands(context, max(self.task.spec.objects["cube_a"].size[:2]))
+        orientation = grasp_orientation(context, context.state.objects["cube_a"], orientation)
         timeout = float(options.get("waypoint_timeout_seconds", 8.0))
         tolerance = float(options.get("position_tolerance_m", .004))
         precise = min(tolerance, self.task.spec.raw["success"]["xy_tolerance"] / 4)
@@ -55,8 +55,8 @@ class StackExpert:
                      (self.task.spec.raw["success"]["confirm_steps"] + 1) / fps)
 
         def point(name, position, opening, seconds=duration, tolerance_m=tolerance):
-            return Waypoint(name, Pose.from_lists(position, orientation), opening, seconds,
-                            tolerance_m, max(timeout, seconds))
+            return Waypoint(name, Pose.from_lists(position, orientation), duration_s=seconds,
+                            tolerance_m=tolerance_m, timeout_s=max(timeout, seconds), **opening)
 
         return (
             point("approach", source + normal * approach, opened),

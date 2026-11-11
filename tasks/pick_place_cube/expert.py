@@ -4,7 +4,7 @@ import numpy as np
 
 from core.benchmark.geometry import rotation_matrix
 from core.tasks.base import Pose
-from core.tasks.expert import Waypoint
+from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 
 
 def _transport_arc(start, end, origin, normal, margin):
@@ -72,8 +72,8 @@ class PickPlaceExpert:
             raise ValueError("release_height_m must be between zero and lift_height_m")
         duration = float(options.get("move_seconds", 2.0))
         transport_duration = float(options.get("transport_seconds", duration))
-        opened = float(options.get("gripper_open_fraction", .45))
-        closed = float(options.get("gripper_closed_fraction", 0.0))
+        opened, closed = gripper_commands(context, max(size[:2]))
+        orientation = grasp_orientation(context, context.state.objects["blue_cube"], orientation)
         timeout = float(options.get("waypoint_timeout_seconds", max(8., duration * 3)))
         if context.arm_base is None:
             raise ValueError("Pick-place expert transport requires the actual arm_base world pose")
@@ -83,8 +83,9 @@ class PickPlaceExpert:
                                float(options.get("transport_arc_margin_m", .01)))
 
         def point(name, position, opening, seconds=duration):
-            return Waypoint(name, Pose.from_lists(position, orientation), opening, seconds,
-                            float(options.get("position_tolerance_m", .004)), max(timeout, seconds))
+            return Waypoint(name, Pose.from_lists(position, orientation), duration_s=seconds,
+                            tolerance_m=float(options.get("position_tolerance_m", .004)),
+                            timeout_s=max(timeout, seconds), **opening)
 
         release_pose = placed + normal * release_height
         lower = (() if release_height == lift else

@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -117,9 +118,31 @@ class GenerationContext:
         world = p + rotation_matrix((q[3], q[0], q[1], q[2])) @ local.position
         return Pose.from_lists(world, quaternion_multiply(q, local.quat_xyzw))
 
-    def gripper_target(self, target, fraction):
+    def gripper_target(self, target, fraction=None, gap_m=None):
         """Interpolate each gripper's declared physical closed/open codec endpoints."""
         result = target.clone()
+        if gap_m is not None:
+            if fraction is not None:
+                raise ValueError("Specify a gripper fraction or a physical gap, not both")
+            grip = self.arm.gripper
+            if grip is None:
+                raise ValueError("A physical gripper command requires an arm gripper")
+            if grip.kind == "parallel":
+                q = grip.q_for_gap(gap_m)
+                ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
+                result[:, ids] = q
+                return result
+            from core.arms.spec import load_arm_utils
+            hook = getattr(load_arm_utils(self.arm), 'gripper_q_for_gap', None)
+            if hook is not None:
+                ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
+                result[:, ids] = hook(gap_m)
+                return result
+            if grip.closed_gap_m is None or grip.open_gap_m is None:
+                raise ValueError("Jaw gap command needs measured gaps or gripper_q_for_gap hook")
+            fraction = max(0., min(1., (gap_m - grip.closed_gap_m) / (grip.open_gap_m - grip.closed_gap_m)))
+        if fraction is None:
+            raise ValueError("A gripper opening is required")
         raw = self.mapping.to_raw(result)
         ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
         raw[:, ids] = self.mapping.raw_mins[ids] + float(fraction) * (
@@ -140,7 +163,12 @@ class GenerationContext:
         if warmup:
             ids = self.raw.scene["robot"].find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)[0]
             hold = as_torch(self.raw.scene["robot"].data.joint_pos)[:, ids].clone()
-            hold = self.gripper_target(hold, self.args.expert_options.get("gripper_open_fraction", .45))
+            from core.tasks.expert import gripper_commands
+            widths = [max(obj.size[:2]) for name, obj in self.task.spec.objects.items()
+                      if name in self.task.spec.tracked_objects and obj.size is not None]
+            opened, _ = gripper_commands(SimpleNamespace(
+                arm=self.arm, options=self.args.expert_options), max(widths, default=.02))
+            hold = self.gripper_target(hold, opened.get('gripper_open_fraction'), opened.get('gripper_open_gap_m'))
             for _ in range(self.args.warmup_steps):
                 self.env.step(hold)
             reset_task_tracking(self.raw)
@@ -268,7 +296,7 @@ def execute_expert(context, rollout, expert):
     w, x, y, z = geometry["base_quaternion_wxyz"]
     arm_base = Pose.from_lists(geometry["base_position_world"], (x, y, z, w))
     waypoints = expert.plan(ExpertContext(initial, rollout.control_pose(initial), tuple(normal),
-                                        context.args.expert_options, arm_base=arm_base))
+                                        context.args.expert_options, arm_base=arm_base, arm=context.arm))
     dt = 1 / context.args.fps
     steps = 0
     rollout.waypoint_trace = []
@@ -354,7 +382,7 @@ def execute_expert(context, rollout, expert):
             quaternion = first * (1 - alpha) + last * alpha
             quaternion /= np.linalg.norm(quaternion)
             solved = context.ik.solve(position, quaternion)
-            target = context.gripper_target(solved.joint_positions, waypoint.gripper_open_fraction)
+            target = context.gripper_target(solved.joint_positions, waypoint.gripper_open_fraction, waypoint.gripper_open_gap_m)
             rollout.step(target, target_eef_pose=Pose.from_lists(position, quaternion), phase=waypoint.name)
             steps += 1
             if context.task.is_success(rollout.recorder.trace.stages):

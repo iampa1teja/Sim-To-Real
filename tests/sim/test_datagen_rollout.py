@@ -188,7 +188,8 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
     point = Waypoint("aligned", initial.ee, .5, duration_s=1., timeout_s=3.)
     expert = SimpleNamespace(plan=lambda context: [point])
     context = SimpleNamespace(raw=None, task=SimpleNamespace(is_success=lambda flags: False),
-        args=SimpleNamespace(expert_options={}, fps=1, max_steps=10), ik=IK(), gripper_target=lambda target, fraction: target)
+        args=SimpleNamespace(expert_options={}, fps=1, max_steps=10), arm=None, ik=IK(),
+        gripper_target=lambda target, fraction, gap=None: target)
     assert execute_expert(context, Rollout(), expert) == "expert_finished_without_success"
     assert progress.steps == 2  # Position was satisfied on tick one; orientation was not.
     assert controller_advances == [True, False, True, False]

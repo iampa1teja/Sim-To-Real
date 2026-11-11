@@ -3,7 +3,7 @@
 import weakref
 
 import numpy as np
-from pxr import Gf, Usd, UsdGeom
+from pxr import Gf, Usd, UsdGeom, UsdPhysics
 
 from core.arms.spec import load_arm_spec
 from core.scenes import load_scene_spec
@@ -56,8 +56,90 @@ def _measure_jaw_points(stage, gripper_path, mesh_name):
     return jaw_points
 
 
+def collision_body_points(stage, body_path):
+    """Static collision vertices in a rigid body's local metre frame."""
+    cache = _GEOMETRY_CACHE.setdefault(stage, {})
+    key = ('collision', str(body_path))
+    if key not in cache:
+        body = stage.GetPrimAtPath(body_path)
+        if not body.IsValid():
+            raise ValueError(f'Contact body not found: {body_path}')
+        clouds = []
+        transforms = UsdGeom.XformCache()
+        for prim in Usd.PrimRange(body, Usd.TraverseInstanceProxies()):
+            if not prim.IsA(UsdGeom.Gprim):
+                continue
+            collider = prim
+            while collider and collider != body and not collider.HasAPI(UsdPhysics.CollisionAPI):
+                collider = collider.GetParent()
+            if not collider or not collider.HasAPI(UsdPhysics.CollisionAPI):
+                continue
+            if UsdPhysics.CollisionAPI(collider).GetCollisionEnabledAttr().Get() is False:
+                continue
+            if prim.IsA(UsdGeom.Mesh):
+                points = UsdGeom.Mesh(prim).GetPointsAttr().Get()
+            else:
+                extent = UsdGeom.Boundable(prim).ComputeExtent(Usd.TimeCode.Default())
+                if extent is None:
+                    continue
+                points = [[x, y, z] for x in (extent[0][0], extent[1][0])
+                          for y in (extent[0][1], extent[1][1]) for z in (extent[0][2], extent[1][2])]
+            relative, _ = transforms.ComputeRelativeTransform(prim, body)
+            clouds.extend(relative.Transform(Gf.Vec3d(*map(float, point))) for point in points)
+        if not clouds:
+            raise ValueError(f'No collision geometry on contact body {body_path}')
+        points = np.asarray(clouds) * UsdGeom.GetStageMetersPerUnit(stage)
+        points.setflags(write=False)
+        cache[key] = points
+    return cache[key]
+
+
+def parallel_fingertip_points(stage, robot_path, ee_name, contact_bodies, approach_axis,
+                              *, tip_depth_m=.02, body_to_ee=None):
+    """Collision tip bands per contact body, transformed into the ee metre frame.
+
+    Cache body-local vertices, never moving finger-to-ee transforms. Live callers
+    may supply measured body transforms rather than authored stage transforms.
+    """
+    axis = np.asarray(approach_axis, dtype=float)
+    axis /= np.linalg.norm(axis)
+    ee = stage.GetPrimAtPath(str(robot_path) + '/' + ee_name)
+    transforms = UsdGeom.XformCache()
+    result = {}
+    for name in contact_bodies:
+        path = str(robot_path) + '/' + name
+        points = collision_body_points(stage, path)
+        if body_to_ee is not None:
+            matrix = body_to_ee[name]
+            local = points @ matrix[:3, :3].T + matrix[:3, 3]
+        else:
+            relative, _ = transforms.ComputeRelativeTransform(stage.GetPrimAtPath(path), ee)
+            matrix = np.asarray(relative).T.copy()
+            matrix[:3, 3] *= UsdGeom.GetStageMetersPerUnit(stage)
+            local = points @ matrix[:3, :3].T + matrix[:3, 3]
+        extent = local @ axis
+        result[name] = local[extent >= extent.max() - tip_depth_m]
+    return result
+
+
 def gripper_tip_local_offset(stage, half_size: float, clearance_m: float, gripper_path: str,
-                             mesh_name: str | None = None) -> tuple[float, float, float]:
+                             mesh_name: str | None = None, *, gripper=None,
+                             body_to_ee=None) -> tuple[float, float, float]:
+    if gripper is not None and gripper.kind == 'parallel':
+        if gripper.approach_axis is None or gripper.closing_axis is None:
+            raise ValueError('Parallel placement needs measured approach_axis and closing_axis')
+        robot_path, ee_name = gripper_path.rsplit('/', 1)
+        clouds = parallel_fingertip_points(stage, robot_path, ee_name, gripper.contact_bodies,
+                                          gripper.approach_axis, body_to_ee=body_to_ee)
+        points = np.concatenate(list(clouds.values()))
+        closing = np.asarray(gripper.closing_axis, dtype=float)
+        closing /= np.linalg.norm(closing)
+        # Spawn beside the outer finger surface with explicit clearance, so a
+        # closed ready gripper never begins interpenetrating the object.
+        centre = points.mean(axis=0)
+        centre += closing * ((points @ closing).max() + half_size + clearance_m - centre @ closing)
+        return tuple(centre)
+
     jaw_points = _jaw_points(stage, gripper_path, mesh_name or fixed_jaw_mesh_name())
     tip_z = jaw_points[:, 2].min()
     tip_band = jaw_points[jaw_points[:, 2] <= tip_z + 2 * half_size]
@@ -128,5 +210,8 @@ def cache_scene_geometry(env, env_ids):
     for index in env_indices(env, env_ids).tolist():
         if table is not None:
             table_plane(stage, stage.GetPrimAtPath(env.scene.env_prim_paths[index]), table)
-        if arm.gripper is not None and arm.gripper.tip_mesh:
+        if arm.gripper is not None and arm.gripper.kind == 'parallel':
+            for name in arm.gripper.contact_bodies:
+                collision_body_points(stage, _env_prim_path(env, robot, index) + '/' + name)
+        elif arm.gripper is not None and arm.gripper.tip_mesh:
             _jaw_points(stage, _env_prim_path(env, robot, index) + "/" + arm.links.ee, arm.gripper.tip_mesh)
