@@ -68,9 +68,39 @@ def test_optional_utils_loads_by_explicit_path(synthetic_arm):
     ({'orientation_axes': ['roll']}, 'select x, y'),
     ({'orientation_axes': ['x', 'x']}, 'duplicate'),
     ({'position_offset_m': [0, 0]}, 'three|3 values'),
+    ({'method': 'pinv'}, 'ik.method must be dls or adaptive_dls'),
+    ({'joint_limit_avoidance_gain': -0.1}, 'gain must be nonnegative'),
+    ({'joint_limit_avoidance_gain': float('nan')}, 'gain must be a finite number'),
+    ({'joint_limit_avoidance_margin': 0.0}, 'margin must be positive'),
+    ({'joint_limit_avoidance_margin': float('inf')}, 'margin must be a finite number'),
+    ({'joint_limit_avoidance_gain': 0.1}, 'no spare joint for limit avoidance'),
 ])
 def test_invalid_ik_contract(synthetic_arm, ik, error):
     raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
     raw['ik'] = ik
     with pytest.raises(ValueError, match=error):
+        _parse_spec('synthetic', synthetic_arm.directory, raw)
+
+
+def test_optional_ik_defaults(synthetic_arm):
+    assert synthetic_arm.ik.method == 'dls'
+    assert synthetic_arm.ik.joint_limit_avoidance_gain == 0.0
+    assert synthetic_arm.ik.joint_limit_avoidance_margin == 0.3
+
+
+def test_ik_settings_with_a_spare_arm_joint(synthetic_arm):
+    raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
+    raw['joints'].extend(dict(name=f'arm_{index}', usd=f'Arm_{index}', type='revolute', role='arm',
+                              limits=[-180.0, 180.0], initial=0.0) for index in range(5))
+    raw['ik'] = dict(orientation_axes=['x', 'y', 'z'], position_offset_m=[0.01, 0.02, 0.03],
+                     method='adaptive_dls', joint_limit_avoidance_gain=0.2, joint_limit_avoidance_margin=0.4)
+    arm = _parse_spec('synthetic', synthetic_arm.directory, raw)
+    assert sum(joint.role == 'arm' for joint in arm.joints) == 7
+    assert arm.ik.orientation_axes == ('x', 'y', 'z')
+    assert arm.ik.position_offset_m == (0.01, 0.02, 0.03)
+    assert arm.ik.method == 'adaptive_dls'
+    assert arm.ik.joint_limit_avoidance_gain == 0.2
+    assert arm.ik.joint_limit_avoidance_margin == 0.4
+    raw['joints'].pop()
+    with pytest.raises(ValueError, match='no spare joint for limit avoidance'):
         _parse_spec('synthetic', synthetic_arm.directory, raw)

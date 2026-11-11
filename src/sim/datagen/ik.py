@@ -1,9 +1,7 @@
-"""Bounded native-Jacobian IK and side-effect-free USD forward kinematics.
+"""Library IK (DifferentialIKController) for every arm, with Newton offline FK/Jacobians.
 
-Targets use world metres/XYZW. Orientation constraints are rotation-error components
-in the declared arm-base frame, so a low-DOF arm need not promise a full 6-D pose.
-Tracking updates return one limited joint target per physical step. Command-pose
-inversion iterates cached kinematics locally before returning a bounded command.
+This module only expresses frames, applies the TCP offset, caps each step and
+clamps to declared limits. All kinematics math comes from the libraries.
 """
 from dataclasses import dataclass, replace
 import math
@@ -14,15 +12,15 @@ import torch
 
 @dataclass(frozen=True)
 class IKOptions:
-    damping: float = 0.001
-    orientation_weight: float = 0.05  # metres per radian in the weighted least-squares objective
+    damping: float = 0.0125  # the library consumes the unscaled task Jacobian
+    orientation_weight: float = 0.05  # weight on each declared base-frame axis
     max_position_step_m: float = 0.01
-    max_orientation_step_rad: float = 0.1
+    max_orientation_step_rad: float = math.pi  # let weighted axes correct tilt during large free yaw
     max_joint_step_rad: float = 0.08
     max_joint_step_m: float = 0.005
     position_tolerance_m: float = 0.001
     orientation_tolerance_rad: float = 0.03
-    integral_gain: float = 1.0  # per second; zero disables physical PD-load compensation
+    integral_gain: float = 1.0
     max_integral_bias_rad: float = 0.08
     max_integral_bias_m: float = 0.005
 
@@ -38,7 +36,7 @@ class IKResult:
     position_error: torch.Tensor  # (N,), metres, before this command
     orientation_error: torch.Tensor  # (N,), radians, declared components only
     converged: torch.Tensor  # (N,), measured pose satisfies both declared tolerances
-    limited: torch.Tensor  # (N,), joint-step or runtime joint limits bounded this command
+    limited: torch.Tensor  # (N,), joint-step or runtime limits bounded this command
 
 
 def _tensor(value):
@@ -47,119 +45,130 @@ def _tensor(value):
     return value.torch if hasattr(value, 'torch') else torch.as_tensor(value)
 
 
-def _batch(value, width, reference, label):
-    value = torch.as_tensor(value, dtype=reference.dtype, device=reference.device)
-    if value.shape == (width,):
-        value = value.unsqueeze(0).expand(reference.shape[0], -1)
-    if value.shape != (reference.shape[0], width) or not torch.isfinite(value).all():
-        raise ValueError(f'{label} must contain {width} finite values per environment')
-    return value
-
-
-def _quaternion(value, reference, label):
-    value = _batch(value, 4, reference, label)
-    norm = value.norm(dim=-1, keepdim=True)
-    if (norm < 1e-12).any():
-        raise ValueError(f'{label} quaternion must be nonzero')
-    return value / norm
-
-
-def _rotate(quaternion, vector):
-    while quaternion.ndim < vector.ndim:
-        quaternion = quaternion.unsqueeze(-2)
-    xyz, scalar = quaternion[..., :3], quaternion[..., 3:4]
-    uv = torch.cross(xyz.expand_as(vector), vector, dim=-1)
-    return vector + 2 * (scalar * uv + torch.cross(xyz.expand_as(vector), uv, dim=-1))
-
-
-def _inverse_rotate(quaternion, vector):
-    conjugate = torch.cat((-quaternion[..., :3], quaternion[..., 3:]), dim=-1)
-    return _rotate(conjugate, vector)
-
-
-def _rotation_error(target, current):
-    # target * conjugate(current), in world coordinates; choose the shortest quaternion arc.
-    a, b = target[..., :3], -current[..., :3]
-    w_a, w_b = target[..., 3:4], current[..., 3:4]
-    vector = w_a * b + w_b * a + torch.cross(a, b, dim=-1)
-    scalar = w_a * w_b - (a * b).sum(dim=-1, keepdim=True)
-    sign = torch.where(scalar < 0, -1., 1.)
-    vector, scalar = vector * sign, scalar * sign
-    norm = vector.norm(dim=-1, keepdim=True)
-    angle = 2 * torch.atan2(norm, scalar.clamp_min(0))
-    return vector * torch.where(norm > 1e-8, angle / norm.clamp_min(1e-12), 2.)
-
-
-def _bounded_norm(value, maximum):
-    return value * (maximum / value.norm(dim=-1, keepdim=True).clamp_min(maximum))
-
-
-def solve_damped_step(arm, joint_positions, position, orientation, jacobian, target_position,
-                      target_orientation=None, *, base_orientation=(0., 0., 0., 1.), options=None):
-    """Pure batched DLS step; Jacobian rows are world link/TCP linear then angular velocity.
-
-    Columns are in manifest action order. Revolute columns act on radians, prismatic
-    columns on metres. Gripper columns never enter the solve and their values stay exact.
-    """
-    options = options or IKOptions()
-    q = _tensor(joint_positions)
-    if q.ndim == 1:
-        q = q.unsqueeze(0)
-    if not q.is_floating_point():
-        q = q.to(torch.float64)
-    count = len(arm.joints)
-    if q.ndim != 2 or q.shape[1] != count or not torch.isfinite(q).all():
-        raise ValueError(f'IK joint_positions must have finite shape (N,{count})')
-    current_position = _batch(position, 3, q, 'position')
-    target_position = _batch(target_position, 3, q, 'target_position')
-    current_orientation = _quaternion(orientation, q, 'orientation')
-    base_orientation = _quaternion(base_orientation, q, 'base_orientation')
-    jacobian = torch.as_tensor(jacobian, dtype=q.dtype, device=q.device)
-    if jacobian.ndim == 2:
-        jacobian = jacobian.unsqueeze(0)
-    if jacobian.shape != (q.shape[0], 6, count) or not torch.isfinite(jacobian).all():
-        raise ValueError(f'IK jacobian must have finite shape (N,6,{count})')
-    arm_ids = [index for index, joint in enumerate(arm.joints) if joint.role == 'arm']
-    if not arm_ids:
+def _arm_bounds(arm, options):
+    """Manifest-order arm IDs and limits, in simulator radians/metres."""
+    bounds = {key: [] for key in ('ids', 'step_caps', 'bias_caps', 'lower', 'upper')}
+    for index, joint in enumerate(arm.joints):
+        if joint.role != 'arm':
+            continue
+        revolute = joint.type == 'revolute'
+        bounds['ids'].append(index)
+        bounds['step_caps'].append(options.max_joint_step_rad if revolute else options.max_joint_step_m)
+        bounds['bias_caps'].append(options.max_integral_bias_rad if revolute else options.max_integral_bias_m)
+        bounds['lower'].append(math.radians(joint.limits[0]) if revolute else joint.limits[0])
+        bounds['upper'].append(math.radians(joint.limits[1]) if revolute else joint.limits[1])
+    if not bounds['ids']:
         raise ValueError('IK requires at least one joint with role arm')
-    error = target_position - current_position
-    position_error = error.norm(dim=-1)
-    task_jacobian = jacobian[:, :3, arm_ids]
-    task_error = _bounded_norm(error, options.max_position_step_m)
-    orientation_error = torch.zeros_like(position_error)
-    axes = [{'x': 0, 'y': 1, 'z': 2}[axis] for axis in arm.ik.orientation_axes]
-    if target_orientation is not None and axes:
-        target_orientation = _quaternion(target_orientation, q, 'target_orientation')
-        error = _inverse_rotate(base_orientation, _rotation_error(target_orientation, current_orientation))[:, axes]
-        orientation_error = error.norm(dim=-1)
-        angular = _inverse_rotate(base_orientation, jacobian[:, 3:, arm_ids].transpose(1, 2)).transpose(1, 2)
-        task_jacobian = torch.cat((task_jacobian, angular[:, axes] * options.orientation_weight), dim=1)
-        task_error = torch.cat((task_error, _bounded_norm(error, options.max_orientation_step_rad)
-                                * options.orientation_weight), dim=-1)
-    step_limits = q.new_tensor([options.max_joint_step_rad if arm.joints[index].type == 'revolute'
-                               else options.max_joint_step_m for index in arm_ids])
-    scaled = task_jacobian * step_limits
-    identity = torch.eye(scaled.shape[1], dtype=q.dtype, device=q.device)
-    system = scaled @ scaled.transpose(1, 2) + options.damping ** 2 * identity
-    normalized_step = (scaled.transpose(1, 2) @ torch.linalg.solve(system, task_error.unsqueeze(-1))).squeeze(-1)
-    scale = normalized_step.abs().amax(dim=-1, keepdim=True).clamp_min(1.)
-    delta = normalized_step / scale * step_limits
-    lower = q.new_tensor([math.radians(arm.joints[index].limits[0]) if arm.joints[index].type == 'revolute'
-                          else arm.joints[index].limits[0] for index in arm_ids])
-    upper = q.new_tensor([math.radians(arm.joints[index].limits[1]) if arm.joints[index].type == 'revolute'
-                          else arm.joints[index].limits[1] for index in arm_ids])
-    proposed = q[:, arm_ids] + delta
-    clipped = proposed.clamp(lower, upper)
-    result = q.clone()
-    result[:, arm_ids] = clipped
-    limited = (scale[:, 0] > 1) | (clipped != proposed).any(dim=-1)
-    return IKResult(result, position_error, orientation_error,
-                    (position_error <= options.position_tolerance_m)
-                    & (orientation_error <= options.orientation_tolerance_rad), limited)
+    return bounds
+
+
+def _controller_cfg(arm, options, *, use_orientation):
+    from isaaclab.controllers import DifferentialIKControllerCfg
+
+    return DifferentialIKControllerCfg(
+        command_type='pose' if use_orientation and arm.ik.orientation_axes else 'position',
+        use_relative_mode=False,
+        ik_method=arm.ik.method,
+        ik_params={'lambda_val' if arm.ik.method == 'dls' else 'lambda_min': options.damping},
+        orientation_weight=tuple(options.orientation_weight if axis in arm.ik.orientation_axes else 0.
+                                 for axis in ('x', 'y', 'z')),
+        joint_limit_avoidance_gain=arm.ik.joint_limit_avoidance_gain,
+        joint_limit_avoidance_margin=arm.ik.joint_limit_avoidance_margin,
+    )
+
+
+class _JointStep:
+    """A bounded library IK step on poses/Jacobians expressed in the arm base."""
+
+    def __init__(self, arm, options, num_envs, device):
+        self.arm, self.options = arm, options
+        self.num_envs, self.device = num_envs, device
+        self.bounds = _arm_bounds(arm, options)
+        self._controllers = {}
+
+    def solve(self, q, ee_pos, ee_quat, jacobian, target_pos, target_quat=None):
+        from isaaclab.controllers import DifferentialIKController
+        from isaaclab.utils.math import compute_pose_error, quat_from_angle_axis, quat_mul
+
+        q = _tensor(q)
+        if q.ndim == 1:
+            q = q.unsqueeze(0)
+        if not q.is_floating_point():
+            q = q.to(torch.float64)
+        count = len(self.arm.joints)
+        if q.ndim != 2 or q.shape[1] != count or not torch.isfinite(q).all():
+            raise ValueError(f'IK joint_positions must have finite shape (N,{count})')
+        if q.shape[0] != self.num_envs:
+            raise ValueError(f'IK joint_positions must have finite shape (N,{count})')
+        inputs = {}
+        for label, value, width in (('position', ee_pos, 3), ('target_position', target_pos, 3),
+                                    ('orientation', ee_quat, 4),
+                                    *([('target_orientation', target_quat, 4)] if target_quat is not None else [])):
+            value = torch.as_tensor(value, dtype=q.dtype, device=q.device)
+            if value.shape == (width,):
+                value = value.unsqueeze(0).expand(q.shape[0], -1)
+            if value.shape != (q.shape[0], width) or not torch.isfinite(value).all():
+                raise ValueError(f'{label} must contain {width} finite values per environment')
+            if width == 4:
+                norm = value.norm(dim=-1, keepdim=True)
+                if (norm < 1e-12).any():
+                    raise ValueError(f'{label} quaternion must be nonzero')
+                value = value / norm
+            inputs[label] = value
+        position, orientation = inputs['position'], inputs['orientation']
+        target_position = inputs['target_position']
+        jacobian = torch.as_tensor(jacobian, dtype=q.dtype, device=q.device)
+        if jacobian.ndim == 2:
+            jacobian = jacobian.unsqueeze(0)
+        if jacobian.shape != (q.shape[0], 6, count) or not torch.isfinite(jacobian).all():
+            raise ValueError(f'IK jacobian must have finite shape (N,6,{count})')
+
+        error = target_position - position
+        position_error = error.norm(dim=-1)
+        command_position = position + error * (
+            self.options.max_position_step_m / position_error.clamp_min(self.options.max_position_step_m)
+        ).unsqueeze(-1)
+        axes = [index for index, axis in enumerate(('x', 'y', 'z')) if axis in self.arm.ik.orientation_axes]
+        use_orientation = target_quat is not None and bool(axes)
+        orientation_error = torch.zeros_like(position_error)
+        if use_orientation:
+            _, rotation_error = compute_pose_error(position, orientation, target_position,
+                                                   inputs['target_orientation'], rot_error_type='axis_angle')
+            orientation_error = rotation_error[:, axes].norm(dim=-1)
+            angle = rotation_error.norm(dim=-1)
+            increment = quat_from_angle_axis(angle.clamp_max(self.options.max_orientation_step_rad),
+                                             rotation_error / angle.clamp_min(1e-12).unsqueeze(-1))
+            command_orientation = quat_mul(increment, orientation)
+            command = torch.cat((command_position, command_orientation), dim=-1)
+        else:
+            command = command_position
+        if use_orientation not in self._controllers:
+            controller = DifferentialIKController(_controller_cfg(self.arm, self.options,
+                                                                  use_orientation=use_orientation),
+                                                   self.num_envs, self.device)
+            if self.arm.ik.joint_limit_avoidance_gain > 0:
+                controller.set_joint_pos_limits(q.new_tensor(self.bounds['lower']), q.new_tensor(self.bounds['upper']))
+            self._controllers[use_orientation] = controller
+        controller = self._controllers[use_orientation]
+        ids = self.bounds['ids']
+        controller.set_command(command.float(), ee_quat=orientation.float())
+        new = controller.compute(position.float(), orientation.float(), jacobian[:, :, ids].float(),
+                                 q[:, ids].float()).to(q.dtype)
+        delta = new - q[:, ids]
+        caps = q.new_tensor(self.bounds['step_caps'])
+        scale = (delta.abs() / caps).amax(dim=-1, keepdim=True).clamp_min(1.)
+        proposed = q[:, ids] + delta / scale
+        clipped = proposed.clamp(q.new_tensor(self.bounds['lower']), q.new_tensor(self.bounds['upper']))
+        result = q.clone()
+        result[:, ids] = clipped
+        limited = (scale[:, 0] > 1.) | (clipped != proposed).any(dim=-1)
+        return IKResult(result, position_error, orientation_error,
+                        (position_error <= self.options.position_tolerance_m)
+                        & (orientation_error <= self.options.orientation_tolerance_rad), limited)
 
 
 class ArticulationIK:
-    """Read Newton/Isaac Lab's native link-origin Jacobian without changing simulation state."""
+    """Adapt live link-origin Jacobians to the base-frame library controller."""
 
     def __init__(self, robot, arm, *, position_offset_m=None, options=None, control_dt=1 / 30):
         self.robot, self.arm = robot, arm
@@ -183,12 +192,15 @@ class ArticulationIK:
         self.jacobian_body_id = self.ee_id - (1 if robot.is_fixed_base else 0)
         if self.jacobian_body_id < 0:
             raise ValueError('IK ee must have a Jacobian row; it cannot be the fixed root')
+        self._step = _JointStep(arm, self.options, _tensor(robot.data.joint_pos).shape[0], robot.device)
 
     def current_pose(self):
+        from isaaclab.utils.math import quat_apply
+
         positions = _tensor(self.robot.data.body_link_pos_w)[:, self.ee_id]
         orientations = _tensor(self.robot.data.body_link_quat_w)[:, self.ee_id]
         offset = positions.new_tensor(self.position_offset_m).expand_as(positions)
-        return positions + _rotate(orientations, offset), orientations
+        return positions + quat_apply(orientations, offset), orientations
 
     def reset(self):
         """Clear learned command bias after an episode reset/warmup."""
@@ -199,44 +211,57 @@ class ArticulationIK:
         return None if self._integral_bias is None else self._integral_bias.clone()
 
     def solve(self, position_world, orientation_xyzw=None, *, advance=True):
-        """Produce a bounded position command, retaining a slow integral load bias.
+        """Return a bounded command; previews do not advance integral load bias."""
+        from isaaclab.utils.math import quat_apply, quat_apply_inverse, subtract_frame_transforms
 
-        ``advance=False`` previews a command/error without updating controller state.
-        Only a command that will be physically dispatched should advance the integral.
-        Bias is encoded in the returned joint target, so recorded actions replay it
-        without an additional hidden effort controller.
-        """
         position, orientation = self.current_pose()
         joint_positions = _tensor(self.robot.data.joint_pos)[:, self.joint_ids]
         columns = [index + self.robot.num_base_dofs for index in self.joint_ids]
         jacobian = _tensor(self.robot.data.body_link_jacobian_w)[:, self.jacobian_body_id, :, columns].clone()
-        offset = _rotate(orientation, position.new_tensor(self.position_offset_m).expand_as(position))
+        offset = quat_apply(orientation, position.new_tensor(self.position_offset_m).expand_as(position))
         jacobian[:, :3] += torch.cross(jacobian[:, 3:].transpose(1, 2),
                                       offset[:, None, :].expand(-1, len(columns), -1), dim=-1).transpose(1, 2)
+        base_position = _tensor(self.robot.data.body_link_pos_w)[:, self.base_id]
         base_orientation = _tensor(self.robot.data.body_link_quat_w)[:, self.base_id]
-        solved = solve_damped_step(self.arm, joint_positions, position, orientation, jacobian,
-                                   position_world, orientation_xyzw, base_orientation=base_orientation,
-                                   options=self.options)
+        targets = []
+        for label, value, width in (('target_position', position_world, 3),
+                                    *([('target_orientation', orientation_xyzw, 4)]
+                                      if orientation_xyzw is not None else [])):
+            target = torch.as_tensor(value, dtype=position.dtype, device=position.device)
+            if target.shape == (width,):
+                target = target.unsqueeze(0).expand(position.shape[0], -1)
+            if target.shape != (position.shape[0], width) or not torch.isfinite(target).all():
+                raise ValueError(f'{label} must contain {width} finite values per environment')
+            if width == 4:
+                norm = target.norm(dim=-1, keepdim=True)
+                if (norm < 1e-12).any():
+                    raise ValueError(f'{label} quaternion must be nonzero')
+                target = target / norm
+            targets.append(target)
+        position_base, orientation_base = subtract_frame_transforms(base_position, base_orientation,
+                                                                    position, orientation)
+        target_base, target_orientation_base = subtract_frame_transforms(
+            base_position, base_orientation, targets[0], targets[1] if len(targets) == 2 else None)
+        rotation = base_orientation[:, None, :].expand(-1, len(columns), -1)
+        jacobian[:, :3] = quat_apply_inverse(rotation, jacobian[:, :3].transpose(1, 2)).transpose(1, 2)
+        jacobian[:, 3:] = quat_apply_inverse(rotation, jacobian[:, 3:].transpose(1, 2)).transpose(1, 2)
+        solved = self._step.solve(joint_positions, position_base, orientation_base, jacobian,
+                                   target_base, target_orientation_base if len(targets) == 2 else None)
         if self.options.integral_gain == 0:
             return solved
         return self._compensate_load(solved, joint_positions, advance=advance)
 
     def _compensate_load(self, solved, measured, *, advance):
-        ids = [index for index, joint in enumerate(self.arm.joints) if joint.role == 'arm']
+        bounds = _arm_bounds(self.arm, self.options)
+        ids = bounds['ids']
         delta = solved.joint_positions[:, ids] - measured[:, ids]
         previous = (torch.zeros_like(measured) if self._integral_bias is None
                     else self._integral_bias.to(measured))
         bias = previous[:, ids]
-        step_caps = measured.new_tensor([self.options.max_joint_step_rad if self.arm.joints[index].type == 'revolute'
-                                        else self.options.max_joint_step_m for index in ids])
-        bias_caps = measured.new_tensor([self.options.max_integral_bias_rad if self.arm.joints[index].type == 'revolute'
-                                        else self.options.max_integral_bias_m for index in ids])
-        lower = measured.new_tensor([math.radians(self.arm.joints[index].limits[0])
-                                     if self.arm.joints[index].type == 'revolute'
-                                     else self.arm.joints[index].limits[0] for index in ids])
-        upper = measured.new_tensor([math.radians(self.arm.joints[index].limits[1])
-                                     if self.arm.joints[index].type == 'revolute'
-                                     else self.arm.joints[index].limits[1] for index in ids])
+        step_caps = measured.new_tensor(bounds['step_caps'])
+        bias_caps = measured.new_tensor(bounds['bias_caps'])
+        lower = measured.new_tensor(bounds['lower'])
+        upper = measured.new_tensor(bounds['upper'])
         if advance:
             proposed = (bias + self.options.integral_gain * self.control_dt * delta).clamp(-bias_caps, bias_caps)
             increment = proposed - bias
@@ -259,162 +284,176 @@ class ArticulationIK:
 
 
 class ArmKinematics:
-    """Read a USD joint chain once for arbitrary-action FK, without a live simulator.
+    """Newton FK and Jacobians for command poses, without simulator stepping.
 
-    Movable joints on the base-to-ee path must be declared revolute/prismatic joints;
-    fixed joints are retained. Closed-loop mechanisms and scaled body transforms are
-    rejected rather than guessed. Returned transforms use the declared base frame.
+    Coordinates and Jacobian columns retain manifest action order. Newton owns
+    USD parsing and kinematics; this adapter only expresses the declared base
+    frame, applies the TCP offset and bounds the final dispatched command.
     """
 
     @classmethod
     def from_arm(cls, arm, *, position_offset_m=None):
-        from pxr import Usd
+        import newton
 
-        stage = Usd.Stage.Open(str(arm.usd_path))
-        if stage is None:
-            raise ValueError(f'Cannot open arm USD {arm.usd_path}')
-        return cls(stage, arm, position_offset_m=position_offset_m)
+        builder = newton.ModelBuilder()
+        try:
+            metadata = builder.add_usd(str(arm.usd_path), floating=False)
+        except ValueError as error:
+            if 'Reversed joints are not supported:' not in str(error):
+                raise
+            raise ValueError(
+                f'{error} To import {arm.usd_path}, '
+                'swap body0/body1 and the local frames in the USD.') from error
+        model = builder.finalize(device='cpu')
+        return cls(model, arm, position_offset_m=position_offset_m,
+                   _meters_per_unit=metadata['linear_unit'])
 
-    def __init__(self, stage, arm, *, position_offset_m=None):
-        from pxr import Usd, UsdGeom, UsdPhysics
+    def __init__(self, model, arm, *, position_offset_m=None, _meters_per_unit=1.):
+        import newton
+        import warp as wp
+        from isaaclab.utils.math import make_pose, matrix_from_quat
 
-        self.arm = arm
+        self.arm, self._model = arm, model
+        self._meters_per_unit = float(_meters_per_unit)
+        if not math.isfinite(self._meters_per_unit) or self._meters_per_unit <= 0:
+            raise ValueError('USD FK meters_per_unit must be finite and positive')
+        # Newton 1.6.1 imports rigid assets in authored stage units. Convert only
+        # at the library boundary; public coordinates and TCP offsets stay SI.
+        self._coordinate_units = np.asarray([1. if joint.type == 'revolute' else self._meters_per_unit
+                                             for joint in arm.joints])
         self.position_offset_m = np.asarray(arm.ik.position_offset_m if position_offset_m is None
                                             else position_offset_m, dtype=float)
         if self.position_offset_m.shape != (3,) or not np.isfinite(self.position_offset_m).all():
             raise ValueError('IK position_offset_m must contain three finite metre values')
-        root = stage.GetDefaultPrim()
-        if not root.IsValid():
-            raise ValueError('Arm USD needs a default prim')
-        prims = list(Usd.PrimRange(root, Usd.TraverseInstanceProxies()))
-        bodies = {}
-        for label, name in (('base', arm.links.base), ('ee', arm.links.ee)):
-            matches = [prim for prim in prims if prim.GetName() == name]
+        if model.articulation_count != 1:
+            raise ValueError('USD FK requires exactly one articulation')
+
+        def named_index(labels, name, label):
+            matches = [index for index, value in enumerate(labels) if value.rsplit('/', 1)[-1] == name]
             if len(matches) != 1:
-                raise ValueError(f'USD FK requires one declared {label} body {name!r}')
-            bodies[label] = matches[0]
-        scale = UsdGeom.GetStageMetersPerUnit(stage)
+                raise ValueError(f'USD FK requires one declared {label} {name!r}')
+            return matches[0]
 
-        def frame(rotation, translation):
-            value = np.eye(4)
-            quaternion = np.r_[np.asarray(rotation.GetImaginary()), rotation.GetReal()]
-            value[:3, :3] = _numpy_rotation(quaternion)
-            value[:3, 3] = np.asarray(translation) * scale
-            return value
+        self.base_id = named_index(model.body_label, arm.links.base, 'base body')
+        self.ee_id = named_index(model.body_label, arm.links.ee, 'ee body')
+        joint_ids = [named_index(model.joint_label, name, 'joint') for name in arm.usd_joint_names]
+        coordinate_starts = model.joint_q_start.numpy()
+        dof_starts = model.joint_qd_start.numpy()
+        joint_types = model.joint_type.numpy()
+        for manifest_joint, joint_id in zip(arm.joints, joint_ids):
+            expected_type = (newton.JointType.REVOLUTE if manifest_joint.type == 'revolute'
+                             else newton.JointType.PRISMATIC)
+            if (joint_types[joint_id] != expected_type
+                    or coordinate_starts[joint_id + 1] - coordinate_starts[joint_id] != 1
+                    or dof_starts[joint_id + 1] - dof_starts[joint_id] != 1):
+                raise ValueError(f'USD FK joint {manifest_joint.usd!r} differs from its declared joint type')
+        self._coordinate_ids = coordinate_starts[joint_ids].astype(int)
+        self._dof_ids = dof_starts[joint_ids].astype(int)
 
-        indices = {joint.usd: index for index, joint in enumerate(arm.joints)}
-        graph = {}
-        for prim in prims:
-            if not prim.IsA(UsdPhysics.Joint):
-                continue
-            joint = UsdPhysics.Joint(prim)
-            if joint.GetJointEnabledAttr().Get() is False:
-                continue
-            left, right = joint.GetBody0Rel().GetTargets(), joint.GetBody1Rel().GetTargets()
-            if len(left) != 1 or len(right) != 1:
-                continue
-            if prim.IsA(UsdPhysics.RevoluteJoint):
-                kind, axis = 'revolute', UsdPhysics.RevoluteJoint(prim).GetAxisAttr().Get()
-            elif prim.IsA(UsdPhysics.PrismaticJoint):
-                kind, axis = 'prismatic', UsdPhysics.PrismaticJoint(prim).GetAxisAttr().Get()
-            elif prim.IsA(UsdPhysics.FixedJoint):
-                kind, axis = 'fixed', 'X'
-            else:
-                kind, axis = 'unsupported', 'X'
-            edge = (frame(joint.GetLocalRot0Attr().Get(), joint.GetLocalPos0Attr().Get()),
-                    frame(joint.GetLocalRot1Attr().Get(), joint.GetLocalPos1Attr().Get()),
-                    kind, {'X': 0, 'Y': 1, 'Z': 2}[axis], indices.get(prim.GetName()), prim.GetName())
-            graph.setdefault(str(left[0]), []).append((str(right[0]), edge, False))
-            graph.setdefault(str(right[0]), []).append((str(left[0]), edge, True))
-        start, goal = str(bodies['base'].GetPath()), str(bodies['ee'].GetPath())
-        queue, found = [(start, [], {start})], []
-        while queue:
-            node, chain, visited = queue.pop(0)
-            if node == goal:
-                found.append(chain)
-                continue
-            for neighbor, edge, reverse in graph.get(node, []):
-                if neighbor not in visited:
-                    queue.append((neighbor, chain + [(edge, reverse)], visited | {neighbor}))
-        if len(found) != 1:
-            raise ValueError('USD FK requires one unambiguous serial base-to-ee joint chain')
-        self.chain = found[0]
-        for edge, _ in self.chain:
-            _left, _right, kind, _axis, index, name = edge
-            if kind not in ('fixed', 'revolute', 'prismatic') or (kind != 'fixed' and index is None):
-                raise ValueError(f'USD FK joint {name!r} must be fixed or declared in arm.joints')
-            if kind != 'fixed' and arm.joints[index].type != kind:
-                raise ValueError(f'USD FK joint {name!r} differs from its declared joint type')
-        cache = UsdGeom.XformCache()
-        matrices = [np.asarray(cache.GetLocalToWorldTransform(bodies[key])).T for key in ('base', 'ee')]
-        for matrix in matrices:
-            if not np.allclose(matrix[:3, :3].T @ matrix[:3, :3], np.eye(3), atol=1e-6):
-                raise ValueError('USD FK does not support scaled body transforms')
-        expected = np.linalg.inv(matrices[0]) @ matrices[1]
-        expected[:3, 3] *= scale
-        expected[:3, 3] += expected[:3, :3] @ self.position_offset_m
+        # Newton computes exact structural dependencies here; no IK optimizer is
+        # constructed or run. This remains reliable at singular configurations.
+        dependencies = []
+        for body_id in (self.base_id, self.ee_id):
+            objective = newton.ik.IKObjectivePosition(
+                body_id, wp.vec3(), wp.zeros(1, dtype=wp.vec3, device=model.device))
+            objective.set_batch_layout(3, 0, 1)
+            objective.bind_device(model.device)
+            objective.init_buffers(model, newton.ik.IKJacobianType.ANALYTIC)
+            dependencies.append(objective.affects_dof.numpy().astype(bool))
+        base_dependencies, ee_dependencies = dependencies
+        if np.any(base_dependencies & ~ee_dependencies):
+            raise ValueError('USD FK requires the declared base to precede the ee')
+        declared = np.zeros(model.joint_dof_count, dtype=bool)
+        declared[self._dof_ids] = True
+        missing_dofs = np.flatnonzero(ee_dependencies & ~base_dependencies & ~declared)
+        if missing_dofs.size:
+            joint_id = int(np.searchsorted(dof_starts, missing_dofs[0], side='right') - 1)
+            name = model.joint_label[joint_id].rsplit('/', 1)[-1]
+            raise ValueError(f'USD FK joint {name!r} must be fixed or declared in arm.joints')
+
+        child_joints = np.flatnonzero(model.joint_child.numpy() == self.ee_id)
+        if child_joints.size != 1:
+            raise ValueError('USD FK ee must have exactly one incoming joint')
+        articulation_start = int(model.articulation_start.numpy()[0])
+        self._jacobian_row = 6 * (int(child_joints[0]) - articulation_start)
+        self._state = model.state()
+        self._joint_q = self._state.joint_q
+        self._joint_qd = self._state.joint_qd
+        self._default_q = model.joint_q.numpy().copy()
+
+        # Model initialization poses are the authored USD frames returned by
+        # Newton's importer, before evaluating the declared joints at zero.
+        position, orientation = self._tcp_pose(model.body_q.numpy())
+        expected = make_pose(position, matrix_from_quat(orientation)).numpy()
         if not np.allclose(self.fk(np.zeros(len(arm.joints))), expected, atol=2e-5, rtol=0):
             raise ValueError('USD FK zero pose disagrees with authored base/ee transforms')
 
-    def fk(self, joint_positions):
+    def _tcp_pose(self, body_poses):
+        from isaaclab.utils.math import quat_apply, subtract_frame_transforms
+
+        poses = torch.as_tensor(body_poses, dtype=torch.float64)
+        base, ee = poses[self.base_id], poses[self.ee_id]
+        position, orientation = subtract_frame_transforms(
+            base[:3] * self._meters_per_unit, base[3:], ee[:3] * self._meters_per_unit, ee[3:])
+        offset = position.new_tensor(self.position_offset_m)
+        return position + quat_apply(orientation, offset), orientation
+
+    def _evaluate(self, joint_positions):
+        import newton
+
         q = np.asarray(joint_positions, dtype=float)
         if q.shape != (len(self.arm.joints),) or not np.isfinite(q).all():
             raise ValueError(f'FK requires {len(self.arm.joints)} finite action-order radians/metres')
-        result = np.eye(4)
-        for (left, right, kind, axis, index, _name), reverse in self.chain:
-            motion = np.eye(4)
-            if kind == 'revolute':
-                vector = np.zeros(3)
-                vector[axis] = math.sin(q[index] / 2)
-                motion[:3, :3] = _numpy_rotation(np.r_[vector, math.cos(q[index] / 2)])
-            elif kind == 'prismatic':
-                motion[axis, 3] = q[index]
-            transform = left @ motion @ np.linalg.inv(right)
-            result = result @ (np.linalg.inv(transform) if reverse else transform)
-        result[:3, 3] += result[:3, :3] @ self.position_offset_m
-        return result
+        coordinates = self._default_q.copy()
+        coordinates[self._coordinate_ids] = q / self._coordinate_units
+        # eval_jacobian reads state.joint_q, so FK and Jacobian share this buffer.
+        self._joint_q.assign(coordinates)
+        newton.eval_fk(self._model, self._joint_q, self._joint_qd, self._state)
+        return self._state.body_q.numpy()
 
-    def jacobian(self, joint_positions, *, epsilon=1e-6):
-        """Differentiate cached FK at the TCP; rows are base-frame linear/angular velocity.
+    def fk(self, joint_positions):
+        from isaaclab.utils.math import make_pose, matrix_from_quat
+
+        position, orientation = self._tcp_pose(self._evaluate(joint_positions))
+        return make_pose(position, matrix_from_quat(orientation)).numpy()
+
+    def jacobian(self, joint_positions):
+        """Return the TCP Jacobian; rows are base-frame linear/angular velocity.
 
         Columns retain manifest order and use radians/metres. Gripper roles have
         zero columns because a Cartesian arm command must preserve their targets.
         """
-        q = np.asarray(joint_positions, dtype=float)
-        current = self.fk(q)
-        if not math.isfinite(epsilon) or epsilon <= 0:
-            raise ValueError('FK Jacobian epsilon must be finite and positive')
-        result = np.zeros((6, len(self.arm.joints)))
-        for index, joint in enumerate(self.arm.joints):
-            if joint.role != 'arm':
-                continue
-            offset = np.zeros_like(q)
-            offset[index] = epsilon
-            before, after = self.fk(q - offset), self.fk(q + offset)
-            result[:3, index] = (after[:3, 3] - before[:3, 3]) / (2 * epsilon)
-            rotation_rate = (after[:3, :3] - before[:3, :3]) / (2 * epsilon)
-            angular = rotation_rate @ current[:3, :3].T
-            result[3:, index] = np.array([angular[2, 1] - angular[1, 2],
-                                         angular[0, 2] - angular[2, 0],
-                                         angular[1, 0] - angular[0, 1]]) / 2
-        return result
+        import newton
+        from isaaclab.utils.math import quat_apply, quat_apply_inverse
+
+        poses = torch.as_tensor(self._evaluate(joint_positions), dtype=torch.float64)
+        ee, base = poses[self.ee_id], poses[self.base_id]
+        jacobian = newton.eval_jacobian(self._model, self._state).numpy()
+        rows = jacobian[0, self._jacobian_row:self._jacobian_row + 6]
+        result = torch.as_tensor(rows[:, self._dof_ids], dtype=torch.float64).clone()
+        result[:3] *= self._meters_per_unit
+        com = ee.new_tensor(self._model.body_com.numpy()[self.ee_id]) * self._meters_per_unit
+        offset_world = quat_apply(ee[3:], ee.new_tensor(self.position_offset_m) - com)
+        result[:3] += torch.cross(result[3:].T, offset_world.expand(len(self.arm.joints), -1), dim=-1).T
+        for half in (slice(0, 3), slice(3, 6)):
+            result[half] = quat_apply_inverse(base[3:], result[half].T).T
+        result /= result.new_tensor(self._coordinate_units)
+        gripper_ids = [index for index, joint in enumerate(self.arm.joints) if joint.role != 'arm']
+        result[:, gripper_ids] = 0
+        return result.numpy()
 
     def inverse(self, target_pose_base, measured_joint_positions, *, options=None, max_iterations=12,
                 position_tolerance_m=1e-5, orientation_tolerance_rad=1e-4):
         """Invert a commanded TCP pose locally, without physics or integral feedback.
 
-        ``target_pose_base`` is a rigid 4x4 transform in the declared arm-base
-        frame. The deterministic branch starts at the measured manifest-order
-        radians/metres. Internal FK/DLS iterations use the unchanged per-step
-        options; the final physical command also respects those joint-step bounds
-        relative to the original measurement, plus runtime limits. Gripper roles
-        remain exactly measured. Returned errors describe this final bounded
-        command, and convergence uses only the arm's declared orientation axes.
-
-        Unlike the physical tracking controller, this inverts FK(action) targets
-        that already encode their source command's load compensation. It never
-        advances a simulator or adds another integral bias.
+        The target is a rigid base-frame 4x4 transform. Iteration starts at the
+        measured manifest-order radians/metres. The dispatched command respects
+        the original measurement's joint-step window and declared limits, while
+        gripper joints remain exactly measured. Returned errors describe that
+        final bounded command, using only the declared orientation axes.
         """
+        from isaaclab.utils.math import compute_pose_error, quat_from_matrix
+
         if (not isinstance(max_iterations, int) or isinstance(max_iterations, bool) or max_iterations < 1
                 or any(not math.isfinite(value) or value <= 0
                        for value in (position_tolerance_m, orientation_tolerance_rad))):
@@ -423,79 +462,63 @@ class ArmKinematics:
         if (target.shape != (4, 4) or not np.isfinite(target).all()
                 or not np.allclose(target[3], [0., 0., 0., 1.], atol=1e-8, rtol=0)
                 or not np.allclose(target[:3, :3].T @ target[:3, :3], np.eye(3), atol=1e-6, rtol=0)
-                or not np.isclose(np.linalg.det(target[:3, :3]), 1., atol=1e-6, rtol=0)):
+                or not np.isclose(torch.det(torch.from_numpy(target[:3, :3])).item(), 1., atol=1e-6, rtol=0)):
             raise ValueError('Inverse target must be a finite rigid 4x4 base-frame transform')
         measured = np.asarray(measured_joint_positions, dtype=float).copy()
-        self.fk(measured)  # Validate shape and finiteness before indexing roles.
+        self.fk(measured)
         options = options or IKOptions()
         local_options = replace(options, position_tolerance_m=position_tolerance_m,
                                 orientation_tolerance_rad=orientation_tolerance_rad)
-        ids = [index for index, joint in enumerate(self.arm.joints) if joint.role == 'arm']
-        step_caps = np.array([options.max_joint_step_rad if self.arm.joints[index].type == 'revolute'
-                              else options.max_joint_step_m for index in ids])
-        lower = np.array([math.radians(self.arm.joints[index].limits[0])
-                          if self.arm.joints[index].type == 'revolute' else self.arm.joints[index].limits[0]
-                          for index in ids])
-        upper = np.array([math.radians(self.arm.joints[index].limits[1])
-                          if self.arm.joints[index].type == 'revolute' else self.arm.joints[index].limits[1]
-                          for index in ids])
-        dispatch_lower = np.maximum(lower, measured[ids] - step_caps)
-        dispatch_upper = np.minimum(upper, measured[ids] + step_caps)
+        bounds = _arm_bounds(self.arm, options)
+        ids = bounds['ids']
+        step_caps = np.asarray(bounds['step_caps'])
+        dispatch_lower = np.maximum(bounds['lower'], measured[ids] - step_caps)
+        dispatch_upper = np.minimum(bounds['upper'], measured[ids] + step_caps)
         if np.any(dispatch_lower > dispatch_upper):
             raise ValueError('Measured arm joint lies beyond the runtime limit and permitted command step')
-        target_quaternion = _numpy_quaternion(target[:3, :3])
+        step = _JointStep(self.arm, local_options, num_envs=1, device='cpu')
+        target_position = torch.from_numpy(target[None, :3, 3].copy())
+        target_orientation = quat_from_matrix(torch.from_numpy(target[None, :3, :3].copy()))
         q, limited = measured.copy(), False
         for _ in range(max_iterations):
             current = self.fk(q)
-            solved = solve_damped_step(self.arm, torch.from_numpy(q), current[:3, 3],
-                                       _numpy_quaternion(current[:3, :3]), self.jacobian(q),
-                                       target[:3, 3], target_quaternion, options=local_options)
+            solved = step.solve(torch.from_numpy(q[None].copy()),
+                                torch.from_numpy(current[None, :3, 3].copy()),
+                                quat_from_matrix(torch.from_numpy(current[None, :3, :3].copy())),
+                                torch.from_numpy(self.jacobian(q)[None]),
+                                target_position, target_orientation)
             limited |= bool(solved.limited.item())
             if solved.converged.item():
                 break
-            q = solved.joint_positions[0].numpy()
+            q = solved.joint_positions[0].numpy().copy()
         bounded = q.copy()
         bounded[ids] = np.clip(q[ids], dispatch_lower, dispatch_upper)
         limited |= bool(np.any(bounded != q))
-        current = self.fk(bounded)
-        position_error = float(np.linalg.norm(target[:3, 3] - current[:3, 3]))
+        current = torch.from_numpy(self.fk(bounded)[None])
+        position_error, rotation_error = compute_pose_error(
+            current[:, :3, 3], quat_from_matrix(current[:, :3, :3]),
+            target_position, target_orientation, rot_error_type='axis_angle')
+        position_error = position_error.norm(dim=-1)
         axes = [{'x': 0, 'y': 1, 'z': 2}[axis] for axis in self.arm.ik.orientation_axes]
-        rotation_error = _rotation_error(torch.from_numpy(target_quaternion[None]),
-                                         torch.from_numpy(_numpy_quaternion(current[:3, :3])[None]))
-        orientation_error = float(rotation_error[0, axes].norm()) if axes else 0.
-        return IKResult(torch.from_numpy(bounded[None]), torch.tensor([position_error], dtype=torch.float64),
-                        torch.tensor([orientation_error], dtype=torch.float64),
-                        torch.tensor([position_error <= position_tolerance_m
-                                      and orientation_error <= orientation_tolerance_rad]),
-                        torch.tensor([limited]))
+        orientation_error = rotation_error[:, axes].norm(dim=-1)
+        return IKResult(torch.from_numpy(bounded[None]), position_error, orientation_error,
+                        (position_error <= position_tolerance_m)
+                        & (orientation_error <= orientation_tolerance_rad), torch.tensor([limited]))
 
 
-def _numpy_rotation(quaternion):
-    x, y, z, w = np.asarray(quaternion, dtype=float)
-    norm = np.linalg.norm((x, y, z, w))
-    if not math.isfinite(norm) or norm < 1e-12:
-        raise ValueError('FK joint frame quaternion must be finite and nonzero')
-    x, y, z, w = np.asarray((x, y, z, w)) / norm
-    return np.array([[1 - 2 * (y*y + z*z), 2 * (x*y - z*w), 2 * (x*z + y*w)],
-                     [2 * (x*y + z*w), 1 - 2 * (x*x + z*z), 2 * (y*z - x*w)],
-                     [2 * (x*z - y*w), 2 * (y*z + x*w), 1 - 2 * (x*x + y*y)]])
 
 
-def _numpy_quaternion(rotation):
-    """Convert a proper rotation matrix to XYZW without a SciPy dependency."""
-    trace = np.trace(rotation)
-    if trace > 0:
-        scale = 2 * math.sqrt(1 + trace)
-        result = np.array([(rotation[2, 1] - rotation[1, 2]) / scale,
-                           (rotation[0, 2] - rotation[2, 0]) / scale,
-                           (rotation[1, 0] - rotation[0, 1]) / scale, scale / 4])
-    else:
-        first = int(np.argmax(np.diag(rotation)))
-        second, third = (first + 1) % 3, (first + 2) % 3
-        scale = 2 * math.sqrt(1 + rotation[first, first] - rotation[second, second] - rotation[third, third])
-        result = np.empty(4)
-        result[first] = scale / 4
-        result[second] = (rotation[first, second] + rotation[second, first]) / scale
-        result[third] = (rotation[first, third] + rotation[third, first]) / scale
-        result[3] = (rotation[third, second] - rotation[second, third]) / scale
-    return result / np.linalg.norm(result)
+def make_ik(robot, arm, **kwargs):
+    """Construct the optional arm-owned IK backend, or the library adapter."""
+    from core.arms.spec import load_arm_utils
+
+    hook = getattr(load_arm_utils(arm), 'make_ik', None)
+    return hook(robot, arm, **kwargs) if hook is not None else ArticulationIK(robot, arm, **kwargs)
+
+
+def make_kinematics(arm, **kwargs):
+    """Construct the optional arm-owned command kinematics, or Newton FK."""
+    from core.arms.spec import load_arm_utils
+
+    hook = getattr(load_arm_utils(arm), 'make_kinematics', None)
+    return hook(arm, **kwargs) if hook is not None else ArmKinematics.from_arm(arm, **kwargs)

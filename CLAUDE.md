@@ -44,6 +44,7 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
 - Newton imports scene topology once. Declare objects before model construction, then park/reposition them;
   do not add rigid bodies during a running episode.
 - Data generation uses task-folder `expert.py` waypoints and arm-declared `ik` TCP/orientation constraints.
+  IK and FK math come from Isaac Lab and Newton; `ik.py` only handles frames, caps and limits.
   The pick-place expert must not add a deliberate wrist roll after pickup. Preserve its pickup orientation
   through transport; earlier rolled diagnostic datasets are not approved final training sources.
   Scripted generation, Mimic and calibration replay share `sim.datagen.rollout`: capture pre-action frames,

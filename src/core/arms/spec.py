@@ -154,6 +154,9 @@ class IKSpec:
     # Rotation-vector components in the arm-base frame; omitted axes mean position-only IK.
     orientation_axes: tuple[str, ...] = ()
     position_offset_m: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    method: str = "dls"
+    joint_limit_avoidance_gain: float = 0.0
+    joint_limit_avoidance_margin: float = 0.3
 
 
 @dataclass(frozen=True, slots=True)
@@ -331,7 +334,19 @@ def _parse_spec(name, directory, raw):
     axes = _names(ik_raw.get("orientation_axes", []), "ik.orientation_axes")
     if set(axes) - {"x", "y", "z"}:
         raise ValueError("ik.orientation_axes must select x, y and/or z rotation-error components")
-    ik = IKSpec(axes, _vector(ik_raw.get("position_offset_m", [0, 0, 0]), 3, "ik.position_offset_m"))
+    method = ik_raw.get("method", "dls")
+    if method not in ("dls", "adaptive_dls"):
+        raise ValueError("ik.method must be dls or adaptive_dls")
+    gain = _number(ik_raw.get("joint_limit_avoidance_gain", 0.0), "ik.joint_limit_avoidance_gain")
+    margin = _number(ik_raw.get("joint_limit_avoidance_margin", 0.3), "ik.joint_limit_avoidance_margin")
+    if gain < 0:
+        raise ValueError("ik.joint_limit_avoidance_gain must be nonnegative")
+    if margin <= 0:
+        raise ValueError("ik.joint_limit_avoidance_margin must be positive")
+    if gain > 0 and sum(joint.role == "arm" for joint in joints) <= 3 + len(axes):
+        raise ValueError("arm has no spare joint for limit avoidance")
+    ik = IKSpec(axes, _vector(ik_raw.get("position_offset_m", [0, 0, 0]), 3, "ik.position_offset_m"),
+                method, gain, margin)
     return ArmSpec(name, directory, _relative_file(directory, raw["usd_path"], "usd_path"),
                    _relative_file(directory, raw["utils"], "utils") if raw.get("utils") else None,
                    links, tuple(joints), gripper, wrist_roll, cameras,

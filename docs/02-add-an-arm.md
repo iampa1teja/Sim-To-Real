@@ -113,8 +113,49 @@ when you have no measurement rather than copying another arm's fit. See the comp
 
 For scripted/Mimic generation, optional `[arm.ik]` declares `position_offset_m`, the control point in
 the EE-link frame, and `orientation_axes`, selected `x`, `y`, `z` rotation-error components in the arm-base
-frame. Omitted axes request position-only IK. Select constraints the arm can control and measure the
-TCP used by your task; an EE origin and an object-centre grasp point are different points.
+frame. Omitted axes request position-only IK. `method` selects `"dls"` (the default) or `"adaptive_dls"`.
+`joint_limit_avoidance_gain` defaults to `0.0`; a positive gain enables null-space limit avoidance and
+requires more arm joints than `3 + len(orientation_axes)`. Gripper joints do not count toward that total.
+`joint_limit_avoidance_margin` defaults to `0.3` and must be positive. It is one shared distance from a
+joint limit, in radians for revolute joints and metres for prismatic joints, including mixed chains.
+
+Typical settings for five, six and seven arm joints are:
+
+```toml
+# Five arm joints: position plus tilt; yaw stays free.
+[arm.ik]
+orientation_axes = ["x", "y"]
+method = "dls"
+
+# Six arm joints: full pose (use this table instead of the one above).
+# [arm.ik]
+# orientation_axes = ["x", "y", "z"]
+# method = "dls"
+
+# Seven arm joints: full pose with a spare joint for limit avoidance.
+# [arm.ik]
+# orientation_axes = ["x", "y", "z"]
+# method = "adaptive_dls"
+# joint_limit_avoidance_gain = 0.1
+# joint_limit_avoidance_margin = 0.3
+```
+
+Select constraints the arm can control and measure the TCP used by your task; an EE origin and an
+object-centre grasp point are different points. Isaac Lab's `DifferentialIKController` supplies the IK
+steps, and Newton supplies offline FK and Jacobians. For a different library backend, the optional
+`<arm>_utils.py` module can define `make_ik(robot, arm, **kwargs)` and `make_kinematics(arm, **kwargs)`.
+These hooks must provide the same public surface as `ArticulationIK` and `ArmKinematics`, respectively.
+Keep their arm-specific settings in `arm.toml`.
+
+Newton 1.6.1 requires each USD joint's `physics:body0` to name the body toward the base and
+`physics:body1` to name the child toward the tool. A rotated joint axis is supported. If the importer
+reports a reversed joint, swap body0/body1 and the local frames in the USD; the error names the affected
+joint. The adapter preserves the import error and provides this correction.
+
+Newton 1.6.1 retains rigid USD distances in authored stage units. The adapter reads the importer's
+`linear_unit` metadata and converts poses, prismatic coordinates and Jacobian rows/columns at the
+library boundary. The public action coordinates, TCP offsets and IK settings remain radians/metres,
+including arms authored with `metersPerUnit = 0.001`.
 
 ## Choose calibration deliberately
 

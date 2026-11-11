@@ -81,8 +81,9 @@ joint commands in manifest order. It applies no teleop wrist rezeroing.
 
 Declare `[arm.ik] position_offset_m` in the EE link frame and `orientation_axes`
 as supported arm-base rotation-error components. A low-DOF arm cannot enforce
-arbitrary orientation. The controller uses the articulation Jacobian and bounded
-load-error compensation. Failed reachability/grasping must be fixed in the expert,
+arbitrary orientation. Isaac Lab `DifferentialIKController` supplies every step;
+Newton FK supplies command poses. The controller uses the articulation Jacobian
+and bounded load-error compensation. Failed reachability/grasping must be fixed in the expert,
 TCP/arm contract or real calibration; do not relax task success or change physics
 to label failures as successes.
 

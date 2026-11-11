@@ -172,7 +172,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from sim.envs.mdp.starts import reset_from_starts
     from sim.envs.scene_builder import drop_unused_camera_outputs
     from sim.datagen.dr_replay import discover_sim_cameras
-    from sim.datagen.ik import ArticulationIK, ArmKinematics, IKOptions
+    from sim.datagen.ik import IKOptions, make_ik, make_kinematics
     from sim.recording.lerobot_recorder import LeRobotRecorder
 
     if Path(args.destination).exists():
@@ -212,9 +212,9 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
         options = IKOptions(integral_gain=getattr(args, "ik_integral_gain", 1.0),
                             max_integral_bias_rad=getattr(args, "ik_max_integral_bias_rad", .08),
                             max_integral_bias_m=getattr(args, "ik_max_integral_bias_m", .005))
-        ik = ArticulationIK(raw.scene["robot"], arm, position_offset_m=offset,
+        ik = make_ik(raw.scene["robot"], arm, position_offset_m=offset,
                             control_dt=cfg.decimation * cfg.sim.dt, options=options)
-        kinematics = ArmKinematics.from_arm(arm, position_offset_m=ik.position_offset_m)
+        kinematics = make_kinematics(arm, position_offset_m=ik.position_offset_m)
         return GenerationContext(args, env, task, arm, mapping, calibration, cameras, writer, ik, kinematics, producer)
     except BaseException:
         try:
@@ -236,6 +236,9 @@ def make_report(context, *, source_provenance=None):
             "joint_mapping": context.calibration.mapping, "calibration": context.calibration.provenance,
             "control_offset_m": np.asarray(context.ik.position_offset_m).tolist(),
             "ik_controller": {
+                "library": "isaaclab.controllers.DifferentialIKController",
+                "method": arm.ik.method,
+                "joint_limit_avoidance_gain": arm.ik.joint_limit_avoidance_gain,
                 "mode": {"scripted": "native_jacobian_feedback", "mimic": "bounded_command_pose_inverse",
                          "calibration_replay": "recorded_joint_command_replay"}.get(context.source, context.source),
                 "integral_feedback_applied": context.source == "scripted" and context.ik.options.integral_gain > 0,
