@@ -83,11 +83,33 @@ def cpu_time(process):
 
 
 def transport(spec, server, client, meter, obs):
-    for i in range(spec['warmup']):
-        values = sync_query(spec, client, obs, i)
+    meter.phase = 'warmup'
+    warmup_attempts = warmup_successes = 0
+    warmup_failures = []
+    while warmup_successes < spec['warmup']:
+        i = warmup_attempts
+        meter.iteration = i
+        warmup_attempts += 1
+        before = time.monotonic()
+        try:
+            values = sync_query(spec, client, obs, i)
+        except TimeoutError as exc:
+            if len(warmup_failures) >= spec.get('warmup_timeout_budget', 0):
+                raise
+            stats = server.command('stats')
+            warmup_failures.append({'request_id': str(i), 'attempt_zero_based': i,
+                'exception': type(exc).__name__, 'message': str(exc),
+                'elapsed_ms': (time.monotonic() - before) * 1000,
+                'client_encoded': len(meter.values['encode_ms']),
+                'client_decoded': len(meter.values['decode_ms']),
+                'server_encoded': len(stats['encode_ms']), 'server_decoded': len(stats['decode_ms'])})
+            # The next iteration is a new observation/request ID, not a replay.
+            # Measured requests remain fail-fast; no failed latency sample is removed.
+            continue
         assert values.shape == (spec['chunk'], 6) and np.isfinite(values).all()
         if not spec.get('real_forward'):
             assert np.all(values == 0)
+        warmup_successes += 1
     server.command('reset')
     meter.reset()
     cproc, sproc = psutil.Process(), psutil.Process(server.process.pid)
@@ -96,11 +118,14 @@ def transport(spec, server, client, meter, obs):
     if spec.get('capture'):
         from wire import Capture
         capture = Capture(spec['destination'], spec['port'])
+        meter.capture = capture
     c0, s0 = cpu_time(cproc), cpu_time(sproc)
     start = time.monotonic()
+    meter.phase = 'measured'
     for i in range(spec['iterations']):
+        meter.iteration = i
         before = time.perf_counter_ns()
-        values = sync_query(spec, client, obs, i + spec['warmup'])
+        values = sync_query(spec, client, obs, i + warmup_attempts)
         rtts.append((time.perf_counter_ns() - before) / 1e6)
         assert values.shape == (spec['chunk'], 6) and np.isfinite(values).all()
         if not spec.get('real_forward'):
@@ -114,7 +139,10 @@ def transport(spec, server, client, meter, obs):
     assert meter.values['decoded_bytes'] == server_values['encoded_bytes']
     c1, s1 = cpu_time(cproc), cpu_time(sproc)
     wire = capture.stop(spec['iterations']) if capture else None
+    meter.capture = None
     return {'rtt_ms': summary(rtts), 'elapsed_s': elapsed, 'wire': wire,
+            'warmup_successes': warmup_successes, 'warmup_attempts': warmup_attempts,
+            'warmup_failures': warmup_failures,
             'client_cpu_percent': 100 * (c1 - c0) / elapsed,
             'server_cpu_percent': 100 * (s1 - s0) / elapsed,
             'client_codec': meter.summary(),
@@ -274,10 +302,33 @@ def run_case(spec):
             assert client.ping()
         else:
             client, _ = remote_client(spec)
+        server.command('reset')
+        meter.reset()
         obs = payload(spec['cameras'], spec['height'], spec['width'])
         result = (transport if spec['mode'] == 'A' else control)(spec, server, client, meter, obs)
         result['spec'] = spec
         return result
+    except Exception as exc:
+        failure = {'spec': spec, 'exception': type(exc).__name__, 'message': str(exc),
+                   'phase': getattr(meter, 'phase', 'setup-or-control'),
+                   'iteration_zero_based': getattr(meter, 'iteration', None),
+                   'client_codec': {k: list(v) for k, v in meter.values.items()}}
+        try:
+            failure['server_codec'] = server.command('stats')
+        except Exception as stats_error:
+            failure['server_stats_error'] = repr(stats_error)
+        capture = getattr(meter, 'capture', None)
+        if capture is not None:
+            try:
+                failure['wire'] = capture.stop(1, require_exchange=False)
+            except Exception as capture_error:
+                failure['capture_error'] = repr(capture_error)
+        destination = Path(spec['destination'])
+        directory = destination.parent.parent / 'failures'
+        directory.mkdir(exist_ok=True)
+        name = f'{destination.parent.name}-{destination.stem}-{time.time_ns()}.json'
+        (directory / name).write_text(json.dumps(failure, indent=2))
+        raise
     finally:
         if client:
             client.close()
@@ -313,6 +364,8 @@ def main():
     parser.add_argument('--mode', choices=['A', 'B'], default='A')
     parser.add_argument('--iterations', type=int, default=1000)
     parser.add_argument('--warmup', type=int, default=50)
+    parser.add_argument('--warmup-timeout-budget', type=int, default=3,
+                        help='Record at most this many warmup timeouts while still requiring all successful warmups; measured requests fail fast')
     parser.add_argument('--seconds', type=float, default=60)
     parser.add_argument('--output', type=Path, default=HERE / 'results/localhost')
     parser.add_argument('--limit', type=int)
@@ -356,7 +409,8 @@ def main():
         destination = args.output / (name + '.json')
         if destination.exists():
             continue
-        spec.update(iterations=args.iterations, warmup=args.warmup, seconds=args.seconds,
+        spec.update(iterations=args.iterations, warmup=args.warmup, warmup_timeout_budget=args.warmup_timeout_budget,
+                    seconds=args.seconds,
                     checkpoint_dir=str(HERE / 'checkpoints'), device=args.device, real_forward=args.real_forward,
                     netem_ms=args.netem_ms, capture=args.capture, config_path=str(args.output / (name + '.server.json')),
                     destination=str(destination))

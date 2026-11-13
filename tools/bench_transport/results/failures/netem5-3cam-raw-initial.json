@@ -1,0 +1,10 @@
+{
+  "cell": "A-480x640-c3-h16-lerobot-raw-d0-sync",
+  "network": "netem-5ms",
+  "stage": "warmup",
+  "error": "TimeoutError: Remote inference request deadline exceeded",
+  "client_action_timeout_s": 5,
+  "measured_iterations": 0,
+  "warmup_iteration": "not recorded in original harness",
+  "note": "Original failure retained before any diagnostic retry. Full supervisor exited 1; its EXIT trap removed the qdisc."
+}

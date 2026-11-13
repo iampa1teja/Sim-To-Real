@@ -1,0 +1,7 @@
+{"request_id": 0, "status": "timeout", "error": "Remote inference request deadline exceeded", "elapsed_ms": 5010.095329998876, "client_encoded": 1, "client_decoded": 0, "server_encoded": 0, "server_decoded": 0}
+{"request_id": 1, "status": "ok", "elapsed_ms": 61.454205999325495, "client_encoded": 2, "client_decoded": 1, "server_encoded": 1, "server_decoded": 1}
+{"request_id": 2, "status": "ok", "elapsed_ms": 43.17101999913575, "client_encoded": 3, "client_decoded": 2, "server_encoded": 2, "server_decoded": 2}
+{"request_id": 3, "status": "ok", "elapsed_ms": 30.7295989987324, "client_encoded": 4, "client_decoded": 3, "server_encoded": 3, "server_decoded": 3}
+{"request_id": 4, "status": "ok", "elapsed_ms": 27.431586000602692, "client_encoded": 5, "client_decoded": 4, "server_encoded": 4, "server_decoded": 4}
+{"request_id": 5, "status": "ok", "elapsed_ms": 27.2856790033984, "client_encoded": 6, "client_decoded": 5, "server_encoded": 5, "server_decoded": 5}
+Loading weights from local directory

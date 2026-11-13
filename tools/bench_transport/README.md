@@ -94,7 +94,7 @@ test "$bench_test_exit" -eq 0
 
 The original test fixture generated two inapplicable jaw cases that skipped even with imports enabled (`cpu-tests-imports.txt` records that baseline). The approved test-only correction shares cached live imports, retains both embodiments in the generic import test, and gives the two parallel-specific tests only the parallel fixture. No skip or deselection flags are used. The full rerun is recorded in `cpu-tests-final.txt`.
 
-The matrix is **432 cells**: 72 transport payload/stack combinations × three latency settings, plus 216 control cells. Every A/C cell has 50 warmups then 1,000 measured requests. Every B cell runs 1,800 scheduled ticks over 60 wall-clock seconds (3.6 hours of B runs alone). Cases run serially in fresh client/server processes. Completed result files are resume checkpoints: rerunning the same command skips them. Use a new output directory for different iteration counts, code, hardware, inference modes or tuning. Never place a smoke or GPU run in the accepted CPU result directories.
+The matrix is **432 cells**: 72 transport payload/stack combinations × three latency settings, plus 216 control cells. Every A/C cell requires 50 successful warmups then 1,000 measured requests. Up to three warmup timeouts are recorded separately (`--warmup-timeout-budget=3`); each later request has a new observation/request ID, with no replay. Measured requests remain fail-fast. This preserves a discovered cold-session LeRobot raw delivery failure at 5 ms instead of hiding it or changing Zenoh settings. See the report's cold-session section and `results/failures/`. This offline benchmark behavior does not establish production engine recovery. Every B cell runs 1,800 scheduled ticks over 60 wall-clock seconds (3.6 hours of B runs alone). Cases run serially in fresh client/server processes. Completed result files are resume checkpoints: rerunning the same command skips them. Use a new output directory for different iteration counts, code, hardware, inference modes or tuning. Never place a smoke or GPU run in the accepted CPU result directories.
 
 Without packet privileges, both A and B still run through `bench.py` (omit `--capture`), but wire fields are absent and the final audit fails; do not claim complete acceptance. If netem cannot be used on another host, record C as skipped with the actual error rather than fabricating latency results. On this host netem is available in the dedicated namespace.
 
@@ -112,6 +112,17 @@ docker rm -f s2r-transport-netns
 ```
 
 The shell trap removes its netem qdisc on normal exit/failure. The final audit checks coverage, sample counts/statistics, request/response byte equality, nonempty loss-free captures, packet-length totals, all 1,800 tick indices, held counts/ages, production invariance and a zero-skip CPU-suite result. Inspect its evidence before accepting the report; it does not infer successful physical behavior.
+
+To reproduce the cold-session diagnostic, stop other benchmark work, apply 5 ms netem in the dedicated namespace, and run:
+
+```bash
+docker exec s2r-transport-netns tc qdisc add dev lo root netem delay 5ms
+docker exec -w "$bench_repo" s2r-transport-netns bash -c \
+  'OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 tools/bench_transport/.venv/bin/python tools/bench_transport/diagnose_delivery.py --output tools/bench_transport/results/failures/delivery-reproduction.json'
+docker exec s2r-transport-netns tc qdisc del dev lo root
+```
+
+The diagnostic keeps the same admitted session for six independent requests and captures admission plus data traffic. It does not change LeRobot's five-second action deadline or DROP congestion policy.
 
 ## Payloads, metrics and raw files
 

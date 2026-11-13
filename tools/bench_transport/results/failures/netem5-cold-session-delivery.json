@@ -1,0 +1,171 @@
+{
+  "spec": {
+    "stack": "lerobot",
+    "encoding": "raw",
+    "cameras": 3,
+    "height": 480,
+    "width": 640,
+    "chunk": 16,
+    "infer_ms": 0,
+    "port": 37961,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "config_path": "tools/bench_transport/results/failures/netem5-cold-session-delivery.server.json",
+    "device": "cpu",
+    "real_forward": false
+  },
+  "action_timeout_s": 5.0,
+  "outcomes": [
+    {
+      "request_id": 0,
+      "status": "timeout",
+      "error": "Remote inference request deadline exceeded",
+      "elapsed_ms": 5010.095329998876,
+      "client_encoded": 1,
+      "client_decoded": 0,
+      "server_encoded": 0,
+      "server_decoded": 0
+    },
+    {
+      "request_id": 1,
+      "status": "ok",
+      "elapsed_ms": 61.454205999325495,
+      "client_encoded": 2,
+      "client_decoded": 1,
+      "server_encoded": 1,
+      "server_decoded": 1
+    },
+    {
+      "request_id": 2,
+      "status": "ok",
+      "elapsed_ms": 43.17101999913575,
+      "client_encoded": 3,
+      "client_decoded": 2,
+      "server_encoded": 2,
+      "server_decoded": 2
+    },
+    {
+      "request_id": 3,
+      "status": "ok",
+      "elapsed_ms": 30.7295989987324,
+      "client_encoded": 4,
+      "client_decoded": 3,
+      "server_encoded": 3,
+      "server_decoded": 3
+    },
+    {
+      "request_id": 4,
+      "status": "ok",
+      "elapsed_ms": 27.431586000602692,
+      "client_encoded": 5,
+      "client_decoded": 4,
+      "server_encoded": 4,
+      "server_decoded": 4
+    },
+    {
+      "request_id": 5,
+      "status": "ok",
+      "elapsed_ms": 27.2856790033984,
+      "client_encoded": 6,
+      "client_decoded": 5,
+      "server_encoded": 5,
+      "server_decoded": 5
+    }
+  ],
+  "client_codec": {
+    "encode_ms": [
+      5.39589,
+      4.898389,
+      1.303922,
+      1.571992,
+      1.478493,
+      1.702848
+    ],
+    "decode_ms": [
+      0.203761,
+      0.284334,
+      0.202555,
+      0.217081,
+      0.266574
+    ],
+    "encoded_bytes": [
+      2765706,
+      2765706,
+      2765706,
+      2765706,
+      2765706,
+      2765706
+    ],
+    "decoded_bytes": [
+      997,
+      997,
+      997,
+      997,
+      997
+    ]
+  },
+  "server_codec": {
+    "encode_ms": [
+      0.175287,
+      0.196591,
+      0.199865,
+      0.217814,
+      0.179228
+    ],
+    "decode_ms": [
+      0.681191,
+      1.568142,
+      1.530751,
+      1.511919,
+      1.348139
+    ],
+    "encoded_bytes": [
+      997,
+      997,
+      997,
+      997,
+      997
+    ],
+    "decoded_bytes": [
+      2765706,
+      2765706,
+      2765706,
+      2765706,
+      2765706
+    ]
+  },
+  "qdisc": "qdisc netem 8003: root refcnt 2 limit 1000 delay 5ms\n Sent 19205036 bytes 694 pkt (dropped 0, overlimits 0 requeues 0) \n backlog 0b 0p requeues 0\n",
+  "wire": {
+    "kernel_dropped_packets": 0,
+    "tcpdump_summary": "542 packets captured\n1084 packets received by filter\n0 packets dropped by kernel\n",
+    "totals": {
+      "request": {
+        "packets": 365,
+        "l2_bytes": 16510918,
+        "ip_bytes": 16505808,
+        "tcp_payload_bytes": 16486820
+      },
+      "response": {
+        "packets": 177,
+        "l2_bytes": 21954,
+        "ip_bytes": 19476,
+        "tcp_payload_bytes": 10264
+      }
+    },
+    "per_exchange": {
+      "request": {
+        "packets": 60.833333333333336,
+        "l2_bytes": 2751819.6666666665,
+        "ip_bytes": 2750968.0,
+        "tcp_payload_bytes": 2747803.3333333335
+      },
+      "response": {
+        "packets": 29.5,
+        "l2_bytes": 3659.0,
+        "ip_bytes": 3246.0,
+        "tcp_payload_bytes": 1710.6666666666667
+      }
+    },
+    "note": "Diagnostic packet accounting includes admission and six independent observations; it is not a steady-state latency matrix cell. Loopback headers/ACKs are included."
+  },
+  "note": "Diagnostic traffic includes admission. Each observation has a new request ID; no request is replayed. Default transport settings and 5 s deadlines are retained."
+}

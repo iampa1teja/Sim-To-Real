@@ -24,7 +24,7 @@ class Capture:
                 raise RuntimeError('tcpdump failed to start')
             line = self.process.stderr.readline()
 
-    def stop(self, iterations):
+    def stop(self, iterations, *, require_exchange=True):
         # Give the capture consumer time to drain already delivered kernel traffic.
         time.sleep(.15)
         self.process.send_signal(signal.SIGINT)
@@ -59,7 +59,8 @@ class Capture:
                 row['ip_bytes'] += ip_length
                 row['tcp_payload_bytes'] += tcp_payload
                 writer.writerow([sec, usec, src, dst, length, ip_length, tcp_payload])
-        assert counts['request']['tcp_payload_bytes'] > 0 and counts['response']['tcp_payload_bytes'] > 0, 'Empty wire capture'
+        if require_exchange:
+            assert counts['request']['tcp_payload_bytes'] > 0 and counts['response']['tcp_payload_bytes'] > 0, 'Empty wire capture'
         self.path.unlink()
         return {'kernel_dropped_packets': int(drops[1]), 'tcpdump_summary': error.decode(),
                 'totals': counts,

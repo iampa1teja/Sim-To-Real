@@ -30,7 +30,11 @@ def load():
 def flatten(row):
     result = {'network': row['_network']}
     result.update({k: row['spec'].get(k) for k in ['mode', 'height', 'width', 'cameras', 'chunk', 'stack',
-        'encoding', 'infer_ms', 'setup', 'iterations', 'warmup', 'seconds', 'prefetch', 'blend', 'refill', 'netem_ms']})
+        'encoding', 'infer_ms', 'setup', 'iterations', 'warmup', 'warmup_timeout_budget', 'seconds', 'prefetch', 'blend', 'refill', 'netem_ms']})
+    if row['spec']['mode'] == 'A':
+        result.update(warmup_successes=row.get('warmup_successes', row['spec']['warmup']),
+                      warmup_attempts=row.get('warmup_attempts', row['spec']['warmup']),
+                      warmup_timeouts=len(row.get('warmup_failures', [])))
     for key in ['client_cpu_percent', 'server_cpu_percent', 'elapsed_s', 'held_ticks', 'ticks',
                 'missed_dispatch_ticks', 'chunk_replacements', 'executed_source_transitions', 'effective_refill_s',
                 'late_chunk_arrivals']:
@@ -70,6 +74,13 @@ def audit(rows):
             if mode == 'A':
                 if spec['iterations'] < 1000 or spec['warmup'] < 50:
                     problems.append(f'{path.name}: insufficient repetitions')
+                failures = row.get('warmup_failures', [])
+                successes = row.get('warmup_successes', spec['warmup'])
+                attempts = row.get('warmup_attempts', spec['warmup'])
+                if successes != spec['warmup'] or attempts != successes + len(failures):
+                    problems.append(f'{path.name}: warmup accounting mismatch')
+                if len(failures) > spec.get('warmup_timeout_budget', 0):
+                    problems.append(f'{path.name}: warmup timeout budget exceeded')
                 if not row.get('wire') or row['wire']['kernel_dropped_packets']:
                     problems.append(f'{path.name}: missing/lossy wire data')
                 with gzip.open(path.with_suffix('.samples.json.gz'), 'rt') as stream:
@@ -223,6 +234,31 @@ def main():
         spec = r['spec']
         vals = [spec['netem_ms'], *[r['rtt_ms'][k] for k in ['p50', 'p95', 'p99', 'max']]]
         report.append('| ' + label(spec) + f" | {spec['stack']} / {spec['encoding']} | " + ' | '.join(map(f, vals)) + ' |')
+    report += ['', '### Cold-session delivery and warmup', '',
+               'The initial 5 ms / three-camera 480×640 / LeRobot raw attempt timed out during warmup '
+               'and stopped the supervisor. A fresh diagnostic reproduced a timeout on request 0: the '
+               'client encoded one observation and the server decoded none. In a separate six-request '
+               'diagnostic using one session, request 0 timed out at about 5,010 ms and the next five '
+               'independent requests completed in 27–61 ms. Netem and the packet sniffer both reported '
+               'zero drops. Captured client TCP payload, including admission, was smaller than the '
+               'six encoded observation payloads. These observations are consistent with the transport\'s '
+               'documented nonblocking DROP publication under startup backpressure; the exact internal '
+               'Zenoh drop mechanism was not instrumented.', '',
+               'Original failures, counters and the diagnostic packet lengths are retained in '
+               '[failures/](results/failures/), including '
+               '[six-request evidence](results/failures/netem5-cold-session-delivery.json). '
+               'The benchmark now records up to three warmup timeouts while still requiring 50 successful '
+               'warmups before sampling. Each subsequent observation has a new request ID; no request is '
+               'replayed. The 1,000 measured requests remain fail-fast, so successful steady-state rows '
+               'do not discard failed measured samples. This diagnostic/manual-client warmup behavior is '
+               'not evidence that RemoteInferenceEngine automatically recovers from such a startup timeout.', '',
+               '| Network | H×W / cameras / chunk | Stack / encoding | Successful warmups | Attempts | Warmup timeouts |',
+               '|---|---|---|---:|---:|---:|']
+    for r in rows:
+        if r.get('warmup_failures'):
+            s = r['spec']
+            report.append(f"| {r['_network']} | {label(s)} | {s['stack']} / {s['encoding']} | "
+                          f"{r['warmup_successes']} | {r['warmup_attempts']} | {len(r['warmup_failures'])} |")
     report += ['', '## Compatibility', '', (HERE / 'COMPATIBILITY.md').read_text(), '',
                '## Recommendation and migration work', '']
     if len(baseline) == 72 and len(controls) == 216:
@@ -261,7 +297,9 @@ def main():
                    'worker separately. LeRobot offers a substantially richer lifecycle/admission and '
                    'asynchronous execution implementation, but adopting it entails two model/processor '
                    'exports or adapters, simulator dispatch/hold integration, contract/calibration mapping, '
-                   'separate serving dependencies, and new reset/fault/prompt parity validation. '
+                   'separate serving dependencies, and new reset/fault/prompt parity validation. The observed '
+                   'cold-session delivery failure also needs a verified transport/startup solution for large raw '
+                   'images under latency; the benchmark warmup allowance is not a production recovery design. '
                    'The CPU comparison does not establish a GPU latency or task-success reason to undertake '
                    'that migration. Validate these decisions against the separate GPU budget before rollout.']
     else:
