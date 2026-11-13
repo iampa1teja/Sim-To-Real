@@ -9,8 +9,8 @@ from pathlib import Path
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
-def apply_room_appearance(stage, room_root, look, asset_dir):
-    """Author the fitted albedo before packaging its texture into the USDZ."""
+def apply_table_appearance(stage, room_root, look, asset_dir):
+    """Bind the fitted wood texture and UVs before renderer topology import."""
     material_root = room_root + "/Materials"
     texture = UsdShade.Shader(stage.GetPrimAtPath(material_root + "/RealWalnut/Texture"))
     texture.GetInput("file").Set(Sdf.AssetPath(str(asset_dir / look["table_texture"])))
@@ -38,6 +38,12 @@ def apply_room_appearance(stage, room_root, look, asset_dir):
         apply_table_planar_uv(stage, room_root, look["table_uv_frame"])
         for wrap in ("wrapS", "wrapT"):
             texture.CreateInput(wrap, Sdf.ValueTypeNames.Token).Set(look.get("table_texture_wrap", "mirror"))
+
+
+def apply_room_appearance(stage, room_root, look, asset_dir):
+    """Apply the fitted room materials at their established startup event."""
+    apply_table_appearance(stage, room_root, look, asset_dir)
+    material_root = room_root + "/Materials"
     wall = UsdShade.Shader(stage.GetPrimAtPath(material_root + "/M_f94acc284ce2/ScanColor"))
     wall.GetInput("scale").Set(Gf.Vec4f(*look["backdrop_texture_scale"]))
     wall.GetInput("bias").Set(Gf.Vec4f(*look["backdrop_texture_bias"]))
@@ -190,10 +196,25 @@ def configure_scene_updates(env, env_ids, scene_spec):
         apply_scene_lighting(env.sim.stage, root, scene_spec.lighting)
 
 
+def spawn_room(prim_path, cfg, translation=None, orientation=None, **kwargs):
+    """Keep static tabletop bindings visible to Newton/Fabric at every resolution."""
+    from sim.envs.scene_builder import spawn_scene_room
+    from sim.scene.appearance import scene_content_root
+
+    root = spawn_scene_room(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
+    scene_spec = cfg.scene_spec
+    if Path(cfg.usd_path).resolve() == scene_spec.room_usd:
+        content = scene_content_root(str(root.GetPath()), scene_spec.room_root)
+        apply_table_appearance(root.GetStage(), content,
+                               scene_spec.appearance.get('appearance', {}), scene_spec.directory)
+    return root
+
+
 def customize(env_cfg, scene_spec):
-    """Keep the scene-specific UV/material hook at its established startup event."""
+    """Prebind static wood; retain room appearance and lighting startup order."""
     from isaaclab.managers import EventTermCfg
 
+    env_cfg.scene.room.spawn.func = spawn_room
     env_cfg.events.configure_scene_updates = EventTermCfg(
         func=configure_scene_updates, mode="startup", params={"scene_spec": scene_spec},
     )

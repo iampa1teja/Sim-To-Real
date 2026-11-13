@@ -61,3 +61,7 @@ gripper_clearance_m = 0.085
 [task.episode]
 decimation = 4
 eval_steps = 2400
+
+[task.appearance]
+# Matte printed plastic: surface response only, with the original mesh normals.
+roughness = 0.70

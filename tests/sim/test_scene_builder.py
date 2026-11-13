@@ -42,6 +42,31 @@ def test_room_builder_preserves_calibrated_names_and_exact_float32_box_pose():
     assert cfg.observations.visual.instance_id_seg_wrist_cam is None
 
 
+def test_meeting_table_is_textured_before_renderer_import(monkeypatch):
+    from pxr import UsdGeom
+
+    cfg = compose('rpd_meeting_room', task=False)
+    spec = cfg.scene_spec
+    stage = Usd.Stage.CreateInMemory()
+    root = stage.DefinePrim('/World/Room', 'Xform')
+    root.GetReferences().AddReference(str(spec.room_usd))
+    monkeypatch.setattr(scene_builder, 'spawn_scene_room', lambda *_args, **_kwargs: root)
+    # No startup events have run. The spawn hook must already have overridden
+    # scan subsets and supplied the same fitted wood used at native resolution.
+    cfg.scene.room.spawn.func(str(root.GetPath()), cfg.scene.room.spawn)
+    content = '/World/Room/Room'
+    table = stage.GetPrimAtPath(content+'/Visual/Furniture/Tabletop')
+    material = UsdShade.MaterialBindingAPI(table).ComputeBoundMaterial()[0]
+    assert material.GetPath() == content+'/Materials/RealWalnut'
+    assert not any(p.IsActive() and p.IsA(UsdGeom.Subset) for p in table.GetChildren())
+    texture = UsdShade.Shader(stage.GetPrimAtPath(str(material.GetPath())+'/Texture'))
+    assert texture.GetInput('file').Get().path == str(spec.directory/'textures/table_albedo_v4.png')
+    assert tuple(texture.GetInput('scale').Get()) == pytest.approx((.597,.532,.54,1))
+    uv = UsdGeom.PrimvarsAPI(table).GetPrimvar('st')
+    assert uv.GetInterpolation() == UsdGeom.Tokens.faceVarying
+    assert len(uv.ComputeFlattened()) == len(UsdGeom.Mesh(table).GetFaceVertexIndicesAttr().Get())
+
+
 def test_blank_table_without_mount_file_uses_declared_anchor_and_default_arm_joints():
     cfg = compose("blank_table")
     assert cfg.scene_spec.name == "blank_table"

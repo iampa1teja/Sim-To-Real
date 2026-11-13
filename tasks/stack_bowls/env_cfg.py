@@ -28,6 +28,14 @@ class BowlCfg(sim_utils.UsdFileCfg):
 
 
 @configclass
+class MattePrintedPlasticCfg(sim_utils.PreviewSurfaceCfg):
+    """Diffuse lighting without glossy highlights or a clearcoat lobe."""
+    use_specular_workflow: int = 1
+    specular_color: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    clearcoat: float = 0.0
+
+
+@configclass
 class Terminations:
     time_out = DoneTerm(func=time_out, time_out=True)
     success = DoneTerm(func=success)
@@ -38,12 +46,15 @@ def apply_teleop(cfg, task):
     if arm.gripper is None or not arm.gripper.contact_bodies:
         raise ValueError('Stacking bowls requires gripper contact bodies')
     state = cfg.scene.robot.init_state
+    appearance = task.spec.raw['appearance']
     for name, spec in task.spec.objects.items():
         pose = transform_pose(Pose(spec.position, euler_xyz_degrees_to_xyzw(spec.rotation_euler_degrees)),
                               spec.params.get('frame', 'world'), scene, Pose(state.pos, state.rot))
         setattr(cfg.scene, name, RigidObjectCfg(prim_path='{ENV_REGEX_NS}/'+name,
             spawn=BowlCfg(usd_path=str(spec.usd),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=tuple(spec.params['color']), roughness=.4)),
+                visual_material=MattePrintedPlasticCfg(
+                    diffuse_color=tuple(spec.params['color']),
+                    roughness=appearance['roughness'], metallic=0.0)),
             init_state=RigidObjectCfg.InitialStateCfg(pos=pose.position, rot=pose.orientation_xyzw)))
     names = arm.gripper.friction_bodies or arm.gripper.contact_bodies
     pattern = '('+'|'.join(map(re.escape, names))+')'

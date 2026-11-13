@@ -15,6 +15,13 @@ hollow cavity. `assets/provenance.json` records the source hash, dimensions,
 normal count, and conversion details.
 The mass is an explicit 55 g simulation assumption, not a measured value.
 
+The bowls use a diffuse matte printed-plastic material with specular and
+clearcoat reflections disabled. They brighten under illumination without glossy
+highlights. The original yellow/red/blue base colors are preserved; rendering at
+a higher resolution does not rescale or desaturate the material colors.
+The original mesh, authored normals, mass and contact properties are preserved.
+No bump, normal or displacement texture is applied.
+
 ```bash
 ./s2r datagen --source scripted --config_path configs/datagen/stack_bowls.yaml
 ```
@@ -43,6 +50,8 @@ docker exec -w /workspace/s2r s2r-sim s2r-entrypoint python \
 The output is `episode.mp4`, with external and wrist views, plus a replay
 validation report. Choose a new destination/output directory when repeating a
 run; existing datasets and renders are preserved.
+For a detailed still, append `--max_frames 1 --resolution_scale 2`. Each camera
+renders at 1280 × 960 with the same framing; the PNG retains the full resolution.
 
 Success is measured from the actual simulated poses and velocities:
 

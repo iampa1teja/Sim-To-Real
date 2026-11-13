@@ -53,6 +53,8 @@ def main(argv=None):
                         help='Export lossless robot/object foreground masks and individual RGB videos')
     parser.add_argument('--max_frames', type=int, default=None,
                         help='Limit a diagnostic replay; omitted for the complete episode')
+    parser.add_argument('--resolution_scale', type=int, choices=(1, 2, 3, 4), default=1,
+                        help='Render more pixels at the same camera framing and calibrated field of view')
     add_launch_arguments(parser)
     if not any(action.dest=='headless' for action in parser._actions):
         parser.add_argument('--headless',action='store_true')
@@ -81,6 +83,7 @@ def main(argv=None):
         tracked_objects=list(source.objects_base), fps=fps, expected_frames=frame_count,
         source_sidecar_sha256=hashlib.sha256(metadata.read_bytes()).hexdigest(),
         method='Native Isaac Sim replay of recorded observations and all tracked object poses',
+        render_resolution_scale=args.resolution_scale,
         physics_steps_during_render=0)
     app = env = writer = None
     camera_writers = {}
@@ -106,6 +109,23 @@ def main(argv=None):
             cfg.events.check_eval_order = None
         cfg.terminations = None
         drop_unused_camera_outputs(cfg, depth=False, instance_id_seg=args.export_controls)
+        if args.resolution_scale != 1:
+            for sensor_cfg in vars(cfg.scene).values():
+                if not hasattr(sensor_cfg, 'renderer_cfg') or not hasattr(sensor_cfg, 'width'):
+                    continue
+                scale = args.resolution_scale
+                sensor_cfg.width *= scale
+                sensor_cfg.height *= scale
+                intrinsics = getattr(sensor_cfg.spawn, 'intrinsics', None)
+                if intrinsics is not None:
+                    sensor_cfg.spawn.intrinsics = {
+                        **intrinsics,
+                        'width': sensor_cfg.width, 'height': sensor_cfg.height,
+                        'fx': intrinsics['fx']*scale, 'fy': intrinsics['fy']*scale,
+                        # Preserve the same rays with RTX's half-pixel offset.
+                        'cx': (intrinsics['cx']+.5)*scale-.5,
+                        'cy': (intrinsics['cy']+.5)*scale-.5,
+                    }
         if args.export_controls:
             for sensor_cfg in vars(cfg.scene).values():
                 if hasattr(sensor_cfg, 'renderer_cfg') and sensor_cfg.renderer_cfg is not None:
@@ -115,7 +135,8 @@ def main(argv=None):
         raw = env.unwrapped
         cameras = list(discover_sim_cameras(env))
         mapping = make_mapping(env, arm=arm, source_root=args.dataset)
-        replay = SceneReplayer(raw, mapping, None, cameras, task=task.name, arm=arm)
+        replay = SceneReplayer(raw, mapping, None, cameras, task=task.name, arm=arm,
+                               render_passes=8 if args.resolution_scale > 1 else 2)
         protected_roots = [raw.scene.env_prim_paths[0] + '/Robot']
         for asset in replay.objects.values():
             paths = find_matching_prim_paths(asset.cfg.prim_path)
