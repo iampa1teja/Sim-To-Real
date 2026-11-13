@@ -3,10 +3,8 @@ import numpy as np
 import pytest
 
 
-def test_measured_fixture_gap_and_tcp_within_one_millimetre(imported_urdf_arm):
-    if imported_urdf_arm['name']!='seven_parallel':
-        pytest.skip('Parallel geometry applies to the seven-axis fixture')
-    measured=imported_urdf_arm['report']['measurements']
+def test_measured_fixture_gap_and_tcp_within_one_millimetre(imported_parallel_arm):
+    measured=imported_parallel_arm['report']['measurements']
     assert abs(measured['closed_gap_m'])<.001
     assert abs(measured['open_gap_m']-.09)<.001
     np.testing.assert_allclose(measured['position_offset_m'],[0.,0.,.07],atol=.001,rtol=0)

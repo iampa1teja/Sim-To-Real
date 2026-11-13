@@ -1,0 +1,9 @@
+.venv/
+checkpoints/
+__pycache__/
+*.log
+.venv-gpu/
+standalone.server.json
+results/smoke*/
+results/capture-smoke*/
+results/pilot*/

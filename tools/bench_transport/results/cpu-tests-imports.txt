@@ -1,0 +1,99 @@
+........................................................................ [ 11%]
+........................................................................ [ 22%]
+........................................................................ [ 34%]
+........................................................................ [ 45%]
+........................................................................ [ 57%]
+...................................................................... [ 68%]
+........................................................ [ 77%]
+........................................................................ [ 88%]
+..........ss........................................................ [ 99%]
+....                                                                     [100%]
+=============================== warnings summary ===============================
+../../opt/isaaclab-venv/lib/python3.12/site-packages/torch/jit/_script.py:1488: 35 warnings
+  /opt/isaaclab-venv/lib/python3.12/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/cli/test_extensions.py: 3 warnings
+tests/sim/test_bowl_scene_composition.py: 2 warnings
+tests/sim/test_mimic_config.py: 2 warnings
+tests/sim/test_scene_builder.py: 13 warnings
+  /workspace/s2r/src/sim/scene/arm.py:68: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
+    rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(**spawn.get("rigid_props", {})),
+
+tests/cli/test_extensions.py: 3 warnings
+tests/sim/test_bowl_scene_composition.py: 2 warnings
+tests/sim/test_mimic_config.py: 2 warnings
+tests/sim/test_scene_builder.py: 13 warnings
+  /workspace/s2r/src/sim/scene/arm.py:69: DeprecationWarning: NewtonArticulationRootPropertiesCfg is deprecated. Use [PhysxArticulationCfg(...), NewtonArticulationCfg(...)] (and set fix_root_link on the spawner cfg) instead; NewtonArticulationRootPropertiesCfg will be removed in 3.2.
+    articulation_props=sim_utils.NewtonArticulationRootPropertiesCfg(
+
+tests/cli/test_extensions.py: 3 warnings
+tests/sim/test_bowl_scene_composition.py: 6 warnings
+tests/sim/test_mimic_config.py: 5 warnings
+tests/sim/test_scene_builder.py: 27 warnings
+  /workspace/isaaclab/source/isaaclab/isaaclab/utils/configclass.py:518: DeprecationWarning: TiledCameraCfg is deprecated. Use CameraCfg directly — Camera now includes TiledCamera's vectorized rendering optimizations.
+    f1(*args, **kwargs)
+
+tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
+tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
+  /tmp/pytest-of-root/pytest-223/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:34: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
+    size=spec.size, rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(),
+
+tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
+tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
+  /tmp/pytest-of-root/pytest-223/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:35: DeprecationWarning: MassPropertiesCfg is deprecated. Use [MassCfg(...)] instead; MassPropertiesCfg will be removed in 3.2.
+    mass_props=sim_utils.MassPropertiesCfg(mass=spec.params["mass"]),
+
+tests/sim/test_ik_controller.py: 10 warnings
+  /workspace/s2r/src/sim/datagen/ik.py:300: UserWarning: USD stages with non-unit linear units are not supported. Set metersPerUnit to 1.0 before import. Found metersPerUnit=0.001.
+    metadata = builder.add_usd(str(arm.usd_path), floating=False)
+
+tests/sim/test_import_link_frames.py::test_camera_measurement_ignores_same_named_nested_visuals
+tests/sim/test_import_link_frames.py::test_camera_measurement_ignores_same_named_nested_visuals
+tests/sim/test_import_link_frames.py::test_camera_measurement_ignores_same_named_nested_visuals
+  /workspace/s2r/src/sim/arms/urdf_import.py:345: DeprecationWarning: __array_wrap__ must accept context and return_scalar arguments (positionally) in the future. (Deprecated NumPy 2.0)
+    euler_degrees=[float(np.degrees(value[0])) for value in euler])
+
+tests/sim/test_mimic_config.py::test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch[rpd_meeting_room]
+tests/sim/test_mimic_config.py::test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch[blank_table]
+tests/sim/test_scene_builder.py::test_room_builder_preserves_calibrated_names_and_exact_float32_box_pose
+tests/sim/test_scene_builder.py::test_blank_table_without_mount_file_uses_declared_anchor_and_default_arm_joints
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval-rpd_meeting_room]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval-blank_table]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval_dr-rpd_meeting_room]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval_dr-blank_table]
+tests/sim/test_scene_builder.py::test_task_arm_base_frame_uses_the_selected_robot_mount_pose
+  /workspace/s2r/tasks/pick_place_cube/env_cfg.py:109: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
+    rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(),
+
+tests/sim/test_mimic_config.py::test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch[rpd_meeting_room]
+tests/sim/test_mimic_config.py::test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch[blank_table]
+tests/sim/test_scene_builder.py::test_room_builder_preserves_calibrated_names_and_exact_float32_box_pose
+tests/sim/test_scene_builder.py::test_blank_table_without_mount_file_uses_declared_anchor_and_default_arm_joints
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval-rpd_meeting_room]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval-blank_table]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval_dr-rpd_meeting_room]
+tests/sim/test_scene_builder.py::test_task_variants_compose_with_declarative_scene[eval_dr-blank_table]
+tests/sim/test_scene_builder.py::test_task_arm_base_frame_uses_the_selected_robot_mount_pose
+  /workspace/s2r/tasks/pick_place_cube/env_cfg.py:110: DeprecationWarning: MassPropertiesCfg is deprecated. Use [MassCfg(...)] instead; MassPropertiesCfg will be removed in 3.2.
+    mass_props=sim_utils.MassPropertiesCfg(mass=cube.params["mass"]),
+
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[teleop]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[teleop]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[eval]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[eval]
+  /workspace/s2r/tasks/stack_two_cubes/env_cfg.py:34: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
+    size=spec.size, rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(),
+
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[teleop]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[teleop]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[eval]
+tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[eval]
+  /workspace/s2r/tasks/stack_two_cubes/env_cfg.py:35: DeprecationWarning: MassPropertiesCfg is deprecated. Use [MassCfg(...)] instead; MassPropertiesCfg will be removed in 3.2.
+    mass_props=sim_utils.MassPropertiesCfg(mass=spec.params["mass"]),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/sim/test_mimic_joints.py:7: The jaw fixture has no mimic follower
+SKIPPED [1] tests/sim/test_parallel_gripper_geometry.py:8: Parallel geometry applies to the seven-axis fixture
+628 passed, 2 skipped, 159 warnings, 22 subtests passed in 231.10s (0:03:51)

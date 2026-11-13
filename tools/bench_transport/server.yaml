@@ -1,0 +1,36 @@
+# Reference for the actual ACT forward path. bench.py emits an exact config per cell.
+# Generate the checkpoint with the command in README before starting this server.
+deployment: bench
+model:
+  repo_or_path: tools/bench_transport/checkpoints/act-1-480-640
+  device: cpu
+  tf32: null
+execution:
+  supported_modes: [chunk]
+  action_fps: 30.0
+  n_action_steps: 30
+  warmup_calls: 1
+language:
+  enabled: false
+zenoh:
+  mode: peer
+  listen_endpoints: [tcp/127.0.0.1:7447]
+semantics: benchmark-raw-joint-units-v1
+robot_type: benchmark
+features:
+  - name: observation.state
+    shape: [6]
+    dtype: float32
+    names: [joint_0.pos, joint_1.pos, joint_2.pos, joint_3.pos, joint_4.pos, joint_5.pos]
+    semantics: benchmark-raw-joint-units-v1
+  - name: observation.images.cam0
+    shape: [480, 640, 3]
+    dtype: uint8
+    kind: rgb
+    semantics: benchmark-camera-0-rgb-v1
+action_feature:
+  name: action
+  shape: [6]
+  dtype: float32
+  names: [joint_0.pos, joint_1.pos, joint_2.pos, joint_3.pos, joint_4.pos, joint_5.pos]
+  semantics: benchmark-raw-joint-units-v1
