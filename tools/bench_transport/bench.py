@@ -139,7 +139,7 @@ def control(spec, server, client, meter, obs):
                 next_id += 1
                 result = client.get_action(observation)['actions']
                 if driver._smoothing is None:
-                    accepts.append(next_id - 1)
+                    accepts.append((time.monotonic(), next_id - 1))
                 return result
         driver._client = Adapter()
         if driver._smoothing:
@@ -147,7 +147,7 @@ def control(spec, server, client, meter, obs):
             def add_chunk(actions, observation_step, step, chunk_id, latency=0):
                 accepted = original_add(actions, observation_step, step, chunk_id, latency)
                 if accepted:
-                    accepts.append(chunk_id)
+                    accepts.append((time.monotonic(), chunk_id))
                 return accepted
             driver._smoothing.smoother.add_chunk = add_chunk
         def tick():
@@ -179,7 +179,7 @@ def control(spec, server, client, meter, obs):
         def accept(request, chunk, **kwargs):
             accepted = original_accept(request, chunk, **kwargs)
             if accepted:
-                accepts.append(request.request_id)
+                accepts.append((time.monotonic(), request.request_id))
             return accepted
         engine.runtime.accept = accept
         def tick():
@@ -237,14 +237,19 @@ def control(spec, server, client, meter, obs):
         time.sleep(max(0, started + spec['seconds'] - time.monotonic()))
         elapsed = time.monotonic() - started
         ages = [row[5] for row in tick_rows if row[5] is not None]
+        # A final synchronous call may return after the last scheduled tick.
+        # Preserve that arrival as evidence, but exclude it from the 60 s count.
+        arrivals = [(when - started, identifier) for when, identifier in list(accepts)]
+        in_window = [event for event in arrivals if 0 <= event[0] < spec['seconds']]
         result = {'ticks': count, 'held_ticks': held, 'missed_dispatch_ticks': missed,
-                  'chunk_replacements': len(accepts) - bool(accepts), 'executed_source_transitions': transitions,
+                  'chunk_replacements': len(in_window) - bool(in_window), 'executed_source_transitions': transitions,
+                  'late_chunk_arrivals': sum(event[0] >= spec['seconds'] for event in arrivals),
                   'action_age_ms': summary(ages), 'elapsed_s': elapsed,
                   'client_cpu_percent': 100 * (cpu_time(cproc) - c0) / elapsed,
                   'server_cpu_percent': 100 * (cpu_time(sproc) - s0) / elapsed,
                   'effective_refill_s': engine.runtime.effective_refill if engine else None,
                   'tick_call_ms': summary([row[6] for row in tick_rows if not row[3]]),
-                  'raw': {'ticks': tick_rows}}
+                  'raw': {'ticks': tick_rows, 'chunk_arrivals': arrivals}}
         return result
     finally:
         if engine:
@@ -329,6 +334,10 @@ def main():
                 writer.writerow(['tick', 'dispatch_elapsed_s', 'held', 'missed_deadline', 'source_id',
                                  'age_ms', 'call_ms'])
                 writer.writerows(raw['ticks'])
+            with gzip.open(destination.with_suffix('.chunks.csv.gz'), 'wt') as f:
+                writer = csv.writer(f)
+                writer.writerow(['accepted_elapsed_s', 'source_id'])
+                writer.writerows(raw['chunk_arrivals'])
         else:
             with gzip.open(destination.with_suffix('.samples.json.gz'), 'wt') as f:
                 json.dump(raw, f)

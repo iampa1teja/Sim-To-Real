@@ -32,7 +32,8 @@ def flatten(row):
     result.update({k: row['spec'].get(k) for k in ['mode', 'height', 'width', 'cameras', 'chunk', 'stack',
         'encoding', 'infer_ms', 'setup', 'iterations', 'warmup', 'seconds', 'prefetch', 'blend', 'refill', 'netem_ms']})
     for key in ['client_cpu_percent', 'server_cpu_percent', 'elapsed_s', 'held_ticks', 'ticks',
-                'missed_dispatch_ticks', 'chunk_replacements', 'executed_source_transitions', 'effective_refill_s']:
+                'missed_dispatch_ticks', 'chunk_replacements', 'executed_source_transitions', 'effective_refill_s',
+                'late_chunk_arrivals']:
         if key in row:
             result[key] = row[key]
     for key in ['rtt_ms', 'action_age_ms', 'tick_call_ms']:
@@ -105,6 +106,13 @@ def audit(rows):
                     problems.append(f'{path.name}: hold count mismatch')
                 if sum(int(t['missed_deadline']) for t in ticks) != row['missed_dispatch_ticks']:
                     problems.append(f'{path.name}: missed-deadline mismatch')
+                with gzip.open(path.with_suffix('.chunks.csv.gz'), 'rt') as stream:
+                    arrivals = list(csv.DictReader(stream))
+                accepted = [event for event in arrivals if 0 <= float(event['accepted_elapsed_s']) < spec['seconds']]
+                if len(accepted) - bool(accepted) != row['chunk_replacements']:
+                    problems.append(f'{path.name}: chunk-replacement sample mismatch')
+                if sum(float(event['accepted_elapsed_s']) >= spec['seconds'] for event in arrivals) != row['late_chunk_arrivals']:
+                    problems.append(f'{path.name}: late chunk-arrival mismatch')
                 ages = [float(t['age_ms']) for t in ticks if t['age_ms']]
                 if ages and (min(ages) < 0 or not np.isclose(np.percentile(ages, 95), row['action_age_ms']['p95'])):
                     problems.append(f'{path.name}: action-age sample mismatch')
@@ -184,7 +192,9 @@ def main():
                'Missed is the blocking subset. Age is elapsed client monotonic time since the source observation, '
                'including the retained last target on holds; startup holds without a source are excluded. '
                'Blended actions use the older contributing observation. Replacements count accepted chunks after '
-               'the first, even if an early replacement supersedes an unexecuted chunk.', '',
+               'the first within the 60 s window, even if an early replacement supersedes an unexecuted chunk. '
+               'A final blocking call can return after the window; its arrival is retained separately and excluded '
+               'from replacement counts.', '',
                'Our synchronous driver and prefetch setup call the real production `RemotePolicy.next_raw_action`. '
                '`SimulationSmoother` still queries synchronously and schedules synthetic P-step delivery; '
                'prefetch does not create a background network worker. Prefetch P=ceil(delay×30)+2 (4 or 7), '
@@ -221,11 +231,16 @@ def main():
         npy = {key(r): r for r in baseline if r['spec']['stack'] == 'zmq_npy'}
         raw = {key(r): r for r in baseline if r['spec']['stack'] == 'zmq_raw'}
         lr = {key(r): r for r in baseline if r['spec']['stack'] == 'lerobot' and r['spec']['encoding'] == 'raw'}
-        saving = np.median([100 * (1 - raw[k]['rtt_ms']['p50'] / npy[k]['rtt_ms']['p50']) for k in npy])
+        savings = np.array([100 * (1 - raw[k]['rtt_ms']['p50'] / npy[k]['rtt_ms']['p50']) for k in npy])
+        saving = np.median(savings)
         ratio = np.median([lr[k]['rtt_ms']['p50'] / npy[k]['rtt_ms']['p50'] for k in npy])
         report += [f'Across matched localhost cells, the median relative change from the raw-array codec is '
                    f'{saving:.1f}% lower p50 RTT; LeRobot raw has a median p50 ratio of {ratio:.2f}× versus '
-                   'our npy serializer. These summarize per-cell ratios, not pooled latency percentiles.', '']
+                   'our npy serializer. These summarize per-cell ratios, not pooled latency percentiles.', '',
+                   f'Raw-codec p50 improvements range from {savings.min():.1f}% to {savings.max():.1f}% '
+                   f'(positive means lower latency); {int(np.sum(savings < 0))}/{len(savings)} cells regress. '
+                   'The serializer is therefore a candidate improvement whose per-payload distributions '
+                   'need review, rather than a universal latency win.', '']
         report += ['| Stack / encoding / setup | Delay ms | Mean held ticks per run | Median per-run age p95 ms |',
                    '|---|---:|---:|---:|']
         for delay in [50, 150]:
@@ -237,8 +252,9 @@ def main():
                               f"{np.mean([r['held_ticks'] for r in selected]):.1f} | " +
                               f"{np.median([r['action_age_ms']['p95'] for r in selected]):.3f} |")
         report += ['', 'Recommendation (engineering inference): **keep ZMQ plus specific improvements**. '
-                   'Promote the raw dtype/shape serializer only after adding production validation/bounds and '
-                   'a wire-version negotiation. Implement a real single-owner background inference worker '
+                   'Before promoting the raw dtype/shape serializer, add production validation/bounds and '
+                   'wire-version negotiation, and confirm gains for the payloads with measured regressions. '
+                   'Implement a real single-owner background inference worker '
                    'with monotonic observation provenance, stale-prefix trimming, deadline handling and '
                    'retained-target dispatch; the present prefetch helper alone does not overlap blocking '
                    'network calls. Preserve ArmInfo calibration/role/type checks and benchmark the new '
