@@ -96,6 +96,20 @@ The original test fixture generated two inapplicable jaw cases that skipped even
 
 The matrix is **432 cells**: 72 transport payload/stack combinations × three latency settings, plus 216 control cells. Every A/C cell requires 50 successful warmups then 1,000 measured requests. Up to three warmup timeouts are recorded separately (`--warmup-timeout-budget=3`); each later request has a new observation/request ID, with no replay. Measured requests remain fail-fast. This preserves a discovered cold-session LeRobot raw delivery failure at 5 ms instead of hiding it or changing Zenoh settings. See the report's cold-session section and `results/failures/`. This offline benchmark behavior does not establish production engine recovery. Every B cell runs 1,800 scheduled ticks over 60 wall-clock seconds (3.6 hours of B runs alone). Cases run serially in fresh client/server processes. Completed result files are resume checkpoints: rerunning the same command skips them. Use a new output directory for different iteration counts, code, hardware, inference modes or tuning. Never place a smoke or GPU run in the accepted CPU result directories.
 
+To collect a fresh full matrix from a checkout that already contains supplied results, archive the four measurement folders first. Run this only after any active benchmark has exited; then run the CPU-suite command and the normal namespace matrix command above. Keeping the supplied folders in place intentionally resumes/skips their completed cells.
+
+```bash
+bench_archive="tools/bench_transport/results/pilot-reference-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$bench_archive"
+for bench_phase in localhost netem-1ms netem-5ms control; do
+  if [ -d "tools/bench_transport/results/$bench_phase" ]; then
+    mv "tools/bench_transport/results/$bench_phase" "$bench_archive/$bench_phase"
+  fi
+done
+```
+
+The archive is ignored by Git. These commands preserve the supplied raw evidence while making the next matrix invocation perform measurements instead of resuming completed cells. For a separate individual experiment, use `bench.py --output <new-directory>` as shown in the examples.
+
 Without packet privileges, both A and B still run through `bench.py` (omit `--capture`), but wire fields are absent and the final audit fails; do not claim complete acceptance. If netem cannot be used on another host, record C as skipped with the actual error rather than fabricating latency results. On this host netem is available in the dedicated namespace.
 
 After all jobs and tests finish:

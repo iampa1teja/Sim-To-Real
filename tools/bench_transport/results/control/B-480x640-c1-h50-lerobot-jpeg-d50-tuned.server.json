@@ -1,0 +1,95 @@
+{
+  "deployment": "bench",
+  "model": {
+    "repo_or_path": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints/act-1-480-640",
+    "revision": null,
+    "device": "cpu",
+    "tf32": null
+  },
+  "execution": {
+    "supported_modes": [
+      "chunk"
+    ],
+    "action_fps": 30.0,
+    "rtc": {
+      "enabled": true,
+      "mode": "guided",
+      "prefix_attention_schedule": "LINEAR",
+      "max_guidance_weight": 10.0,
+      "execution_horizon": 10,
+      "debug": false,
+      "debug_maxlen": 100
+    },
+    "action_deadline_s": 5.0,
+    "idle_timeout_s": 10.0,
+    "warmup_calls": 1,
+    "n_action_steps": 50
+  },
+  "language": {
+    "enabled": false,
+    "deadline_s": 60.0,
+    "max_input_chars": 4096,
+    "max_output_chars": 8192
+  },
+  "zenoh": {
+    "mode": "peer",
+    "connect_endpoints": [],
+    "listen_endpoints": [
+      "tcp/127.0.0.1:37467"
+    ],
+    "config_file": null,
+    "max_payload_bytes": 33554432,
+    "open_timeout_s": 10.0
+  },
+  "semantics": "benchmark-raw-joint-units-v1",
+  "robot_type": "benchmark",
+  "features": [
+    {
+      "name": "observation.state",
+      "shape": [
+        6
+      ],
+      "dtype": "float32",
+      "kind": "tensor",
+      "names": [
+        "joint_0.pos",
+        "joint_1.pos",
+        "joint_2.pos",
+        "joint_3.pos",
+        "joint_4.pos",
+        "joint_5.pos"
+      ],
+      "semantics": "benchmark-raw-joint-units-v1"
+    },
+    {
+      "name": "observation.images.cam0",
+      "shape": [
+        480,
+        640,
+        3
+      ],
+      "dtype": "uint8",
+      "kind": "rgb",
+      "names": [],
+      "semantics": "benchmark-camera-0-rgb-v1"
+    }
+  ],
+  "action_feature": {
+    "name": "action",
+    "shape": [
+      6
+    ],
+    "dtype": "float32",
+    "kind": "tensor",
+    "names": [
+      "joint_0.pos",
+      "joint_1.pos",
+      "joint_2.pos",
+      "joint_3.pos",
+      "joint_4.pos",
+      "joint_5.pos"
+    ],
+    "semantics": "benchmark-raw-joint-units-v1"
+  },
+  "log_level": "INFO"
+}

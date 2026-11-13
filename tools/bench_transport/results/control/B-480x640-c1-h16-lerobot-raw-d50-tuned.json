@@ -1,0 +1,52 @@
+{
+  "ticks": 1800,
+  "held_ticks": 2,
+  "missed_dispatch_ticks": 0,
+  "chunk_replacements": 149,
+  "executed_source_transitions": 149,
+  "late_chunk_arrivals": 0,
+  "action_age_ms": {
+    "n": 1798,
+    "mean": 251.46663103612596,
+    "p50": 267.15824249913567,
+    "p95": 434.1979704990081,
+    "p99": 434.3132435699954,
+    "max": 534.1732900051284
+  },
+  "elapsed_s": 60.000072283997724,
+  "client_cpu_percent": 8.033323655320853,
+  "server_cpu_percent": 5.233327028570016,
+  "effective_refill_s": 0.11666666666666667,
+  "tick_call_ms": {
+    "n": 1800,
+    "mean": 0.8112998110017442,
+    "p50": 0.7802965010341723,
+    "p95": 1.11330329455086,
+    "p99": 1.4476463591563515,
+    "max": 4.197813999780919
+  },
+  "spec": {
+    "height": 480,
+    "width": 640,
+    "cameras": 1,
+    "chunk": 16,
+    "stack": "lerobot",
+    "encoding": "raw",
+    "mode": "B",
+    "infer_ms": 50,
+    "setup": "tuned",
+    "refill": 0.11666666666666667,
+    "iterations": 1000,
+    "warmup": 50,
+    "warmup_timeout_budget": 3,
+    "seconds": 60,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "device": "cpu",
+    "real_forward": false,
+    "netem_ms": 0,
+    "capture": false,
+    "config_path": "tools/bench_transport/results/control/B-480x640-c1-h16-lerobot-raw-d50-tuned.server.json",
+    "destination": "tools/bench_transport/results/control/B-480x640-c1-h16-lerobot-raw-d50-tuned.json",
+    "port": 50605
+  }
+}
