@@ -94,6 +94,26 @@ def test_transport_requires_actual_base_pose():
         task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.)))
 
 
+@pytest.mark.parametrize('angle', [.2, 1., 2.9, -2.9])
+@pytest.mark.parametrize('radii', [(.30,.20), (.20,.30), (.20,.20)])
+def test_interpolated_transport_covers_wide_starts_without_extending_far_radius(angle, radii):
+    from core.tasks.loader import load_task_module
+    arc=load_task_module('expert','pick_place_cube')._transport_arc
+    start=np.array([radii[0],0.,.1])
+    end=np.array([radii[1]*np.cos(angle),radii[1]*np.sin(angle),.12])
+    points=arc(start,end,np.zeros(3),np.array([0.,0.,1.]),.01,interpolate_radius=True)
+    np.testing.assert_allclose(points[0],start,atol=1e-12)
+    np.testing.assert_allclose(points[-1],end,atol=1e-12)
+    for left,right in zip(points,points[1:]):
+        for fraction in np.linspace(0,1,101):
+            radius=np.linalg.norm(((1-fraction)*left+fraction*right)[:2])
+            assert min(radii)-1e-8<=radius<=max(radii)+.010001
+    # End the turn at the smaller destination radius rather than carrying the
+    # far pickup radius to the box and only then moving radially inward.
+    if radii[0] > radii[1]:
+        assert np.linalg.norm(points[-2][:2]) < max(radii)+.01
+
+
 @pytest.mark.parametrize("old_option", ["transport_roll_degrees", "transport_orientation_xyzw"])
 def test_post_pickup_roll_overrides_are_refused(old_option):
     task = load_task("pick_place_cube")

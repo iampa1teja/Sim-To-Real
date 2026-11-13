@@ -3,6 +3,8 @@
 A sim-to-real platform for tabletop manipulation arms: Isaac Lab 3.0 (Newton / MJWarp) for simulation,
 LeRobot v0.6.1 for teleop and datasets, and pluggable policy servers (GR00T N1.7, MolmoAct2).
 Arms, scenes, tasks and policies are folders: `s2r new` scaffolds one and `s2r check` validates it.
+The included arms are **SO101** and **SP7**. The `_template` folder is scaffolding
+for the importer, not a selectable robot.
 The previous code, with its full history, is on branch [`v1`](../../tree/v1).
 
 Copy `.env.example` to `.env` for local device settings. [Repository conventions](CLAUDE.md) covers units,
@@ -20,6 +22,11 @@ What has been verified, and what has not:
 - The GR00T and MolmoAct2 training recipes and the visual DR replay recipe still assume the SO-101 and
   pick-place.
 - No second arm has been validated on hardware. The template arm establishes composition only.
+- SP7 retains its URDF, meshes, calibration mapping and self-contained simulation USD.
+  Its real hardware driver remains unconfigured.
+- The three-bowl task uses the supplied bowl USD with separate yellow, red and blue
+  instances. Its [generation and replay recipe](tasks/stack_bowls/README.md) produces
+  a simulation demonstration; Cosmos augmentation has not passed visual validation.
 
 The [verification record](docs/restructure-status.md) holds the evidence and the renderer limitations.
 
@@ -143,6 +150,7 @@ Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides t
 | `s2r record --config_path configs/record/paired_real.yaml` | `python -m sim.teleop.agent` | Leader-driven teleop, sim-only or paired sim+real recording |
 | `s2r spawn --object blue_cube` | `python -m cli.spawn` | Put a parked task object beside the sim jaw while recording |
 | `s2r eval --config_path configs/eval/pick_place.yaml` | `python -m sim.eval.run` | Evaluate a served policy on the fixed benchmark |
+| `s2r test-gui --config_path configs/rollout/gui.yaml` | `python -m core.rollout.testing_gui` | Open the real-arm prompt and policy testing GUI |
 | `s2r rollout ...` | `python -m core.rollout.real_rollout` | Run a served policy on the real follower |
 | `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.benchmark.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
 | `s2r datagen --source dr_replay ...` | `python -m sim.datagen.dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
@@ -190,4 +198,58 @@ conversions retain their former hashes in `legacy_eval_set_id`; comparison accep
 That conversion preserves geometry. The frozen pick-place sets still predate the existing mount correction,
 so their geometry guard rejects the corrected live mount until an explicit geometry decision is made.
 
-Compare the same policy on matched physical/simulation starts with `./s2r eval-sim-real`: 2 minutes 30 seconds on real, then 2 minutes 30 seconds in sim, with the existing camera GUI and separate videos. See [the comparison guide](docs/09-sim-real-comparison.md).
+Compare the same policy on matched physical/simulation starts with `./s2r eval-sim-real`.
+The console at http://localhost:8765 has a prompt, policy dropdown, duration per side,
+Spawn, Run real → sim and two independently selectable real/simulation camera views.
+See [the comparison guide](docs/09-sim-real-comparison.md).
+
+
+## Real-arm testing GUI
+
+```bash
+./s2r test-gui --config_path configs/rollout/gui.yaml
+```
+
+Open **http://localhost:8766**. Click **Connect real arm** to see its cameras, select a policy,
+enter a task prompt, then click **Run on real arm**. **Stop** or **Esc** cancels the run;
+a late policy reply cannot issue another command. Closing the controlling browser stops the run
+when its heartbeat expires. Disconnect retains motor torque and never starts calibration.
+The GUI starts no simulator and opens no device until Connect is clicked.
+
+Hardware and camera defaults come from the current local `.env`; explicit CLI flags override them.
+Select another calibrated arm with `--arm` and, when needed, `--unit`. The policy dropdown checks
+joint counts and required camera inputs against that arm. The `example` policy holds the current
+position and is only a wiring test.
+
+The selected policy must already be served using `s2r serve`, locally or remotely. Changing the dropdown
+selects its client protocol; the server owns the loaded checkpoint. Set **Policy server** and **Port**
+under **Connection settings** to match it. For example:
+
+```bash
+./s2r serve --policy molmoact2 --checkpoint <checkpoint-relative-to-models-dir> --models-dir <models-dir> --port 5556
+```
+
+For the wider pan deployment, append `--option action_extrapolation_joints=shoulder_pan`
+and `--option action_range_diagnostics=true` to that serve command. This experimental option
+decodes pan predictions beyond the checkpoint's 1st/99th-percentile envelope, preserving the
+original in-range values, other joints, state normalization and saved model statistics.
+The real client still clamps targets to the calibrated range and limits each motor command.
+Allowing a wider range does not establish learned task performance in that wider workspace.
+
+The current GUI profile also enables experimental pan workspace retargeting:
+`pan_model_scale: 0.5` and `pan_model_offset: 0.0`. Observed pan angles are halved
+for the policy, and returned pan targets use the exact inverse, so the model's
+usual pan envelope covers approximately -71 to +82 driver units instead of
+-36 to +41. Other joints retain their original conversion. This is a deployment
+adaptation, not a calibration correction or evidence of successful box placement.
+Set the scale to `1.0` to restore the original pan workspace. Action horizon is unchanged.
+
+The GUI config pins the `rpd_follower` unit and its requested `7705cc34…` file hash;
+Connect refuses a different file. Run reports include the loaded server options and joint
+transform, and action traces retain the requested target alongside the bounded/sent targets.
+
+Per-policy client options are in `configs/rollout/gui.yaml`. Physical commands use the selected
+calibration, per-joint runtime bounds, the existing first-target distance check and the follower's
+relative-target limit. A run ends at its configured duration or when Stop is pressed; a finished
+execution does not automatically label the physical task as successful. Action traces and downloadable
+run reports are saved under `outputs/real_testing/`.

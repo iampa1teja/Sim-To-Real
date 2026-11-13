@@ -1,0 +1,19 @@
+# Physical follower and camera settings are read from the local .env.
+# Explicit CLI flags override these defaults. No simulator is started.
+arm: so101
+unit: rpd_follower
+expected_follower_sha256: 7705cc34a847e7dd99a9549e9022fc164b640ddcf90f7a807d35fe0e579f7c26
+scene: rpd_meeting_room
+task: pick_place_cube
+policy: molmoact2
+lang_instruction: Pick up the blue cube and place it in the white box
+episode_seconds: 30
+fps: 30
+gui_host: 127.0.0.1
+gui_port: 8766
+policy_options:
+  molmoact2:
+    input_joint_units: lerobot_normalized
+    # Experimental 2x pan workspace retargeting; applied to observations and actions.
+    pan_model_scale: 0.5
+    pan_model_offset: 0.0

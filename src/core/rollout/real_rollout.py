@@ -111,6 +111,8 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
         try:
             observation = robot.get_observation()
             state = np.asarray([observation[key] for key in joint_keys], dtype=np.float32)
+            if not np.isfinite(state).all():
+                raise ValueError("joint observation contains a non-finite value")
             images = {policy_name: observation[robot_name] for robot_name, policy_name in cameras.items()}
         except Exception as error:
             status, detail = "robot_error", f"observation failed: {error!r}"
@@ -128,6 +130,11 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
             target = clamp_action(policy.get_raw_action(state, images), joint_keys, settings.raw_ranges)
         except Exception as error:
             status, detail = "policy_error", repr(error)
+            break
+        # Inference can block while an operator presses Stop. Never apply that
+        # late response after cancellation.
+        if should_stop():
+            status = "stopped"
             break
         if step == 0:
             gap = float(np.max(np.abs(target - state)))

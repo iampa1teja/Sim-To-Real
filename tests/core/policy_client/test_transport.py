@@ -48,7 +48,18 @@ def test_remote_policy_configure_seed_and_actions_over_real_zmq(monkeypatch):
         assert policy.client.describe()['calls'] == 2
         policy.client.call_endpoint('kill', requires_input=False)
     finally:
-        if policy.client is not None:
-            policy.client.client.__del__()
+        policy.close()
+        policy.close()
         thread.join(timeout=5)
     assert not thread.is_alive()
+
+
+def test_transport_close_is_explicit_and_idempotent():
+    from types import SimpleNamespace
+    from core.policy_client.transport import PolicyClient
+    calls = []
+    client = PolicyClient.__new__(PolicyClient)
+    client.socket = SimpleNamespace(close=lambda **kwargs: calls.append(('socket', kwargs)))
+    client.context = SimpleNamespace(term=lambda: calls.append(('context', {})))
+    client.close(); client.close()
+    assert calls == [('socket', {'linger': 0}), ('context', {})]

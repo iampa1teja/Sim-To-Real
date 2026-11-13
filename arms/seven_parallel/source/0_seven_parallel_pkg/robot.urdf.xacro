@@ -1,5 +1,0 @@
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="seven_parallel">
-<xacro:include filename="$(find seven_parallel_pkg)/arm.xacro"/>
-<xacro:include filename="$(find seven_parallel_pkg)/gripper.xacro"/>
-<xacro:include filename="$(find seven_parallel_pkg)/ros2_control.xacro"/>
-</robot>

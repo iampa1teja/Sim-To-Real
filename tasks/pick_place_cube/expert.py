@@ -7,7 +7,7 @@ from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 
 
-def _transport_arc(start, end, origin, normal, margin):
+def _transport_arc(start, end, origin, normal, margin, *, interpolate_radius=False):
     """Keep interpolation chords outside both endpoints' minimum base radius."""
     if not math.isfinite(margin) or margin <= 0:
         raise ValueError("transport_arc_margin_m must be finite and positive")
@@ -21,6 +21,33 @@ def _transport_arc(start, end, origin, normal, margin):
     angle = math.atan2(np.dot(normal, np.cross(first, last)), np.dot(first, last))
     if abs(angle) < 1e-6:
         return []
+    if interpolate_radius:
+        # Shrink a distant pickup's radius toward the box instead of carrying
+        # its large radius all the way around the arm. Verify whole chords,
+        # including their interiors, against the required inner clearance.
+        tangent = np.cross(normal, first)
+        count = max(2, math.ceil(abs(angle) / (math.pi / 12)))
+        for _ in range(12):
+            points = []
+            for fraction in np.linspace(0., 1., count + 1):
+                direction = first * math.cos(angle * fraction) + tangent * math.sin(angle * fraction)
+                radius = radii[0] * (1 - fraction) + radii[1] * fraction + margin * math.sin(math.pi * fraction)
+                height = heights[0] * (1 - fraction) + heights[1] * fraction
+                points.append(origin + height * normal + radius * direction)
+            safe = True
+            for left, right in zip(points, points[1:]):
+                a, b = left - origin, right - origin
+                a -= np.dot(a, normal) * normal
+                b -= np.dot(b, normal) * normal
+                delta = b - a
+                t = np.clip(-np.dot(a, delta) / max(np.dot(delta, delta), 1e-20), 0., 1.)
+                if np.linalg.norm(a + t * delta) < min(radii) - 1e-9:
+                    safe = False
+                    break
+            if safe:
+                return points
+            count *= 2
+        raise ValueError("Cannot construct a transport path with the required base clearance")
     radius = max(radii) + margin
     # Bound chord sag as well as the angular step: straight interpolation
     # between adjacent arc points must not cut back through the inner workspace.
@@ -80,29 +107,31 @@ class PickPlaceExpert:
         source = cube + normal * lift
         destination = placed + normal * lift
         route = _transport_arc(source, destination, np.asarray(context.arm_base.position), normal,
-                               float(options.get("transport_arc_margin_m", .01)))
+                               float(options.get("transport_arc_margin_m", .01)),
+                               interpolate_radius=bool(options.get("transport_interpolate_radius", False)))
 
-        def point(name, position, opening, seconds=duration):
+        def point(name, position, opening, seconds=duration, *, object_goal=False):
             return Waypoint(name, Pose.from_lists(position, orientation), duration_s=seconds,
                             tolerance_m=float(options.get("position_tolerance_m", .004)),
-                            timeout_s=max(timeout, seconds), **opening)
+                            timeout_s=max(timeout, seconds),
+                            object_ref='blue_cube' if object_goal and options.get('object_feedback', False) else None, **opening)
 
         release_pose = placed + normal * release_height
         lower = (() if release_height == lift else
-                 (point("lower", release_pose, closed),))
+                 (point("lower", release_pose, closed, object_goal=True),))
         return (
             point("approach", cube + normal * approach, opened),
             point("descend", cube, opened),
             point("close", cube, closed, float(options.get("grasp_seconds", .8))),
             point("lift", source, closed),
-            *(point(f"transport_arc_{index}", position, closed, transport_duration)
+            *(point(f"transport_arc_{index}", position, closed, transport_duration, object_goal=True)
               for index, position in enumerate(route)),
-            point("transport", destination, closed, float(options.get("final_transport_seconds", transport_duration))),
+            point("transport", destination, closed, float(options.get("final_transport_seconds", transport_duration)), object_goal=True),
             *lower,
-            point("release", release_pose, opened, float(options.get("release_seconds", .8))),
-            point("retreat", placed + normal * max(approach, release_height), opened),
+            point("release", release_pose, opened, float(options.get("release_seconds", .8)), object_goal=True),
+            point("retreat", placed + normal * max(approach, release_height), opened, object_goal=True),
             point("settle", placed + normal * max(approach, release_height), opened,
-                  float(options.get("settle_seconds", 1.5))),
+                  float(options.get("settle_seconds", 1.5)), object_goal=True),
         )
 
 

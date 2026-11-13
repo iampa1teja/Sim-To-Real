@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <ros2_control name="SP7System" type="system">
+
+    <hardware>
+      <plugin>mock_components/GenericSystem</plugin>
+    </hardware>
+
+    <joint name="joint1">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">1</param>
+    </joint>
+
+    <joint name="joint2">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">2</param>
+    </joint>
+
+    <joint name="joint3">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">3</param>
+    </joint>
+
+    <joint name="joint4">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">4</param>
+    </joint>
+
+    <joint name="joint5">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">5</param>
+    </joint>
+
+    <joint name="joint6">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">6</param>
+    </joint>
+
+    <joint name="joint7">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">7</param>
+    </joint>
+
+    <joint name="gripper_left_joint">
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+      <command_interface name="position"/>
+      <param name="id">8</param>
+    </joint>
+
+  </ros2_control>
+</robot>

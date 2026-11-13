@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "task": "stack_bowls",
+  "arm": "so101",
+  "episode_index": 0,
+  "num_frames": 1,
+  "reference_frame": "robot base link (base)",
+  "units": "m",
+  "fps": 30,
+  "source": "Synthetic separated start fixture, not a recorded demonstration",
+  "objects": {
+    "red_bowl": {
+      "size": [
+        0.12,
+        0.12,
+        0.05
+      ],
+      "position": [
+        [
+          0.05,
+          -0.18,
+          0.025
+        ]
+      ],
+      "orientation_wxyz": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "yellow_bowl": {
+      "size": [
+        0.12,
+        0.12,
+        0.05
+      ],
+      "position": [
+        [
+          0.185,
+          -0.24,
+          0.025
+        ]
+      ],
+      "orientation_wxyz": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    "blue_bowl": {
+      "size": [
+        0.12,
+        0.12,
+        0.05
+      ],
+      "position": [
+        [
+          -0.185,
+          -0.24,
+          0.025
+        ]
+      ],
+      "orientation_wxyz": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ]
+    }
+  }
+}

@@ -12,7 +12,7 @@ Wire format:
 Client option include_original_room=true appends that image after room/wrist;
 the default remains the manifest's two cameras.
 Paired pan_model_scale/pan_model_offset options explicitly adapt model pan
-coordinates for experiments in simulation; they do not change calibration.
+coordinates for workspace experiments; they do not change calibration.
 """
 from __future__ import annotations
 
@@ -121,8 +121,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
         if pan_model_scale is not None or pan_model_offset is not None:
             if pan_model_scale is None or pan_model_offset is None:
                 raise ValueError("pan_model_scale and pan_model_offset must be provided together")
-            if input_joint_units != "usd_normalized":
-                raise ValueError("pan_model_scale and pan_model_offset require input_joint_units=usd_normalized")
+            if input_joint_units not in ("usd_normalized", "lerobot_normalized"):
+                raise ValueError("pan_model_scale and pan_model_offset require normalized joint inputs")
             if isinstance(pan_model_scale, (bool, np.bool_)) or isinstance(pan_model_offset, (bool, np.bool_)):
                 raise ValueError("pan_model_scale must be finite and positive; pan_model_offset must be finite")
             try:
@@ -140,8 +140,8 @@ class MolmoAct2ClientPolicy(ClientPolicy):
             adapted = np.asarray([adapted_scale, adapted_offset], dtype=np.float32)
             if adapted[0] == 0:
                 raise ValueError("pan adaptation must produce a finite, invertible float32 transform")
-            # Compose in model coordinates after reconstructing physical USD
-            # degrees. parse_response uses these same arrays for the inverse.
+            # Compose in model coordinates after converting the selected input
+            # units to degrees. parse_response applies the exact inverse.
             self.scale[0], self.offset[0] = adapted
             pan_adaptation = {
                 "scale": pan_scale,

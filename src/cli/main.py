@@ -8,7 +8,7 @@ import sys
 
 REPO = Path(__file__).resolve().parents[2]
 USAGE_NOTE = (
-    "Sim commands (record, eval, rollout, spawn, envs, calibration-replay, calibration-report, eval-set, "
+    "Runtime commands (record, eval, rollout, test-gui, spawn, envs, calibration-replay, calibration-report, eval-set, "
     "calibrate, calibration-check, calibration-stats, compare, sweep) "
     "pass every argument after the command to the program inside the running sim container; to only print the "
     "command put --dry-run first: 's2r --dry-run record --config_path configs/record/sim_only.yaml'. "
@@ -102,7 +102,7 @@ def build_parser():
     check.add_argument("--static", "--static-only", dest="static_only", action="store_true",
                        help="validate every extension on the host without launching Isaac")
     check.add_argument("--dry-run", action="store_true")
-    for name in ("record", "eval", "eval-sim-real", "rollout", "spawn", "envs", "calibrate", "calibration-check",
+    for name in ("record", "eval", "eval-sim-real", "rollout", "test-gui", "spawn", "envs", "calibrate", "calibration-check",
                  "calibration-stats", "calibration-report", "calibration-replay", "eval-set", "compare", "sweep", "datagen", "migrate"):
         commands.add_parser(name, help="run the corresponding Python module (arguments passed through)")
     return parser

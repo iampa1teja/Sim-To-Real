@@ -32,14 +32,14 @@ up = [-0.001159014, -0.01850508, 0.9998281]
 [scene.cameras]
 
 [scene.cameras.realsense_rgb]
-position = [0.6556803347125415, 0.007151182884697911, 1.2960657471564023]
-target = [0.6834827335143593, -0.38741113186690607, 0.7878442333770308]
+position = [0.6156803347125415, -0.024198410322280026, 1.2906966171026641]
+target = [0.6689514305836436, -0.4147286793179186, 0.7813933675426784]
 focal_length = 20.0
 horizontal_aperture = 21.126721118736548
 vertical_aperture = 15.84504083905241
 width = 640
 height = 480
-euler_degrees = [37.89536558302176, 1.179900948119167, -176.32444041612325]
+euler_degrees = [37.72557881289408, 0.9648100131508459, -173.47930132524786]
 orientation_convention = "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
 data_types = ["rgb", "instance_id_segmentation_fast"]
 depth_sensor = true
@@ -56,7 +56,7 @@ cy = 253.326904296875
 note = "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences."
 coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
 model = "distortion.inverse_brown_conrady"
-extrinsics_source = "2026-10-02: data-solved (visual_matching/work/ext_cam2/native/r1a): 6-DoF pose with SDK factory intrinsics locked; objective = edge-snapped real arm masks (112 frames, 14 eps, real-state FK + separate joint-offset nuisance params) + IMU pitch/roll prior (sigma 0.3 deg) + wall-base line vs SouthWall_0 base; box excluded. Previous: Camera position and orientation visually refined against the live external feed on 2026-09-29 using box corners and arm features, after the table-spacing correction. Factory intrinsics retained; robot pose unchanged. This refinement is an image fit, not a new depth calibration."
+extrinsics_source = "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a."
 
 [scene.viewer]
 eye = [1.8, -1.8, 1.85]

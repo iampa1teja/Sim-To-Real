@@ -1,0 +1,32 @@
+source: scripted
+arm: so101
+scene: rpd_meeting_room
+task: stack_bowls
+variant: teleop
+unit: rpd_follower
+destination: /workspace/datasets/stack_bowls_one_episode
+repo_id: local/stack_bowls_one_episode
+report: /workspace/s2r/outputs/stack_bowls/generation-report.json
+fps: 30
+starts_dir: /workspace/s2r/tasks/stack_bowls/starts/so101
+seed: 101
+attempts: 20
+episodes: 1
+max_steps: 2400
+warmup_steps: 45
+initial_joints_sim: [0.0, -0.296, -0.054, 1.56, 0.0, 0.5755]
+headless: true
+diagnostic_images: true
+ik_backend: bounded
+ik_orientation_tolerance_rad: 0.25
+ik_orientation_weight: 0.10
+control_offset: [-0.0059, -0.0002249, -0.0994253]
+expert_options:
+  order: [red_bowl, yellow_bowl, blue_bowl]
+  object_feedback: true
+  upright_object_feedback: true
+  gripper_ramp_seconds: 0.6
+  gripper_open_fraction: 0.32
+  gripper_closed_fraction: 0.0
+  move_seconds: 2.2
+  waypoint_timeout_seconds: 7.0

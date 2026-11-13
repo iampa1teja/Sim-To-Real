@@ -107,3 +107,32 @@ def test_arm_info_rejects_partial_raw_codec(info):
     spans[info.joint_names[0]]['raw_min'] = -100
     with pytest.raises(ValueError, match='both raw codec endpoints'):
         replace(info, joint_mapping=spans)
+
+
+def test_real_pan_workspace_expansion_maps_observations_and_actions_consistently():
+    arm = load_arm_spec('so101')[0]
+    selected = resolve_calibration(arm, unit='rpd_follower', environ={})
+    info = ArmInfo.from_arm(arm, selected.mapping)
+    normal = client(info, {'input_joint_units': 'lerobot_normalized'})
+    wide = client(info, {'input_joint_units': 'lerobot_normalized',
+                         'pan_model_scale': .5, 'pan_model_offset': 0.})
+    images = {name: np.zeros((2, 3, 3), np.uint8) for name in wide.cameras}
+    for pan in (-100., -50., 0., 50., 100.):
+        state = np.array([pan, 5, -10, 20, 15, 40], np.float32)
+        original = normal.build_request(state, images, '')['state']
+        adapted = wide.build_request(state, images, '')['state']
+        assert adapted[0] == original[0] * .5
+        np.testing.assert_array_equal(adapted[1:], original[1:])
+        np.testing.assert_allclose(wide.parse_response({'actions': adapted[None]}, list(info.feature_names)),
+                                   state[None], atol=1e-4, rtol=0)
+    model_targets = np.array([[-42.1300246, 90, 90, 0, 0, 50],
+                              [48.5534956, 90, 90, 0, 0, 50]], np.float32)
+    ordinary = normal.parse_response({'actions': model_targets}, list(info.feature_names))
+    expanded = wide.parse_response({'actions': model_targets}, list(info.feature_names))
+    np.testing.assert_allclose(expanded[:, 0], ordinary[:, 0] * 2, atol=1e-5)
+    np.testing.assert_array_equal(expanded[:, 1:], ordinary[:, 1:])
+    assert -100 < expanded[0, 0] < -70 and 80 < expanded[1, 0] < 100
+    scales = wide.scale.copy(); offsets = wide.offset.copy()
+    wide.configure(info)
+    np.testing.assert_array_equal(wide.scale, scales)
+    np.testing.assert_array_equal(wide.offset, offsets)

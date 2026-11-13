@@ -116,16 +116,19 @@ class PolicyClient:
     def seed(self, seed: int) -> Any:
         return self.call_endpoint("seed_policy", data = {"seed": seed}, requires_input=True,)
 
+    def close(self) -> None:
+        """Release the transport on its owning thread; repeated calls are safe."""
+        socket = getattr(self, "socket", None)
+        if socket is not None:
+            socket.close(linger=0)
+            self.socket = None
+        context = getattr(self, "context", None)
+        if context is not None:
+            context.term()
+            self.context = None
+
     def __del__(self) -> None:
         try:
-            socket = getattr(self, "socket", None)
-            if socket is not None:
-                socket.close(linger=0)
-                self.socket = None
-
-            context = getattr(self, "context", None)
-            if context is not None:
-                context.term()
-                self.context = None
+            self.close()
         except Exception:
             pass

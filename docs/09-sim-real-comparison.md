@@ -1,71 +1,69 @@
-# Compare MolmoAct2 on real and simulated starts
-
-Run from the v2 checkout with the sim container running and the s2r Molmo
-server listening on port 5005:
+# Compare a policy on real and simulated starts
 
 ```bash
 ./s2r eval-sim-real
 ```
 
-Open http://localhost:8765. This reuses the recording GUI. The follower uses its stable USB serial path, so ACM port renumbering does not select the leader. The default config is
-`configs/eval/sim_real.yaml`; it selects the calibrated `rpd_follower`, room and
-wrist cameras, and the s2r Molmo server. It does not restart that server.
+Open **http://localhost:8765**. The evaluation console uses the same layout as the real-arm testing
+GUI: a policy dropdown, task prompt, server address/port, duration, Run, Stop and recent-run reports.
+**Spawn object** is its additional control. The simulator starts with the command; physical devices
+open only when you click **Connect real arm**. Disconnect stops a comparison and releases the device
+connections while retaining follower motor torque.
 
-1. Move the leader to position the physical follower before Start. The sim mirrors
-   the follower’s measured joints. Positioning uses the same per-command limits as
-   rollout; Start stops leader control and hands control to the policy.
-   Both serial ports use stable USB identities. `--no-leader` disables this setup mode.
-2. Keep the gripper open. Place the physical cube beside the fixed jaw using the
-   same convention as paired recording, and click **Spawn object**. Compare the
-   room and wrist views. Real cube placement is manual: this does not measure its
-   pose or prove millimetre alignment.
-3. Click **Start real → sim**. The real policy trial runs for 150 seconds. The
-   physical follower then holds its final target. The simulator restores the saved
-   starting joints and object poses and runs its own 150-second trial, using its
-   own images and joint observations. Both use the same loaded policy server.
-4. **Stop evaluation** cancels the comparison, including the pending second trial.
-   Exit closes devices; the follower keeps torque enabled. Restart the command
-   for another comparison; a completed output is never overwritten by Start. Stop
-   also works during leader positioning and leaves positioning disabled until relaunch.
+1. Connect the real arm. With the default config, the calibrated leader can position the follower
+   before a trial. `--no-leader` keeps positioning read-only. Stop disables leader positioning until
+   you reconnect.
+2. Keep the gripper open, position the physical cube beside the fixed jaw, and click **Spawn object**
+   to place its simulation counterpart. This does not measure or move the real cube. Spawn is disabled
+   during a comparison. `--no-object` explicitly skips this setup requirement.
+3. Select the policy, enter the task prompt and set the duration **per side**. The selected model server
+   must already be running; the default endpoint is `localhost:5556`. The dropdown selects the client
+   protocol, while the server selects the loaded checkpoint.
+4. Click **Run real → sim**. The real trial runs first. The simulation then restores the saved real
+   joint pose and spawned object states, refreshes its cameras and runs the second trial. Both sides use
+   the same frozen prompt, policy, endpoint, client options and duration. Editing these fields is disabled
+   until the comparison ends.
+5. To end a trial early, select the furthest stage you observed in **Real trial ended at** and click
+   **End real trial → run sim**. The arm holds its measured pose, its gripper keeps its last goal,
+   and simulation starts from the saved comparison start. Select the simulation's stage and click
+   **End simulation trial** when it finishes. The choices come from the task manifest, including
+   **Not reached** and its final **Success** stage. A stage selection is required before ending either side.
+6. **Stop** or **Esc** cancels both trials. Pending inference replies are discarded after cancellation.
+   Closing the controlling browser also stops the run after its heartbeat expires. You can reposition,
+   spawn again and run another comparison without overwriting the earlier one.
 
-Outputs are in `outputs/eval-sim-real/<timestamp>/`: `real.mp4` and `sim.mp4`
-(each with room and wrist side by side), their JSONL measured/commanded joint logs,
-and `report.json` with starts, calibration, timing, and termination reason.
-These are visual comparisons; real success is not automatically labelled.
-Inference runs in a worker so camera capture and Stop remain responsive. Both
-sides apply the same raw joint limits, maximum target offset, and initial-action
-check. Video uses the configured capture FPS and repeats the previous frame if capture falls behind; logs retain measured wall times.
+There are exactly **two camera panels**. Each dropdown can show the real external, real gripper,
+simulation external or simulation wrist camera. The defaults compare the two external views. Changing
+these dropdowns affects the display only: each policy continues receiving its configured room/wrist inputs.
+Simulation previews remain available when the physical arm is disconnected.
 
-A nonmoving camera preview:
+Each comparison is saved under `outputs/eval-sim-real/<session>/<comparison>/` with `real.mp4`,
+`sim.mp4`, their measured/commanded joint logs and `report.json`. Reports retain the prompt, selected
+policy, endpoint, calibration provenance, client transforms, starting state, termination reasons and
+server descriptions. Recent runs link directly to these reports. A finished execution does not
+automatically label the physical task as successful.
+The history also compares real/simulation stages and their elapsed times. These labels are explicitly
+operator supplied; a timer ending without a selection remains unlabelled. Reports retain the selected
+milestone, cumulative stage flags, confirmation time and whether both sides reached the same stage.
 
-```bash
-./s2r eval-sim-real --shadow --preview-seconds 10
-```
+The config is `configs/eval/sim_real.yaml`; CLI flags override it. Camera defaults come from the current
+local `.env`. Both serial ports use stable USB identities. Per-policy client options are selected from
+`policy_options`, so MolmoAct2 coordinate settings are not applied when selecting a different policy.
+Both sides retain the calibrated joint bounds, first-target distance check and relative-target limit.
+The action horizon is unchanged.
 
-For shorter manual trials, pass `--episode_seconds 30`. `--shadow` prevents real
-motor commands even when Start is pressed. To use a standard s2r policy server,
-pass `--backend s2r --policy_port 5556` (the checkpoint is chosen on the server).
-The optional `--backend local-lerobot` adapter is only for the separate custom
-LeRobot TCP server; it must never be pointed at an s2r server. The default uses
-the standard s2r transport and policy plugin.
-
-The prepared remote server on `rpuser1@192.168.29.76` serves the same source
-checkpoint through local SSH-forwarded port **5556**. Its model files are under
-`/media/rpuser1/New Volume/s2r/models/molmoact2-so101`; keep that volume mounted.
-The local server remains on **5005**. To choose remote inference for a new run:
-
-```bash
-./s2r eval-sim-real --policy_port 5556
-```
-
-If the tunnel is not already running, keep this in another terminal:
+To preview/infer without physical motor commands:
 
 ```bash
-./s2r tunnel --host rpuser1@192.168.29.76 --port 5556
+./s2r eval-sim-real --shadow --no-leader
 ```
 
-Check the remote server with:
+`--preview-seconds 10` closes the session after a short preview. To use a remote model, set its address
+and port in **Connection settings**, or forward its standard s2r port first:
 
 ```bash
-ssh rpuser1@192.168.29.76 'docker logs --tail 20 s2r-serve-molmoact2-5556'
+./s2r tunnel --host user@server --port 5556
 ```
+
+The optional `--backend local-lerobot` adapter is for the separate trusted loopback LeRobot TCP server.
+It supports MolmoAct2 only and must not be pointed at a standard s2r server.

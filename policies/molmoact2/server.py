@@ -16,6 +16,10 @@ Options (--option KEY=VALUE):
   num_steps   flow-matching solver steps (default 10)
   action_range_diagnostics false (default); true exposes the last pre-clipping
                normalized action range through describe, without changing actions
+  action_extrapolation_joints comma-separated joint names (default empty); removes
+               quantile clipping on those action axes without rescaling in-range
+               predictions. Experimental; the robot client must enforce its own
+               calibrated bounds. State normalization and saved stats stay intact.
 """
 from __future__ import annotations
 
@@ -210,6 +214,61 @@ def _strict_bool_option(value: Any, name: str) -> bool:
     raise ValueError(f"{name} must be true or false")
 
 
+def allow_action_extrapolation(model: Any, norm_tag: str, joints: tuple[str, ...]) -> None:
+    """Extend selected action axes linearly beyond their original quantiles.
+
+    This is a per-instance deployment option, not a new physical calibration.
+    Preserve the checkpoint's exact decoding on every other axis and for all
+    in-range values. Final calibrated bounds remain the robot client's job.
+    """
+    stats = model._get_robot_stats()
+    normalizer = stats.action_normalizers.get(norm_tag)
+    metadata = stats.get_metadata(norm_tag).get('action_stats', {})
+    names = metadata.get('names', [])
+    if (normalizer is None or normalizer.mode not in ('q01_q99', 'q10_q90')
+            or len(names) != NUM_JOINTS or len(set(names)) != NUM_JOINTS):
+        raise ValueError('Action extrapolation requires named six-joint quantile statistics')
+    if not joints or len(set(joints)) != len(joints) or any(name not in names for name in joints):
+        raise ValueError('action_extrapolation_joints must name distinct checkpoint joints')
+    indices = [names.index(name) for name in joints]
+    low = np.asarray(normalizer.q_low, dtype=np.float32)[indices]
+    high = np.asarray(normalizer.q_high, dtype=np.float32)[indices]
+    if not np.isfinite([low, high]).all() or np.any(low >= high):
+        raise ValueError('Action extrapolation requires finite increasing quantiles')
+    if normalizer.mask is not None and not np.asarray(normalizer.mask)[indices].all():
+        raise ValueError('Action extrapolation requires normalized joint axes')
+    if normalizer.zero_mask is not None and np.asarray(normalizer.zero_mask)[indices].any():
+        raise ValueError('Cannot extrapolate a constant joint axis')
+    original = stats.unnormalize_action
+
+    def unnormalize_action(action: Any, tag: str) -> Any:
+        import torch
+
+        decoded = original(action, tag)
+        if tag != norm_tag:
+            return decoded
+        if torch.is_tensor(action):
+            raw = action[..., indices].float()
+            if not torch.isfinite(raw).all():
+                raise ValueError('Non-finite action prediction on an extrapolated joint')
+            a = torch.as_tensor(low, device=raw.device)
+            b = torch.as_tensor(high, device=raw.device)
+            extended = (raw + 1.) * (b - a) / 2. + a
+            result = decoded.float().clone()
+            # Keep the original decoder's exact rounding inside [-1, 1].
+            result[..., indices] = torch.where(raw.abs() > 1., extended, result[..., indices])
+        else:
+            raw = np.asarray(action, dtype=np.float32)[..., indices]
+            if not np.isfinite(raw).all():
+                raise ValueError('Non-finite action prediction on an extrapolated joint')
+            extended = (raw + 1.) * (high - low) / 2. + low
+            result = np.asarray(decoded, dtype=np.float32).copy()
+            result[..., indices] = np.where(np.abs(raw) > 1., extended, result[..., indices])
+        return result
+
+    stats.unnormalize_action = unnormalize_action
+
+
 def capture_action_range_diagnostics(model: Any, record: Any) -> None:
     """Observe this instance's trajectory before the unchanged normalizer clips it."""
     import torch
@@ -253,6 +312,7 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.num_steps = DEFAULT_NUM_STEPS
         self.device = "cuda"
         self.action_range_diagnostics = False
+        self.action_extrapolation_joints = ()
         self._last_raw_action_range = None
 
     def load(self, checkpoint: str, device: str, options: dict[str, str]) -> None:
@@ -269,6 +329,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         self.num_steps = int(options.get("num_steps", DEFAULT_NUM_STEPS))
         self.action_range_diagnostics = _strict_bool_option(
             options.get("action_range_diagnostics", False), "action_range_diagnostics")
+        self.action_extrapolation_joints = tuple(
+            name.strip() for name in options.get('action_extrapolation_joints', '').split(',') if name.strip())
         self._last_raw_action_range = None
         if self.dtype_name not in ("bfloat16", "float32"):
             raise ValueError("dtype must be bfloat16 or float32")
@@ -297,6 +359,8 @@ class MolmoAct2ServerPolicy(ServerPolicy):
             preserve_float32_action_compute(self.model)
         if self.dtype_name == "bfloat16":
             preserve_action_denormalization_precision(self.model)
+        if self.action_extrapolation_joints:
+            allow_action_extrapolation(self.model, self.norm_tag, self.action_extrapolation_joints)
         if self.action_range_diagnostics:
             capture_action_range_diagnostics(
                 self.model, lambda value: setattr(self, "_last_raw_action_range", value))
@@ -344,6 +408,9 @@ class MolmoAct2ServerPolicy(ServerPolicy):
         if self.action_range_diagnostics:
             info["action_range_diagnostics"] = True
             info["last_raw_action_range"] = self._last_raw_action_range
+        if self.action_extrapolation_joints:
+            info['action_extrapolation_joints'] = list(self.action_extrapolation_joints)
+            info['action_extrapolation'] = 'linear beyond checkpoint quantiles; client enforces calibrated bounds'
         return info
 
 

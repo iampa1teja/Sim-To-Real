@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<robot name="sp7" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="description_package" value="$(find sp7_description)" />
+  <xacro:include filename="${description_package}/urdf/sp7_arm.urdf.xacro"/>
+  <xacro:include filename="${description_package}/urdf/sp7_gripper.urdf.xacro"/>
+  <xacro:include filename="${description_package}/urdf/sp7.ros2_control.xacro"/>
+
+</robot>

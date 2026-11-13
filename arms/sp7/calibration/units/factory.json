@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "arm": "sp7",
+  "unit_id": "factory",
+  "mapping": {
+    "joint1": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint2": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint3": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint4": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint5": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint6": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    },
+    "joint7": {
+      "joint_min": -180.0,
+      "joint_max": 179.912109375
+    }
+  },
+  "source": {
+    "kind": "urdf_import_placeholder",
+    "confirm": true,
+    "excluded_prismatic_joints": [
+      "gripper_left_joint"
+    ]
+  }
+}

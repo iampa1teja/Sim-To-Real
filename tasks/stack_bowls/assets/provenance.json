@@ -1,0 +1,41 @@
+{
+  "source_usd": "~/pavan/bowl.usdc",
+  "source_copy": "assets/bowl.source.usdc",
+  "source_sha256": "b0c4ad9bf44ffa43a19abf16e5d185a27f81e8740d4281986a3192569adf8781",
+  "source_units": "millimetre-sized coordinates normalized to task dimensions",
+  "source_declared_meters_per_unit": 1.0,
+  "source_bounds": [
+    [
+      68.00813293457031,
+      68.00952911376953,
+      0.0
+    ],
+    [
+      187.9918670654297,
+      187.990478515625,
+      50.0
+    ]
+  ],
+  "source_centre": [
+    128.0,
+    128.00000381469727,
+    25.0
+  ],
+  "scale_to_metres": 0.001,
+  "size_m": [
+    0.11998373413085937,
+    0.11998094940185547,
+    0.05
+  ],
+  "mass_kg": 0.055,
+  "source_triangles": 412122,
+  "visual_triangles": 412122,
+  "authored_visual_normals": 1236366,
+  "visual_method": "Full supplied USD mesh; no decimation",
+  "removed_embedded_lights_and_cameras": 3,
+  "floor_thickness_m": 0.0020000000000000018,
+  "convex_pieces": 169,
+  "collision_method": "24 angular sectors x wall bands + measured solid floor",
+  "origin": "bounding-box centre; bottom z=-0.025 m",
+  "color_order": "any"
+}

@@ -30,9 +30,9 @@ def test_meeting_scene_owns_room_and_camera_data_but_not_arm_mapping(monkeypatch
     assert not hasattr(scene, "robot")
 
 
-def test_fitted_scene_blocks_match_pre_split_content_hashes(monkeypatch):
-    # Hashes captured from real_setup.json before splitting. They cover every
-    # fitted value, null response parameter, and source/evidence string.
+def test_fitted_scene_blocks_and_refined_camera_match_content_hashes(monkeypatch):
+    # Material/lighting hashes retain the pre-split fit. The camera hash includes
+    # the Nov 11 camera-only pose refinement and its provenance string.
     monkeypatch.delenv("S2R_SCENE_DIR", raising=False)
     scene = load_scene_spec("rpd_meeting_room")
     expected = {
@@ -47,7 +47,7 @@ def test_fitted_scene_blocks_match_pre_split_content_hashes(monkeypatch):
            "vertical_aperture", "width", "height", "euler_degrees", "calibration")}
     raw["orientation_convention"] = camera.metadata["orientation_convention"]
     raw["response"] = scene.appearance["camera_response"]["realsense_rgb"]
-    assert json_sha256(raw) == "cb7b52881c4fab6c86bca4971d8e7ec301c7c44f3fc2edc0950d334097e948aa"
+    assert json_sha256(raw) == "8e7231d9986e6ddbbebf9b86ab616d9f16a4e51ad6d3605ced0aa2f713350957"
     assert json_sha256(dict(eye=scene.viewer.eye, lookat=scene.viewer.lookat)) == "826cd10120486dc1819b4f2945237292b69b5bfb4a49453c83cfe0f1d68580e2"
 
 

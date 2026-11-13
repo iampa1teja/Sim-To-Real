@@ -1,0 +1,63 @@
+[task]
+name = "stack_bowls"
+instruction = "Stack the yellow, red, and blue bowls together in any color order"
+default_variant = "teleop"
+stages = ["reached", "grasped", "lifted", "first_bowl_stacked", "second_bowl_lifted", "all_bowls_stacked", "success"]
+tracked_objects = ["yellow_bowl", "red_bowl", "blue_bowl"]
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+eval = "env_cfg:apply_eval"
+
+[task.start]
+object = "red_bowl"
+frame = "arm_base"
+xy_min = [-0.22, -0.28]
+xy_max = [0.18, -0.12]
+yaw_deg = [0.0, 0.0]
+minimum_separation_m = 0.16
+minimum_base_radius_m = 0.19
+
+[task.objects.yellow_bowl]
+usd = "assets/bowl.usd"
+size = [0.12, 0.12, 0.05]
+mass = 0.055
+frame = "arm_base"
+position = [0.18, -0.12, 0.07]
+color = [0.95, 0.68, 0.015]
+
+[task.objects.red_bowl]
+usd = "assets/bowl.usd"
+size = [0.12, 0.12, 0.05]
+mass = 0.055
+frame = "arm_base"
+position = [-0.05, -0.22, 0.07]
+color = [0.8, 0.025, 0.025]
+
+[task.objects.blue_bowl]
+usd = "assets/bowl.usd"
+size = [0.12, 0.12, 0.05]
+mass = 0.055
+frame = "arm_base"
+position = [-0.22, -0.14, 0.07]
+color = [0.025, 0.10, 0.85]
+
+[task.success]
+color_order = "any"
+min_lift = 0.012
+force_threshold = 0.15
+warmup_steps = 20
+confirm_steps = 30
+xy_tolerance = 0.009
+nested_height_min = 0.012
+nested_height_max = 0.035
+max_tilt_degrees = 30.0
+max_support_tilt_degrees = 15.0
+max_bottom_tilt_degrees = 12.0
+max_speed = 0.025
+max_angular_speed = 0.35
+gripper_clearance_m = 0.085
+
+[task.episode]
+decimation = 4
+eval_steps = 2400

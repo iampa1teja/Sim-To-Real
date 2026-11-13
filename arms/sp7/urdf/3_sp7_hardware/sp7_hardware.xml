@@ -1,0 +1,7 @@
+<library path="sp7_hardware">
+    <class name="sp7_hardware/SP7HardwareInterface"
+            type="sp7_hardware::SP7HardwareInterface"
+            base_class_type="hardware_interface::SystemInterface">
+        <description>Hardware interface for SP7 arm.</description>
+    </class>
+</library>

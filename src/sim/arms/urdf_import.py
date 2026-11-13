@@ -257,6 +257,7 @@ def conversion_checks(model, paths, spec):
 
 def measure_gripper(stage, spec, *, grasp_depth_m=.01):
     import torch
+    from pxr import UsdPhysics
     from isaaclab.utils.math import matrix_from_quat, subtract_frame_transforms
     from sim.datagen.ik import ArmKinematics
     from sim.scene.geometry import collision_body_points
@@ -273,7 +274,8 @@ def measure_gripper(stage, spec, *, grasp_depth_m=.01):
         body_names.append(spec.links.ee)
     labels = {label.rsplit('/',1)[-1]:index for index,label in enumerate(kin._model.body_label)}
     default = stage.GetDefaultPrim()
-    body_prims = {prim.GetName():prim for prim in stage.Traverse() if prim.GetName() in body_names}
+    body_prims = {prim.GetName():prim for prim in stage.Traverse()
+                  if prim.GetName() in body_names and prim.HasAPI(UsdPhysics.RigidBodyAPI)}
     clouds = {name:collision_body_points(stage,str(body_prims[name].GetPath())) for name in body_names}
     def points(coordinate):
         fraction=(coordinate-limits[source_id,0])/(limits[source_id,1]-limits[source_id,0])
@@ -329,11 +331,13 @@ def measure_cameras(stage,model,choices):
     from pxr import UsdGeom
     from isaaclab.utils.math import euler_xyz_from_quat,quat_from_matrix
     result={}
-    names={prim.GetName():prim for prim in stage.Traverse() if prim.GetName() in model.links}
+    names={prim.GetName():prim for prim in stage.Traverse()
+           if prim.GetName() in model.links and prim.IsA(UsdGeom.Xform)}
     for link,name in choices.camera.items():
         incoming=next((joint for joint in model.joints.values() if joint.child==link),None)
         parent=incoming.parent if incoming is not None and incoming.type=='fixed' else link
-        matrix,_=UsdGeom.XformCache().ComputeRelativeTransform(names[link],names[parent])
+        cache=UsdGeom.XformCache()
+        matrix=cache.GetLocalToWorldTransform(names[link])*cache.GetLocalToWorldTransform(names[parent]).GetInverse()
         values=np.asarray(matrix).T.copy()
         rotation=torch.as_tensor(values[:3,:3],dtype=torch.float64)
         euler=euler_xyz_from_quat(quat_from_matrix(rotation).unsqueeze(0))

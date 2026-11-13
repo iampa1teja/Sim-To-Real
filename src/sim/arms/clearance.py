@@ -9,7 +9,7 @@ def ready_route_validator(spec,kinematics):
     workspace reach is still measured separately by the live validation sweep.
     """
     import torch
-    from pxr import Usd
+    from pxr import Usd, UsdPhysics
     from isaaclab.utils.math import matrix_from_quat
     from core.paths import DEFAULT_SCENE,DEFAULT_TASK
     from core.scenes import load_scene_spec,load_mount_spec,mount_pose
@@ -27,7 +27,8 @@ def ready_route_validator(spec,kinematics):
     room=Usd.Stage.Open(str(scene.room_usd))
     plane=table_plane(room,room.GetPseudoRoot(),scene.anchors['table'])
     stage=Usd.Stage.Open(str(spec.usd_path))
-    body_prims={prim.GetName():prim for prim in stage.Traverse()}
+    body_prims={prim.GetName():prim for prim in stage.Traverse()
+                if prim.HasAPI(UsdPhysics.RigidBodyAPI)}
     clouds={}
     for index,label in enumerate(kinematics._model.body_label):
         name=label.rsplit('/',1)[-1]

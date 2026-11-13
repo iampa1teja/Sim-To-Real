@@ -79,6 +79,7 @@ class RemotePolicy:
         self.lang_instruction = lang_instruction
         self._action_queue: deque = deque()
         self._client = None
+        self.server_info = None
         self.policy_cameras = None
         self.joint_transform = None
         self.inference_calls = 0
@@ -111,7 +112,7 @@ class RemotePolicy:
             print(f"[INFO]: Policy joint transform: {self.joint_transform}")
         print(f"[INFO]: Connecting to the {self._policy_name} policy server at "
               f"{self._host}:{self._client.client.port}...")
-        check_server(self._client)
+        self.server_info = check_server(self._client)
         print("[INFO]: Policy server connected")
 
     def reset(self, seed=None):
@@ -141,6 +142,13 @@ class RemotePolicy:
             self.grasp.close()
         if self._timing is not None:
             self._timing.close()
+
+    def close(self):
+        """Close a session, including its socket, on the policy worker thread."""
+        self.close_timing()
+        if self._client is not None:
+            self._client.client.close()
+            self._client = None
 
     def _decode_action_chunk(self, action_chunk, full_chunk=False):
         """(T, J) targets -> one {joint key: value} per control tick, each target repeated action_repeat times.

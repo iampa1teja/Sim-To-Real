@@ -92,7 +92,8 @@ def validate_import(name,*,repo=None):
     from isaaclab_tasks.utils import parse_env_cfg
     from core.arms.spec import load_arm_spec
     from core.paths import DEFAULT_SCENE,DEFAULT_TASK
-    from sim.datagen.ik import ArmKinematics,ArticulationIK
+    from sim.datagen.ik import ArmKinematics,make_ik
+    from core.tasks.base import Pose
     from sim.envs.mdp._common import as_torch
     from sim.envs.mdp.mimic import write_mimic_state
     from sim.eval.scene import capture_scene
@@ -178,7 +179,10 @@ def validate_import(name,*,repo=None):
             ready=np.array([joint.initial for joint in spec.action_joints])
             desired=np.eye(4);desired[:3,:3]=kin.fk(ready)[:3,:3]
             selected=None
+            object_name=task.spec.start.get('object',task.spec.tracked_objects[0])
             for candidate in sorted(reachable,key=margin,reverse=True):
+                if not task.start_is_valid({object_name:Pose.from_lists(candidate['base_m'])},geometry):
+                    continue
                 desired[:3,3]=candidate['base_m']
                 solved=kin.inverse(desired,ready,options=IKOptions(damping=.005,orientation_weight=.2,
                     max_joint_step_rad=2*math.pi,max_joint_step_m=1.,max_position_step_m=.02,integral_gain=0.),
@@ -194,7 +198,6 @@ def validate_import(name,*,repo=None):
             robot.write_joint_state_to_sim_index(position=command,velocity=torch.zeros_like(command),joint_ids=action_ids)
             robot.set_joint_position_target_index(target=command,joint_ids=action_ids)
             write_mimic_state(raw)
-            object_name=task.spec.start.get('object',task.spec.tracked_objects[0])
             cube=raw.scene[object_name]
             object_pose=command.new_tensor([selected['world_m']+[0.,0.,0.,1.]])
             cube.write_root_pose_to_sim_index(root_pose=object_pose)
@@ -216,7 +219,7 @@ def validate_import(name,*,repo=None):
             for fraction in np.linspace(0.,1.,50):
                 command[:,source_index]=opened+(closed-opened)*float(fraction)
                 env.step(command);observe_contact()
-            ik=ArticulationIK(robot,spec)
+            ik=make_ik(robot,spec)
             position,quaternion=ik.current_pose()
             goal=position.clone();goal[:,2]+=.05
             for _ in range(90):

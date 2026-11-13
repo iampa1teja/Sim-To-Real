@@ -6,15 +6,18 @@ variant: teleop
 unit: rpd_follower
 policy: molmoact2
 backend: s2r
-policy_port: 5005
+policy_port: 5556
 checkpoint: allenai/MolmoAct2-SO100_101@152569fe57914d97be91055800035f54e250d009
-policy_option: [input_joint_units=lerobot_normalized]
+policy_options:
+  molmoact2:
+    input_joint_units: lerobot_normalized
+    pan_model_scale: 0.5
+    pan_model_offset: 0.0
 follower_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AE6057392-if00
 follower_id: rpd_follower
 leader_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5AB0158158-if00
 leader_id: rpd_leader
-camera_gripper: /dev/video0
-camera_external: /dev/video6
+# Camera devices come from the current local .env (CLI flags override them).
 action_horizon: 30
 episode_seconds: 150
 fps: 30

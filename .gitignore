@@ -8,5 +8,6 @@ __pycache__/
 .env
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
 # Local code explorer is outside the s2r project.
 tools/code_explorer/

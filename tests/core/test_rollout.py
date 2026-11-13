@@ -90,3 +90,16 @@ def test_rollout_yaml_refuses_non_boolean_motion_options(tmp_path, option):
     path.write_text(f'policy: example\n{option}: "false"\n')
     with pytest.raises(SystemExit):
         parse_args(['--config_path', str(path)])
+
+
+def test_stop_while_policy_is_running_does_not_dispatch_its_reply():
+    stopped, sent = [], []
+    robot = SimpleNamespace(get_observation=lambda: {'axis.pos': 0}, send_action=sent.append)
+    def infer(*_):
+        stopped.append(True)
+        return {'axis.pos': 1}
+    policy = SimpleNamespace(get_raw_action=infer)
+    result = run_episode(robot, policy, ['axis.pos'], {},
+                         RolloutSettings(fps=1, episode_seconds=1, enable_motion=True, raw_ranges=((-100,100),)),
+                         should_stop=lambda: bool(stopped))
+    assert result.status == 'stopped' and not sent

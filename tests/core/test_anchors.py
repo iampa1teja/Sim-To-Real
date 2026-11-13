@@ -34,9 +34,10 @@ def test_table_coordinates_preserve_old_plane_equation_box_position():
     np.testing.assert_allclose(world_to_frame(position, "table", scene), local, atol=1e-15, rtol=0)
 
 
-def test_fixed_camera_euler_order_matches_original_gf_rotation():
+def test_fixed_camera_euler_order_matches_refined_gf_rotation():
     scene = load_scene_spec("rpd_meeting_room")
-    expected = [0.02014614584795986, -0.3242081257832721, -0.9453860697331106, 0.026988944739525598]
+    # Independently captured with Gf X*Y*Z from the Nov 11 camera refinement.
+    expected = [0.026340993876749055, -0.3223150580700269, -0.9448851899562549, 0.051099248372479186]
     quaternion = camera_quaternion(scene.cameras["realsense_rgb"])
     # Gf may choose the equivalent negative quaternion. Compare active rotations.
     np.testing.assert_allclose(quaternion_matrix(quaternion), quaternion_matrix(expected), atol=1e-14, rtol=0)
