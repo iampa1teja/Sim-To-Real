@@ -1,0 +1,19 @@
+{
+  "platform": "Linux-6.8.0-142-generic-x86_64-with-glibc2.39",
+  "python": "3.12.13 (main, Mar  3 2026, 14:59:34) [Clang 21.1.4 ]",
+  "machine": "x86_64",
+  "cpu": "Intel(R) Core(TM) i9-14900K",
+  "logical_cpus": 32,
+  "physical_cpus": 24,
+  "ram_bytes": 66103246848,
+  "versions": {
+    "numpy": "2.2.6",
+    "torch": "2.11.0+cpu",
+    "torchvision": "0.26.0+cpu",
+    "pyzmq": "27.3.0",
+    "msgpack": "1.2.4",
+    "eclipse-zenoh": "1.10.2",
+    "lerobot": "0.7.0",
+    "psutil": "7.2.2"
+  }
+}

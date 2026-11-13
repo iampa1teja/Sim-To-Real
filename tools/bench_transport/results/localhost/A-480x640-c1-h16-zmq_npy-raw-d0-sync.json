@@ -1,0 +1,136 @@
+{
+  "rtt_ms": {
+    "n": 1000,
+    "mean": 0.982310009,
+    "p50": 0.9110375,
+    "p95": 1.3595943,
+    "p99": 2.16069677,
+    "max": 2.872834
+  },
+  "elapsed_s": 0.9911460149960476,
+  "wire": {
+    "kernel_dropped_packets": 0,
+    "tcpdump_summary": "22960 packets captured\n45920 packets received by filter\n0 packets dropped by kernel\n",
+    "totals": {
+      "request": {
+        "packets": 15002,
+        "l2_bytes": 923042132,
+        "ip_bytes": 922832104,
+        "tcp_payload_bytes": 922052000
+      },
+      "response": {
+        "packets": 7958,
+        "l2_bytes": 1073228,
+        "ip_bytes": 961816,
+        "tcp_payload_bytes": 548000
+      }
+    },
+    "per_exchange": {
+      "request": {
+        "packets": 15.002,
+        "l2_bytes": 923042.132,
+        "ip_bytes": 922832.104,
+        "tcp_payload_bytes": 922052.0
+      },
+      "response": {
+        "packets": 7.958,
+        "l2_bytes": 1073.228,
+        "ip_bytes": 961.816,
+        "tcp_payload_bytes": 548.0
+      }
+    },
+    "note": "Loopback packet accounting; includes TCP ACKs and protocol framing, excludes admission/warmup. No physical Ethernet/FCS/preamble on lo; GRO/GSO affect packet segmentation."
+  },
+  "client_cpu_percent": 77.68784703261613,
+  "server_cpu_percent": 29.25905927202426,
+  "client_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 0.543084723,
+      "p50": 0.5170825,
+      "p95": 0.6824427999999992,
+      "p99": 1.1249053499999995,
+      "max": 1.553987
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 0.036036414999999995,
+      "p50": 0.031903,
+      "p95": 0.0572502499999998,
+      "p99": 0.10809304999999998,
+      "max": 0.221844
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 922041.0,
+      "p50": 922041.0,
+      "p95": 922041.0,
+      "p99": 922041.0,
+      "max": 922041.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 537.0,
+      "p50": 537.0,
+      "p95": 537.0,
+      "p99": 537.0,
+      "max": 537.0
+    }
+  },
+  "server_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 0.016779815,
+      "p50": 0.015671499999999998,
+      "p95": 0.03034949999999999,
+      "p99": 0.03695611999999999,
+      "max": 0.086741
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 0.14378370499999998,
+      "p50": 0.1212245,
+      "p95": 0.3079177499999999,
+      "p99": 0.47094599,
+      "max": 0.685706
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 537.0,
+      "p50": 537.0,
+      "p95": 537.0,
+      "p99": 537.0,
+      "max": 537.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 922041.0,
+      "p50": 922041.0,
+      "p95": 922041.0,
+      "p99": 922041.0,
+      "max": 922041.0
+    }
+  },
+  "spec": {
+    "height": 480,
+    "width": 640,
+    "cameras": 1,
+    "chunk": 16,
+    "stack": "zmq_npy",
+    "encoding": "raw",
+    "mode": "A",
+    "infer_ms": 0,
+    "setup": "sync",
+    "iterations": 1000,
+    "warmup": 50,
+    "seconds": 60,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "device": "cpu",
+    "real_forward": false,
+    "netem_ms": 0,
+    "capture": true,
+    "config_path": "tools/bench_transport/results/localhost/A-480x640-c1-h16-zmq_npy-raw-d0-sync.server.json",
+    "destination": "tools/bench_transport/results/localhost/A-480x640-c1-h16-zmq_npy-raw-d0-sync.json",
+    "port": 37473
+  }
+}

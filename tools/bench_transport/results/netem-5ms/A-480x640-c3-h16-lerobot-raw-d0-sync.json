@@ -1,0 +1,152 @@
+{
+  "rtt_ms": {
+    "n": 1000,
+    "mean": 28.185778627,
+    "p50": 28.051869000000003,
+    "p95": 30.797120749999998,
+    "p99": 32.275116389999994,
+    "max": 40.010869
+  },
+  "elapsed_s": 28.248255694001273,
+  "wire": {
+    "kernel_dropped_packets": 0,
+    "tcpdump_summary": "82051 packets captured\n164102 packets received by filter\n0 packets dropped by kernel\n",
+    "totals": {
+      "request": {
+        "packets": 57002,
+        "l2_bytes": 2769880856,
+        "ip_bytes": 2769082828,
+        "tcp_payload_bytes": 2766118724
+      },
+      "response": {
+        "packets": 25049,
+        "l2_bytes": 2666574,
+        "ip_bytes": 2315888,
+        "tcp_payload_bytes": 1013004
+      }
+    },
+    "per_exchange": {
+      "request": {
+        "packets": 57.002,
+        "l2_bytes": 2769880.856,
+        "ip_bytes": 2769082.828,
+        "tcp_payload_bytes": 2766118.724
+      },
+      "response": {
+        "packets": 25.049,
+        "l2_bytes": 2666.574,
+        "ip_bytes": 2315.888,
+        "tcp_payload_bytes": 1013.004
+      }
+    },
+    "note": "Loopback packet accounting; includes TCP ACKs and protocol framing, excludes admission/warmup. No physical Ethernet/FCS/preamble on lo; GRO/GSO affect packet segmentation."
+  },
+  "warmup_successes": 50,
+  "warmup_attempts": 51,
+  "warmup_failures": [
+    {
+      "request_id": "0",
+      "attempt_zero_based": 0,
+      "exception": "TimeoutError",
+      "message": "Remote inference request deadline exceeded",
+      "elapsed_ms": 5005.607446997601,
+      "client_encoded": 1,
+      "client_decoded": 0,
+      "server_encoded": 0,
+      "server_decoded": 0
+    }
+  ],
+  "client_cpu_percent": 21.488052450930656,
+  "server_cpu_percent": 50.23319016123657,
+  "client_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 1.7794854310000001,
+      "p50": 1.812507,
+      "p95": 1.98481525,
+      "p99": 2.21827877,
+      "max": 3.676804
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 0.225760444,
+      "p50": 0.224256,
+      "p95": 0.27831364999999997,
+      "p99": 0.39781147999999994,
+      "max": 0.455804
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 2765711.724,
+      "p50": 2765712.0,
+      "p95": 2765714.0,
+      "p99": 2765714.0,
+      "max": 2765714.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 1001.004,
+      "p50": 1001.0,
+      "p95": 1003.0,
+      "p99": 1003.0,
+      "max": 1003.0
+    }
+  },
+  "server_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 0.250590422,
+      "p50": 0.2475005,
+      "p95": 0.38886309999999996,
+      "p99": 0.46451321999999995,
+      "max": 0.688547
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 1.4826000899999998,
+      "p50": 1.488385,
+      "p95": 1.64162185,
+      "p99": 2.73833837,
+      "max": 2.831159
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 1001.004,
+      "p50": 1001.0,
+      "p95": 1003.0,
+      "p99": 1003.0,
+      "max": 1003.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 2765711.724,
+      "p50": 2765712.0,
+      "p95": 2765714.0,
+      "p99": 2765714.0,
+      "max": 2765714.0
+    }
+  },
+  "spec": {
+    "height": 480,
+    "width": 640,
+    "cameras": 3,
+    "chunk": 16,
+    "stack": "lerobot",
+    "encoding": "raw",
+    "mode": "A",
+    "infer_ms": 0,
+    "setup": "sync",
+    "iterations": 1000,
+    "warmup": 50,
+    "warmup_timeout_budget": 3,
+    "seconds": 60,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "device": "cpu",
+    "real_forward": false,
+    "netem_ms": 5.0,
+    "capture": true,
+    "config_path": "tools/bench_transport/results/netem-5ms/A-480x640-c3-h16-lerobot-raw-d0-sync.server.json",
+    "destination": "tools/bench_transport/results/netem-5ms/A-480x640-c3-h16-lerobot-raw-d0-sync.json",
+    "port": 42937
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "rtt_ms": {
+    "n": 1000,
+    "mean": 18.253351366000004,
+    "p50": 18.480168,
+    "p95": 27.3747849,
+    "p99": 28.305948639999997,
+    "max": 32.965096
+  },
+  "elapsed_s": 18.292526187004114,
+  "wire": {
+    "kernel_dropped_packets": 0,
+    "tcpdump_summary": "8751 packets captured\n17502 packets received by filter\n0 packets dropped by kernel\n",
+    "totals": {
+      "request": {
+        "packets": 6001,
+        "l2_bytes": 277157784,
+        "ip_bytes": 277073770,
+        "tcp_payload_bytes": 276761718
+      },
+      "response": {
+        "packets": 2750,
+        "l2_bytes": 1530500,
+        "ip_bytes": 1492000,
+        "tcp_payload_bytes": 1349000
+      }
+    },
+    "per_exchange": {
+      "request": {
+        "packets": 6.001,
+        "l2_bytes": 277157.784,
+        "ip_bytes": 277073.77,
+        "tcp_payload_bytes": 276761.718
+      },
+      "response": {
+        "packets": 2.75,
+        "l2_bytes": 1530.5,
+        "ip_bytes": 1492.0,
+        "tcp_payload_bytes": 1349.0
+      }
+    },
+    "note": "Loopback packet accounting; includes TCP ACKs and protocol framing, excludes admission/warmup. No physical Ethernet/FCS/preamble on lo; GRO/GSO affect packet segmentation."
+  },
+  "client_cpu_percent": 29.192250132153927,
+  "server_cpu_percent": 51.82444405483506,
+  "client_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 4.265223431000001,
+      "p50": 4.461261,
+      "p95": 6.6393017,
+      "p99": 6.73347517,
+      "max": 11.016194
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 0.153061174,
+      "p50": 0.149407,
+      "p95": 0.26058605,
+      "p99": 0.28438433,
+      "max": 0.438813
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 276712.718,
+      "p50": 276713.0,
+      "p95": 276713.1,
+      "p99": 276715.0,
+      "max": 276715.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 1337.0,
+      "p50": 1337.0,
+      "p95": 1337.1,
+      "p99": 1339.0,
+      "max": 1339.0
+    }
+  },
+  "server_codec": {
+    "encode_ms": {
+      "n": 1000,
+      "mean": 0.18959399700000001,
+      "p50": 0.17958649999999998,
+      "p95": 0.36353615,
+      "p99": 0.39870625,
+      "max": 0.55257
+    },
+    "decode_ms": {
+      "n": 1000,
+      "mean": 6.439585639999999,
+      "p50": 6.8706825,
+      "p95": 10.15720565,
+      "p99": 10.45232386,
+      "max": 10.712099
+    },
+    "encoded_bytes": {
+      "n": 1000,
+      "mean": 1337.0,
+      "p50": 1337.0,
+      "p95": 1337.1,
+      "p99": 1339.0,
+      "max": 1339.0
+    },
+    "decoded_bytes": {
+      "n": 1000,
+      "mean": 276712.718,
+      "p50": 276713.0,
+      "p95": 276713.1,
+      "p99": 276715.0,
+      "max": 276715.0
+    }
+  },
+  "spec": {
+    "height": 480,
+    "width": 640,
+    "cameras": 1,
+    "chunk": 30,
+    "stack": "lerobot",
+    "encoding": "jpeg",
+    "mode": "A",
+    "infer_ms": 0,
+    "setup": "sync",
+    "iterations": 1000,
+    "warmup": 50,
+    "seconds": 60,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "device": "cpu",
+    "real_forward": false,
+    "netem_ms": 1.0,
+    "capture": true,
+    "config_path": "tools/bench_transport/results/netem-1ms/A-480x640-c1-h30-lerobot-jpeg-d0-sync.server.json",
+    "destination": "tools/bench_transport/results/netem-1ms/A-480x640-c1-h30-lerobot-jpeg-d0-sync.json",
+    "port": 44347
+  }
+}
