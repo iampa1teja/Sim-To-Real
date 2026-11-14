@@ -103,6 +103,8 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
     started = clock()
     next_tick = started
     step = 0
+    async_mode = bool(getattr(policy, 'async_inference', False))
+    first_prediction = True
     status, detail = "completed", ""
     while step < max_steps:
         if should_stop():
@@ -136,21 +138,31 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
         if should_stop():
             status = "stopped"
             break
-        if step == 0:
+        tick_info = getattr(policy, 'last_tick', None) if async_mode else None
+        fresh = tick_info is None or not tick_info.held
+        if (not async_mode and step == 0) or (async_mode and first_prediction and fresh):
             gap = float(np.max(np.abs(target - state)))
             if gap > settings.max_start_error:
                 status = "start_too_far"
                 detail = f"first target is {gap:.1f} raw units from the current pose (limit {settings.max_start_error})"
                 break
+            first_prediction = False
         if settings.enable_motion:
             try:
-                robot.send_action(dict(zip(joint_keys, target.tolist())))
+                command = dict(zip(joint_keys, target.tolist()))
+                applied = robot.send_action(command)
+                if async_mode:
+                    policy.record_applied_target(applied if isinstance(applied, dict) else command)
             except Exception as error:
                 status, detail = "robot_error", f"send_action failed: {error!r}"
                 break
         if log is not None:
-            log({"step": step, "t": round(clock() - started, 4), "state": state.tolist(), "target": target.tolist(),
-                 "sent": settings.enable_motion})
+            row = {"step": step, "t": round(clock() - started, 4), "state": state.tolist(), "target": target.tolist(),
+                   "sent": settings.enable_motion}
+            if tick_info is not None:
+                row.update(held=tick_info.held, action_age_ms=tick_info.action_age_ms,
+                           chunk_id=tick_info.chunk_id, turnaround_s=tick_info.turnaround)
+            log(row)
         step += 1
         next_tick += period
         delay = next_tick - clock()
@@ -158,6 +170,8 @@ def run_episode(robot, policy, joint_keys, cameras, settings, *, should_stop=lam
             sleep(delay)
         else:
             next_tick = clock()  # overran the tick: do not catch up with a burst of commands
+    if async_mode:
+        policy.cancel()
     return EpisodeResult(status, step, round(clock() - started, 3), detail)
 
 
@@ -181,11 +195,28 @@ def write_report(path, header, episodes):
 # ---------------------------------------------------------------------------
 
 
+def add_async_arguments(parser):
+    """Shared real-arm client options; simulator evaluation does not opt in."""
+    parser.add_argument('--async_inference', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('--refill_seconds', type=float, default=.5)
+    parser.add_argument('--starvation_grace', type=float, default=1.)
+    parser.add_argument('--policy_timeout_ms', type=int, default=15000)
+    parser.add_argument('--action_repeat', type=int, default=1)
+    parser.add_argument('--blend_steps', type=int, default=0)
+    parser.add_argument('--ema_alpha', type=float, default=1.)
+    parser.add_argument('--smooth_gripper', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('--seed_per_episode', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('--episode_seed', type=int, default=1984)
+    parser.add_argument('--log_timing', action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument('--timing_csv', default='')
+
+
 def build_parser():
     from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    add_async_arguments(parser)
     parser.add_argument("--config_path", type=Path, help="rollout YAML; explicit flags override its defaults")
     parser.add_argument("--arm", default=env("S2R_ARM", DEFAULT_ARM))
     parser.add_argument("--scene", default=env("S2R_SCENE", DEFAULT_SCENE))
@@ -265,6 +296,12 @@ def validate(args):
         errors.append("--episodes, --episode_seconds and --fps must be positive")
     if args.max_relative_target <= 0 or args.max_start_error <= 0:
         errors.append("--max_relative_target and --max_start_error must be positive")
+    for name in ('refill_seconds', 'starvation_grace'):
+        value = getattr(args, name, 0.)
+        if not math.isfinite(value) or value < 0:
+            errors.append(f'--{name} must be finite and nonnegative')
+    if getattr(args, 'policy_timeout_ms', 15000) <= 0:
+        errors.append('--policy_timeout_ms must be positive')
     try:
         rename_map = json.loads(args.rename_map)
         missing = sorted(set(camera_specs(args)) - set(rename_map))
@@ -297,7 +334,13 @@ def make_policy(args):
     return RemotePolicy(list(args.arm_spec.feature_names), policy_name=args.policy, host=args.policy_host,
                         port=args.policy_port, action_horizon=args.action_horizon,
                         lang_instruction=args.lang_instruction, control_dt=1 / args.fps, policy_options=options,
-                        arm_info=arm_info)
+                        arm_info=arm_info,
+                        **{name: getattr(args, name, default) for name, default in (
+                            ('async_inference', False), ('refill_seconds', .5), ('starvation_grace', 1.),
+                            ('action_repeat', 1), ('blend_steps', 0), ('ema_alpha', 1.),
+                            ('smooth_gripper', False), ('seed_per_episode', False),
+                            ('episode_seed', 1984), ('log_timing', False), ('timing_csv', ''))},
+                        timeout_ms=getattr(args, 'policy_timeout_ms', 15000))
 
 
 def ask(prompt, input_fn, allowed):
@@ -368,7 +411,10 @@ def main(argv=None, *, follower_factory=connect_follower, policy_factory=make_po
         if episodes or policy is not None:
             write_report(output / "report.json", header, episodes)
         if policy is not None:
-            policy.close_timing()
+            if getattr(policy, 'async_inference', False):
+                policy.close()
+            else:
+                policy.close_timing()
         if follower is not None:
             follower.disconnect()
     print(f"Report: {output / 'report.json'}", flush=True)

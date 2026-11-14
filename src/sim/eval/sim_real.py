@@ -94,6 +94,8 @@ def parse_args(argv=None):
         args.enable_motion = False
     if args.backend == 'local-lerobot' and args.policy != 'molmoact2':
         parser.error('local-lerobot backend serves MolmoAct2 only')
+    if args.backend == 'local-lerobot' and args.async_inference:
+        parser.error('--async_inference requires the s2r backend')
     return args
 
 

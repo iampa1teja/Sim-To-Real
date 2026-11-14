@@ -200,7 +200,8 @@ class TimingLog:
         self.arm_indices = [i for i in range(len(joint_keys)) if i not in gripper_indices]
         self.writer = csv.writer(self.file)
         self.writer.writerow(["step", "chunk_id", "inference_latency_s", "overrun", "held",
-                              *[f"raw_{k}" for k in joint_keys], *[f"sent_{k}" for k in joint_keys]])
+                              *[f"raw_{k}" for k in joint_keys], *[f"sent_{k}" for k in joint_keys],
+                              "action_age_ms", "turnaround_s"])
         self.latencies = []
         self.overruns = 0
         self.jerk_sum = 0.0
@@ -213,8 +214,10 @@ class TimingLog:
     def inference(self, latency):
         self.latencies.append(latency)
 
-    def record(self, step, chunk_id, latency, overrun, raw, sent, held=False):
-        self.writer.writerow([step, chunk_id, latency, int(overrun), int(held), *raw, *sent])
+    def record(self, step, chunk_id, latency, overrun, raw, sent, held=False, *,
+               action_age_ms=None, turnaround=None):
+        self.writer.writerow([step, chunk_id, latency, int(overrun), int(held), *raw, *sent,
+                              action_age_ms, latency if turnaround is None else turnaround])
         self.overruns += int(overrun)
         if len(self.previous) == 2:
             jerk = sent - 2 * self.previous[-1] + self.previous[-2]

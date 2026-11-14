@@ -13,6 +13,9 @@ camera_gripper: /dev/video0
 camera_external: /dev/video6
 rename_map: '{"gripper":"wrist","external":"room"}'
 fps: 30
+async_inference: false
+refill_seconds: 0.5
+starvation_grace: 1.0
 episodes: 1
 episode_seconds: 15.0
 enable_motion: false

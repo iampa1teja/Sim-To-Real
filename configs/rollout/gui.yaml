@@ -9,6 +9,9 @@ policy: molmoact2
 lang_instruction: Pick up the blue cube and place it in the white box
 episode_seconds: 30
 fps: 30
+async_inference: false
+refill_seconds: 0.5
+starvation_grace: 1.0
 gui_host: 127.0.0.1
 gui_port: 8766
 policy_options:

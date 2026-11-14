@@ -45,6 +45,7 @@ def hardware_defaults():
 def parse_args(argv=None):
     env = hardware_defaults()
     p = argparse.ArgumentParser(description=__doc__)
+    real_rollout.add_async_arguments(p)
     p.add_argument('--config_path', type=Path)
     p.add_argument('--arm', default=os.environ.get('S2R_ARM', DEFAULT_ARM))
     p.add_argument('--scene', default=os.environ.get('S2R_SCENE', DEFAULT_SCENE))
@@ -215,6 +216,8 @@ class RealArmSession:
         with self._motion_lock, self._lock:
             if self._run:
                 self._run['cancel'].set()
+                if self._policy is not None and getattr(self._policy, 'async_inference', False):
+                    self._policy.cancel()
                 self._phase, self._status = 'stopping', 'Stopping; the arm holds its last position.'
             if disconnect:
                 self._disconnect_requested = True
@@ -276,6 +279,8 @@ class RealArmSession:
     def _finish(self, status, detail=''):
         self._run['result'] = (status, detail)
         policy, self._policy = self._policy, None
+        if policy is not None and getattr(policy, 'async_inference', False):
+            policy.cancel()
         self._future = self._executor.submit(close_policy, policy)
         self._kind = 'close'
         self._set('stopping' if status == 'stopped' else 'finishing', 'Holding position; saving the run…')
@@ -330,6 +335,36 @@ class RealArmSession:
             self._frames, self._frame_seq = frames, self._frame_seq + 1
         self._last_preview = now
 
+    def _apply_policy_action(self, value, observation, now):
+        run = self._run
+        keys = list(self.arm.feature_names)
+        state = np.array([observation[key] for key in keys], dtype=np.float32)
+        target = real_rollout.clamp_action(value, keys, self._ranges)
+        info = getattr(self._policy, 'last_tick', None)
+        fresh = info is None or not info.held
+        first = run.get('first_target_pending', True) if info is not None else run['steps'] == 0
+        if first and fresh and float(np.max(np.abs(target - state))) > self.args.max_start_error:
+            self._finish('start_too_far', 'The first policy target is too far from the current arm pose.')
+            return
+        with self._motion_lock:
+            if not run['cancel'].is_set() and not self._shutdown.is_set():
+                command = dict(zip(keys, target.tolist()))
+                sent = self._robot.send_action(command)
+                if info is not None:
+                    self._policy.record_applied_target(sent if isinstance(sent, dict) else command)
+                    if fresh:
+                        run['first_target_pending'] = False
+                step = run['steps']
+                run['steps'] += 1
+                row = dict(step=step, t=round(now - run['started'], 4),
+                    state=state.tolist(), requested={k:float(value[k]) for k in keys},
+                    target=target.tolist(), sent=True,
+                    driver_action={k:float(v) for k,v in sent.items()} if isinstance(sent,dict) else None)
+                if info is not None:
+                    row.update(held=info.held, action_age_ms=info.action_age_ms,
+                               chunk_id=info.chunk_id, turnaround_s=info.turnaround)
+                run['trace'].write(json.dumps(row) + '\n')
+
     def _drive(self, observation):
         run = self._run
         now = time.monotonic()
@@ -355,24 +390,15 @@ class RealArmSession:
                         run['started'] = time.monotonic()
                         self._set('running', 'Policy is controlling the real arm.')
                 elif not run['cancel'].is_set():
-                    keys = list(self.arm.feature_names)
-                    state = np.array([observation[key] for key in keys], dtype=np.float32)
-                    target = real_rollout.clamp_action(value, keys, self._ranges)
-                    if run['steps'] == 0 and float(np.max(np.abs(target - state))) > self.args.max_start_error:
-                        self._finish('start_too_far', 'The first policy target is too far from the current arm pose.')
+                    self._apply_policy_action(value, observation, now)
+                    if self._kind == 'close':
                         return
-                    with self._motion_lock:
-                        if not run['cancel'].is_set() and not self._shutdown.is_set():
-                            sent = self._robot.send_action(dict(zip(keys, target.tolist())))
-                            step = run['steps']
-                            run['steps'] += 1
-                            run['trace'].write(json.dumps(dict(step=step, t=round(now - run['started'], 4),
-                                state=state.tolist(), requested={k:float(value[k]) for k in keys},
-                                target=target.tolist(), sent=True, driver_action={k:float(v) for k,v in sent.items()} if isinstance(sent,dict) else None)) + '\n')
             except Exception as error:
                 self._finish('policy_error' if kind == 'prepare' else 'action_error', str(error))
                 return
         if run['cancel'].is_set():
+            if self._policy is not None and getattr(self._policy, 'async_inference', False):
+                self._policy.cancel()
             self._set('stopping', 'Stopping; the arm holds its last position.')
             if self._future is None:
                 self._finish(run['stop_status'], run['detail'])
@@ -380,8 +406,15 @@ class RealArmSession:
         if self._policy is not None and self._future is None:
             state = np.array([observation[key] for key in self.arm.feature_names], dtype=np.float32)
             images = {self.args.rename_map[name]: np.asarray(observation[name]).copy() for name in self.catalog()['cameras']}
-            self._future = self._executor.submit(self._policy.get_raw_action, state.copy(), images)
-            self._kind = 'action'
+            if getattr(self._policy, 'async_inference', False):
+                try:
+                    value = self._policy.get_raw_action(state, images)
+                    self._apply_policy_action(value, observation, now)
+                except Exception as error:
+                    self._finish('action_error', str(error))
+            else:
+                self._future = self._executor.submit(self._policy.get_raw_action, state.copy(), images)
+                self._kind = 'action'
 
     def _disconnect(self):
         self._set('disconnecting', 'Disconnecting the real arm…')

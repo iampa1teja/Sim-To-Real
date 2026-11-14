@@ -63,3 +63,44 @@ def test_transport_close_is_explicit_and_idempotent():
     client.context = SimpleNamespace(term=lambda: calls.append(('context', {})))
     client.close(); client.close()
     assert calls == [('socket', {'linger': 0}), ('context', {})]
+
+
+def test_async_worker_uses_the_real_example_server(monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.syspath_prepend(str(ROOT / 'src/core'))
+    from policy_server.contract import load_server_policy
+    from policy_server.server import PolicyServer
+
+    ready = Queue()
+    def serve():
+        model = load_server_policy(ROOT / 'policies/example')
+        model.load('', 'cpu', {})
+        server = PolicyServer(model, host='127.0.0.1', port=0, timeout_ms=1000)
+        ready.put(server.port)
+        try:
+            server.run()
+        finally:
+            server.close()
+    thread = Thread(target=serve, daemon=True)
+    thread.start()
+    now = [0.]
+    policy = RemotePolicy(['axis.pos'], policy_name='example', host='127.0.0.1',
+                          port=ready.get(timeout=5), timeout_ms=1000, action_horizon=8,
+                          async_inference=True, clock=SimpleNamespace(monotonic=lambda: now[0]),
+                          seed_per_episode=True)
+    try:
+        policy.connect()
+        policy.reset(seed=123)
+        images = {name: np.zeros((2, 3, 3), dtype=np.uint8) for name in ('room', 'wrist')}
+        assert policy.get_raw_action([12.], images) == {'axis.pos': 12.}
+        assert policy.last_tick.held
+        policy._async.pending[0].result(timeout=5)
+        now[0] = 1 / 30
+        assert policy.get_raw_action([13.], images) == {'axis.pos': 12.}
+        assert not policy.last_tick.held
+        assert policy.inference_calls == 1
+        policy._async.worker.submit(lambda client: client.call_endpoint('kill', requires_input=False)).result(timeout=5)
+    finally:
+        policy.close()
+        thread.join(timeout=5)
+    assert not thread.is_alive()

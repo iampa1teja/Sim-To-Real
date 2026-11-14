@@ -1,5 +1,5 @@
 """Interactive matched-start comparisons driven by the testing-console controls."""
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -32,6 +32,7 @@ def run(args, app):
     future = future_side = comparison = selected = folder = None
     active_side = None
     last_real_goal = None
+    first_real_prediction = True
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='paired-policy')
     output = Path(args.output or f'outputs/eval-sim-real/{datetime.now():%Y%m%d_%H%M%S}')
     output.mkdir(parents=True, exist_ok=True)
@@ -56,6 +57,8 @@ def run(args, app):
     def close_side(reason):
         nonlocal active_side, video, log
         if active_side:
+            if active_side == 'real' and policies and getattr(policies[0], 'async_inference', False):
+                policies[0].cancel()
             label = gui.trial_end_for(active_side)
             ended_at = label['at'] if label else time.monotonic()
             elapsed = max(0., min(ended_at - phase_started, selected.episode_seconds))
@@ -100,11 +103,12 @@ def run(args, app):
                   else f'Stopped. {detail}'.strip())
 
     def begin(side):
-        nonlocal phase, active_side, phase_started, steps, video, log, last_real_goal
+        nonlocal phase, active_side, phase_started, steps, video, log, last_real_goal, first_real_prediction
         phase = active_side = side
         phase_started, steps = time.monotonic(), 0
         if side == 'real':
             last_real_goal = None
+            first_real_prediction = True
         gui.publish(side, f'{side.upper()} trial starting.', connected=follower is not None,
                     duration=selected.episode_seconds)
         video = TrialVideo(folder / f'{side}.mp4', args.fps)
@@ -175,6 +179,9 @@ def run(args, app):
                     raise RuntimeError('Real arm returned non-finite joint positions')
                 real_images = {real_names[name]: observation[name] for name in real_cameras} if follower else {}
                 if comparison and gui.cancelled:
+                    for policy in policies:
+                        if getattr(policy, 'async_inference', False):
+                            policy.cancel()
                     phase = 'stopping'
 
                 if phase == 'ready' and follower:
@@ -215,13 +222,20 @@ def run(args, app):
                                 start_raw=start_raw.tolist(), joint_names=list(arm.joint_names),
                                 sim_objects_start_base_wxyz={name: object_pose_in_base(env, name, base_id).cpu().tolist()
                                                              for name in start_objects})
+                            created_policies = 0
                             def factory():
+                                nonlocal created_policies
                                 if selected.backend == 'local-lerobot':
                                     from policies.molmoact2.local_tcp import LocalLeRobotPolicy
                                     return LocalLeRobotPolicy(ArmInfo.from_arm(arm, args.calibration_selection.mapping),
                                         port=selected.policy_port or 5005,
                                         instruction=selected.lang_instruction, horizon=selected.action_horizon or 30)
-                                return make_policy(selected)
+                                # The simulation side retains its step-driven default.
+                                from argparse import Namespace
+                                client_args = Namespace(**vars(selected))
+                                client_args.async_inference = bool(getattr(selected, 'async_inference', False) and created_policies == 0)
+                                created_policies += 1
+                                return make_policy(client_args)
                             future = executor.submit(connect_trial_policies, factory)
                             future_side, phase = 'connect', 'connecting_policy'
                             status = 'Connecting the selected policy for both trials; Stop cancels before motion.'
@@ -291,6 +305,15 @@ def run(args, app):
                     try:
                         elapsed = time.monotonic() - phase_started
                         video.write(images, f'{phase.upper()} {elapsed:.1f}s / {selected.episode_seconds:.0f}s', elapsed)
+                        policy = policies[0 if phase == 'real' else 1]
+                        async_real = phase == 'real' and getattr(policy, 'async_inference', False)
+                        if async_real and future is None and not gui.cancelled and not gui.trial_end_for(phase):
+                            # Immediate playback result uses the same guarded dispatch below;
+                            # the internal worker owns all network calls.
+                            value = policy.get_raw_action(state, images)
+                            future = Future()
+                            future.set_result(value)
+                            future_side = phase
                         if future is not None and future.done():
                             completed, future = future, None
                             if future_side != phase:
@@ -300,7 +323,10 @@ def run(args, app):
                             else:
                                 action = completed.result()
                             if future_side == phase and not gui.cancelled and not gui.trial_end_for(phase):
-                                values = limited_target(action, state, keys, ranges, first=steps == 0,
+                                info = policy.last_tick if async_real else None
+                                fresh = info is None or not info.held
+                                first = first_real_prediction and fresh if async_real else steps == 0
+                                values = limited_target(action, state, keys, ranges, first=first,
                                     start_limit=args.max_start_error, step_limit=args.max_relative_target)
                                 with gui.motion_lock:
                                     accepted = not gui.cancelled and not gui.trial_end_for(phase)
@@ -309,13 +335,21 @@ def run(args, app):
                                             command = dict(zip(keys, map(float, values)))
                                             sent = follower.send_action(command)
                                             last_real_goal = {key: float(sent[key]) for key in keys} if isinstance(sent, dict) else command
+                                            if async_real:
+                                                policy.record_applied_target(last_real_goal)
                                         elif phase == 'sim':
                                             target = mapping.to_sim(values).unsqueeze(0)
                                 if accepted:
-                                    log.write(json.dumps(dict(seconds=elapsed, state=state.tolist(), target=values.tolist(),
-                                                              motion=phase == 'sim' or args.enable_motion)) + '\n')
+                                    if async_real and fresh:
+                                        first_real_prediction = False
+                                    row = dict(seconds=elapsed, state=state.tolist(), target=values.tolist(),
+                                               motion=phase == 'sim' or args.enable_motion)
+                                    if info is not None:
+                                        row.update(held=info.held, action_age_ms=info.action_age_ms,
+                                                   chunk_id=info.chunk_id, turnaround_s=info.turnaround)
+                                    log.write(json.dumps(row) + '\n')
                                     steps += 1
-                        if future is None and not gui.cancelled and not gui.trial_end_for(phase):
+                        if not async_real and future is None and not gui.cancelled and not gui.trial_end_for(phase):
                             policy = policies[0 if phase == 'real' else 1]
                             future = executor.submit(policy.get_raw_action, state.copy(), {k: v.copy() for k, v in images.items()})
                             future_side = phase

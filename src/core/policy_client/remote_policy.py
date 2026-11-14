@@ -48,6 +48,10 @@ class RemotePolicy:
         timeout_ms: int = 15000,
         action_repeat: int = 1,
         arm_info: ArmInfo | None = None,
+        async_inference: bool = False,
+        refill_seconds: float = 0.5,
+        starvation_grace: float = 1.0,
+        clock=None,
     ):
         if not isinstance(action_repeat, int) or isinstance(action_repeat, bool) or action_repeat < 1:
             raise ValueError("action_repeat must be a positive integer")
@@ -76,7 +80,8 @@ class RemotePolicy:
         self._action_horizon = action_horizon
         self._action_repeat = action_repeat
         self._effective_action_horizon = action_horizon * action_repeat
-        self.lang_instruction = lang_instruction
+        self._lang_instruction = lang_instruction
+        self.async_inference = async_inference
         self._action_queue: deque = deque()
         self._client = None
         self.server_info = None
@@ -92,18 +97,79 @@ class RemotePolicy:
             self._timing = TimingLog(path, self.joint_keys, gripper_indices=gripper_indices)
         self._smoothing = (SimulationSmoother(options, self._effective_action_horizon, self.joint_keys,
                                               self._timing, grasp=self.grasp, gripper_indices=gripper_indices)
-                           if options.enabled else None)
+                           if options.enabled and not async_inference else None)
+        self._async = None
+        if async_inference:
+            from .async_worker import AsyncInference
+            self._async = AsyncInference(
+                self._build_client, self._initialize_client,
+                lambda actions: self._decode_action_chunk(actions, full_chunk=True),
+                self.joint_keys, self._effective_action_horizon, control_dt, options,
+                timeout=timeout_ms / 1000, refill_seconds=refill_seconds,
+                starvation_grace=starvation_grace, clock=clock, gripper_indices=gripper_indices,
+                grasp=self.grasp, timing=self._timing, seed_per_episode=seed_per_episode,
+                episode_seed=episode_seed)
+
+    @property
+    def lang_instruction(self):
+        return self._lang_instruction
+
+    @lang_instruction.setter
+    def lang_instruction(self, text):
+        self.set_instruction(text)
+
+    def set_instruction(self, text):
+        """Invalidate old-task playback and in-flight replies before changing intent."""
+        if not isinstance(text, str):
+            raise TypeError('instruction must be a string')
+        if self._async is not None:
+            with self._async.lock:
+                self._lang_instruction = text
+                self._async.instruction_changed()
+        else:
+            self._lang_instruction = text
+
+    @property
+    def last_tick(self):
+        return self._async.last_tick if self._async is not None else None
+
+    def cancel(self):
+        """Stop async playback immediately; reset is required to resume."""
+        if self._async is not None:
+            self._async.cancel()
+
+    def record_applied_target(self, action):
+        if self._async is not None:
+            self._async.applied(action)
 
     @property
     def client(self):
+        if self._async is not None:
+            raise RuntimeError('The async policy client belongs exclusively to its worker thread')
         return self._client
 
-    def connect(self):
-        """Connect to the policy server and check it serves the configured policy."""
-        self._client = build_plugin_client(
+    def _build_client(self):
+        return build_plugin_client(
             self._policy_name, self.joint_keys, host=self._host, port=self._port,
             timeout_ms=self._timeout_ms, api_token=self._api_token, policy_options=self._policy_options,
             arm_info=self.arm_info)
+
+    @staticmethod
+    def _initialize_client(client):
+        return dict(server_info=check_server(client),
+                    cameras=list(getattr(client.policy, 'cameras', client.manifest.cameras)),
+                    joint_transform=getattr(client.policy, 'joint_transform', None))
+
+    def connect(self):
+        """Connect outside the control loop; async sockets never leave their owner."""
+        if self._async is not None:
+            metadata = self._async.connect()
+            self.policy_cameras = metadata['cameras']
+            self.joint_transform = metadata['joint_transform']
+            self.server_info = metadata['server_info']
+            print(f'[INFO]: Async policy server connected; camera inputs: {self.policy_cameras}', flush=True)
+            return
+        self._client = self._build_client()
         cameras = getattr(self._client.policy, 'cameras', self._client.manifest.cameras)
         self.policy_cameras = list(cameras)
         print(f"[INFO]: Policy camera inputs: {self.policy_cameras}", flush=True)
@@ -117,6 +183,10 @@ class RemotePolicy:
 
     def reset(self, seed=None):
         """Reset state; a benchmark seed must be acknowledged by the server."""
+        if self._async is not None:
+            self._async.reset(seed)
+            self.inference_calls = 0
+            return
         self._client.reset()
         if self.grasp is not None:
             self.grasp.reset()
@@ -134,6 +204,8 @@ class RemotePolicy:
     @property
     def steps_until_query(self):
         """Control steps until the next observation is queried (for rendering)."""
+        if self._async is not None:
+            return 0  # Async consumers need current observations, including during refill.
         return (self._smoothing.steps_until_query if self._smoothing is not None
                 else len(self._action_queue))
 
@@ -145,6 +217,8 @@ class RemotePolicy:
 
     def close(self):
         """Close a session, including its socket, on the policy worker thread."""
+        if self._async is not None:
+            self._async.close()
         self.close_timing()
         if self._client is not None:
             self._client.client.close()
@@ -181,6 +255,10 @@ class RemotePolicy:
         queried, so callers can defer image conversion. measured_gripper (raw units) is required when grasp
         control is enabled.
         """
+        if self._async is not None:
+            action = self._async.tick(make_input, measured_gripper)
+            self.inference_calls = self._async.calls
+            return action
         if self.grasp is not None:
             self.grasp.measured = float(measured_gripper)
         if self._smoothing is not None:
