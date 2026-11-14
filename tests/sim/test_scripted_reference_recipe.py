@@ -13,7 +13,7 @@ from sim.datagen.scripted import GenerationContext
 
 def test_scripted_reference_start_preserves_the_historical_physical_jaw_opening(monkeypatch):
     monkeypatch.delenv("S2R_ARMS_DIR", raising=False)
-    config = yaml.safe_load((Path(__file__).resolve().parents[2] / "configs/datagen/scripted.yaml").read_text())
+    config = yaml.safe_load((Path(__file__).resolve().parents[2] / "workspace/configs/datagen/scripted.yaml").read_text())
     # Phase 5's retained 391-frame reference used this seeded task sample, without starts_dir.
     assert config["seed"] == 101
     assert not config.get("starts_dir")

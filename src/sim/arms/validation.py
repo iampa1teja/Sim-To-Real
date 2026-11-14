@@ -101,7 +101,7 @@ def validate_import(name,*,repo=None):
     old={key:os.environ.get(key) for key in ('S2R_ARM','S2R_ARMS_DIR')}
     os.environ['S2R_ARM']=name
     if repo:
-        os.environ['S2R_ARMS_DIR']=str(Path(repo)/'arms')
+        os.environ['S2R_ARMS_DIR']=str(Path(repo)/'workspace'/'arms')
     spec,_=load_arm_spec(name)
     results=[dict(name='spec_action_dimension',passed=len(spec.joint_names)==sum(j.mimic is None for j in spec.joints),
                   action_dimension=len(spec.action_joints),physical_joints=len(spec.joints))]

@@ -12,7 +12,7 @@ import numpy as np
 from core.datasets.task_meta import read_task_meta, save_task_trajectory
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPTS = ROOT / 'policies/groot_n17/train'
+SCRIPTS = ROOT / 'workspace/policies/groot_n17/train'
 spec = importlib.util.spec_from_file_location('groot_sidecar_copy', SCRIPTS / 'dataset_sidecars.py')
 sidecars = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sidecars)

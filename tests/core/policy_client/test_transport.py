@@ -19,7 +19,7 @@ def test_remote_policy_configure_seed_and_actions_over_real_zmq(monkeypatch):
     ready = Queue()
 
     def serve():
-        policy = load_server_policy(ROOT / 'policies/example')
+        policy = load_server_policy(ROOT / 'workspace/policies/example')
         policy.load('', 'cpu', {})
         server = PolicyServer(policy, host='127.0.0.1', port=0, timeout_ms=1000, api_token='local-test')
         ready.put(server.port)

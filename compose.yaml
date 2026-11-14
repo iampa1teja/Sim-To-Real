@@ -51,7 +51,7 @@ services:
       - --checkpoint
       - /workspace/models/${S2R_CHECKPOINT:-}
     volumes:
-      - ./policies:/policies
+      - ./workspace/policies:/policies
       - policy-cache:/opt/cache
       - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
       - ${S2R_MODELS_DIR:-~/models}:/workspace/models

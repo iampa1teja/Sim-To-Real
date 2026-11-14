@@ -17,8 +17,8 @@ if Usd is not None:
 
 
 REPO = Path(__file__).resolve().parents[2]
-ARM = REPO / "arms/so101/usd/SO-ARM101-USD.usd"
-ROOM = REPO / "scenes/rpd_meeting_room/usd/digital_twin_room.usda"
+ARM = REPO / "workspace/arms/so101/usd/SO-ARM101-USD.usd"
+ROOM = REPO / "workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda"
 
 
 @unittest.skipUnless(Usd is not None and importlib.util.find_spec("isaaclab"),

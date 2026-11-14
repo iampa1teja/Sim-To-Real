@@ -1,0 +1,43 @@
+unit: rpd_follower
+# MolmoAct2 SO-101 checkpoint (setup_molmoact2.sh --variant so101), full benchmark with videos.
+arm: so101
+scene: rpd_meeting_room
+task: pick_place_cube
+variant: eval
+
+policy:
+  name: molmoact2
+  checkpoint: molmoact2_so101
+  models_dir: /external_storage/molmoact2     # for s2r serve --models-dir; ignored by sim.eval.run
+  options:
+    wrist_roll_model_offset: -90     # base USD wrist degrees -> original Molmo wrist frame
+    norm_tag: so100_so101_molmoact2
+    dtype: bfloat16
+    action_dtype: float32             # retain original expert precision with a BF16 backbone
+    include_original_room: false      # calibrated room and wrist cameras
+    pan_model_scale: 0.49016972984379564
+    pan_model_offset: 3.5352321757436442
+    num_steps: 10
+
+eval:
+  dataset: /workspace/datasets/pick_place_v1_calibrated_A
+  eval_set: /workspace/s2r/workspace/tasks/pick_place_cube/eval_sets/pick_place_v1_seed1984.json
+  splits: [id, ood, yaw, train]
+  repeats: 1
+  start_mode: cycle
+  random_fraction: 0.0
+  robot_start: recorded
+  action_horizon: 30                  # execute the released SO-101 checkpoint's full action chunk
+  action_repeat: 1                    # 30 Hz simulation control; query every simulated second
+  episode_length_s: 180               # 3 min simulated time per try = 5400 control steps
+  render_warmup: 0                    # update Rerun cameras continuously between policy queries
+  save_videos: true                   # save both streams for every attempt
+  video_encoder: libx264              # background CPU encoding; h264_nvenc optionally uses NVIDIA video hardware
+  lang: Pick up the blue cube and place it in the white box
+  rename_map:
+    realsense_rgb: room
+    wrist_cam: wrist
+
+run:
+  gui: false
+  rerun: false

@@ -10,7 +10,7 @@ from core.benchmark import eval_set as benchmark, starts as evaluation
 from core.utils.hashing import json_sha256
 
 
-SETS = Path(__file__).resolve().parents[2] / "tasks/pick_place_cube/eval_sets"
+SETS = Path(__file__).resolve().parents[2] / "workspace/tasks/pick_place_cube/eval_sets"
 
 
 @pytest.mark.parametrize("filename,expected_hash", [

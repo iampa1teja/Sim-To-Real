@@ -18,7 +18,7 @@ def module(path):
 
 @pytest.fixture
 def sweep():
-    return module(ROOT / 'policies/sweep/make_sweep.py').make_sweep()
+    return module(ROOT / 'workspace/policies/sweep/make_sweep.py').make_sweep()
 
 
 def test_sweep_bounds_speed_and_exact_holds(sweep):
@@ -40,7 +40,7 @@ def test_sweep_bounds_speed_and_exact_holds(sweep):
         assert not np.allclose(ticks[start - 1], hold['raw'], atol=1e-10, rtol=0)
         assert not np.allclose(ticks[end], hold['raw'], atol=1e-10, rtol=0)
         raw = np.asarray(hold['raw'])
-        source = json.loads((ROOT / 'arms/so101/calibration/units/rpd_follower.json').read_text())['source']['joints']
+        source = json.loads((ROOT / 'workspace/arms/so101/calibration/units/rpd_follower.json').read_text())['source']['joints']
         for i, name in enumerate(sweep['joint_names']):
             fraction = (raw[i] - sweep['raw_min'][i]) / (sweep['raw_max'][i] - sweep['raw_min'][i])
             assert hold['expected_encoder_counts'][i] == pytest.approx(
@@ -58,7 +58,7 @@ def test_home_uses_scene_mount_and_exclusion_preserves_indices(sweep):
     physical = units_to_physical(sweep['home_raw'], load_unit(arm, 'rpd_follower').mapping,
                                  arm.joint_names, gripper_joints=arm.gripper_joint_names)
     np.testing.assert_allclose(physical, np.rad2deg([mount[j.usd] for j in arm.joints]))
-    excluded = module(ROOT / 'policies/sweep/make_sweep.py').make_sweep(exclude='wrist_roll:0,gripper:8')
+    excluded = module(ROOT / 'workspace/policies/sweep/make_sweep.py').make_sweep(exclude='wrist_roll:0,gripper:8')
     assert len(excluded['holds']) == 52
     assert not any((h['joint'], h['index']) in {('wrist_roll', 0), ('gripper', 8)} for h in excluded['holds'])
     assert np.max(np.abs(np.diff(excluded['ticks'], axis=0)) * excluded['deg_per_raw'] * excluded['fps']) <= 15
@@ -66,7 +66,7 @@ def test_home_uses_scene_mount_and_exclusion_preserves_indices(sweep):
 
 def test_server_ramp_reset_padding_and_independent_clients(sweep, tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT / 'src/core'))
-    server = module(ROOT / 'policies/sweep/server.py').create()
+    server = module(ROOT / 'workspace/policies/sweep/server.py').create()
     path = tmp_path / 'sweep.json'
     # Shorten playback while keeping a non-home endpoint to test end padding.
     sweep['ticks'] = [sweep['home_raw'], sweep['holds'][0]['raw']]
@@ -97,7 +97,7 @@ def test_server_ramp_reset_padding_and_independent_clients(sweep, tmp_path, monk
 
 def test_sweep_client_supports_room_camera_only():
     from core.policy_client.discovery import get_manifest
-    client = module(ROOT / 'policies/sweep/client.py')
+    client = module(ROOT / 'workspace/policies/sweep/client.py')
     manifest = get_manifest('sweep')
     policy = client.create(manifest, {'cameras': 'room'})
     image = np.zeros((8, 8, 3), dtype=np.uint8)

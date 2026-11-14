@@ -18,7 +18,7 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `core.utils.config`; flags override YAML.
 - `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
   optional `.gripper`/`.wrist_roll`, and the declared wrist cameras. No arm-specific names or motor indices belong
-  in generic source. Optional spawn/appearance hooks are loaded from the arm's `<arm>_utils.py`.
+  in generic source. Optional spawn/appearance hooks are loaded by path from the arm folder's `utils.py`.
 - Isaac Lab 3.0 / Newton live tensors use XYZW quaternions. Dataset sidecars and benchmark JSON use WXYZ.
   Convert explicitly at those boundaries. Positions and translations are metres; articulation angles are radians.
 - Arms can be imported from URDF; mimic joints are not action dimensions; gripper commands may be physical gaps.
@@ -36,7 +36,7 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   Use `raw_joint_limits(arm, mapping)` for action limits; physical runtime limits are not raw driver bounds. `to_physical` and
   `sim_to_physical` are the calibrated device/simulator boundaries for telemetry. Never apply degree conversion
   to prismatic axes or infer gripper roles from motor names.
-- Per-unit calibration is in `arms/<arm>/calibration/units/<id>.json`, selected by recording `follower.unit` or
+- Per-unit calibration is in `workspace/arms/<arm>/calibration/units/<id>.json`, selected by recording `follower.unit` or
   command `--unit`. It is independent of scene JSON. Raw LeRobot device files live in the arm-declared
   calibration folders under `$HF_LEROBOT_CALIBRATION`; preserve their hashes and the unit's source evidence.
   Factory revolute mappings use full encoder range; factory prismatic mappings use the declared full stroke.
@@ -57,11 +57,11 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   named object poses and latched task stages. Nominal requested waypoints are separate from executed targets.
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
   `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.
-- Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `mounts/<arm>.toml`
+- Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `workspace/scenes/<scene>/mounts/<arm>.toml`
   owns the arm/scene combination; missing mounts use the anchor and arm initial joints. Mount translation
   corrections are world-space metres. Anchor positions and rotations use the same rigid frame transform;
   surveyed vectors kept as metadata must not silently replace that frame's basis.
-- Scene-specific visual treatments belong in the optional scene-folder hook. A contact anchor may declare
+- Scene-specific visual treatments belong in the optional scene-folder `utils.py` hook. A contact anchor may declare
   `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
   static materials before Newton imports the stage; visual-only lighting retains startup event order.
 - Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.

@@ -21,7 +21,7 @@ HIGH = np.array([48.55349563, 186.1064668, 173.6076722, 93.41056418, 43.53107398
 def fixture(monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT / 'src/core'))
     from policy_server.contract import load_server_policy
-    policy = load_server_policy(ROOT / 'policies/molmoact2')
+    policy = load_server_policy(ROOT / 'workspace/policies/molmoact2')
     module = __import__(type(policy).__module__, fromlist=['allow_action_extrapolation'])
     normalizer = SimpleNamespace(mode='q01_q99', q_low=LOW.copy(), q_high=HIGH.copy(),
                                  mask=np.ones(6, bool), zero_mask=np.zeros(6, bool))

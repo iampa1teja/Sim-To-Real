@@ -55,7 +55,7 @@ def stage_sources(args):
     packages = find_packages(source)
     packages.update({name: Path(path).expanduser().resolve(strict=True)
                      for name, path in _pairs(args.package_path, '--package_path').items()})
-    target = args.repo.resolve() / 'arms' / args.name
+    target = args.repo.resolve() / 'workspace' / 'arms' / args.name
     if target.exists():
         if not args.force:
             raise FileExistsError(f'{target} exists; --force only overwrites an imported arm')
@@ -147,7 +147,7 @@ def stage_sources(args):
                 limit.set('effort',str(joint.effort)); limit.set('velocity',str(joint.velocity))
         (temporary/'source'/'conversion.urdf').write_text(ET.tostring(document,encoding='unicode'))
         (temporary/'usd').mkdir()
-        (temporary/f'{args.name}_utils.py').write_text('"""Optional owner-supplied arm hooks. No hardware driver is generated."""\n')
+        (temporary/'utils.py').write_text('"""Optional owner-supplied arm hooks. No hardware driver is generated."""\n')
         if target.exists():
             shutil.rmtree(target)
         temporary.rename(target)
@@ -636,7 +636,7 @@ def main(argv=None):
 def recover_native_failure(args,returncode):
     """Finalize evidence from a confirmed terminal native SDK process."""
     import os
-    directory=args.repo.resolve()/'arms'/args.name
+    directory=args.repo.resolve()/'workspace'/'arms'/args.name
     report_path=directory/'import-report.json'
     if not report_path.is_file():
         return returncode

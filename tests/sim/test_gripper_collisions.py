@@ -12,7 +12,7 @@ except ImportError:
     Usd = None
 
 
-ASSET = Path(__file__).resolve().parents[2] / "arms/so101/usd/SO-ARM101-USD.usd"
+ASSET = Path(__file__).resolve().parents[2] / "workspace/arms/so101/usd/SO-ARM101-USD.usd"
 
 
 @unittest.skipUnless(Usd is not None and importlib.util.find_spec("isaaclab"),

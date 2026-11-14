@@ -14,7 +14,7 @@
 # limitations under the License.
 """Evaluate a served policy in simulation.
 
-    s2r eval --config_path configs/eval/pick_place.yaml [--flag value ...]
+    s2r eval --config_path workspace/configs/eval/pick_place.yaml [--flag value ...]
 
 The env is S2R-<task>-<variant> (default variant: eval). Flags override the YAML.
 """
@@ -96,7 +96,7 @@ def _nonnegative_float(value):
 
 
 def load_yaml_config(path):
-    """Flatten a configs/eval YAML into argparse destinations (see configs/eval/pick_place.yaml)."""
+    """Flatten a configs/eval YAML into argparse destinations (see workspace/configs/eval/pick_place.yaml)."""
     import yaml
 
     data = yaml.safe_load(Path(path).read_text()) or {}

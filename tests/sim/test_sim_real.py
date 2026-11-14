@@ -1,5 +1,6 @@
 """Paired comparison guards and the trusted local server codec."""
 import io
+from pathlib import Path
 import pickle
 from types import SimpleNamespace
 
@@ -7,6 +8,26 @@ import numpy as np
 import pytest
 
 from sim.eval.sim_real import limited_target
+
+
+def _local_tcp():
+    """Load policies/molmoact2/local_tcp.py by path; the policies folder is not an importable package."""
+    import importlib.util
+    import sys
+    from core.policy_client.discovery import get_manifest
+
+    module_name = '_s2r_policy_molmoact2_local_tcp'
+    if module_name not in sys.modules:
+        definition = importlib.util.spec_from_file_location(
+            module_name, Path(get_manifest('molmoact2').path) / 'local_tcp.py')
+        module = importlib.util.module_from_spec(definition)
+        sys.modules[module_name] = module
+        try:
+            definition.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(module_name, None)
+            raise
+    return sys.modules[module_name]
 
 
 def test_first_action_guard_precedes_step_limit():
@@ -26,7 +47,7 @@ def test_each_side_limits_relative_to_its_own_observed_state():
 
 
 def test_local_server_numpy_response_and_disallowed_classes():
-    from policies.molmoact2.local_tcp import _ArrayUnpickler
+    _ArrayUnpickler = _local_tcp()._ArrayUnpickler
     payload = {'chunk': np.ones((30, 6), dtype=np.float32)}
     result = _ArrayUnpickler(io.BytesIO(pickle.dumps(payload))).load()
     np.testing.assert_equal(result['chunk'], payload['chunk'])
@@ -38,7 +59,7 @@ def test_local_server_codec_does_not_double_transform(monkeypatch):
     from core.arms.spec import load_arm_spec
     from core.arms.calibration import resolve_calibration
     from core.policy_client.contract import ArmInfo
-    from policies.molmoact2.local_tcp import LocalLeRobotPolicy
+    LocalLeRobotPolicy = _local_tcp().LocalLeRobotPolicy
     import struct
 
     arm = load_arm_spec('so101')[0]

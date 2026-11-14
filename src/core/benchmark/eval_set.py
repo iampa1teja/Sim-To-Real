@@ -381,7 +381,7 @@ def generate_eval_set(dataset, scene, *, task=None, arm=None, seed=1984, n_id=60
 
 
 def main(argv=None):
-    from core.paths import repo_dir
+    from core.paths import repo_root
     from core.utils.provenance import git_commit
 
     parser = argparse.ArgumentParser(description='Build a task benchmark from recorded first-frame starts')
@@ -402,7 +402,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     arm, _ = load_arm_spec(args.arm)
     task = task_instance(args.task)
-    commit = args.git_commit or git_commit(repo_dir('tasks').parent, required=True)
+    commit = args.git_commit or git_commit(repo_root(), required=True)
     scene = json.loads(args.scene_json.read_text())
     data = generate_eval_set(args.dataset, scene, task=task, arm=arm, seed=args.seed,
         n_id=args.n_id, n_ood=args.n_ood, n_yaw=args.n_yaw, min_dist_m=args.min_dist_m,

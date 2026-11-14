@@ -16,13 +16,14 @@ def imported_urdf_arm(request,tmp_path_factory):
     pytest.importorskip('isaaclab')
     repository=Path(__file__).resolve().parents[2]
     temporary=tmp_path_factory.mktemp('urdf_acceptance_'+request.param)
-    for folder in ('src','scenes','tasks','configs'):
-        shutil.copytree(repository/folder,temporary/folder,symlinks=True,
+    shutil.copytree(repository/'src',temporary/'src',symlinks=True,ignore=shutil.ignore_patterns('__pycache__'))
+    for folder in ('scenes','tasks','configs'):
+        shutil.copytree(repository/'workspace'/folder,temporary/'workspace'/folder,symlinks=True,
                         ignore=shutil.ignore_patterns('__pycache__'))
-    (temporary/'arms').mkdir()
+    (temporary/'workspace'/'arms').mkdir()
     # Reference selection is data-driven, as it is in the importer.
     from core.paths import DEFAULT_ARM
-    shutil.copytree(repository/'arms'/DEFAULT_ARM,temporary/'arms'/DEFAULT_ARM,symlinks=True)
+    shutil.copytree(repository/'workspace'/'arms'/DEFAULT_ARM,temporary/'workspace'/'arms'/DEFAULT_ARM,symlinks=True)
     package=repository/'tests'/'fixtures'/'urdf'/(request.param+'_pkg')
     source=next(package.glob('robot.urdf*'))
     arguments=[request.param,'--urdf',str(source),'--ee_link','Tool_0','--gripper',
@@ -38,7 +39,7 @@ def imported_urdf_arm(request,tmp_path_factory):
     result=subprocess.run([sys.executable,'-c',bootstrap,str(temporary/'src'),*arguments],
                           cwd=temporary,env=environment,text=True,capture_output=True,timeout=600)
     (temporary/'import.log').write_text(result.stdout+result.stderr)
-    report_path=temporary/'arms'/request.param/'import-report.json'
+    report_path=temporary/'workspace'/'arms'/request.param/'import-report.json'
     assert report_path.exists(),result.stdout[-3000:]+result.stderr[-3000:]
     report=json.loads(report_path.read_text())
     return dict(name=request.param,repo=temporary,report=report,returncode=result.returncode)

@@ -14,7 +14,7 @@ from core.arms.spec import load_arm_spec
 from core.datasets.sources import recorded_joint_mapping
 from core.utils.hashing import tree_sha256
 
-SCRIPTS = Path(__file__).resolve().parents[2] / 'policies/molmoact2/train'
+SCRIPTS = Path(__file__).resolve().parents[2] / 'workspace/policies/molmoact2/train'
 
 
 def module(name):

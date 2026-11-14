@@ -11,6 +11,27 @@ import uuid
 import numpy as np
 
 
+
+def _local_tcp():
+    """Load policies/molmoact2/local_tcp.py by path; the policies folder is not an importable package."""
+    import importlib.util
+    import sys
+    from core.policy_client.discovery import get_manifest
+
+    module_name = '_s2r_policy_molmoact2_local_tcp'
+    if module_name not in sys.modules:
+        definition = importlib.util.spec_from_file_location(
+            module_name, Path(get_manifest('molmoact2').path) / 'local_tcp.py')
+        module = importlib.util.module_from_spec(definition)
+        sys.modules[module_name] = module
+        try:
+            definition.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(module_name, None)
+            raise
+    return sys.modules[module_name]
+
+
 def run(args, app):
     import gymnasium as gym
     import torch
@@ -217,8 +238,7 @@ def run(args, app):
                                                              for name in start_objects})
                             def factory():
                                 if selected.backend == 'local-lerobot':
-                                    from policies.molmoact2.local_tcp import LocalLeRobotPolicy
-                                    return LocalLeRobotPolicy(ArmInfo.from_arm(arm, args.calibration_selection.mapping),
+                                    return _local_tcp().LocalLeRobotPolicy(ArmInfo.from_arm(arm, args.calibration_selection.mapping),
                                         port=selected.policy_port or 5005,
                                         instruction=selected.lang_instruction, horizon=selected.action_horizon or 30)
                                 return make_policy(selected)

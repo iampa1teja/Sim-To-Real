@@ -90,7 +90,7 @@ def test_fixed_embodiment_refuses_before_opening_transport(info, monkeypatch):
 
 
 def test_manifest_dimension_and_generic_default_horizon(tmp_path, info):
-    source = ROOT / 'policies/example/policy.toml'
+    source = ROOT / 'workspace/policies/example/policy.toml'
     folder = tmp_path / 'example'
     folder.mkdir()
     for value in ('0', 'true', '"6"', '"invalid"'):

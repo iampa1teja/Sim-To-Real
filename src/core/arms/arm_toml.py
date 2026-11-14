@@ -104,7 +104,7 @@ def _render(model: UrdfModel, choices: ImportChoices):
     table('arm')
     emit('arm', 'name', choices.name, 'from-flag', '--name')
     emit('arm', 'usd_path', f'usd/{choices.name}.usd', 'derived', 'Converted USD in this arm folder')
-    emit('arm', 'utils', f'{choices.name}_utils.py', 'derived', 'Optional hooks placeholder')
+    emit('arm', 'utils', 'utils.py', 'derived', 'Optional hooks placeholder')
     table('arm.links')
     emit('arm.links', 'base', choices.base_link or model.default_base(),
          'from-flag' if choices.base_link else 'confirm', '--base_link or structural fixed-root proposal')

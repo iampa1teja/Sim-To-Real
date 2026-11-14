@@ -19,7 +19,7 @@ import uuid
 import numpy as np
 
 from core.arms.spec import load_arm_spec
-from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK, repo_dir
+from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK, repo_root
 from core.policy_client.discovery import discover
 from core.rollout import real_rollout
 from core.utils.config import parse_yaml_args
@@ -32,7 +32,7 @@ HARDWARE_ENV = ('ROBOT_PORT', 'ROBOT_ID', 'CAMERA_GRIPPER', 'CAMERA_EXTERNAL',
 def hardware_defaults():
     """Current local hardware settings override stale values in a long-lived container."""
     values = {key: os.environ[key] for key in HARDWARE_ENV if key in os.environ}
-    path = repo_dir('configs').parent / '.env'
+    path = repo_root() / '.env'
     if path.is_file():
         for line in path.read_text().splitlines():
             key, separator, value = line.partition('=')

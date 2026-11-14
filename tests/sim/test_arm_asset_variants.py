@@ -11,7 +11,7 @@ except ImportError:
     Usd = None
 
 
-ASSETS = Path(__file__).resolve().parents[2] / "arms/so101/usd"
+ASSETS = Path(__file__).resolve().parents[2] / "workspace/arms/so101/usd"
 BASE_SHA256 = "1b4132acb64952fd952a0afa2eb4e6c805bac1df9dc80e01feda9ba3a28f277d"
 
 

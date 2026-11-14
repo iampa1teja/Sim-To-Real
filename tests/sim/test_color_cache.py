@@ -31,7 +31,7 @@ class ColorCacheTests(unittest.TestCase):
 
     def test_repeated_resets_reuse_inputs_and_new_stage_resolves_its_own(self):
         stage, color = self.make_stage()
-        source = Path(__file__).resolve().parents[2] / "tasks/pick_place_cube/mdp.py"
+        source = Path(__file__).resolve().parents[2] / "workspace/tasks/pick_place_cube/mdp.py"
         function = next(n for n in ast.parse(source.read_text()).body
                         if isinstance(n, ast.FunctionDef) and n.name == "set_cube_color")
         env = SimpleNamespace(num_envs=1, scene={"blue_cube": object()})

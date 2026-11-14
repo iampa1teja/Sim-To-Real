@@ -83,7 +83,7 @@ def parse_args(argv=None):
         import sys
         argv = sys.argv[1:]
     if not any(arg.startswith('--config_path') for arg in argv):
-        argv = ['--config_path', 'configs/eval/sim_real.yaml', *argv]
+        argv = ['--config_path', 'workspace/configs/eval/sim_real.yaml', *argv]
     args = parse_yaml_args(parser, argv, json_fields=('rename_map', 'policy_options'))
     args.policy_options = json.loads(args.policy_options)
     if not isinstance(args.policy_options, dict) or any(not isinstance(value, dict) for value in args.policy_options.values()):

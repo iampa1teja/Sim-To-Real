@@ -68,9 +68,9 @@ def default_policies_dir() -> Path:
 
     module_dir = Path(__file__).resolve().parent
     for parent in (module_dir, *module_dir.parents):
-        policies_dir = parent / "policies"
-        if policies_dir.is_dir():
-            return policies_dir
+        for policies_dir in (parent / "workspace" / "policies", parent / "policies"):
+            if policies_dir.is_dir():
+                return policies_dir
 
     raise FileNotFoundError(
         f"Could not find a policies directory above {module_dir}; "

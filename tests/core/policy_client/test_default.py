@@ -12,7 +12,7 @@ from core.policy_client.discovery import load_manifest
 from core.policy_client.transport import MsgSerializer
 
 
-POLICIES = Path(__file__).resolve().parents[3] / "policies"
+POLICIES = Path(__file__).resolve().parents[3] / "workspace/policies"
 
 
 @pytest.mark.parametrize("name", ["_template", "example", "groot_n17"])

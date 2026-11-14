@@ -1,0 +1,2449 @@
+{
+  "importer_version": "1",
+  "arm": "sp7",
+  "fields": {
+    "arm.name": {
+      "value": "sp7",
+      "tag": "from-flag",
+      "reason": "--name"
+    },
+    "arm.usd_path": {
+      "value": "usd/sp7.usd",
+      "tag": "derived",
+      "reason": "Converted USD in this arm folder"
+    },
+    "arm.utils": {
+      "value": "utils.py",
+      "tag": "derived",
+      "reason": "Optional hooks placeholder"
+    },
+    "arm.links.base": {
+      "value": "base_link",
+      "tag": "confirm",
+      "reason": "--base_link or structural fixed-root proposal"
+    },
+    "arm.links.ee": {
+      "value": "gripper_base_link",
+      "tag": "from-flag",
+      "reason": "--ee_link"
+    },
+    "arm.joints.0.name": {
+      "value": "joint1",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.0.usd": {
+      "value": "joint1",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.0.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.0.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.0.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.0.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.1.name": {
+      "value": "joint2",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.1.usd": {
+      "value": "joint2",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.1.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.1.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.1.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.1.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.2.name": {
+      "value": "joint3",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.2.usd": {
+      "value": "joint3",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.2.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.2.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.2.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.2.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.3.name": {
+      "value": "joint4",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.3.usd": {
+      "value": "joint4",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.3.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.3.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.3.limits": {
+      "value": [
+        -180.00001984784282,
+        60.00002571454079
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.3.initial": {
+      "value": -1.0471975,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.4.name": {
+      "value": "joint5",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.4.usd": {
+      "value": "joint5",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.4.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.4.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.4.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.4.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.5.name": {
+      "value": "joint6",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.5.usd": {
+      "value": "joint6",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.5.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.5.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.5.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.5.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.6.name": {
+      "value": "joint7",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.6.usd": {
+      "value": "joint7",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.6.type": {
+      "value": "revolute",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.6.role": {
+      "value": "arm",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.6.limits": {
+      "value": [
+        -89.99998127603166,
+        89.99998127603166
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.6.initial": {
+      "value": 0.0,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range",
+      "runtime_override": true
+    },
+    "arm.joints.7.name": {
+      "value": "gripper_left_joint",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.7.usd": {
+      "value": "gripper_left_joint",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.7.type": {
+      "value": "prismatic",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.7.role": {
+      "value": "gripper",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.7.limits": {
+      "value": [
+        -0.005,
+        0.0375
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.7.initial": {
+      "value": 0.01625,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range"
+    },
+    "arm.joints.8.name": {
+      "value": "gripper_right_joint",
+      "tag": "derived",
+      "reason": "URDF name or --rename"
+    },
+    "arm.joints.8.usd": {
+      "value": "gripper_right_joint",
+      "tag": "derived",
+      "reason": "Unmerged converted URDF joint name"
+    },
+    "arm.joints.8.type": {
+      "value": "prismatic",
+      "tag": "derived",
+      "reason": "URDF type; continuous joints receive declared finite limits"
+    },
+    "arm.joints.8.role": {
+      "value": "gripper",
+      "tag": "from-flag",
+      "reason": "base-to-ee chain from --ee_link / --gripper subtree"
+    },
+    "arm.joints.8.limits": {
+      "value": [
+        -0.005,
+        0.0375
+      ],
+      "tag": "derived",
+      "reason": "URDF radians converted to degrees, prismatic metres preserved"
+    },
+    "arm.joints.8.initial": {
+      "value": 0.01625,
+      "tag": "configured",
+      "reason": "Owner requested the midpoint of every joint limit range"
+    },
+    "arm.joints.8.mimic": {
+      "value": {
+        "joint": "gripper_left_joint",
+        "multiplier": 1.0,
+        "offset": 0.0
+      },
+      "tag": "derived",
+      "reason": "URDF mimic source, multiplier and SI offset"
+    },
+    "arm.gripper.kind": {
+      "value": "parallel",
+      "tag": "derived",
+      "reason": "Types of explicitly selected gripper joints"
+    },
+    "arm.gripper.joints": {
+      "value": [
+        "gripper_left_joint"
+      ],
+      "tag": "from-flag",
+      "reason": "--gripper sources only"
+    },
+    "arm.gripper.contact_bodies": {
+      "value": [
+        "gripper_right_link",
+        "gripper_left_link"
+      ],
+      "tag": "confirm",
+      "reason": "Child links of selected fingers including mimic joints"
+    },
+    "arm.gripper.friction_bodies": {
+      "value": [
+        "gripper_right_link",
+        "gripper_left_link",
+        "gripper_base_link"
+      ],
+      "tag": "derived",
+      "reason": "Contact bodies and ee link"
+    },
+    "arm.gripper.closed_gap_m": {
+      "value": 0.0,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.open_gap_m": {
+      "value": 0.08467114754960926,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.closed_position": {
+      "value": 0.0375,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.open_position": {
+      "value": -0.005,
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.closing_axis": {
+      "value": [
+        -1.0,
+        8.41068016255238e-09,
+        -2.8571916087427252e-15
+      ],
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.gripper.approach_axis": {
+      "value": [
+        8.410510197590617e-09,
+        0.9999797937256627,
+        0.006357054379289826
+      ],
+      "tag": "measured",
+      "reason": "Converted collision geometry sweep",
+      "confirm": true
+    },
+    "arm.ik.orientation_axes": {
+      "value": [
+        "x",
+        "y",
+        "z"
+      ],
+      "tag": "confirm",
+      "reason": "Joint-count structural proposal; confirm controllable orientation axes"
+    },
+    "arm.ik.method": {
+      "value": "dls",
+      "tag": "derived",
+      "reason": "Isaac Lab library IK"
+    },
+    "arm.ik.joint_limit_avoidance_gain": {
+      "value": 0.05,
+      "tag": "derived",
+      "reason": "Spare joint for seven-axis redundancy; owner-authorized runtime override, see current_runtime",
+      "runtime_override": true
+    },
+    "arm.ik.position_offset_m": {
+      "value": [
+        -0.00042498307461547155,
+        0.04973298352529152,
+        0.00014139085433376657
+      ],
+      "tag": "measured",
+      "reason": "Measured inner fingertip centre minus grasp depth along approach axis; owner-authorized runtime override, see current_runtime",
+      "confirm": true,
+      "runtime_override": true
+    },
+    "arm.actuators.joint_0.joint_names_expr": {
+      "value": [
+        "joint1"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_0.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_0.stiffness": {
+      "value": 4.132679808736616,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_0.damping": {
+      "value": 0.48224528698376934,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.joint_names_expr": {
+      "value": [
+        "joint2"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_1.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.stiffness": {
+      "value": 222.86808907027557,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_1.damping": {
+      "value": 3.226575353472646,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.joint_names_expr": {
+      "value": [
+        "joint3"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_2.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.stiffness": {
+      "value": 84.07512075800476,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_2.damping": {
+      "value": 1.9212480136917578,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.joint_names_expr": {
+      "value": [
+        "joint4"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_3.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.stiffness": {
+      "value": 118.67814316885331,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_3.damping": {
+      "value": 2.5455734646035895,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.joint_names_expr": {
+      "value": [
+        "joint5"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_4.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.stiffness": {
+      "value": 38.28938137383658,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_4.damping": {
+      "value": 0.5421993040336711,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.joint_names_expr": {
+      "value": [
+        "joint6"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_5.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.stiffness": {
+      "value": 42.56767185105458,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_5.damping": {
+      "value": 0.41621186668986976,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.joint_names_expr": {
+      "value": [
+        "joint7"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_6.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.stiffness": {
+      "value": 27.406586544708677,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_6.damping": {
+      "value": 0.448133941002685,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.joint_names_expr": {
+      "value": [
+        "gripper_left_joint"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_7.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.stiffness": {
+      "value": 500.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_7.damping": {
+      "value": 8.20192328233845,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.joint_names_expr": {
+      "value": [
+        "gripper_right_joint"
+      ],
+      "tag": "derived",
+      "reason": "One actuator per converted joint"
+    },
+    "arm.actuators.joint_8.effort_limit_sim": {
+      "value": 10.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.stiffness": {
+      "value": 500.0,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.actuators.joint_8.damping": {
+      "value": 8.20192328233845,
+      "tag": "derived",
+      "reason": "URDF effort; Newton gravity torque and mass matrix"
+    },
+    "arm.spawn.activate_contact_sensors": {
+      "value": false,
+      "tag": "derived",
+      "reason": "Template default"
+    },
+    "arm.spawn.articulation_props.self_collision_enabled": {
+      "value": true,
+      "tag": "configured",
+      "reason": "Owner-requested self-collision; imported USD root and runtime articulation enabled, fixed/adjacent assemblies filtered only."
+    },
+    "arm.initial_state.position": {
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "tag": "derived",
+      "reason": "Template default; scene anchor owns placement"
+    },
+    "arm.initial_state.rotation_relative_to_anchor": {
+      "value": true,
+      "tag": "derived",
+      "reason": "Apply the ready-forward yaw relative to the shared mount anchor"
+    },
+    "arm.initial_state.rotation_euler_degrees": {
+      "value": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "tag": "derived",
+      "reason": "Owner-authorized final generation configuration; see current_runtime",
+      "confirm": true,
+      "runtime_override": true
+    },
+    "arm.hardware.motor": {
+      "value": "unconfigured",
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.encoder_counts_per_turn": {
+      "value": 4096,
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.zero_count": {
+      "value": 2048,
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.joint_ids": {
+      "value": {
+        "joint1": "1",
+        "joint2": "2",
+        "joint3": "3",
+        "joint4": "4",
+        "joint5": "5",
+        "joint6": "6",
+        "joint7": "7",
+        "gripper_left_joint": "8"
+      },
+      "tag": "confirm",
+      "reason": "ros2_control ids; assumed encoder defaults require hardware confirmation"
+    },
+    "arm.hardware.gripper_left_joint.counts_per_metre": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+    },
+    "arm.hardware.gripper_right_joint.counts_per_metre": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "URDF linear stroke does not imply rotary motor transmission; excluded from factory unit"
+    },
+    "arm.lerobot.driver": {
+      "value": "TODO",
+      "tag": "TODO",
+      "reason": "Real rollout needs an owner-supplied driver"
+    },
+    "arm.import.source_hashes": {
+      "value": {
+        "urdf/2_sp7_description/package.xml": "429ef83957b4888432277badcc7acd0e618b5c890885d537e9a0c901fdc6c154",
+        "urdf/2_sp7_description/CMakeLists.txt": "52f9a6a833415024a828a0f79ab0df77d143d1676371cd1974d5e29ebb7f632c",
+        "urdf/1_sp7_bringup/package.xml": "3be9e1f103240d7cbeac69ac0f088b4581ba9d3b54688c1e66e3a6f020b3a31f",
+        "urdf/1_sp7_bringup/CMakeLists.txt": "8c1b9c77c0fbb19b72576002df2d6472114d55fce3d1f58ecd799ad8a8f17484",
+        "urdf/0_sp7/package.xml": "9979bee2dd915ef2f695c095799140dc6ce6180f03433d0b9d4b078166d401bf",
+        "urdf/0_sp7/CMakeLists.txt": "e32317f32e0c360aebc0b946eac869ed0e2a6e8ba30b1df76b7f72d67b6de070",
+        "urdf/3_sp7_hardware/sp7_hardware.xml": "f4a0e7d69c74b51452ade470bde4f256965284f2629fb4133c629fc353643a34",
+        "urdf/3_sp7_hardware/package.xml": "9d88bd635de4171784f5de508a84b98c1f6d948e6b4aa9752bb096e68eb0b6ad",
+        "urdf/3_sp7_hardware/CMakeLists.txt": "df77aa32dc39544af1152b656d79ad8fdddaa0af83ba6a5ffb7c4083137d53d9",
+        "urdf/2_sp7_description/urdf/sp7_arm.urdf.xacro": "e8c99ae3c0a311abc543dc169baf88ad64df56b90a5d7d1629071354ee90e4bd",
+        "urdf/2_sp7_description/urdf/sp7.urdf.xacro": "bacb65845e41eede7c2991b720f49a8e22b9571a541bd3c97eecf13cdaf2f6e5",
+        "urdf/2_sp7_description/urdf/sp7_gripper.urdf.xacro": "2941fee7b2459551da36bcc489f8e0f4e9b0694b5dc8152815a586b2bb1616bf",
+        "urdf/2_sp7_description/urdf/sp7.ros2_control.xacro": "85bdba04d76ce0101240d72416ea6be7674bc2993594c1e56e046aeb642b83c2",
+        "urdf/2_sp7_description/launch/display.launch.py": "ae900ad9f01c3d66976d5c692c71f3a3daa77afd5118b0cf5e1d9f086b448288",
+        "urdf/2_sp7_description/meshes/base_link.stl": "8be421055e49b29225c664411946b91d3b0050ad362484364a94407a04dca12a",
+        "urdf/2_sp7_description/meshes/servo.stl": "ef7a2b69965770fdb744028927c401a87da85081b8404c927750c2fe783220c3",
+        "urdf/2_sp7_description/meshes/link7.stl": "f250150d7c5324e5b6a7b18d1bd16d88192b5eea8688fc7b92eff7807b62d256",
+        "urdf/2_sp7_description/meshes/gripper_left_link.stl": "fb91ca1b0262ff13c27b504cfa7b234c3635d5780d340b42c1babe35dcf9f328",
+        "urdf/2_sp7_description/meshes/Base_motor_holder_SO101.stl": "0838a777a047297b99a91b882bfb2e6823114d1eb15a8e408700801099e62c0f",
+        "urdf/2_sp7_description/meshes/gripper_base_link.stl": "19e6ca0e43d4d3eb2ce8dbc62b80c945dd75f1bc376e94ba0319ac50d1dd4cc2",
+        "urdf/2_sp7_description/meshes/servo_2.stl": "0ca938f656691a0e8b526c6569549ebc38a708f0707ebcb25dab4c92d78392c3",
+        "urdf/2_sp7_description/meshes/link3.stl": "5a205cea6b0c01608a0e475aed4cc0a1d84bd00afaf60a299c16039491a3227c",
+        "urdf/2_sp7_description/meshes/link2.stl": "59574cadd00d8cf3fea2abc0c6bf5949e4951370c20d12f6f994511a6e76109d",
+        "urdf/2_sp7_description/meshes/link4.stl": "3943a6a367fcc07d1539b8c9d2961cdf69fcebba365b646eed087931fea880f1",
+        "urdf/2_sp7_description/meshes/gripper_right_link.stl": "47f738691425ea78805fa587e385586c2a307b8490fd6a257c3bd7724d6cfaad",
+        "urdf/2_sp7_description/meshes/link6.stl": "ebdf96f6281c0bc92cffd63196b5bd5e408c7dce8553cd27e3bd53a0ba171847",
+        "urdf/2_sp7_description/meshes/link5.stl": "f0ec6ad57b85534969feb9a9727eb546dbec353578f4711cc359d9b50998c48a",
+        "urdf/2_sp7_description/meshes/Servo_3.stl": "2c7022852c1ccab217d77d521aaa16b8beb4e4ca93073f7c0f2b864422f97bf9",
+        "urdf/2_sp7_description/meshes/camera_link.stl": "abd5b652b8d05a0e502311e3939c00c215e852822932ca2a0beed1ccf235fdd1",
+        "urdf/2_sp7_description/meshes/link.stl": "11f93334b7dbdca1c70a306dab8391d087693c36cbfcc035825ef8be9b2f8834",
+        "urdf/2_sp7_description/rviz/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "urdf/1_sp7_bringup/launch/bringup.launch.py": "e0c3860639f124bcb4bc4cdf84c2db92096d942ac273427e8ca8a7f0f6256191",
+        "urdf/1_sp7_bringup/config/sp7_controllers.yaml": "5d24361c902f6d8254150b3c5efe7b8e8bf127fa8ce1debbd059a55d0ace6e3d",
+        "urdf/3_sp7_hardware/src/sp7_hardware.cpp": "5e34f4a459fa4b7fda861a901fb5c830f04d97ade3c1ac633d9ea5d99095db9c",
+        "urdf/3_sp7_hardware/include/sp7_hardware/sp7_hardware.hpp": "363375271bf7e1cc76b65c272d0a95ff8e4177ab43c2f4d7e126ac9387605574"
+      },
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.command_line": {
+      "value": [
+        "repair_sp7_setup.py"
+      ],
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.importer_version": {
+      "value": "1",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.conversion_path": {
+      "value": "isaaclab.sim.converters.UrdfConverter (3.0 URDFImporterConfig)",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.report_path": {
+      "value": "import-report.json",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    },
+    "arm.import.mimic_runtime": {
+      "value": "constraint",
+      "tag": "derived",
+      "reason": "Import provenance; no hardware or control configuration"
+    }
+  },
+  "checks": [
+    {
+      "name": "measure_gripper",
+      "passed": true
+    },
+    {
+      "name": "ready_pose",
+      "passed": true
+    },
+    {
+      "name": "ready_route",
+      "passed": true
+    }
+  ],
+  "fallbacks": [],
+  "measurements": {
+    "closed_gap_m": 0.0,
+    "open_gap_m": 0.08467114754960926,
+    "closed_position": 0.0375,
+    "open_position": -0.005,
+    "closing_axis": [
+      -1.0,
+      8.41068016255238e-09,
+      -2.8571916087427252e-15
+    ],
+    "approach_axis": [
+      8.410510197590617e-09,
+      0.9999797937256627,
+      0.006357054379289826
+    ],
+    "position_offset_m": [
+      -0.00042498309143649193,
+      0.047733023937840194,
+      0.00012867674557518692
+    ],
+    "fingertip_points": {
+      "gripper_right_link": [
+        [
+          0.00016059016756507505,
+          0.03842311781261822,
+          0.015840695955077866
+        ],
+        [
+          -0.0005894092460741462,
+          0.03917311764088359,
+          0.01559694998733216
+        ],
+        [
+          0.00016059097967889568,
+          0.04092311887929373,
+          0.015028198120712828
+        ],
+        [
+          -0.0005894089212288567,
+          0.040173117695023755,
+          0.015271947873354036
+        ],
+        [
+          -0.0005894084339611028,
+          0.04167311684491269,
+          0.014784448427677455
+        ],
+        [
+          -0.0005894081091151887,
+          0.04267311876169801,
+          0.0144594463136987
+        ],
+        [
+          0.00016059179179256367,
+          0.04342311994596798,
+          0.014215696561057492
+        ],
+        [
+          -0.0005894076218461719,
+          0.04417312163687725,
+          0.013971946868020862
+        ],
+        [
+          0.00016059260390623165,
+          0.04592312101264224,
+          0.013403195001402149
+        ],
+        [
+          -0.0005894072970015207,
+          0.045173119828372264,
+          0.013646944754043357
+        ],
+        [
+          -0.0005894068097337668,
+          0.0466731189782612,
+          0.013159445308366775
+        ],
+        [
+          -0.0005894064848877001,
+          0.04767312089504777,
+          0.012834446919678319
+        ],
+        [
+          0.00016059341601865063,
+          0.04842311835402619,
+          0.012590693441748069
+        ],
+        [
+          0.0034105939323428314,
+          0.05267311422677738,
+          0.01120944364142462
+        ],
+        [
+          -0.000589405672776544,
+          0.05017311451114143,
+          0.012021945360025495
+        ],
+        [
+          0.00016059422813105573,
+          0.05092311569541015,
+          0.011778191882093995
+        ],
+        [
+          -0.0005894051855087901,
+          0.05167311366103037,
+          0.01153444591434892
+        ],
+        [
+          0.0001605950402434747,
+          0.053423113036794104,
+          0.010965690322439915
+        ],
+        [
+          -0.0005894043733951221,
+          0.05417311472770462,
+          0.010721944354693584
+        ],
+        [
+          0.00016059585235729534,
+          0.05592311410346962,
+          0.01015319248807487
+        ],
+        [
+          0.0022263853753327206,
+          0.05767311303481404,
+          0.009584440569171451
+        ],
+        [
+          -0.000589403236436789,
+          0.057673113985873894,
+          0.009584440681060742
+        ],
+        [
+          0.00016058892608823705,
+          0.038423107260086076,
+          -0.015402028552967427
+        ],
+        [
+          -0.0005894104681795076,
+          0.039173107253008606,
+          -0.015158276512998415
+        ],
+        [
+          0.00016058980277379453,
+          0.04092310887562027,
+          -0.014589528682111384
+        ],
+        [
+          -0.0005894101175055802,
+          0.04017310752669187,
+          -0.0148332806624752
+        ],
+        [
+          -0.0005894095914946232,
+          0.04167310700589734,
+          -0.014345777573464318
+        ],
+        [
+          -0.0005894092408200227,
+          0.042673109142226065,
+          -0.014020780791619157
+        ],
+        [
+          0.00016059067945931038,
+          0.043423110491154146,
+          -0.013777029742577915
+        ],
+        [
+          -0.0005894087148078445,
+          0.04417311234672151,
+          -0.013533278633932107
+        ],
+        [
+          -0.0005894083641344999,
+          0.045173110757759934,
+          -0.013208281852085689
+        ],
+        [
+          0.00016059155614483317,
+          0.04592311210668802,
+          -0.012964530803044447
+        ],
+        [
+          -0.0005894078381235845,
+          0.04667311023696509,
+          -0.012720779694397381
+        ],
+        [
+          0.00016059243282909308,
+          0.0484231099969316,
+          -0.012152031863509721
+        ],
+        [
+          -0.0005894074874489841,
+          0.047673112373293816,
+          -0.01239578291255222
+        ],
+        [
+          0.0034105930589252847,
+          0.05267310680274298,
+          -0.01077078426110573
+        ],
+        [
+          -0.0005894066107659801,
+          0.050173106538247095,
+          -0.011583283973016235
+        ],
+        [
+          0.00016059330951339462,
+          0.050923107887175495,
+          -0.01133953199265242
+        ],
+        [
+          -0.0005894060847550231,
+          0.051673106017452564,
+          -0.011095780884005355
+        ],
+        [
+          0.00016059418619765453,
+          0.05342310577741907,
+          -0.010527033053117694
+        ],
+        [
+          -0.0005894052080695072,
+          0.05417310763298643,
+          -0.010283281944471886
+        ],
+        [
+          0.00016059506288317038,
+          0.05592310739295295,
+          -0.009714534113584226
+        ],
+        [
+          0.0022263846310588697,
+          0.057673106708498886,
+          -0.009145786334981292
+        ],
+        [
+          -0.0005894043313839845,
+          0.05667310924852031,
+          -0.009470783004938418
+        ],
+        [
+          -0.0005894039807106399,
+          0.05767310765955874,
+          -0.009145786223092
+        ],
+        [
+          0.0022263848731769453,
+          0.05767310876649843,
+          -0.0030526977975270375
+        ],
+        [
+          0.003410593217478483,
+          0.05267310815044246,
+          -0.006780670525906987
+        ],
+        [
+          0.0022263851332147214,
+          0.05767311097681513,
+          0.003491353894362347
+        ],
+        [
+          0.00341059377378964,
+          0.0526731128790779,
+          0.007219329906225879
+        ],
+        [
+          0.0009105955759539305,
+          0.057673109210919,
+          -0.003052697745242316
+        ],
+        [
+          0.0009105958359917066,
+          0.0576731114212357,
+          0.003491353946647069
+        ],
+        [
+          0.0009105891496361818,
+          0.037750020850802216,
+          0.004569990542106193
+        ],
+        [
+          0.0009105912606345856,
+          0.04400002234091762,
+          0.004569988431107702
+        ],
+        [
+          0.0009105914344805927,
+          0.04525001903782681,
+          -0.001680011618562103
+        ],
+        [
+          0.0009105913848099292,
+          0.045250018615627,
+          -0.002930012289114284
+        ],
+        [
+          0.000910591856679771,
+          0.04650001784573377,
+          -0.0016800120407612952
+        ],
+        [
+          0.0009105909626107508,
+          0.04400001980772004,
+          -0.002930011866915088
+        ],
+        [
+          0.0009105909129401568,
+          0.04400001938552086,
+          -0.00418001067482212
+        ],
+        [
+          0.0009105912109639985,
+          0.04400002191871845,
+          0.0033199896232006705
+        ],
+        [
+          0.0009105915834925135,
+          0.0452500203044256,
+          0.002069988530449294
+        ],
+        [
+          0.002850012531918328,
+          0.037750020195743195,
+          0.004569990465040499
+        ],
+        [
+          0.002850014295222303,
+          0.044000018730461846,
+          -0.004180010751887814
+        ],
+        [
+          0.002850014344892897,
+          0.044000019152661024,
+          -0.0029300119439807826
+        ],
+        [
+          0.0028500147670920753,
+          0.04525001796056798,
+          -0.0029300123661799783
+        ],
+        [
+          0.0028500148167627387,
+          0.045250018382767786,
+          -0.0016800116956277973
+        ],
+        [
+          0.002850015238961917,
+          0.04650001719067475,
+          -0.0016800121178269895
+        ],
+        [
+          0.002850015387973838,
+          0.04650001845727355,
+          0.002069988031184407
+        ],
+        [
+          0.0028500149657746596,
+          0.045250019649366584,
+          0.0020699884533835994
+        ],
+        [
+          0.002850015015445323,
+          0.04525002007156639,
+          0.0033199891239357802
+        ],
+        [
+          0.0028500145932461446,
+          0.04400002126365943,
+          0.003319989546134976
+        ],
+        [
+          0.0028500146429167317,
+          0.044000021685858606,
+          0.004569988354042008
+        ],
+        [
+          0.0028500130782934813,
+          0.040250017141004686,
+          -0.0029300106773813115
+        ],
+        [
+          0.0028500139226924626,
+          0.04275001661946376,
+          -0.002930011521780331
+        ],
+        [
+          0.0028500143945635603,
+          0.04400001957486083,
+          -0.0016800112734286015
+        ],
+        [
+          0.002850013972363133,
+          0.04275001704166356,
+          -0.0016800108512281498
+        ],
+        [
+          0.002850013326646722,
+          0.04025001925200309,
+          0.003319990812734447
+        ],
+        [
+          0.002850014543575481,
+          0.044000020841459625,
+          0.002069988875582795
+        ],
+        [
+          0.002850014121375047,
+          0.04275001830826236,
+          0.002069989297783247
+        ],
+        [
+          0.0028500141710457103,
+          0.042750018730462164,
+          0.0033199899683354277
+        ],
+        [
+          0.0009105905404103165,
+          0.042750017274522774,
+          -0.0029300114447146364
+        ],
+        [
+          0.0009105896960113352,
+          0.04025001779606371,
+          -0.002930010600315617
+        ],
+        [
+          0.000910589944364576,
+          0.04025001990706211,
+          0.0033199908898001416
+        ],
+        [
+          0.0009105907887635642,
+          0.042750019385521185,
+          0.003319990045401122
+        ],
+        [
+          0.0009105911612933351,
+          0.04400002149651864,
+          0.0020699889526484896
+        ],
+        [
+          0.0009105910122814143,
+          0.04400002022991985,
+          -0.0016800111963629072
+        ]
+      ],
+      "gripper_left_link": [
+        [
+          -0.001010567845412244,
+          0.03842312528079189,
+          -0.015590711479814496
+        ],
+        [
+          -0.00026056233719815025,
+          0.03917312476707231,
+          -0.015346962293417999
+        ],
+        [
+          -0.0010105669687267144,
+          0.040923126896325775,
+          -0.014778212540281027
+        ],
+        [
+          -0.00026056198652407714,
+          0.04017312504075683,
+          -0.015021962717604486
+        ],
+        [
+          -0.0002605614605132589,
+          0.04167312451996104,
+          -0.014534463353883902
+        ],
+        [
+          -0.0002605611098385474,
+          0.042673126656290715,
+          -0.014209463778071018
+        ],
+        [
+          -0.0010105660920411985,
+          0.04342312851185965,
+          -0.013965713600747559
+        ],
+        [
+          -0.0002605605838264524,
+          0.04417312986078553,
+          -0.013721963483029117
+        ],
+        [
+          -0.001010565215355641,
+          0.04592313012739384,
+          -0.013153213729891516
+        ],
+        [
+          -0.00026056023315303156,
+          0.045173128271824584,
+          -0.01339696483853755
+        ],
+        [
+          -0.00026055970714218557,
+          0.04667312775102911,
+          -0.01290946454349439
+        ],
+        [
+          -0.0002605593564674741,
+          0.04767312988735878,
+          -0.012584464967681506
+        ],
+        [
+          -0.0010105643386713742,
+          0.04842312801763742,
+          -0.01234071479035679
+        ],
+        [
+          -0.004260558258749811,
+          0.052673127018884866,
+          -0.01095946692966644
+        ],
+        [
+          -0.000260558479784484,
+          0.05017312405231206,
+          -0.01177196602814552
+        ],
+        [
+          -0.0010105634619871212,
+          0.050923125907881,
+          -0.011528215850822063
+        ],
+        [
+          -0.00026055795377366575,
+          0.05167312353151627,
+          -0.011284466664424937
+        ],
+        [
+          -0.0010105625853028544,
+          0.053423123798124576,
+          -0.010715716911287336
+        ],
+        [
+          -0.0002605570770881499,
+          0.05417312514705014,
+          -0.010471967724891468
+        ],
+        [
+          -0.0010105617086173108,
+          0.05592312541365877,
+          -0.009903217040431293
+        ],
+        [
+          -0.0030763463241438027,
+          0.057673126124684185,
+          -0.009334468166331916
+        ],
+        [
+          -0.0002605558497291438,
+          0.057673125173623704,
+          -0.009334468278221283
+        ],
+        [
+          -0.001010566603935406,
+          0.03842313583332404,
+          0.0156520130282308
+        ],
+        [
+          -0.00026056111509281665,
+          0.03917313515494698,
+          0.015408263275590008
+        ],
+        [
+          -0.0010105657918217242,
+          0.04092313689999829,
+          0.014839511468575458
+        ],
+        [
+          -0.0002605607902474022,
+          0.040173135209088405,
+          0.015083264886902176
+        ],
+        [
+          -0.00026056030297977317,
+          0.041673134358976086,
+          0.014595761715935296
+        ],
+        [
+          -0.00026055997813372034,
+          0.04267313627576266,
+          0.01427076332724684
+        ],
+        [
+          -0.0010105649797079036,
+          0.043423137966673804,
+          0.01402701363421042
+        ],
+        [
+          -0.0002605594908648562,
+          0.044173139150940635,
+          0.013783260156278704
+        ],
+        [
+          -0.0002605591660200385,
+          0.04517313734243691,
+          0.013458261767591503
+        ],
+        [
+          -0.0010105641675942356,
+          0.045923139033348055,
+          0.013214512074555084
+        ],
+        [
+          -0.0002605586787524372,
+          0.04667313649232459,
+          0.012970758596624624
+        ],
+        [
+          -0.0010105633554818305,
+          0.048423136374732015,
+          0.012402010514901004
+        ],
+        [
+          -0.0002605583539062317,
+          0.04767313840911242,
+          0.012645763933226466
+        ],
+        [
+          -0.004260557385332264,
+          0.05267313444291927,
+          0.011020760972863907
+        ],
+        [
+          -0.0002605575417950756,
+          0.050173132025206076,
+          0.011833262373573634
+        ],
+        [
+          -0.0010105625433694115,
+          0.05092313371611597,
+          0.011589508955246923
+        ],
+        [
+          -0.0002605570545274605,
+          0.05167313117509376,
+          0.011345759202606769
+        ],
+        [
+          -0.0010105617312569926,
+          0.05342313105749993,
+          0.010777007395592843
+        ],
+        [
+          -0.00026055624241380637,
+          0.05417313224176801,
+          0.010533257642951425
+        ],
+        [
+          -0.0010105609191431858,
+          0.055923132124175434,
+          0.009964509561227805
+        ],
+        [
+          -0.0030763455798699796,
+          0.057673132450999025,
+          0.00939575780649825
+        ],
+        [
+          -0.0002605554303001245,
+          0.05667313330844226,
+          0.00972075608329609
+        ],
+        [
+          -0.0002605551054553207,
+          0.057673131499938544,
+          0.009395757694608889
+        ],
+        [
+          -0.003076345821987986,
+          0.057673130393000115,
+          0.0033026711316891427
+        ],
+        [
+          -0.004260557543885449,
+          0.05267313309521979,
+          0.007030647237665167
+        ],
+        [
+          -0.0030763460820257688,
+          0.057673128182683414,
+          -0.003241380560200242
+        ],
+        [
+          -0.0042605581001966125,
+          0.05267312836658434,
+          -0.006969353194467699
+        ],
+        [
+          -0.0017605583874101272,
+          0.057673129948580176,
+          0.00330267107940449
+        ],
+        [
+          -0.0017605586474479101,
+          0.05767312773826347,
+          -0.0032413806124848947
+        ],
+        [
+          -0.0017605633085270578,
+          0.04400003792930944,
+          -0.004320007723154103
+        ],
+        [
+          -0.0017605650718309634,
+          0.03775003939459142,
+          0.004429995356419358
+        ],
+        [
+          -0.001760562637974708,
+          0.04525003884821418,
+          0.0019299914821173105
+        ],
+        [
+          -0.0017605625883040515,
+          0.04525003927041399,
+          0.003179992152669491
+        ],
+        [
+          -0.0017605622157755296,
+          0.046500037656121145,
+          0.0019299910599181183
+        ],
+        [
+          -0.00176056301050323,
+          0.04400004046250703,
+          0.003179992574868687
+        ],
+        [
+          -0.0017605629608325596,
+          0.04400004088470683,
+          0.004429993245420868
+        ],
+        [
+          -0.0017605632588564013,
+          0.04400003835150925,
+          -0.0030700070526019224
+        ],
+        [
+          -0.0017605627869865526,
+          0.04525003758161602,
+          -0.0018200068042489336
+        ],
+        [
+          -0.0036999884541130956,
+          0.03775004004965044,
+          0.004429995433485056
+        ],
+        [
+          -0.0036999863431146918,
+          0.044000041539765854,
+          0.004429993322486565
+        ],
+        [
+          -0.003699986392785362,
+          0.044000041117566044,
+          0.003179992651934385
+        ],
+        [
+          -0.0036999859705861837,
+          0.045250039925473,
+          0.003179992229735189
+        ],
+        [
+          -0.00369998602025684,
+          0.04525003950327319,
+          0.0019299915591830083
+        ],
+        [
+          -0.003699985598057662,
+          0.04650003831118016,
+          0.001929991136983816
+        ],
+        [
+          -0.0036999857470695063,
+          0.046500037044582,
+          -0.001820007149382428
+        ],
+        [
+          -0.0036999861692686847,
+          0.04525003823667503,
+          -0.0018200067271832358
+        ],
+        [
+          -0.003699986218939355,
+          0.04525003781447522,
+          -0.00307000739773542
+        ],
+        [
+          -0.0036999866411385335,
+          0.044000039006568264,
+          -0.0030700069755362244
+        ],
+        [
+          -0.00369998669080919,
+          0.04400003858436846,
+          -0.004320007646088406
+        ],
+        [
+          -0.0036999876593847847,
+          0.040250039105909706,
+          0.003179993918533856
+        ],
+        [
+          -0.0036999868149857895,
+          0.04275003858436878,
+          0.0031799930741348366
+        ],
+        [
+          -0.0036999864424560186,
+          0.044000040695366234,
+          0.001929991981382204
+        ],
+        [
+          -0.003699986864656446,
+          0.04275003816216897,
+          0.0019299924035826557
+        ],
+        [
+          -0.003699987907737956,
+          0.040250036994911934,
+          -0.0030700057089367533
+        ],
+        [
+          -0.003699986591467863,
+          0.044000039428768074,
+          -0.00182000630498404
+        ],
+        [
+          -0.0036999870136682905,
+          0.04275003689557081,
+          -0.0018200058827835884
+        ],
+        [
+          -0.003699987063338961,
+          0.042750036473371,
+          -0.0030700065533357727
+        ],
+        [
+          -0.0017605634327036573,
+          0.042750037929309766,
+          0.0031799929970691386
+        ],
+        [
+          -0.0017605642771026525,
+          0.04025003845085069,
+          0.003179993841468158
+        ],
+        [
+          -0.0017605645254558239,
+          0.04025003633985291,
+          -0.0030700057860024513
+        ],
+        [
+          -0.0017605636810568287,
+          0.042750035818311986,
+          -0.0030700066304014707
+        ],
+        [
+          -0.0017605636313861583,
+          0.042750036240511796,
+          -0.0018200059598492862
+        ],
+        [
+          -0.001760563209185731,
+          0.04400003877370906,
+          -0.0018200063820497379
+        ],
+        [
+          -0.0017605630601738864,
+          0.04400004004030722,
+          0.0019299919043165063
+        ],
+        [
+          -0.0017605634823743138,
+          0.042750037507109956,
+          0.001929992326516958
+        ]
+      ]
+    },
+    "sweep": [
+      {
+        "q": -0.005,
+        "gap_m": 0.08467114754960926,
+        "centre_m": [
+          -0.0004249844884203532,
+          0.047733023937840235,
+          0.0001286767455751954
+        ]
+      },
+      {
+        "q": -0.0028750000000000004,
+        "gap_m": 0.08042114755147295,
+        "centre_m": [
+          -0.0004249846048356831,
+          0.047733022447784254,
+          0.00012867673610263678
+        ]
+      },
+      {
+        "q": -0.0007500000000000007,
+        "gap_m": 0.0761711479025826,
+        "centre_m": [
+          -0.00042498443021271885,
+          0.0477330209577286,
+          0.00012867672663007971
+        ]
+      },
+      {
+        "q": 0.0013749999999999986,
+        "gap_m": 0.07192114778803098,
+        "centre_m": [
+          -0.00042498448842038757,
+          0.047733019467672624,
+          0.00012867671715752243
+        ]
+      },
+      {
+        "q": 0.0034999999999999988,
+        "gap_m": 0.06767114755706402,
+        "centre_m": [
+          -0.00042498448842040714,
+          0.04773301797761664,
+          0.00012867670768496338
+        ]
+      },
+      {
+        "q": 0.005624999999999999,
+        "gap_m": 0.06342114732609708,
+        "centre_m": [
+          -0.0004249844884204189,
+          0.04773301648756067,
+          0.00012867669821240495
+        ]
+      },
+      {
+        "q": 0.007749999999999997,
+        "gap_m": 0.0591711475607914,
+        "centre_m": [
+          -0.0004249842555897876,
+          0.047733014997505,
+          0.00012867668873984813
+        ]
+      },
+      {
+        "q": 0.009874999999999998,
+        "gap_m": 0.054921146864163155,
+        "centre_m": [
+          -0.00042498402275915984,
+          0.04773301350744903,
+          0.0001286766792672879
+        ]
+      },
+      {
+        "q": 0.011999999999999997,
+        "gap_m": 0.05067114756451878,
+        "centre_m": [
+          -0.0004249849540817379,
+          0.047733012017392724,
+          0.00012867666979473277
+        ]
+      },
+      {
+        "q": 0.014124999999999995,
+        "gap_m": 0.046421148264874396,
+        "centre_m": [
+          -0.0004249840227591773,
+          0.04773301052733772,
+          0.00012867666032217605
+        ]
+      },
+      {
+        "q": 0.016249999999999997,
+        "gap_m": 0.04217114896523002,
+        "centre_m": [
+          -0.00042498495408176525,
+          0.04773300903728142,
+          0.00012867665084961927
+        ]
+      },
+      {
+        "q": 0.018374999999999996,
+        "gap_m": 0.03792114780294049,
+        "centre_m": [
+          -0.0004249849540817794,
+          0.04773300754722513,
+          0.00012867664137705966
+        ]
+      },
+      {
+        "q": 0.020499999999999994,
+        "gap_m": 0.03367114664065096,
+        "centre_m": [
+          -0.00042498495408179143,
+          0.047733006057168806,
+          0.0001286766319044989
+        ]
+      },
+      {
+        "q": 0.022624999999999996,
+        "gap_m": 0.02942114920360994,
+        "centre_m": [
+          -0.0004249849540815563,
+          0.04773303436823176,
+          0.00012867681188310335
+        ]
+      },
+      {
+        "q": 0.024749999999999994,
+        "gap_m": 0.02517114804132041,
+        "centre_m": [
+          -0.0004249849540815644,
+          0.04773303287817545,
+          0.00012867680241054219
+        ]
+      },
+      {
+        "q": 0.026874999999999993,
+        "gap_m": 0.02092114687903088,
+        "centre_m": [
+          -0.00042498495408157866,
+          0.04773303138811914,
+          0.00012867679293798167
+        ]
+      },
+      {
+        "q": 0.028999999999999995,
+        "gap_m": 0.01667114944203165,
+        "centre_m": [
+          -0.00042498495408159075,
+          0.04773302989806413,
+          0.00012867678346543097
+        ]
+      },
+      {
+        "q": 0.031124999999999996,
+        "gap_m": 0.012421148279742122,
+        "centre_m": [
+          -0.00042498495408160397,
+          0.04773302840800783,
+          0.00012867677399286954
+        ]
+      },
+      {
+        "q": 0.033249999999999995,
+        "gap_m": 0.008171145254807437,
+        "centre_m": [
+          -0.0004249840227590409,
+          0.047733026917951525,
+          0.0001286767645203044
+        ]
+      },
+      {
+        "q": 0.035375,
+        "gap_m": 0.0039211496804533634,
+        "centre_m": [
+          -0.0004249830914364794,
+          0.04773302542789782,
+          0.000128676755047757
+        ]
+      },
+      {
+        "q": 0.0375,
+        "gap_m": 0.0,
+        "centre_m": [
+          -0.00042498309143649193,
+          0.047733023937840194,
+          0.00012867674557518692
+        ]
+      }
+    ]
+  },
+  "ready_pose": {
+    "converged": true,
+    "selected": {
+      "target": [
+        0.16,
+        -0.08,
+        0.12
+      ],
+      "position_error_m": 1.0084569307629035e-13,
+      "approach_error": 2.5309240988693616e-13,
+      "q": [
+        0.7639546141645108,
+        -0.12148348910644267,
+        0.6284438852585934,
+        0.18195995290714687,
+        0.04470349518303921,
+        -0.3110603167353794,
+        1.4769219873022736,
+        -0.005
+      ],
+      "transform": [
+        [
+          -0.12398447721435456,
+          0.006308005392216266,
+          -0.9922641072203785,
+          0.15999999999991318
+        ],
+        [
+          0.992284157592916,
+          0.0007881677181465372,
+          -0.12398197200304946,
+          -0.08000000000004663
+        ],
+        [
+          -8.410746237797138e-09,
+          -0.9999797937256631,
+          -0.006357054379198527,
+          0.1199999999999786
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    "candidates": [
+      {
+        "target": [
+          0.16,
+          -0.08,
+          0.12
+        ],
+        "position_error_m": 1.0084569307629035e-13,
+        "approach_error": 2.5309240988693616e-13,
+        "q": [
+          0.7639546141645108,
+          -0.12148348910644267,
+          0.6284438852585934,
+          0.18195995290714687,
+          0.04470349518303921,
+          -0.3110603167353794,
+          1.4769219873022736,
+          -0.005
+        ],
+        "transform": [
+          [
+            -0.12398447721435456,
+            0.006308005392216266,
+            -0.9922641072203785,
+            0.15999999999991318
+          ],
+          [
+            0.992284157592916,
+            0.0007881677181465372,
+            -0.12398197200304946,
+            -0.08000000000004663
+          ],
+          [
+            -8.410746237797138e-09,
+            -0.9999797937256631,
+            -0.006357054379198527,
+            0.1199999999999786
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "converged": true
+      }
+    ],
+    "collision_safe_route": true,
+    "workspace_route": {
+      "passed": true,
+      "minimum_clearance_m": 0.0006060630865901695,
+      "targets_base_m": [
+        [
+          0.1498155951654902,
+          -0.08128472684740388,
+          0.06998796386448816
+        ],
+        [
+          0.1499736564584368,
+          -0.08018353236341103,
+          0.009998278189898215
+        ],
+        [
+          0.1497365645190169,
+          -0.08183532408940032,
+          0.09998280670178303
+        ],
+        [
+          0.2198155951651237,
+          -0.18128472684995753,
+          0.06998796400360024
+        ],
+        [
+          0.2199736564580703,
+          -0.18018353236596465,
+          0.009998278329010415
+        ],
+        [
+          0.2197365645186504,
+          -0.18183532409195396,
+          0.09998280684089522
+        ]
+      ],
+      "scope": "task start centre and farthest radial corner; approach, grasp and lift; pickup yaw"
+    },
+    "source": "URDF offline seed search, cross-checked against Newton FK"
+  },
+  "base_yaw": {
+    "derived": true,
+    "confirm": true
+  },
+  "actuator_evidence": {
+    "joint1": {
+      "worst_gravity_torque_or_force": 0.03606443479657173,
+      "effective_inertia": 0.014068384654819965,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint2": {
+      "worst_gravity_torque_or_force": 1.9448909759521484,
+      "effective_inertia": 0.011678195558488369,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint3": {
+      "worst_gravity_torque_or_force": 0.7336938381195068,
+      "effective_inertia": 0.010975880548357964,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint4": {
+      "worst_gravity_torque_or_force": 1.0356621742248535,
+      "effective_inertia": 0.01365024782717228,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint5": {
+      "worst_gravity_torque_or_force": 0.334137886762619,
+      "effective_inertia": 0.0019194622291252017,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint6": {
+      "worst_gravity_torque_or_force": 0.3714730143547058,
+      "effective_inertia": 0.0010173936607316136,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "joint7": {
+      "worst_gravity_torque_or_force": 0.23916758596897125,
+      "effective_inertia": 0.0018318956717848778,
+      "sag_limit_si": 0.008726646259971648,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": false
+    },
+    "gripper_left_joint": {
+      "worst_gravity_torque_or_force": 0.3262023329734802,
+      "effective_inertia": 0.03363577276468277,
+      "sag_limit_si": 0.0005,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": true
+    },
+    "gripper_right_joint": {
+      "worst_gravity_torque_or_force": 0.3262023329734802,
+      "effective_inertia": 0.03363577276468277,
+      "sag_limit_si": 0.0005,
+      "samples": 101,
+      "gravity_import_frame_m_s2": [
+        0.025843022502188773,
+        0.18004530583415887,
+        -9.808314027340012
+      ],
+      "rule": "critical damping; gravity sag; effort cap",
+      "stiffness_clamped": true
+    }
+  },
+  "current_runtime": {
+    "scope": "Every joint starts at its limit midpoint; five spread-out cube regions, active self-collision, original SO101 placement, appearance and friction.",
+    "original_import_report": "datasets/sp7_previous_report/original-import-report.json",
+    "dataset_report": "datasets/sp7_new_report/report.txt",
+    "ready_joints_rad_m": {
+      "joint1": 0.0,
+      "joint2": 0.0,
+      "joint3": 0.0,
+      "joint4": -1.0471975,
+      "joint5": 0.0,
+      "joint6": 0.0,
+      "joint7": 0.0,
+      "gripper_left_joint": 0.01625,
+      "gripper_right_joint": 0.01625
+    },
+    "initial_state": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_relative_to_anchor": true,
+      "rotation_euler_degrees": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "ik_manifest": {
+      "orientation_axes": [
+        "x",
+        "y",
+        "z"
+      ],
+      "method": "dls",
+      "joint_limit_avoidance_gain": 0.05,
+      "position_offset_m": [
+        -0.00042498307461547155,
+        0.04973298352529152,
+        0.00014139085433376657
+      ]
+    },
+    "ik_backend": "Arm-owned SciPy bounded nonlinear least_squares, Newton FK/analytic Jacobian, measured pose feedback with integral compensation",
+    "scene_mount": {
+      "mount": {
+        "anchor": "mount",
+        "translation_correction_m": [
+          -0.0012,
+          -0.0052,
+          0.03048381104053477
+        ],
+        "source": {
+          "importer": "urdf",
+          "tag": "configured",
+          "reason": "Same measured tabletop XY placement and base orientation as SO101. SP7 base_link starts at its support surface; its Z correction seats that CAD origin on the tabletop."
+        }
+      }
+    },
+    "grasp_depth_m": 0.008,
+    "wrist_camera": "Omitted at owner request",
+    "dataset_validation": {
+      "pick_place": {
+        "passed": true,
+        "episodes": 5,
+        "frames": 3759,
+        "identical_initial_pose": true,
+        "midpoint_initial_pose": true,
+        "path": "datasets/sp7_new_report/pick_place/validation.json"
+      },
+      "stack": {
+        "passed": true,
+        "episodes": 5,
+        "frames": 3811,
+        "identical_initial_pose": true,
+        "midpoint_initial_pose": true,
+        "path": "datasets/sp7_new_report/stack/validation.json"
+      }
+    },
+    "limitations": [
+      "Real hardware transmission, calibration and driver remain unconfigured.",
+      "Only the explicitly recorded tabletop sampling region is verified by these datasets; full URDF workspace coverage is not established."
+    ],
+    "spatial_coverage": {
+      "pick_place": {
+        "episodes": 5,
+        "object_start_variation": {
+          "blue_cube": {
+            "initial_world_positions_m": [
+              [
+                0.8108626620490362,
+                -0.5436303809927773,
+                0.8051423961723041
+              ],
+              [
+                0.9157151594967154,
+                -0.47504450814434523,
+                0.8065333301843408
+              ],
+              [
+                0.7161439671389122,
+                -0.4258420365512039,
+                0.8072126443318696
+              ],
+              [
+                0.8405328405735694,
+                -0.35067524463846517,
+                0.8087480600050634
+              ],
+              [
+                0.5813648117814588,
+                -0.3714467187755364,
+                0.8080632026263892
+              ]
+            ],
+            "minimum_pair_distance_m": 0.12529193180487266,
+            "world_xy_span_m": [
+              0.3343503477152566,
+              0.1929551363543121
+            ]
+          }
+        }
+      },
+      "stack": {
+        "episodes": 5,
+        "object_start_variation": {
+          "cube_a": {
+            "initial_world_positions_m": [
+              [
+                0.8108626620490362,
+                -0.5436303809927773,
+                0.8051423961723041
+              ],
+              [
+                0.9157151594967154,
+                -0.47504450814434523,
+                0.8065333301843408
+              ],
+              [
+                0.7161439671389122,
+                -0.4258420365512039,
+                0.8072126443318696
+              ],
+              [
+                0.8405328405735694,
+                -0.35067524463846517,
+                0.8087480600050634
+              ],
+              [
+                0.5813648117814588,
+                -0.3714467187755364,
+                0.8080632026263892
+              ]
+            ],
+            "minimum_pair_distance_m": 0.12529193180487266,
+            "world_xy_span_m": [
+              0.3343503477152566,
+              0.1929551363543121
+            ]
+          },
+          "cube_b": {
+            "initial_world_positions_m": [
+              [
+                0.9157151594967154,
+                -0.47504450814434523,
+                0.8065333301843408
+              ],
+              [
+                0.8405328405735694,
+                -0.35067524463846517,
+                0.8087480600050634
+              ],
+              [
+                0.5813648117814588,
+                -0.3714467187755364,
+                0.8080632026263892
+              ],
+              [
+                0.8108626620490362,
+                -0.5436303809927773,
+                0.8051423961723041
+              ],
+              [
+                0.7161439671389122,
+                -0.4258420365512039,
+                0.8072126443318696
+              ]
+            ],
+            "minimum_pair_distance_m": 0.12529193180487266,
+            "world_xy_span_m": [
+              0.3343503477152566,
+              0.1929551363543121
+            ]
+          }
+        }
+      }
+    },
+    "self_collision_enabled": true,
+    "self_collision_filter_policy": "Fixed and mechanically adjacent assemblies plus interlocking slide-guide interfaces; jaw/jaw and distal gripper/base remain active",
+    "regeneration_required_for_self_collision": false,
+    "gripper_collision_refinement": {
+      "reason": "Source CAD slide-guide faces overlap by roughly0.13mm and jam when sibling contacts are enabled",
+      "split_finger_body_y_m": 0.025,
+      "representation": "Conservative convex envelopes of clipped original URDF mesh vertices; visuals and inertias retained",
+      "guide_interfaces_filtered": true,
+      "opposing_jaws_collidable": true,
+      "urdf_effort_limits_retained": true
+    },
+    "initial_joints_rad_m": {
+      "joint1": 0.0,
+      "joint2": 0.0,
+      "joint3": 0.0,
+      "joint4": -1.0471975,
+      "joint5": 0.0,
+      "joint6": 0.0,
+      "joint7": 0.0,
+      "gripper_left_joint": 0.01625,
+      "gripper_right_joint": 0.01625
+    },
+    "pickup_ready_joints_by_zone": {
+      "0": [
+        -1.0012477452026696,
+        -0.22548385955718303,
+        -0.7945287045065732,
+        0.4759393089903638,
+        -0.9237253334198428,
+        -1.1651868872668392,
+        0.759502881783321,
+        -0.005
+      ],
+      "1": [
+        -1.5686112849369593,
+        0.6114293053142514,
+        0.3098396056394413,
+        -0.35145615908473593,
+        -0.38939053093625436,
+        -0.79795397933314,
+        1.2537189834681295,
+        -0.005
+      ],
+      "2": [
+        -1.066706019635224,
+        -0.2862526080035734,
+        0.8728597228663064,
+        0.5818983204898822,
+        0.3145736670575466,
+        0.1266821203283006,
+        1.1725457354602529,
+        -0.005
+      ],
+      "3": [
+        -0.8400756470492844,
+        0.6342374474419046,
+        0.17571716282916414,
+        -0.389491052822426,
+        -0.13444300262503742,
+        -0.2212877774777006,
+        1.3281604446737214,
+        -0.005
+      ],
+      "4": [
+        0.13621400461635036,
+        0.5221087254419375,
+        0.7268644735048283,
+        -0.19783604529159385,
+        0.3536471131936964,
+        1.233066922848084,
+        0.84405046507511,
+        -0.005
+      ]
+    },
+    "physics_validation": "datasets/sp7_new_report/unchanged-collision-model-force-proof.json",
+    "wrist_collision_geometry": {
+      "path": "workspace/arms/sp7/urdf/derived/wrist-collisions.json",
+      "sha256": "7d42361cb204a13af0d781945b16eb53d10046933eb4aba0308e5190b5064f16",
+      "method": "Baked concave bracket convex decomposition; conservative volume-bounded merging"
+    },
+    "initial_pose": {
+      "policy": "Identical fixed pose for every episode: every joint at the midpoint of its limits",
+      "joint_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7",
+        "gripper_left_joint"
+      ],
+      "joint_positions_rad_m": [
+        0.0,
+        0.0,
+        0.0,
+        -1.0471975,
+        0.0,
+        0.0,
+        0.0,
+        0.01625
+      ],
+      "joint_jitter_rad": 0.0,
+      "recorded_home_hold_seconds": 1.0,
+      "recorded_transition_to_pickup": true
+    },
+    "regeneration_required_for_initial_pose": false,
+    "initial_pose_validation": "datasets/sp7_new_report/midpoint-geometry.json"
+  }
+}

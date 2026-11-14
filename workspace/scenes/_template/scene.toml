@@ -1,0 +1,51 @@
+# Copy to workspace/scenes/<name>/ and supply the room USD before running s2r check.
+# A scene describes the room; arm-specific measured offsets belong to mounts/.
+[scene]
+name = "new_scene"
+description = "A table, camera and light"
+room_usd = "usd/room.usda"
+room_root = ""                  # optional subtree relative to the imported room
+# appearance = "appearance.json"
+# hook = "utils.py:customize"    # optional customize(env_cfg, scene_spec)
+
+[scene.anchors.table]
+prim_name = "Tabletop"
+contact_material = true
+position = [0.0, 0.0, 0.75]
+yaw_degrees = 0.0
+up = [0.0, 0.0, 1.0]
+# right = [1.0, 0.0, 0.0]         # optional surveyed zero-yaw right axis
+
+[scene.anchors.mount]
+position = [0.0, 0.0, 0.75]
+yaw_degrees = 0.0
+up = [0.0, 0.0, 1.0]
+
+[scene.cameras.room]
+position = [1.2, -1.2, 1.6]
+target = [0.0, 0.0, 0.8]
+up = [0.0, 0.0, 1.0]
+width = 640
+height = 480
+focal_length = 20.0
+horizontal_aperture = 21.0
+vertical_aperture = 15.75
+data_types = ["rgb"]
+depth_sensor = false
+
+[scene.lighting]
+root = "Lighting"
+replace = true
+[scene.lighting.lights.Sky]
+type = "dome"
+intensity = 1000.0
+color = [1.0, 1.0, 1.0]
+
+[scene.viewer]
+eye = [1.8, -1.8, 1.85]
+lookat = [0.0, 0.0, 0.8]
+camera = "room"
+
+[scene.physics]
+num_substeps = 4
+# Remaining keys override the base solver, e.g. cone, impratio, tolerance.

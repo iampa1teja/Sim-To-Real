@@ -23,7 +23,7 @@ def test_generated_manifest_loads_and_reports_every_field(package,joint_count,gr
         ready_info=dict(converged=True),camera={'Camera_1':'wrist_cam'} if joint_count==7 else {})
     directory=tmp_path/'arms'/'test_import';(directory/'usd').mkdir(parents=True)
     (directory/'usd'/'test_import.usd').write_text('dummy path for pure loader')
-    (directory/'test_import_utils.py').write_text('')
+    (directory/'utils.py').write_text('')
     text=build_arm_toml(model,choices)
     raw=tomllib.loads(text)['arm']
     assert [j['usd'] for j in raw['joints'][:joint_count]]==[f'Axis_{i+1}' for i in range(joint_count)]

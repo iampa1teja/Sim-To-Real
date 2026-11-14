@@ -14,9 +14,9 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_meeting_scene_owns_room_and_camera_data_but_not_arm_mapping(monkeypatch):
     monkeypatch.delenv("S2R_SCENE_DIR", raising=False)
     scene = load_scene_spec("rpd_meeting_room")
-    assert scene.room_usd == ROOT / "scenes/rpd_meeting_room/usd/digital_twin_room.usda"
+    assert scene.room_usd == ROOT / "workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda"
     assert scene.room_root == "Room"
-    assert scene.hook == "scene.py:customize"
+    assert scene.hook == "utils.py:customize"
     assert scene.viewer.camera == "realsense_rgb"
     assert scene.cameras["realsense_rgb"].depth_sensor_name == "realsense_depth"
     assert scene.cameras["realsense_rgb"].metadata["display_name"] == "realsense_camera-rgb"
@@ -162,7 +162,7 @@ def test_non_table_sections_fail_as_schema_errors(minimal_scene, section):
 def test_scene_template_loads_after_naming_it_and_supplying_its_declared_asset(tmp_path, monkeypatch):
     import shutil
     directory = tmp_path / "scenes/new_scene"
-    shutil.copytree(ROOT / "scenes/_template", directory)
+    shutil.copytree(ROOT / "workspace/scenes/_template", directory)
     (directory / "usd/room.usda").write_text('#usda 1.0\n(defaultPrim="Room")\ndef Xform "Room" {}\n')
     monkeypatch.setenv("S2R_SCENES_DIR", str(directory.parent))
     monkeypatch.delenv("S2R_SCENE_DIR", raising=False)

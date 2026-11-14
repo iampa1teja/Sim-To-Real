@@ -11,12 +11,12 @@ from core.policy_client.discovery import discover
 from core.policy_client.transport import MsgSerializer
 
 ROOT = Path(__file__).resolve().parents[2]
-MANIFESTS = discover(ROOT / 'policies')
+MANIFESTS = discover(ROOT / 'workspace/policies')
 
 
 def compatible_arm_info(manifest):
     """A fixed embodiment needs a matching installed arm, independently of SO-101."""
-    arms = [load_arm_spec(folder.name)[0] for folder in sorted((ROOT / 'arms').iterdir())
+    arms = [load_arm_spec(folder.name)[0] for folder in sorted((ROOT / 'workspace/arms').iterdir())
             if not folder.name.startswith('_') and (folder / 'arm.toml').is_file()]
     compatible = [arm for arm in arms if manifest.action_dim in ('arm', len(arm.joints))]
     assert compatible, f'Policy {manifest.name!r} needs an installed arm with {manifest.action_dim} joints'

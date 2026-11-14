@@ -155,7 +155,7 @@ def test_gripper_interpolation_uses_selected_reversed_codec_endpoints():
 
 def test_supplied_scripted_yaml_parses_without_launching_kit(tmp_path):
     pytest.importorskip("isaaclab")
-    path = Path(__file__).resolve().parents[2] / "configs/datagen/scripted.yaml"
+    path = Path(__file__).resolve().parents[2] / "workspace/configs/datagen/scripted.yaml"
     args = parse_args(["--config_path", str(path), "--destination", str(tmp_path / "generated"), "--attempts", "2"])
     assert (args.arm, args.scene, args.task, args.variant) == ("so101", "rpd_meeting_room", "pick_place_cube", "teleop")
     assert args.headless and args.attempts == 2 and args.destination == tmp_path / "generated"
