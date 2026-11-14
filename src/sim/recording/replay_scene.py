@@ -15,10 +15,11 @@ import torch
 import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
-from core.tasks.loader import load_task, load_task_module
+from core.tasks.loader import load_task
 from utils.geometry import wxyz_to_xyzw
 from sim.workspace.envs.mdp._common import as_torch
 from sim.workspace.envs.mdp.appearance import set_robot_color
+from sim.workspace.envs.mdp.object_color import set_object_color
 from sim.workspace.envs.mdp.cameras import (
     set_camera_focal_length,
     set_camera_pose_offset,
@@ -54,18 +55,21 @@ class SceneReplayer:
         self.task = load_task(task)
         names = (object_name,) if object_name is not None else self.task.spec.tracked_objects
         self.objects = {name: env.scene[name] for name in names}
-        self.task_mdp = load_task_module("mdp", self.task.name)
+        # The colour-randomized object from [task.dr] object_colors (None: the task has none).
+        self.color_object = next(iter(self.task.spec.raw.get("dr", {}).get("object_colors", {})), None)
         self.base_body_id = self.robot.find_bodies(self.arm.links.base)[0][0]
         self.joint_ids, _ = self.robot.find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)
         self.env_ids = torch.arange(env.num_envs, device=env.device)
 
     def apply(self, color_rgb, color_name, draw: DRDraw | None) -> None:
-        """Set the cube colour and every DR term present in `draw`.
+        """Set the task object's colour and every DR term present in `draw`.
 
         No reset step is needed: each term is written absolutely (camera offsets are relative
         to the camera's cached base pose), and terms that are None are never touched.
         """
-        self.task_mdp.set_cube_color(self.env, self.env_ids, color_rgb, color_name)
+        if self.color_object is None:
+            raise ValueError(f"Task {self.task.name!r} declares no [task.dr] object_colors to replay")
+        set_object_color(self.env, self.env_ids, color_rgb, color_name, self.color_object)
         if draw is None:
             return
         if draw.exposure is not None:

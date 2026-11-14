@@ -2,6 +2,7 @@
 name = "pick_place_cube"
 instruction = "Pick up the cube and place it in the box"
 default_variant = "teleop"
+variants = ["teleop", "eval", "eval_dr"]
 stages = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
 tracked_objects = ["blue_cube"]
 
@@ -12,13 +13,9 @@ xy_min = [0.08, -0.18]
 xy_max = [0.22, 0.02]
 yaw_deg = [0.0, 90.0]
 
-[task.variants]
-teleop   = "env_cfg:apply_teleop"
-eval     = "env_cfg:apply_eval"
-eval_dr  = "env_cfg:apply_eval_dr"
-
 [task.objects.white_box]
 usd = "usd/White-Box-Physics.usda"
+prim = "WhiteBox"
 rigid = true 
 bottom_origin = true
 size_outer = [0.135, 0.085, 0.045]
@@ -30,16 +27,12 @@ rotation_euler_degrees = [0.0, 0.0, 0.0]
 
 [task.objects.blue_cube]
 spawnable = true
+prim = "CUBE"
+color = [0.0, 0.0, 1.0]
 size = [0.02, 0.02, 0.02]
 rigid = true
 mass = 0.008
 position = [0.0, 0.0, 0.05]
-
-[task.success]
-min_lift = 0.01
-warmup_steps = 30
-force_threshold = 2.0
-confirm_steps = 25
 
 [task.episode]
 decimation = 4
@@ -47,7 +40,10 @@ eval_steps = 450
 
 [task.dr]
 room_light_exposure_range = [-3.0, 1.0]
-cube_colors = { blue = "from_setup", red = [0.8, 0.05, 0.05]}
+object_colors = { blue_cube = { blue = "from_setup", red = [0.8, 0.05, 0.05] } }
+
+[task.observations]
+subtask_terms = { cube_grasped = "grasped", cube_placed = "placed" }
 
 [task.mimic]
 select_source_per_subtask = true

@@ -16,6 +16,10 @@ TASK_NAME = os.environ.get("S2R_TASK", DEFAULT_TASK)
 TASK_PACKAGE = "s2r_tasks"
 
 
+# Variants of two-file tasks, all applied by the generic task environment builder.
+GENERIC_VARIANTS = {variant: f"sim.workspace.envs.task_env:apply_{variant}" for variant in ("teleop", "eval", "eval_dr")}
+
+
 def gym_id(task: str, variant: str) -> str:
     return f"S2R-{task}-{variant}"
 
@@ -76,10 +80,13 @@ class TaskSpec:
     stages: tuple[str, ...]
     tracked_objects: tuple[str, ...]
     start: dict[str, Any]
+    task_py: Path | None = None  # set for the two-file layout (task.toml + task.py)
 
     def entry_point(self, variant: str) -> str:
         if variant not in self.variants:
             raise KeyError(f"Task {self.name!r} has no variant {variant!r}; choices: {sorted(self.variants)}")
+        if self.task_py is not None:
+            return self.variants[variant]
         return f"{TASK_PACKAGE}.{self.name}.{self.variants[variant]}"
 
     def all_variants(self) -> list[str]:
@@ -96,7 +103,18 @@ def load_task_spec(name: str | None = None) -> TaskSpec:
     if table.get("name", name) != name:
         raise ValueError(f"{path}: [task] name = {table['name']!r} but the folder is {name!r}")
 
-    variants = {key: _target(path, f"[task.variants] {key}", value) for key, value in table.get("variants", {}).items()}
+    task_py = task_dir / "task.py"
+    if task_py.is_file():
+        # Two-file layout: every variant is built by the generic task environment.
+        names = table.get("variants", list(GENERIC_VARIANTS))
+        if not isinstance(names, list) or not names or set(names) - set(GENERIC_VARIANTS) or len(set(names)) != len(names):
+            raise ValueError(f"{path}: [task] variants must be a nonempty list from {list(GENERIC_VARIANTS)}")
+        if "eval_dr" in names and "dr" not in table:
+            raise ValueError(f"{path}: variant eval_dr needs a [task.dr] table")
+        variants = {name: GENERIC_VARIANTS[name] for name in names}
+    else:
+        task_py = None
+        variants = {key: _target(path, f"[task.variants] {key}", value) for key, value in table.get("variants", {}).items()}
     if not variants:
         raise ValueError(f"{path}: [task.variants] needs at least one variant (e.g. teleop)")
     default_variant = table.get("default_variant", next(iter(variants)))
@@ -127,6 +145,7 @@ def load_task_spec(name: str | None = None) -> TaskSpec:
         stages=stages,
         tracked_objects=tracked,
         start=dict(start),
+        task_py=task_py,
     )
 
 

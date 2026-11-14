@@ -163,7 +163,7 @@ def test_supplied_scripted_yaml_parses_without_launching_kit(tmp_path):
 
 
 def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
-    from core.tasks.expert import Waypoint
+    from sim.actions.action import Waypoint
     from sim.datagen.scripted import execute_expert
     import sim.eval.scene
     monkeypatch.setattr(sim.eval.scene, "capture_scene", lambda *args: {

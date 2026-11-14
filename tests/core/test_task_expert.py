@@ -4,20 +4,28 @@ import numpy as np
 import pytest
 
 from core.tasks.base import Pose, StepState
-from core.tasks.expert import ExpertContext
+from sim.actions.action import ExpertContext
 from core.tasks.loader import load_task
 
 
 def test_optional_expert_missing_is_clear(tmp_path):
-    task = load_task("pick_place_cube")
+    # Legacy layout: the expert is an optional expert.py.
+    task = load_task("stack_two_cubes")
     task = type(task)(replace(task.spec, name="missing_expert", task_dir=tmp_path))
     with pytest.raises(NotImplementedError, match="no expert.py"):
         task.expert()
+    # task.py layout: the expert is an optional module-level list of moves.
+    from core.tasks.task import Task
+    from types import SimpleNamespace
+    task = load_task("pick_place_cube")
+    module = SimpleNamespace(stages=task.module.stages)
+    with pytest.raises(NotImplementedError, match="no expert in task.py"):
+        Task(task.spec, module).expert()
 
 
 def test_internal_expert_import_failure_is_not_masked(tmp_path, monkeypatch):
     from core.tasks import loader
-    task = load_task("pick_place_cube")
+    task = load_task("stack_two_cubes")
     (tmp_path / "expert.py").write_text("import unavailable_internal_dependency\n")
     task = type(task)(replace(task.spec, task_dir=tmp_path))
     def broken(*args):
@@ -25,6 +33,11 @@ def test_internal_expert_import_failure_is_not_masked(tmp_path, monkeypatch):
     monkeypatch.setattr(loader, "load_task_module", broken)
     with pytest.raises(ModuleNotFoundError, match="unavailable_internal_dependency"):
         task.expert()
+    # A task.py whose imports fail is not masked either.
+    (tmp_path / "task.py").write_text("import unavailable_internal_dependency\n")
+    from core.tasks.task import load_task_file
+    with pytest.raises(ModuleNotFoundError, match="unavailable_internal_dependency"):
+        load_task_file(tmp_path / "task.py")
 
 
 def test_task_waypoints_use_world_geometry_and_open_close_release():
@@ -97,8 +110,7 @@ def test_transport_requires_actual_base_pose():
 @pytest.mark.parametrize('angle', [.2, 1., 2.9, -2.9])
 @pytest.mark.parametrize('radii', [(.30,.20), (.20,.30), (.20,.20)])
 def test_interpolated_transport_covers_wide_starts_without_extending_far_radius(angle, radii):
-    from core.tasks.loader import load_task_module
-    arc=load_task_module('expert','pick_place_cube')._transport_arc
+    from sim.actions.moves.place import transport_arc as arc
     start=np.array([radii[0],0.,.1])
     end=np.array([radii[1]*np.cos(angle),radii[1]*np.sin(angle),.12])
     points=arc(start,end,np.zeros(3),np.array([0.,0.,1.]),.01,interpolate_radius=True)
@@ -147,7 +159,7 @@ def test_raised_release_opens_without_extra_closed_hold_over_container():
 def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
     from utils.arms.spec import IKSpec
     from utils.geometry import rotation_matrix_xyzw
-    from core.tasks.expert import Waypoint
+    from sim.actions.action import Waypoint
 
     grip = replace(synthetic_arm.gripper, closed_gap_m=0., open_gap_m=.08,
                    closed_position=0., open_position=.04, closing_axis=(1., 0., 0.))
@@ -171,7 +183,7 @@ def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
 
 
 def test_gap_options_take_precedence_and_legacy_orientation_is_preserved(synthetic_arm):
-    from core.tasks.expert import gripper_commands, grasp_orientation
+    from sim.actions.action import gripper_commands, grasp_orientation
     state = StepState({}, Pose((0., 0., 1.)), 0.)
     context = ExpertContext(state, state.ee, (0., 0., 1.),
                            {'gripper_open_gap_m': .031, 'gripper_closed_gap_m': .002,

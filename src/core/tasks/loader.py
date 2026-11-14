@@ -5,7 +5,8 @@ import sys
 import types
 from typing import Any
 
-from core.tasks.base import TASK_NAME, TASK_PACKAGE, Task
+from core.tasks.base import TASK_NAME, TASK_PACKAGE, Task, load_task_spec
+from core.tasks.task import Task as GenericTask
 from utils.workspace import available, kind_dir
 
 _loaded: dict[str, Task] = {}
@@ -24,6 +25,10 @@ def _ensure_package() -> None:
 
 
 def load_task(name: str | None = None) -> Task:
+    """Load a task by folder name: task.toml + task.py, or the legacy package layout.
+
+    ``None`` still falls back to S2R_TASK for the legacy import-time selection (removed in Phase 11).
+    """
     name = name or TASK_NAME
     if name in _loaded:
         return _loaded[name]
@@ -31,8 +36,14 @@ def load_task(name: str | None = None) -> Task:
         raise ValueError(f"Task folder name {name!r} must be a valid Python identifier")
     if name not in available("tasks", "task.toml"):
         raise FileNotFoundError(f"Unknown task {name!r}; available: {available("tasks", "task.toml")}")
+    spec = load_task_spec(name)
+    if spec.task_py is not None:
+        task = GenericTask(spec)
+        _loaded[name] = task
+        return task
+    # Legacy layout (removed once every task is ported): tasks/<name>/__init__.py defines TASK.
     if not (kind_dir("tasks") / name / "__init__.py").is_file():
-        raise FileNotFoundError(f"tasks/{name}/__init__.py is missing; it must define TASK")
+        raise FileNotFoundError(f"tasks/{name}/ needs task.py (or the legacy __init__.py defining TASK)")
 
     _ensure_package()
     module = importlib.import_module(f"{TASK_PACKAGE}.{name}")

@@ -182,7 +182,10 @@ for name in json.loads(sys.argv[1]):
         if error.name is None or not (name == error.name or name.startswith(error.name + ".")):
             raise
 for task in json.loads(sys.argv[2]):
-    assert loader.load_task(task).name == task, task
+    loaded = loader.load_task(task)
+    assert loaded.name == task, task
+    if getattr(loaded.spec, "task_py", None) is not None and hasattr(loaded.module, "expert"):
+        loaded.expert()  # task.py layout: building the expert stays numpy-only too
 prefixes = tuple(json.loads(sys.argv[3]))
 heavy = sorted(m for m in sys.modules if m.split(".")[0] == "torch" or m.split(".")[0].startswith(prefixes))
 assert not heavy, heavy

@@ -46,7 +46,11 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   degree-labelled fields are reserved for revolute-only logs. Never pool degree and metre errors.
 - Newton imports scene topology once. Declare objects before model construction, then park/reposition them;
   do not add rigid bodies during a running episode.
-- Data generation uses task-folder `expert.py` waypoints and arm-declared `ik` TCP/orientation constraints.
+- A task is `workspace/tasks/<task>/task.toml` (objects, starts, DR, episode) plus `task.py` (stages built from
+  `sim.actions` checks, success hold, expert built from `sim.actions` moves). Low-level check and move code lives
+  once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac. Tasks not yet ported
+  keep the legacy `__init__/env_cfg/mdp/expert.py` layout until their phase.
+- Data generation uses the task's expert waypoints and arm-declared `ik` TCP/orientation constraints.
   IK and FK math come from Isaac Lab and Newton; `ik.py` only handles frames, caps and limits.
   The pick-place expert must not add a deliberate wrist roll after pickup. Preserve its pickup orientation
   through transport; earlier rolled diagnostic datasets are not approved final training sources.

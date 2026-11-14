@@ -14,7 +14,7 @@ import numpy as np
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.tasks.base import Pose
 from utils.geometry import wxyz_to_xyzw
-from core.tasks.expert import ExpertContext
+from sim.actions.action import ExpertContext
 from utils.cli import parse_yaml_args
 from sim import add_launch_arguments, apply_selection, close_app, launch
 from sim.datagen.rollout import LiveRollout, SuccessRecorder, write_json
@@ -251,7 +251,7 @@ class GenerationContext:
         if warmup:
             ids = self.raw.scene["robot"].find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)[0]
             hold = as_torch(self.raw.scene["robot"].data.joint_pos)[:, ids].clone()
-            from core.tasks.expert import gripper_commands
+            from sim.actions.action import gripper_commands
             widths = [max(obj.size[:2]) for name, obj in self.task.spec.objects.items()
                       if name in self.task.spec.tracked_objects and obj.size is not None]
             opened, _ = gripper_commands(SimpleNamespace(
@@ -580,7 +580,7 @@ def main(argv=None):
 
         context = setup_context(args)
         expert = context.task.expert()
-        report = make_report(context, source_provenance={"expert": str(context.task.spec.task_dir / "expert.py"),
+        report = make_report(context, source_provenance={"expert": str(context.task.spec.task_py or context.task.spec.task_dir / "expert.py"),
                                                         "options": args.expert_options,
                                                         "solver_capacities": {
                                                             name: getattr(context.raw.cfg.sim.physics.solver_cfg, name)

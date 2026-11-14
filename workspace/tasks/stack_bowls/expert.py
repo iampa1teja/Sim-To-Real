@@ -2,7 +2,7 @@
 import math
 import numpy as np
 from core.tasks.base import Pose
-from core.tasks.expert import Waypoint, gripper_commands
+from sim.actions.action import Waypoint, gripper_commands
 from utils.geometry import rotation_matrix_xyzw
 
 

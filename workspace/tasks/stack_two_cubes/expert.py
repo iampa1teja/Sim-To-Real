@@ -4,7 +4,7 @@ import numpy as np
 
 from utils.geometry import rotation_matrix_wxyz
 from core.tasks.base import Pose
-from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
+from sim.actions.action import Waypoint, gripper_commands, grasp_orientation
 
 
 class StackExpert:
