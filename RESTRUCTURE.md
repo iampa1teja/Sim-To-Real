@@ -115,8 +115,8 @@ of its rules (first in Phase 1, when `s2r` and `sim.app` references change), not
 **Checks that run in this container** (no pytest or torch here): `python -B -m compileall`,
 `rg` for stale module names and paths, an AST import-graph script (`utils` imports nothing from
 `core`/`sim`; `core` has no module-top `sim`/Isaac imports; `sim/actions` module tops are stdlib and
-numpy only), a numpy-only regression that rehashes the three stored eval sets and re-validates all
-150 starts, and loading every task without torch.
+numpy only), a numpy-only regression that rehashes the three stored eval sets and re-checks all 500 stored
+starts (one, train-059, is already rejected on v2 and is pinned), and loading every task without torch.
 **Checks that need `s2r-sim`**: full `PYTHONPATH=src python -m pytest tests -q`, oracle
 comparisons, dataset frame hashes.
 
@@ -148,7 +148,7 @@ Phases 0-14 preserve behaviour; 15-18 are the only intended behaviour changes, o
 ## Risks to watch
 
 - **Eval comparability**: digests hash content, not paths, so moves are safe; the generic start
-  validity rule must keep all 150 stored starts valid (checked every phase).
+  validity rule must give the same verdict on all 500 stored starts (checked every phase).
 - **Physics**: prim names and contact filter order are frozen; grasp material only on cuboids and
   objects flagged `grasp_material = true`; bowls' solver capacity moves to `[task.physics]` unchanged.
 - **Hidden numeric drift** when call sites switch between XYZW and WXYZ helpers (Phase 5): covered
