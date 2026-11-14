@@ -345,6 +345,20 @@ def test_temporal_ensemble_is_explicitly_unsupported():
         RemotePolicy(['a.pos'], policy_name='example', async_inference=True, temporal_ensemble=1)
 
 
+def test_async_yaml_requires_booleans_and_explicit_flags_override(tmp_path):
+    from core.rollout.real_rollout import parse_args as rollout_args
+    from core.rollout.testing_gui import parse_args as gui_args
+    path = tmp_path / 'async.yaml'
+    path.write_text('policy: example\nasync_inference: "false"\n')
+    for parse in [rollout_args, gui_args]:
+        with pytest.raises(SystemExit):
+            parse(['--config_path', str(path)])
+    path.write_text('policy: example\nasync_inference: true\n')
+    for parse in [rollout_args, gui_args]:
+        assert parse(['--config_path', str(path)]).async_inference is True
+        assert parse(['--config_path', str(path), '--no-async_inference']).async_inference is False
+
+
 def test_timing_records_async_provenance(tmp_path):
     import csv
     log = TimingLog(tmp_path / 'ticks.csv', ['a'])

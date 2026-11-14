@@ -23,7 +23,8 @@ def parse_yaml_args(parser, argv=None, *, json_fields=()):
             multiple = isinstance(action, argparse._AppendAction) or action.nargs in ('*', '+')
             if multiple and value is not None and not isinstance(value, list):
                 parser.error(f'{path}: {key} must be a list')
-            if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction)):
+            if isinstance(action, (argparse._StoreTrueAction, argparse._StoreFalseAction,
+                                   argparse.BooleanOptionalAction)):
                 if not isinstance(value, bool):
                     parser.error(f'{path}: {key} must be a boolean')
             elif key in json_fields and isinstance(value, dict):
