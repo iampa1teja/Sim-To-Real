@@ -1,0 +1,12 @@
++ PYTHONPATH=/home/rpuser1/Isaac-Sim-to-Real/src /home/rpuser1/Isaac-Sim-to-Real/.venv/bin/python -m cli.check --repo /home/rpuser1/Isaac-Sim-to-Real --static-only --arm so101 --scene rpd_meeting_room --task pick_place_cube
+PASS arms/so101
+PASS arms/sp7
+PASS scenes/blank_table
+PASS scenes/rpd_meeting_room
+PASS tasks/pick_place_cube
+PASS tasks/stack_bowls
+PASS tasks/stack_two_cubes
+PASS policies/example
+PASS policies/groot_n17
+PASS policies/molmoact2
+PASS policies/sweep

@@ -1,0 +1,8 @@
+.venv/
+.venv-gpu/
+checkpoints/
+__pycache__/
+*.log
+results/
+raw_async/
+standalone.server.json
