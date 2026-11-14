@@ -6,11 +6,11 @@ from isaaclab.managers import EventTermCfg as EventTerm, TerminationTermCfg as D
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 from utils.geometry import Pose, transform_pose
-from sim.envs.mdp import park_object, time_out
-from sim.envs.mdp.starts import assert_reset_event_order, reset_from_starts
-from sim.envs.scene_builder import drop_unused_camera_outputs
-from sim.scene.cameras import euler_xyz_degrees_to_xyzw
-from sim.scene.contact_materials import GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties
+from sim.workspace.envs.mdp import park_object, time_out
+from sim.workspace.envs.mdp.starts import assert_reset_event_order, reset_from_starts
+from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
+from sim.workspace.scene.cameras import euler_xyz_degrees_to_xyzw
+from sim.workspace.scene.contact_materials import GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties
 from .mdp import reset_target, reset_tracking, success
 
 

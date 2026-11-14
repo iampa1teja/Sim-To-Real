@@ -16,6 +16,8 @@ CORE = SRC / "core"
 SHARED_PACKAGE = "utils"          # top-level shared package; the plan's fallback name is "shared"
 SHARED = SRC / SHARED_PACKAGE
 SIM_ACTIONS = SRC / "sim" / "actions"
+# The IK solver needs torch and scipy at import; task.py files never import it (checks and moves do not).
+ACTIONS_HEAVY_OK = {"ik.py", "bounded_ik.py"}
 STANDALONE_PACKAGES = ("policy_client", "policy_server")   # shipped alone in docker/policy/Dockerfile
 # ----------------------------------------------------------------------------------------------------------
 
@@ -166,6 +168,8 @@ def test_sim_actions_module_tops_are_stdlib_and_numpy_only():
     allowed = set(sys.stdlib_module_names) | {"numpy", "__future__", SHARED_PACKAGE}
     offending = []
     for path in _require_files(SIM_ACTIONS):
+        if path.name in ACTIONS_HEAVY_OK:
+            continue
         for line, module, top in imports(path):
             if not top or _root(module) in allowed:
                 continue

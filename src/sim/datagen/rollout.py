@@ -196,8 +196,8 @@ class LiveRollout:
 
     def step(self, target_sim, *, action_raw=None, target_eef_pose=None, gripper_action=None, phase=None):
         import torch
-        from sim.envs.mdp._common import as_torch
-        from sim.recording.lerobot_recorder import split_visual_obs
+        from sim.workspace.envs.mdp._common import as_torch
+        from sim.recording.recorder import split_visual_obs
 
         target = torch.as_tensor(target_sim, device=self.raw.device, dtype=torch.float32).reshape(1, -1)
         if target.shape[1] != len(self.arm.action_joints) or not torch.isfinite(target).all():

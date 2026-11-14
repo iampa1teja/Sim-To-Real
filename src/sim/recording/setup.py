@@ -161,7 +161,7 @@ def make_recorders(
     ``RealRecordingPipeline`` for ``sim.teleop.devices.real_dataset_frame`` and is
     None when there is no physical follower.
     """
-    from .lerobot_recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
+    from .recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
     from utils.arms.spec import load_arm_spec
 
     arm = arm or load_arm_spec()[0]

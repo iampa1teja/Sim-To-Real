@@ -148,7 +148,7 @@ def prepare_collisions(root):
 
 
 def make_kinematics(arm, *, position_offset_m=None):
-    from sim.datagen.ik import ArmKinematics
+    from sim.actions.ik import ArmKinematics
     offset = tuple(arm.ik.position_offset_m if position_offset_m is None else position_offset_m)
     key = (str(arm.usd_path), offset)
     if key not in _KINEMATICS:
@@ -157,8 +157,8 @@ def make_kinematics(arm, *, position_offset_m=None):
 
 
 def make_ik(robot, arm, **kwargs):
-    from sim.datagen.bounded_ik import BoundedPoseStep
-    from sim.datagen.ik import ArticulationIK
+    from sim.actions.bounded_ik import BoundedPoseStep
+    from sim.actions.ik import ArticulationIK
     controller = ArticulationIK(robot, arm, **kwargs)
     controller._step = BoundedPoseStep(arm, controller.options,
         make_kinematics(arm, position_offset_m=controller.position_offset_m))

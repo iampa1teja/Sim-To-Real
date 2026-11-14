@@ -13,7 +13,7 @@ except ImportError:
 class ArmHooksTests(unittest.TestCase):
     def test_arm_without_utils_only_promotes_its_own_meshes(self):
         from utils.arms.spec import load_arm_spec
-        from sim.scene.contact_materials import enable_collision_meshes
+        from sim.workspace.scene.contact_materials import enable_collision_meshes
 
         stage = Usd.Stage.CreateInMemory()
         root = UsdGeom.Xform.Define(stage, "/DifferentArm").GetPrim()

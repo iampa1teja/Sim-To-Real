@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from sim.eval.sim_real import limited_target
+from sim.eval.sim_real.trials import limited_target
 
 
 def _local_tcp():
@@ -84,7 +84,7 @@ def test_local_server_codec_does_not_double_transform(monkeypatch):
 
 def test_video_preserves_wall_time_when_capture_drops_frames(tmp_path):
     cv2 = pytest.importorskip('cv2')
-    from sim.eval.sim_real import TrialVideo
+    from sim.eval.sim_real.trials import TrialVideo
     path = tmp_path / 'trial.mp4'
     images = {key: np.zeros((32, 32, 3), dtype=np.uint8) for key in ('room', 'wrist')}
     writer = TrialVideo(path, 10)
@@ -100,7 +100,7 @@ def test_video_preserves_wall_time_when_capture_drops_frames(tmp_path):
 
 def test_trial_video_keeps_room_panel_when_wrist_camera_is_disabled(tmp_path):
     cv2 = pytest.importorskip('cv2')
-    from sim.eval.sim_real import TrialVideo
+    from sim.eval.sim_real.trials import TrialVideo
     path = tmp_path / 'room-only.mp4'
     room = np.zeros((32, 32, 3), dtype=np.uint8)
     room[..., 1] = 200
@@ -117,7 +117,7 @@ def test_trial_video_keeps_room_panel_when_wrist_camera_is_disabled(tmp_path):
 
 
 def test_leader_positions_before_start_and_is_not_read_when_control_hands_off():
-    from sim.eval.sim_real import position_with_leader
+    from sim.eval.sim_real.trials import position_with_leader
     commands = []
     reads = []
     def read():
@@ -152,7 +152,7 @@ def test_gui_can_stop_leader_positioning_before_a_trial():
 
 def test_failed_policy_pair_closes_connections_and_can_retry():
     from concurrent.futures import ThreadPoolExecutor
-    from sim.eval.sim_real import connect_trial_policies
+    from sim.eval.sim_real.trials import connect_trial_policies
     events = []
     attempts = []
     class Policy:
@@ -176,7 +176,7 @@ def test_failed_policy_pair_closes_connections_and_can_retry():
 
 
 def test_no_object_is_opt_in_and_default_gui_requires_spawn():
-    from sim.eval.sim_real import parse_args
+    from sim.eval.sim_real.trials import parse_args
     from sim.recording.web_gui import RecordingWebGui
     default = parse_args([])
     assert default.no_object is False
@@ -206,7 +206,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     from utils.arms.calibration import resolve_calibration
     from utils.arms.mapping import JointMapping
     from utils.arms.spec import load_arm_spec
-    from sim.eval.sim_real import parse_args, run
+    from sim.eval.sim_real.trials import parse_args, run
     from core.rollout import real_rollout
     from sim.teleop import agent, loop
     from sim.datagen import spawner
@@ -227,8 +227,8 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     monkeypatch.setattr(gymnasium, 'make', lambda *a, **k: env)
     fake_envs = SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
     import sim
-    monkeypatch.setitem(sys.modules, 'sim.envs', fake_envs)
-    monkeypatch.setitem(sys.modules, 'sim.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
+    monkeypatch.setitem(sys.modules, 'sim.workspace.envs', fake_envs)
+    monkeypatch.setitem(sys.modules, 'sim.workspace.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
     monkeypatch.setattr(sim, 'envs', fake_envs, raising=False)
     monkeypatch.setattr(agent, '_env_id', lambda _: 'fake')
     monkeypatch.setattr(agent, '_make_env_cfg', lambda *a: None)
@@ -290,8 +290,8 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
     env.unwrapped=env
     monkeypatch.setattr(gymnasium,'make',lambda *a,**k:env)
     fake=SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
-    monkeypatch.setitem(sys.modules,'sim.envs',fake);monkeypatch.setattr(sim,'envs',fake,raising=False)
-    monkeypatch.setitem(sys.modules,'sim.envs.mdp._common',SimpleNamespace(as_torch=torch.as_tensor))
+    monkeypatch.setitem(sys.modules,'sim.workspace.envs',fake);monkeypatch.setattr(sim,'envs',fake,raising=False)
+    monkeypatch.setitem(sys.modules,'sim.workspace.envs.mdp._common',SimpleNamespace(as_torch=torch.as_tensor))
     monkeypatch.setattr(agent,'_env_id',lambda _:'fake')
     monkeypatch.setattr(agent,'_make_env_cfg',lambda *a:None)
     monkeypatch.setattr(agent,'_sim_cameras',lambda _:[])

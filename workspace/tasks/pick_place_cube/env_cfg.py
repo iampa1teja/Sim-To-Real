@@ -14,7 +14,7 @@ from isaaclab.managers import (
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 
-from sim.envs.mdp import ROBOT_COLORS, park_object, randomize_robot_color, time_out
+from sim.workspace.envs.mdp import ROBOT_COLORS, park_object, randomize_robot_color, time_out
 from .mdp import (
     object_grasped,
     object_placed_in_container,
@@ -22,11 +22,11 @@ from .mdp import (
     randomize_cube_color,
     reset_pick_place_state,
 )
-from sim.envs.scene_builder import drop_unused_camera_outputs
-from sim.scene.cameras import euler_xyz_degrees_to_xyzw
-from sim.scene.appearance import randomize_scene_light_exposure
-from sim.envs.mdp.starts import assert_reset_event_order, reset_from_starts
-from sim.scene.contact_materials import (
+from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
+from sim.workspace.scene.cameras import euler_xyz_degrees_to_xyzw
+from sim.workspace.scene.appearance import randomize_scene_light_exposure
+from sim.workspace.envs.mdp.starts import assert_reset_event_order, reset_from_starts
+from sim.workspace.scene.contact_materials import (
     GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties,
 )
 
@@ -118,7 +118,7 @@ def apply_teleop(cfg, task):
     )
 
     # Teleop: the cube stays parked out of the scene until spawn.py asks for it at the jaw
-    # (sim.datagen.spawner). Eval replaces this event with recorded starts.
+    # (sim.teleop.spawner). Eval replaces this event with recorded starts.
     cfg.events.reset_from_starts = EventTerm(
         func=park_object, mode="reset",
         params={"asset_cfg": SceneEntityCfg("blue_cube")},

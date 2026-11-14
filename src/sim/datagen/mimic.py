@@ -109,7 +109,7 @@ def make_mimic_cfg(cfg, task, arm, spec, seed):
     """Preserve the task-applied scene config while adding the real SDK Mimic mixin."""
     from isaaclab.envs import MimicEnvCfg
     from isaaclab.utils import configclass
-    from sim.envs.scene_builder import SceneEnvCfg
+    from sim.workspace.envs.scene_builder import SceneEnvCfg
 
     @configclass
     class S2RMimicCfg(SceneEnvCfg, MimicEnvCfg):
@@ -453,7 +453,7 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
 
 
 def main(argv=None):
-    from sim.app import apply_selection, close_app, launch
+    from sim import apply_selection, close_app, launch
     from sim.datagen.scripted import make_report, publish_report, setup_context
     from core.tasks.loader import load_task
 

@@ -8,7 +8,7 @@ import pytest
 def test_camera_measurement_ignores_same_named_nested_visuals():
     pytest.importorskip('pxr')
     from pxr import Usd, UsdGeom
-    from sim.arms.urdf_import import measure_cameras
+    from sim.workspace.arms.urdf_import import measure_cameras
 
     stage = Usd.Stage.CreateInMemory()
     UsdGeom.SetStageMetersPerUnit(stage, 1.)

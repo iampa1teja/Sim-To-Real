@@ -3,7 +3,7 @@ import os
 from functools import partial
 from copy import deepcopy
 
-from sim.recording.recording_setup import (
+from sim.recording.setup import (
     cleanup,
     derived_real_repo_id,
     derived_real_root,
@@ -14,7 +14,7 @@ from sim.recording.recording_setup import (
     real_camera_specs,
     validate_serial_ports
 )
-from sim.app import apply_selection, launch, close_app
+from sim import apply_selection, launch, close_app
 from sim.teleop.config import AgentConfig, parse_config
 from sim.teleop.loop import LoopResources, gui_panes, run_loop
 
@@ -55,11 +55,11 @@ def _prepare(cfg: AgentConfig):
     return selection, contract, roots
 
 def _env_id(cfg: AgentConfig):
-    import sim.envs
+    import sim.workspace.envs
 
-    if sim.envs.TASK is None:
-        return sim.envs.scene_gym_id()
-    return sim.envs.TASK.gym_id(cfg.variant)
+    if sim.workspace.envs.TASK is None:
+        return sim.workspace.envs.scene_gym_id()
+    return sim.workspace.envs.TASK.gym_id(cfg.variant)
 
 def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     from isaaclab_tasks.utils import parse_env_cfg
@@ -79,7 +79,7 @@ def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     env_cfg.decimation = round(physics_steps)
     env_cfg.sim.render_interval = env_cfg.decimation
 
-    from sim.envs.scene_builder import drop_unused_camera_outputs
+    from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
 
     drop_unused_camera_outputs(env_cfg, depth=cfg.dataset.depth, instance_id_seg=cfg.dataset.instance_id_seg)
     return env_cfg
@@ -128,11 +128,11 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         # Isaac / LeRobot imports only after the app is up; a failure here still closes the app below.
         import gymnasium as gym
 
-        import sim.envs
+        import sim.workspace.envs
         from utils.arms.spec import load_arm_spec
         from utils.arms.mapping import JointMapping
         from utils.datasets.alignment import mark_recording_root
-        from sim.datagen.spawner import ObjectSpawner
+        from sim.teleop.spawner import ObjectSpawner
         from sim.recording.rerecording import RerecordingSession
         from sim.teleop.devices import connect_device
 
@@ -150,7 +150,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         print(f"[INFO]: {env_id}  obs: {env.observation_space}  action: {env.action_space}")
         env.reset()
         # Spawnable task objects start parked; `spawn --object <name>` puts one at the sim jaw (Newton-safe teleport).
-        spawner = ObjectSpawner(env, task=sim.envs.TASK, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
+        spawner = ObjectSpawner(env, task=sim.workspace.envs.TASK, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
 
         sim_cameras = _sim_cameras(env)
         arm, _ = load_arm_spec(cfg.arm)
@@ -188,9 +188,9 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         # Track every declared object, including fixed objects and tasks with multiple spawnables.
         tracked = None
         base_id = None
-        task = sim.envs.TASK
+        task = sim.workspace.envs.TASK
         if task is not None:
-            from sim.datagen.spawner import _half_extents
+            from sim.teleop.spawner import _half_extents
 
             tracked = {}
             for name in task.spec.tracked_objects:

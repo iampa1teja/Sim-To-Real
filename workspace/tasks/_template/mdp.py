@@ -2,8 +2,8 @@
 import torch
 import isaaclab.utils.math as math_utils
 from isaaclab.sim import get_current_stage
-from sim.envs.mdp import as_torch, env_indices
-from sim.envs.mdp._common import _ee_body
+from sim.workspace.envs.mdp import as_torch, env_indices
+from sim.workspace.envs.mdp._common import _ee_body
 
 
 def reset_target(env, env_ids):
@@ -75,7 +75,7 @@ def stage_signals(env):
         offset = ee_position.new_tensor(env.cfg.arm_spec.ik.position_offset_m)
         ee_position = ee_position + math_utils.quat_apply(ee_quaternion, offset.expand_as(ee_position))
     elif gripper is not None and gripper.tip_mesh:
-        from sim.scene.geometry import gripper_tip_local_offset
+        from sim.workspace.scene.geometry import gripper_tip_local_offset
         if not hasattr(env, "_stack_grasp_offset"):
             env._stack_grasp_offset = ee_position.new_tensor(gripper_tip_local_offset(
                 get_current_stage(), float(first.cfg.spawn.size[0]) / 2, 0.0, ee_path, gripper.tip_mesh))

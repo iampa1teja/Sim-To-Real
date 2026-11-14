@@ -15,7 +15,7 @@ except ImportError:
 @unittest.skipUnless(Usd is not None, "Requires USD from s2r-sim")
 class GeometryCacheTests(unittest.TestCase):
     def setUp(self):
-        from sim.scene import geometry
+        from sim.workspace.scene import geometry
         self.geometry = geometry
         self.anchor = SimpleNamespace(prim_name="Surface", position=(0, 0, 0), up=(0, 0, 1))
 

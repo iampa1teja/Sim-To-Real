@@ -19,7 +19,7 @@
 The env is S2R-<task>-<variant> (default variant: eval). Flags override the YAML.
 """
 
-# - --arm/--scene/--task/--variant pick the env through sim.envs. S2R_* are exported before importing any
+# - --arm/--scene/--task/--variant pick the env through sim.workspace.envs. S2R_* are exported before importing any
 #   core/sim module that reads them at import. The arm USD comes from arms/<arm>/arm.toml.
 # - --config_path reads the configs/eval YAML directly.
 # - Joint units go through utils.arms.mapping.JointMapping and sim.eval.sim_remote_policy.SimRemotePolicy.
@@ -35,7 +35,7 @@ import traceback
 from pathlib import Path
 from types import SimpleNamespace
 
-from sim.app import apply_selection, add_launch_arguments, launch
+from sim import apply_selection, add_launch_arguments, launch
 
 SERVER_ONLY_KEYS = {"models_dir", "server_image"}  # read by `s2r serve`, ignored here
 _RENAMES = {
@@ -337,7 +337,7 @@ def setup(args_cli, simulation_app, resources):
     import numpy as np
     import torch
     from isaaclab_tasks.utils import parse_env_cfg
-    import sim.envs
+    import sim.workspace.envs
     from utils.arms.mapping import JointMapping
     from utils.arms.spec import load_arm_spec
     from utils.arms.calibration import resolve_calibration
@@ -348,7 +348,7 @@ def setup(args_cli, simulation_app, resources):
     from sim.eval.sim_remote_policy import SimRemotePolicy
     from sim.teleop.controls.keyboard import KeyboardControl
 
-    task = sim.envs.TASK
+    task = sim.workspace.envs.TASK
     env_id = task.gym_id(args_cli.variant)
     if args_cli.lang_instruction is None:
         args_cli.lang_instruction = task.instruction
@@ -427,7 +427,7 @@ def setup(args_cli, simulation_app, resources):
     episode_length_s = float(env_cfg.episode_length_s)
     if not math.isfinite(episode_length_s) or episode_length_s <= 0:
         raise ValueError("episode_length_s must be finite and greater than 0")
-    from sim.envs.mdp.starts import reset_from_starts
+    from sim.workspace.envs.mdp.starts import reset_from_starts
 
     spawn_term = getattr(env_cfg.events, "reset_from_starts", None)
     starts_enabled = spawn_term is not None and spawn_term.func is reset_from_starts

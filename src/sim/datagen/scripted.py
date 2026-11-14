@@ -15,7 +15,7 @@ from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.tasks.base import Pose
 from core.tasks.expert import ExpertContext
 from utils.cli import parse_yaml_args
-from sim.app import add_launch_arguments, apply_selection, close_app, launch
+from sim import add_launch_arguments, apply_selection, close_app, launch
 from sim.datagen.rollout import LiveRollout, SuccessRecorder, write_json
 
 
@@ -231,7 +231,7 @@ class GenerationContext:
 
     def begin_attempt(self, seed, *, reset=True, warmup=True, observer=None):
         import torch
-        from sim.envs.mdp._common import as_torch
+        from sim.workspace.envs.mdp._common import as_torch
 
         self.raw.cfg.seed = seed
         torch.manual_seed(seed)
@@ -246,7 +246,7 @@ class GenerationContext:
             varied = positions.new_tensor(jitter_start_positions(self.arm, positions.detach().cpu().numpy(), jitter, seed))
             robot.write_joint_state_to_sim_index(position=varied, velocity=torch.zeros_like(varied), joint_ids=ids)
             robot.set_joint_position_target_index(target=varied, joint_ids=ids)
-            from sim.envs.mdp.mimic import write_mimic_state
+            from sim.workspace.envs.mdp.mimic import write_mimic_state
             write_mimic_state(self.raw)
         if warmup:
             ids = self.raw.scene["robot"].find_joints(list(self.arm.action_usd_joint_names), preserve_order=True)[0]
@@ -280,20 +280,20 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
     from isaaclab.managers import EventTermCfg
-    import sim.envs
+    import sim.workspace.envs
     from utils.arms.spec import load_arm_spec
     from utils.arms.calibration import resolve_sim_calibration
     from utils.arms.mapping import JointMapping
     from utils.datasets.alignment import mark_recording_root, recording_contract
-    from sim.envs.mdp.starts import reset_from_starts
-    from sim.envs.scene_builder import drop_unused_camera_outputs
+    from sim.workspace.envs.mdp.starts import reset_from_starts
+    from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
     from sim.datagen.dr_replay import discover_sim_cameras
-    from sim.datagen.ik import IKOptions, make_ik, make_kinematics
-    from sim.recording.lerobot_recorder import LeRobotRecorder
+    from sim.actions.ik import IKOptions, make_ik, make_kinematics
+    from sim.recording.recorder import LeRobotRecorder
 
     if Path(args.destination).exists():
         raise FileExistsError(args.destination)
-    task = sim.envs.register_envs(scene=args.scene, task=args.task)
+    task = sim.workspace.envs.register_envs(scene=args.scene, task=args.task)
     task = task_with_start_options(task, getattr(args, 'start_options', {}))
     arm, _ = load_arm_spec(args.arm)
     calibration = resolve_sim_calibration(arm, unit=args.unit)
@@ -349,7 +349,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
                             control_dt=cfg.decimation * cfg.sim.dt, options=options)
         kinematics = make_kinematics(arm, position_offset_m=ik.position_offset_m)
         if getattr(args, 'ik_backend', 'arm') == 'bounded':
-            from sim.datagen.bounded_ik import BoundedPoseStep
+            from sim.actions.bounded_ik import BoundedPoseStep
             ik._step = BoundedPoseStep(arm, ik.options, kinematics)
             ik.library_name = 'SciPy bounded least_squares; Newton FK and analytic Jacobians'
             ik.method_name = 'bounded_nonlinear_pose'
@@ -438,7 +438,7 @@ def execute_expert(context, rollout, expert):
         if getattr(context.args, "diagnostic_images", False):
             import re
             from PIL import Image
-            from sim.recording.lerobot_recorder import split_visual_obs
+            from sim.recording.recorder import split_visual_obs
 
             report_path = context.args.report or Path(str(context.args.destination) + ".report.json")
             directory = report_path.parent / (report_path.stem + "-diagnostics") / f"attempt_{getattr(rollout, 'attempt', 0):04d}"
@@ -463,7 +463,7 @@ def execute_expert(context, rollout, expert):
         rollout.waypoint_trace.append(record)
 
     def failure_diagnostics(waypoint, requested_position, requested_quaternion, command, elapsed, phase_steps):
-        from sim.envs.mdp._common import as_torch
+        from sim.workspace.envs.mdp._common import as_torch
 
         actual = rollout.control_pose(rollout.last_state)
         final = context.ik.solve(waypoint.pose.position, requested_quaternion, advance=False)
@@ -513,7 +513,7 @@ def execute_expert(context, rollout, expert):
         boundary("start", waypoint, 0.)
         gripper_ramp = float(context.args.expert_options.get('gripper_ramp_seconds', 0.))
         if gripper_ramp > 0:
-            from sim.envs.mdp._common import as_torch
+            from sim.workspace.envs.mdp._common import as_torch
             robot = context.raw.scene['robot']
             action_ids = robot.find_joints(list(context.arm.action_usd_joint_names), preserve_order=True)[0]
             grip_ids = [i for i,j in enumerate(context.arm.action_joints) if j.role=='gripper']

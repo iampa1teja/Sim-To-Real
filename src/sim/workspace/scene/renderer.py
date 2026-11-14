@@ -6,7 +6,7 @@ from isaaclab_physx.renderers import IsaacRtxRendererCfg, IsaacRtxRendererGlobal
 def build_renderer_cfg(settings=None):
     """Construct RTX configuration from an explicit scene renderer declaration."""
     return IsaacRtxRendererCfg(
-        class_type="sim.scene.renderer:CalibratedRtxRenderer",
+        class_type="sim.workspace.scene.renderer:CalibratedRtxRenderer",
         global_settings=IsaacRtxRendererGlobalSettingsCfg(**dict(settings or {})),
     )
 

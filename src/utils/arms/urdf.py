@@ -1,6 +1,6 @@
 """Pure expanded-URDF description, units and test/report FK oracle.
 
-Runtime FK/IK belongs to sim.datagen.ik. This oracle is intentionally used only
+Runtime FK/IK belongs to sim.actions.ik. This oracle is intentionally used only
 for conversion cross-checks and reports, never for control.
 """
 from dataclasses import dataclass, field

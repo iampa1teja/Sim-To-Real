@@ -9,7 +9,7 @@ import numpy as np
 def workspace_sweep(spec, kin, task, geometry):
     from core.eval.geometry import rotation_matrix
     from core.tasks.base import Pose
-    from sim.datagen.ik import IKOptions
+    from sim.actions.ik import IKOptions
 
     rotation=rotation_matrix(geometry['base_quaternion_wxyz'])
     base=np.asarray(geometry['base_position_world'])
@@ -20,7 +20,7 @@ def workspace_sweep(spec, kin, task, geometry):
     orientation=kin.fk(q)[:3,:3]
     options=IKOptions(damping=.005,orientation_weight=.2,max_joint_step_rad=2*math.pi,
                       max_joint_step_m=1.,max_position_step_m=.02,integral_gain=0.)
-    from sim.arms.ready_pose import reach_samples
+    from sim.workspace.arms.ready_pose import reach_samples
     seeds,seed_positions=reach_samples(spec,kin,count=60)
     previous=q.copy()
     multistart_rng=np.random.default_rng(404)
@@ -60,7 +60,7 @@ def workspace_sweep(spec, kin, task, geometry):
                 if result.converged.item():
                     break
         if not result.converged.item():
-            from sim.arms.ready_pose import bounds
+            from sim.workspace.arms.ready_pose import bounds
             limits=bounds(spec)
             for _ in range(30):
                 seed=multistart_rng.uniform(limits[:,0],limits[:,1])
@@ -92,10 +92,10 @@ def validate_import(name,*,repo=None):
     from isaaclab_tasks.utils import parse_env_cfg
     from utils.arms.spec import load_arm_spec
     from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
-    from sim.datagen.ik import ArmKinematics,make_ik
+    from sim.actions.ik import ArmKinematics,make_ik
     from core.tasks.base import Pose
-    from sim.envs.mdp._common import as_torch
-    from sim.envs.mdp.mimic import write_mimic_state
+    from sim.workspace.envs.mdp._common import as_torch
+    from sim.workspace.envs.mdp.mimic import write_mimic_state
     from sim.eval.scene import capture_scene
 
     old={key:os.environ.get(key) for key in ('S2R_ARM','S2R_ARMS_DIR')}
@@ -112,8 +112,8 @@ def validate_import(name,*,repo=None):
         except Exception as error:
             row=dict(name=name,passed=False,error=str(error));results.append(row);return row
     try:
-        import sim.envs
-        task=sim.envs.register_envs(scene=DEFAULT_SCENE,task=DEFAULT_TASK)
+        import sim.workspace.envs
+        task=sim.workspace.envs.register_envs(scene=DEFAULT_SCENE,task=DEFAULT_TASK)
         cfg=parse_env_cfg(task.gym_id(task.spec.default_variant),device='cuda:0',num_envs=1)
         cfg.terminations=None
         cfg.episode_length_s=120.
@@ -167,14 +167,14 @@ def validate_import(name,*,repo=None):
             reachable=[row for row in sweep.get('cells',[]) if row['reached'] and row['region']=='start']
             if not reachable:
                 raise ValueError('No reachable default-task start cell for grasp validation')
-            from sim.arms.ready_pose import bounds
+            from sim.workspace.arms.ready_pose import bounds
             limits=bounds(spec)
             arm_indices=[i for i,joint in enumerate(spec.action_joints) if joint.role=='arm']
             def margin(row):
                 q=np.asarray(row['q'])
                 return float(np.min((np.minimum(q-limits[:,0],limits[:,1]-q)/(limits[:,1]-limits[:,0]))[arm_indices]))
-            from sim.arms.clearance import ready_route_validator
-            from sim.datagen.ik import IKOptions
+            from sim.workspace.arms.clearance import ready_route_validator
+            from sim.actions.ik import IKOptions
             validator=ready_route_validator(spec,kin)
             ready=np.array([joint.initial for joint in spec.action_joints])
             desired=np.eye(4);desired[:3,:3]=kin.fk(ready)[:3,:3]

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class CalibratedKitVisualizerCfg(KitVisualizerCfg):
     """Select a scene camera without replacing its measured pose or lens settings."""
 
-    class_type: str = "sim.scene.viewport:CalibratedKitVisualizer"
+    class_type: str = "sim.workspace.scene.viewport:CalibratedKitVisualizer"
     camera_prim_path: str = ""
 
 

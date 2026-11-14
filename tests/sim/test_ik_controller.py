@@ -14,7 +14,7 @@ import torch
 
 from utils.arms.spec import (ArmSpec, GripperSpec, HardwareSpec, IKSpec, InitialStateSpec,
                             JointSpec, LeRobotSpec, LinksSpec, load_arm_spec)
-from sim.datagen.ik import ArmKinematics, ArticulationIK, IKOptions, _JointStep, _controller_cfg
+from sim.actions.ik import ArmKinematics, ArticulationIK, IKOptions, _JointStep, _controller_cfg
 
 
 AVAILABLE = all(importlib.util.find_spec(name) is not None for name in ('pxr', 'isaaclab', 'newton'))

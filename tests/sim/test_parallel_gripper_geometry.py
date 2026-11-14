@@ -18,7 +18,7 @@ def test_measured_fixture_gap_and_tcp_within_one_millimetre(imported_urdf_arm):
 def test_collision_vertex_cache_keeps_live_finger_transforms_independent():
     pytest.importorskip('pxr')
     from pxr import Usd,UsdGeom,UsdPhysics
-    from sim.scene.geometry import parallel_fingertip_points,clear_geometry_cache
+    from sim.workspace.scene.geometry import parallel_fingertip_points,clear_geometry_cache
     stage=Usd.Stage.CreateInMemory();UsdGeom.SetStageMetersPerUnit(stage,1.)
     UsdGeom.Xform.Define(stage,'/Robot/Tool')
     for name,x in [('Left',.004),('Right',-.004)]:

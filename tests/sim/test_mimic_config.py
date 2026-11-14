@@ -16,7 +16,7 @@ def test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch(scene_
     from isaaclab.managers import RecorderManager
     from isaaclab_tasks.utils import parse_env_cfg
     from isaaclab_mimic.datagen.data_generator import DataGenerator
-    from sim.envs import register_envs
+    from sim.workspace.envs import register_envs
 
     monkeypatch.setenv('S2R_ARM', 'so101')
     task = register_envs(scene=scene_name, task='pick_place_cube')

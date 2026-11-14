@@ -10,8 +10,8 @@ def capture_scene(env, task=None, index=0):
     from pxr import Gf, UsdGeom
     from core.eval.geometry import hull, rotation_matrix
     from utils.geometry import anchor_quaternion
-    from sim.envs.mdp._common import _wxyz, as_torch
-    from sim.scene.geometry import anchor_prim, table_plane
+    from sim.workspace.envs.mdp._common import _wxyz, as_torch
+    from sim.workspace.scene.geometry import anchor_prim, table_plane
 
     task = task or load_task(getattr(env.cfg, "task_name", None))
     arm = getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]

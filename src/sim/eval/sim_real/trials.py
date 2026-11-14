@@ -54,7 +54,7 @@ def parse_args(argv=None):
     from core.rollout.real_rollout import build_parser
     from utils.cli import parse_yaml_args
     from core.tasks.loader import load_task
-    from sim.app import add_launch_arguments
+    from sim import add_launch_arguments
 
     parser = build_parser()
     parser.description = __doc__
@@ -183,13 +183,13 @@ class TrialVideo:
 
 
 def run(args, app):
-    from sim.eval.paired_run import run as run_interactive
+    from sim.eval.sim_real.paired import run as run_interactive
     return run_interactive(args, app)
 
 
 def main(argv=None):
     from core.rollout.real_rollout import validate
-    from sim.app import apply_selection, launch, close_app
+    from sim import apply_selection, launch, close_app
 
     args = parse_args(argv)
     apply_selection(args)

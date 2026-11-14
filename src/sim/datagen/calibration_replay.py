@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-from sim.app import apply_selection, close_app, launch
+from sim import apply_selection, close_app, launch
 from sim.datagen.scripted import add_generation_launch_arguments, make_report, publish_report, reset_task_tracking, setup_context
 
 
@@ -60,7 +60,7 @@ def main(argv=None):
         from utils.arms.spec import load_arm_spec
         from utils.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
         from utils.hashing import tree_sha256
-        from sim.envs.mdp._common import as_torch
+        from sim.workspace.envs.mdp._common import as_torch
         from sim.recording.replay_scene import SceneReplayer
 
         arm, _ = load_arm_spec(args.arm)

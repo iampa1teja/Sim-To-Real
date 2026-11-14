@@ -30,7 +30,7 @@ def scene_gym_id(scene=None):
 
 def scene_entry_point(scene=None):
     load_scene_spec(scene)
-    return "sim.envs.scene_builder:build_scene_cfg"
+    return "sim.workspace.envs.scene_builder:build_scene_cfg"
 
 
 def _scene_builder(scene):

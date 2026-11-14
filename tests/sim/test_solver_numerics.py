@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import warp as wp
 
-from sim.solver_numerics import install_mjwarp_precision_guard
+from sim.workspace.solver_numerics import install_mjwarp_precision_guard
 
 
 def solve(hessian, gradient, *, guarded, done=False):

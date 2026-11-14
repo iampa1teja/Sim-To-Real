@@ -57,7 +57,7 @@ class CalibratedTiledCamera(TiledCamera):
         if not params:
             return images
         if getattr(self, "_response", None) is None:
-            from sim.scene.camera_response import CameraResponse
+            from sim.workspace.scene.camera_response import CameraResponse
             self._response = CameraResponse(params, self.cfg.height, self.cfg.width, self.device)
         images[..., :3] = self._response(images[..., :3])
         return images
@@ -140,7 +140,7 @@ def build_camera_cfg(path, spec, renderer_cfg, *, data_types=None, response=None
 def sync_camera_intrinsics(env, env_ids):
     """Make changed camera focal lengths affect each authored OpenCV lens model."""
     import isaaclab.sim as sim_utils
-    from sim.envs.mdp._common import env_indices
+    from sim.workspace.envs.mdp._common import env_indices
 
     indices = env_indices(env, env_ids).tolist()
     if not indices:

@@ -1,7 +1,7 @@
 """
 Arm, scene and task are chosen here and exported as S2R_ARM / S2R_SCENE / S2R_TASK by
 ``apply_selection``, which must run before anything imports ``core`` or ``sim`` modules (they read
-those variables at import time). The env opened is S2R-<task>-<variant> (sim.envs registers it);
+those variables at import time). The env opened is S2R-<task>-<variant> (sim.workspace.envs registers it);
 an empty task opens the bare scene, S2R-<scene>.
 """
 
@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
-from sim.app import add_launch_arguments
+from sim import add_launch_arguments
 
 
 def _env(name: str, default: str | None = None):

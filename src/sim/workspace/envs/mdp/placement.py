@@ -26,7 +26,7 @@ def reset_object_pose(
     ``half_extents`` (metres, object frame) sizes any object; when None it comes from a
     cuboid spawn's ``size`` (USD objects pass it from task.toml ``size``).
     """
-    from sim.scene.geometry import gripper_tip_local_offset, table_plane
+    from sim.workspace.scene.geometry import gripper_tip_local_offset, table_plane
     from utils.scene import load_scene_spec
 
     env_ids = env_indices(env, env_ids)
@@ -109,7 +109,7 @@ def park_object(
     """Move an object out of the scene (env origin + ``park_offset``) with zero velocity.
 
     Newton builds its model once, so objects cannot be created at runtime. Spawnable task
-    objects are declared up front and parked here on reset; ``sim.datagen.spawner``
+    objects are declared up front and parked here on reset; ``sim.teleop.spawner``
     keeps them parked every tick and teleports one to the jaw when asked.
     """
     env_ids = env_indices(env, env_ids)

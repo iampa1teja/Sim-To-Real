@@ -21,7 +21,7 @@ class GripperCollisionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import numpy as np
-        from sim.scene.contact_materials import enable_collision_meshes
+        from sim.workspace.scene.contact_materials import enable_collision_meshes
         from utils.arms.spec import load_arm_spec, load_arm_utils
         apply_primitive_pads = load_arm_utils(load_arm_spec("so101")[0]).apply_primitive_pads
 

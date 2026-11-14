@@ -12,8 +12,8 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
 - The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
   for their lifetime. Scene loaders also resolve selectors at call time; the Gym registry and task modules still
   select registrations at import time, so choose selectors before importing them. Shared selection and Kit
-  argument helpers live in `sim.app` and are safe before Kit startup.
-- Launch simulator programs through `sim.app.launch` after choosing arm/scene/task. Recording lives in
+  argument helpers live in `sim` and are safe before Kit startup.
+- Launch simulator programs through `sim.launch` after choosing arm/scene/task. Recording lives in
   `sim.teleop.agent`, evaluation in `sim.eval.run`, generation in `sim.datagen`, and real rollout in
   `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `utils.cli`; flags override YAML.
 - `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
@@ -91,6 +91,6 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
 Training recipes and the retained visual DR recipe have their documented SO-101/pick-place scope; do not claim
 arbitrary-model training or learned task performance.
 
-`sim.solver_numerics` repairs only failed Newton search directions of the MJWarp contact solve: double-precision
+`sim.workspace.solver_numerics` repairs only failed Newton search directions of the MJWarp contact solve: double-precision
 factorization, then positive-diagonal descent if needed. The contact objective, line search and every physical
 parameter stay unchanged. Install it before CUDA graph capture; do not edit installed SDK files.

@@ -8,7 +8,7 @@ import torch
 from utils.arms.spec import load_arm_spec
 from core.tasks.base import Pose
 from core.tasks.loader import load_task
-from sim.envs.mdp._common import _wxyz, _xyzw, as_torch, env_indices
+from sim.workspace.envs.mdp._common import _wxyz, _xyzw, as_torch, env_indices
 
 
 def _poses(objects):
@@ -131,7 +131,7 @@ def reset_from_starts(
         robot.write_joint_state_to_sim_index(position=joints, velocity=torch.zeros_like(joints),
                                             joint_ids=joint_ids, env_ids=ids)
         robot.set_joint_position_target_index(target=joints, joint_ids=joint_ids, env_ids=ids)
-        from sim.envs.mdp.mimic import write_mimic_state
+        from sim.workspace.envs.mdp.mimic import write_mimic_state
         write_mimic_state(env, ids)
     for name, rows in object_rows.items():
         asset = env.scene[name]

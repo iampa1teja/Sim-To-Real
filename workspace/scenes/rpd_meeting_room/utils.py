@@ -181,9 +181,9 @@ def apply_table_photo_projection(stage, room_root, look):
 
 def configure_scene_updates(env, env_ids, scene_spec):
     """Preserve the measured scene's startup order: views, appearance, lighting."""
-    from sim.envs.scene_builder import hide_default_viewports
-    from sim.envs.mdp._common import _env_prim_path
-    from sim.scene.appearance import apply_scene_lighting, scene_content_root
+    from sim.workspace.envs.scene_builder import hide_default_viewports
+    from sim.workspace.envs.mdp._common import _env_prim_path
+    from sim.workspace.scene.appearance import apply_scene_lighting, scene_content_root
 
     hide_default_viewports(env.sim.stage)
     if Path(env.cfg.scene.room.spawn.usd_path).resolve() != scene_spec.room_usd:
@@ -198,8 +198,8 @@ def configure_scene_updates(env, env_ids, scene_spec):
 
 def spawn_room(prim_path, cfg, translation=None, orientation=None, **kwargs):
     """Keep static tabletop bindings visible to Newton/Fabric at every resolution."""
-    from sim.envs.scene_builder import spawn_scene_room
-    from sim.scene.appearance import scene_content_root
+    from sim.workspace.envs.scene_builder import spawn_scene_room
+    from sim.workspace.scene.appearance import scene_content_root
 
     root = spawn_scene_room(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
     scene_spec = cfg.scene_spec

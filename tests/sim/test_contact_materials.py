@@ -11,7 +11,7 @@ except ImportError:
     Usd = None
 
 if Usd is not None:
-    from sim.scene.contact_materials import (
+    from sim.workspace.scene.contact_materials import (
         GRASP_FRICTION, bind_contact_material, contact_material, contact_properties, enable_collision_meshes,
     )
 

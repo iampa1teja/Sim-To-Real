@@ -6,8 +6,8 @@ from scipy.spatial.transform import Rotation
 pytest.importorskip('newton')
 pytest.importorskip('isaaclab')
 from utils.arms.spec import load_arm_spec
-from sim.datagen.ik import ArmKinematics, IKOptions
-from sim.datagen.bounded_ik import BoundedPoseStep
+from sim.actions.ik import ArmKinematics, IKOptions
+from sim.actions.bounded_ik import BoundedPoseStep
 
 
 @pytest.mark.parametrize('name,delta', [

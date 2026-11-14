@@ -24,7 +24,7 @@ REMOVED = (
 
 def key(nodeid):
     path, _, rest = nodeid.partition("::")
-    return f"{Path(path).name}::{rest}"
+    return f"{Path(path).name}::{rest}" if rest else Path(path).name
 
 
 def run():

@@ -11,7 +11,7 @@ from isaaclab.sim.spawners.from_files import spawn_from_usd
 from isaaclab.utils import configclass
 from isaaclab.utils.math import quat_from_euler_xyz
 
-from sim.scene.contact_materials import (
+from sim.workspace.scene.contact_materials import (
     GRASP_FRICTION, GRASP_ROLLING_FRICTION, bind_contact_material, enable_collision_meshes,
 )
 

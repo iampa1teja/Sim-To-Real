@@ -11,7 +11,7 @@ import torch
 def object_pose_in_base(env, name, base_id):
     """Capture one base-relative object pose on device; sidecars use WXYZ."""
     import isaaclab.utils.math as math_utils
-    from sim.envs.mdp._common import as_torch
+    from sim.workspace.envs.mdp._common import as_torch
 
     scene = env.unwrapped.scene
     robot, obj = scene['robot'], scene[name]
@@ -199,7 +199,7 @@ class RecordingController:
 
 def run_loop(cfg, simulation_app, ctx: LoopResources):
     """Run input, recording and physics in their established per-frame order."""
-    from sim.recording.lerobot_recorder import split_visual_obs
+    from sim.recording.recorder import split_visual_obs
     from sim.teleop.devices import real_dataset_frame
 
     controller = RecordingController(cfg, ctx)

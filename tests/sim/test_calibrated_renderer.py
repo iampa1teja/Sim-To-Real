@@ -7,7 +7,7 @@ import unittest
 
 
 def renderer_class(settings):
-    source = Path(__file__).resolve().parents[2] / "src/sim/scene/renderer.py"
+    source = Path(__file__).resolve().parents[2] / "src/sim/workspace/scene/renderer.py"
     tree = ast.parse(source.read_text())
     cls = next(node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "CalibratedRtxRenderer")
 

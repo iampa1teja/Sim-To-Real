@@ -12,7 +12,7 @@ import unittest
 
 
 def _load_path_helper():
-    source = Path(__file__).resolve().parents[2] / "src/sim/envs/mdp/_common.py"
+    source = Path(__file__).resolve().parents[2] / "src/sim/workspace/envs/mdp/_common.py"
     tree = ast.parse(source.read_text(), filename=str(source))
     function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_env_prim_path")
     namespace = {"re": re}

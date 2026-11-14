@@ -96,7 +96,7 @@ class ObjectSpawnServer:
 
 # Names and park offsets of every object the env cfg parks on reset: {name: park_offset}.
 def parkable_objects(env_cfg, task=None):
-    from sim.envs.mdp import park_object
+    from sim.workspace.envs.mdp import park_object
 
     declared = None if task is None else {
         name for name, spec in task.spec.objects.items() if spec.params.get("spawnable", False)
@@ -147,7 +147,7 @@ class ObjectSpawner:
             return
         from isaaclab.managers import SceneEntityCfg
 
-        from sim.envs.mdp import as_torch, park_object
+        from sim.workspace.envs.mdp import as_torch, park_object
 
         for name in self.parked:
             position = as_torch(self.env.scene[name].data.root_pos_w)
@@ -160,7 +160,7 @@ class ObjectSpawner:
     def spawn(self, name=None, offset=(0.0, 0.0, 0.0)):
         from isaaclab.managers import SceneEntityCfg
 
-        from sim.envs.mdp import as_torch, reset_object_pose
+        from sim.workspace.envs.mdp import as_torch, reset_object_pose
 
         if name is None:
             if not self.offsets:

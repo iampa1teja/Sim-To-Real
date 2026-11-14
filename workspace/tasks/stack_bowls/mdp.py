@@ -1,8 +1,8 @@
 """Task-owned grasp, upright nesting, release and stable confirmation signals."""
 import torch
 import isaaclab.utils.math as math_utils
-from sim.envs.mdp import as_torch, env_indices
-from sim.envs.mdp._common import _ee_body
+from sim.workspace.envs.mdp import as_torch, env_indices
+from sim.workspace.envs.mdp._common import _ee_body
 from .geometry import nesting_metrics, any_nested_pair
 
 

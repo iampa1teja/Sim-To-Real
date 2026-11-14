@@ -7,7 +7,7 @@ class BoundedPoseStep:
     """Solve the pose and joint bounds together for the redundant arm chain."""
 
     def __init__(self, arm, options, kinematics):
-        from sim.datagen.ik import _arm_bounds
+        from sim.actions.ik import _arm_bounds
         self.arm, self.options, self.kinematics = arm, options, kinematics
         self.bounds = _arm_bounds(arm, options)
 
@@ -16,7 +16,7 @@ class BoundedPoseStep:
         import torch
         from scipy.optimize import least_squares
         from scipy.spatial.transform import Rotation
-        from sim.datagen.ik import IKResult
+        from sim.actions.ik import IKResult
 
         def numpy(value):
             return value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)

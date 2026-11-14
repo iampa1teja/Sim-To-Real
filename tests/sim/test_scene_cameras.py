@@ -14,7 +14,7 @@ from pxr import Gf, Sdf, Usd, UsdGeom
 
 
 def helpers():
-    path = Path(__file__).resolve().parents[2] / "src/sim/scene/cameras.py"
+    path = Path(__file__).resolve().parents[2] / "src/sim/workspace/scene/cameras.py"
     names = {"apply_opencv_intrinsics", "quaternion_tuple", "euler_xyz_degrees_to_xyzw",
              "_values", "camera_rotation", "sync_camera_intrinsics"}
     tree = ast.parse(path.read_text())
@@ -69,11 +69,11 @@ def test_focal_sync_uses_declared_cameras_and_selected_environments(monkeypatch)
     sim_module.find_matching_prims = lambda path: cameras
     isaac = ModuleType("isaaclab")
     isaac.sim = sim_module
-    resets = ModuleType("sim.envs.mdp._common")
+    resets = ModuleType("sim.workspace.envs.mdp._common")
     resets.env_indices = lambda env, ids: SimpleNamespace(tolist=lambda: list(ids))
     monkeypatch.setitem(sys.modules, "isaaclab", isaac)
     monkeypatch.setitem(sys.modules, "isaaclab.sim", sim_module)
-    monkeypatch.setitem(sys.modules, "sim.envs.mdp._common", resets)
+    monkeypatch.setitem(sys.modules, "sim.workspace.envs.mdp._common", resets)
     sensor = SimpleNamespace(cfg=SimpleNamespace(
         prim_path="{ENV_REGEX_NS}/arbitrary_sensor", spawn=SimpleNamespace(focal_length=20,
                                                                         intrinsics=dict(fx=500, fy=510))))

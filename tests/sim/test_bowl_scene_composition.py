@@ -3,7 +3,7 @@ import pytest
 pytest.importorskip('isaaclab')
 from utils.arms.spec import load_arm_spec
 from core.tasks.loader import load_task, resolve
-from sim.envs import scene_builder
+from sim.workspace.envs import scene_builder
 
 
 @pytest.mark.parametrize('variant',['teleop','eval'])

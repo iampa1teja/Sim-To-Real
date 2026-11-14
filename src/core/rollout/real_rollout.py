@@ -237,7 +237,7 @@ def parse_args(argv=None):
 
 def camera_specs(args):
     """Robot camera name -> spec for sim.teleop.devices (only the cameras that are set)."""
-    from sim.recording.recording_setup import real_camera_specs
+    from sim.recording.setup import real_camera_specs
 
     return real_camera_specs({"gripper": args.camera_gripper, "external": args.camera_external}, fps=args.fps,
                              width=args.camera_width, height=args.camera_height, fourcc=args.camera_fourcc)

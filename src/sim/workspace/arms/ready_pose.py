@@ -33,7 +33,7 @@ def downward_rotation(spec):
 
 
 def ready_pose(spec, kinematics):
-    from sim.datagen.ik import IKOptions
+    from sim.actions.ik import IKOptions
 
     from utils.paths import DEFAULT_SCENE
     from utils.geometry import mount_pose
@@ -54,7 +54,7 @@ def ready_pose(spec, kinematics):
     target = np.eye(4)
     target[:3, :3] = downward_rotation(spec)
     best, candidates = None, []
-    from sim.arms.clearance import ready_route_validator
+    from sim.workspace.arms.clearance import ready_route_validator
     try:
         validate_route=ready_route_validator(spec,kinematics)
         route_error=None
@@ -131,14 +131,14 @@ def ready_pose(spec, kinematics):
 
 
 def forward_yaw(spec, q, kinematics=None):
-    from sim.datagen.ik import ArmKinematics
+    from sim.actions.ik import ArmKinematics
     kinematics = kinematics or ArmKinematics.from_arm(spec)
     position = kinematics.fk(q)[:3, 3]
     return math.atan2(position[1], position[0])
 
 
 def base_yaw_for_scene(spec, reference_spec, *, kinematics=None, reference_kinematics=None):
-    from sim.datagen.ik import ArmKinematics
+    from sim.actions.ik import ArmKinematics
     kinematics = kinematics or ArmKinematics.from_arm(spec)
     reference_kinematics = reference_kinematics or ArmKinematics.from_arm(reference_spec)
     q, _ = ready_pose(spec, kinematics)

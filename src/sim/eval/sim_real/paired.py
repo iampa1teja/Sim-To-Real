@@ -35,7 +35,7 @@ def _local_tcp():
 def run(args, app):
     import gymnasium as gym
     import torch
-    import sim.envs
+    import sim.workspace.envs
     from utils.arms.mapping import JointMapping
     from core.policy_client.contract import ArmInfo
     from core.rollout.paired_gui import PairedEvaluationGui, trial_arguments
@@ -43,10 +43,10 @@ def run(args, app):
     from sim.teleop.agent import _env_id, _make_env_cfg, _sim_cameras
     from sim.teleop.config import AgentConfig
     from sim.teleop.loop import gui_frames, gui_panes, object_pose_in_base
-    from sim.datagen.spawner import ObjectSpawner
-    from sim.recording.recording_setup import cleanup, disconnect
-    from sim.envs.mdp._common import as_torch
-    from sim.eval.sim_real import TrialVideo, limited_target, position_with_leader, connect_trial_policies
+    from sim.teleop.spawner import ObjectSpawner
+    from sim.recording.setup import cleanup, disconnect
+    from sim.workspace.envs.mdp._common import as_torch
+    from sim.eval.sim_real.trials import TrialVideo, limited_target, position_with_leader, connect_trial_policies
 
     env = follower = leader = gui = spawner = video = log = None
     policies, comparisons = [], []
@@ -142,7 +142,7 @@ def run(args, app):
         joint_ids = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)[0]
         base_id = robot.find_bodies(arm.links.base)[0][0]
         ids = torch.tensor([0], device=env.unwrapped.device)
-        spawner = ObjectSpawner(env, task=sim.envs.TASK)
+        spawner = ObjectSpawner(env, task=sim.workspace.envs.TASK)
         sim_cameras, real_cameras = _sim_cameras(env), camera_specs(args)
         keys = list(arm.feature_names)
         ranges = joint_ranges(arm, args.calibration_selection.mapping)
@@ -221,7 +221,7 @@ def run(args, app):
                         else:
                             positioning, ready, error = False, False, ''
                             start_objects = {name: as_torch(env.unwrapped.scene[name].data.root_state_w).clone()
-                                             for name in (() if args.no_object else sim.envs.TASK.spec.tracked_objects)}
+                                             for name in (() if args.no_object else sim.workspace.envs.TASK.spec.tracked_objects)}
                             run_id = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f') + '_' + uuid.uuid4().hex[:6]
                             folder = output / run_id
                             folder.mkdir()

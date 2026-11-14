@@ -23,7 +23,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import ContactSensor
 from isaaclab.sim import get_current_stage
 
-from sim.envs.mdp._common import _env_prim_path, as_torch, env_indices
+from sim.workspace.envs.mdp._common import _env_prim_path, as_torch, env_indices
 
 
 # ---------------------------------------------------------------------------
@@ -290,8 +290,8 @@ def object_placed_in_container_termination(
 
 def stage_signals(env):
     """Task-owned live measurements used by the generic episode tracer."""
-    from sim.scene.geometry import gripper_tip_local_offset
-    from sim.envs.mdp._common import _ee_body
+    from sim.workspace.scene.geometry import gripper_tip_local_offset
+    from sim.workspace.envs.mdp._common import _ee_body
 
     configured = getattr(getattr(env.cfg, "terminations", None), "success", None)
     if configured is not None:

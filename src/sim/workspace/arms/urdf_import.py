@@ -1,6 +1,6 @@
 """Import a ROS description package into a simulation arm folder.
 
-SDK imports are local and occur only after sim.app.launch. A failed simulator
+SDK imports are local and occur only after sim.launch. A failed simulator
 step is recorded in import-report.json; source/flag errors fail before publish.
 """
 import argparse
@@ -36,7 +36,7 @@ def parser():
     result.add_argument('--grasp_depth_m', type=float, default=.01)
     result.add_argument('--continuous_limit_deg', type=float, default=180.)
     result.add_argument('--force', action='store_true')
-    result.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[3])
+    result.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[4])
     return result
 
 
@@ -227,7 +227,7 @@ def convert_to_usd(model, paths):
 
 def conversion_checks(model, paths, spec):
     from pxr import Usd, UsdGeom
-    from sim.datagen.ik import ArmKinematics
+    from sim.actions.ik import ArmKinematics
     stage = Usd.Stage.Open(str(paths['usd']))
     names = {prim.GetName() for prim in stage.Traverse()}
     missing_links = sorted(set(model.links)-names)
@@ -236,7 +236,7 @@ def conversion_checks(model, paths, spec):
                    missing_links=missing_links, missing_joints=missing_joints,
                    metres_per_unit=UsdGeom.GetStageMetersPerUnit(stage))]
     kinematics = ArmKinematics.from_arm(spec, position_offset_m=[0.,0.,0.])
-    from sim.arms.ready_pose import bounds
+    from sim.workspace.arms.ready_pose import bounds
     limits = bounds(spec)
     rng = np.random.default_rng(101)
     samples = np.vstack([np.zeros(len(limits)),rng.uniform(limits[:,0],limits[:,1],size=(20,len(limits)))])
@@ -259,9 +259,9 @@ def measure_gripper(stage, spec, *, grasp_depth_m=.01):
     import torch
     from pxr import UsdPhysics
     from isaaclab.utils.math import matrix_from_quat, subtract_frame_transforms
-    from sim.datagen.ik import ArmKinematics
-    from sim.scene.geometry import collision_body_points
-    from sim.arms.ready_pose import bounds
+    from sim.actions.ik import ArmKinematics
+    from sim.workspace.scene.geometry import collision_body_points
+    from sim.workspace.arms.ready_pose import bounds
 
     kin = ArmKinematics.from_arm(spec, position_offset_m=[0.,0.,0.])
     grip = spec.gripper
@@ -350,7 +350,7 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
     import math
     import newton
     import warp as wp
-    from sim.arms.ready_pose import reach_samples
+    from sim.workspace.arms.ready_pose import reach_samples
 
     kin=kinematics
     from utils.paths import DEFAULT_SCENE
@@ -419,7 +419,7 @@ def _spec(paths):
 
 def run_import(argv=None):
     import sys
-    from sim.app import launch,close_app
+    from sim import launch,close_app
     args=parser().parse_args(argv)
     try:
         model,paths=stage_sources(args)
@@ -460,10 +460,10 @@ def run_import(argv=None):
                 if measured:
                     choices.measurements=measured
                     _write(paths,model,checks); spec=_spec(paths)
-                from sim.datagen.ik import ArmKinematics
+                from sim.actions.ik import ArmKinematics
                 kin=step('newton_kinematics',lambda:ArmKinematics.from_arm(spec),'Keep clamped-zero ready pose and TODO actuator gains')
                 if kin is not None:
-                    from sim.arms.ready_pose import ready_pose,base_yaw_for_scene
+                    from sim.workspace.arms.ready_pose import ready_pose,base_yaw_for_scene
                     ready=step('ready_pose',lambda:ready_pose(spec,kin),'Use zero clamped into limits, tagged TODO')
                     if ready:
                         q,choices.ready_info=ready
@@ -569,8 +569,8 @@ def derive_workspace_mount(spec,paths):
     from utils.geometry import mount_pose
     from utils.scene import load_scene_spec, load_mount_spec
     from utils.geometry import quaternion_matrix
-    from sim.datagen.ik import ArmKinematics
-    from sim.scene.geometry import collision_body_points,table_plane
+    from sim.actions.ik import ArmKinematics
+    from sim.workspace.scene.geometry import collision_body_points,table_plane
     import tomllib
 
     scene=load_scene_spec(DEFAULT_SCENE)
@@ -612,7 +612,7 @@ def derive_workspace_mount(spec,paths):
 
 
 def validate_import(name,*,repo=None):
-    from sim.arms.validation import validate_import as validate
+    from sim.workspace.arms.validation import validate_import as validate
     return validate(name,repo=repo)
 
 
@@ -629,7 +629,7 @@ def main(argv=None):
     # Preserve a selected temporary checkout after the SDK entrypoint has set
     # its own paths. The worker must execute the same implementation as parent.
     environment['PYTHONPATH']=os.pathsep.join(sys.path)
-    result=subprocess.run([sys.executable,'-m','sim.arms.urdf_import',*arguments],env=environment)
+    result=subprocess.run([sys.executable,'-m','sim.workspace.arms.urdf_import',*arguments],env=environment)
     if result.returncode in (0,2):
         return result.returncode
     return recover_native_failure(args,result.returncode)

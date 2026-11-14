@@ -11,7 +11,7 @@ from pxr import Usd, UsdPhysics, UsdShade
 from utils.scene import load_scene_spec
 from utils.arms.spec import load_arm_spec
 from core.tasks.loader import load_task, resolve
-from sim.envs import scene_builder
+from sim.workspace.envs import scene_builder
 
 
 def compose(scene_name, task=True, variant="teleop"):
@@ -84,7 +84,7 @@ def test_task_variants_compose_with_declarative_scene(scene, variant):
     cfg = compose(scene, variant=variant)
     assert cfg.terminations.success is not None
     if variant == "eval_dr":
-        from sim.scene.appearance import randomize_scene_light_exposure
+        from sim.workspace.scene.appearance import randomize_scene_light_exposure
         assert cfg.events.eval_room_light.func is randomize_scene_light_exposure
 
 
@@ -139,7 +139,7 @@ def test_explicit_arm_snapshot_survives_config_copy_replace_and_export(monkeypat
 
 @pytest.mark.parametrize("name,expected", [("rpd_meeting_room", 49), ("blank_table", 1)])
 def test_declared_contact_group_matches_physical_colliders_in_asset(monkeypatch, name, expected):
-    from sim.scene.contact_materials import bind_contact_material
+    from sim.workspace.scene.contact_materials import bind_contact_material
     spec = load_scene_spec(name)
     stage = Usd.Stage.Open(str(spec.room_usd))
     stage.SetEditTarget(stage.GetSessionLayer())

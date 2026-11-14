@@ -19,14 +19,14 @@ from isaaclab_visualizers.kit import KitVisualizerCfg
 from utils.arms.spec import ArmSpec
 from utils.geometry import mount_joint_positions, mount_pose
 from utils.scene import SceneSpec, load_mount_spec, load_scene_spec
-from sim.envs.base_env_cfg import BaseEnvCfg, _config_to_dict
-from sim.envs.mdp import env_indices, image_raw, image_rgb_raw
-from sim.scene.appearance import apply_robot_appearance, apply_scene_lighting
-from sim.scene.cameras import build_camera_cfg
-from sim.scene.contact_materials import bind_contact_material
-from sim.scene.geometry import anchor_prim, cache_scene_geometry
-from sim.scene.renderer import build_renderer_cfg
-from sim.scene.viewport import CalibratedKitVisualizerCfg
+from sim.workspace.envs.base_env_cfg import BaseEnvCfg, _config_to_dict
+from sim.workspace.envs.mdp import env_indices, image_raw, image_rgb_raw
+from sim.workspace.scene.appearance import apply_robot_appearance, apply_scene_lighting
+from sim.workspace.scene.cameras import build_camera_cfg
+from sim.workspace.scene.contact_materials import bind_contact_material
+from sim.workspace.scene.geometry import anchor_prim, cache_scene_geometry
+from sim.workspace.scene.renderer import build_renderer_cfg
+from sim.workspace.scene.viewport import CalibratedKitVisualizerCfg
 
 
 @configclass

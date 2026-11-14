@@ -88,7 +88,7 @@ def test_subtasks_declare_objects_and_nonfinal_stage_boundaries():
 def test_mimic_recovers_command_pose_without_reapplying_feedback_bias():
     pytest.importorskip("isaaclab")
     from sim.datagen import mimic
-    from sim.datagen.ik import IKOptions
+    from sim.actions.ik import IKOptions
 
     target = torch.eye(4)
     target[:3, 3] = torch.tensor([.1, -.2, .3])

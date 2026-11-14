@@ -74,7 +74,7 @@ zero_count = 2048
 
 
 def test_recorder_features_and_frames_follow_selected_arm(arm):
-    from sim.recording.lerobot_recorder import LeRobotRecorder
+    from sim.recording.recorder import LeRobotRecorder
 
     recorder = LeRobotRecorder("move", "local/test", "/tmp/unused-contract", 30, "cpu", arm=arm)
     for feature in ("action", "observation.state"):

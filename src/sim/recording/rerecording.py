@@ -137,7 +137,7 @@ numeric stats; camera stats come from the corresponding recorded episode.
 
 # Same recorders as ``group``, opened on other dataset roots (a staged copy, or the published originals).
 def _fresh_group(group, roots):
-    from .lerobot_recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
+    from .recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
     recorders = {}
     for name, old in group.recorders.items():
         recorders[name] = LeRobotRecorder(

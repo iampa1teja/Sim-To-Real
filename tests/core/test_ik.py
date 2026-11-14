@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from sim.datagen.ik import IKOptions, _arm_bounds, make_ik, make_kinematics
+from sim.actions.ik import IKOptions, _arm_bounds, make_ik, make_kinematics
 
 
 @pytest.mark.parametrize('changes', [
@@ -52,7 +52,7 @@ def test_arm_bounds_require_an_arm_joint(synthetic_arm):
 @pytest.mark.parametrize('hook_name', ['make_ik', 'make_kinematics'])
 def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypatch, hook_name):
     import utils.arms.spec as arm_spec
-    import sim.datagen.ik as ik_module
+    import sim.actions.ik as ik_module
 
     sentinel, robot = object(), object()
     options = IKOptions()
@@ -82,7 +82,7 @@ def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypa
 @pytest.mark.parametrize('utils', [None, SimpleNamespace()])
 def test_factories_choose_defaults_without_an_arm_hook(synthetic_arm, monkeypatch, utils):
     import utils.arms.spec as arm_spec
-    import sim.datagen.ik as ik_module
+    import sim.actions.ik as ik_module
 
     live, offline, robot = object(), object(), object()
     calls = []

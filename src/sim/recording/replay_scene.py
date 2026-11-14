@@ -16,16 +16,16 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
 from core.tasks.loader import load_task, load_task_module
-from sim.envs.mdp._common import as_torch
-from sim.envs.mdp.appearance import set_robot_color
-from sim.envs.mdp.cameras import (
+from sim.workspace.envs.mdp._common import as_torch
+from sim.workspace.envs.mdp.appearance import set_robot_color
+from sim.workspace.envs.mdp.cameras import (
     set_camera_focal_length,
     set_camera_pose_offset,
 )
 from sim.datagen.dr_variants import DRDraw
-from sim.scene.cameras import sync_camera_intrinsics
-from sim.scene.appearance import set_scene_light_exposure
-from sim.recording.lerobot_recorder import split_visual_obs
+from sim.workspace.scene.cameras import sync_camera_intrinsics
+from sim.workspace.scene.appearance import set_scene_light_exposure
+from sim.recording.recorder import split_visual_obs
 
 
 class SceneReplayer:
@@ -96,7 +96,7 @@ class SceneReplayer:
         self.robot.write_joint_state_to_sim_index(position=q, velocity=torch.zeros_like(q),
                                                   joint_ids=self.joint_ids, env_ids=self.env_ids)
 
-        from sim.envs.mdp.mimic import write_mimic_state
+        from sim.workspace.envs.mdp.mimic import write_mimic_state
         write_mimic_state(self.env, self.env_ids)
         base_pos = as_torch(self.robot.data.body_link_pos_w)[:, self.base_body_id]
         base_quat = as_torch(self.robot.data.body_link_quat_w)[:, self.base_body_id]

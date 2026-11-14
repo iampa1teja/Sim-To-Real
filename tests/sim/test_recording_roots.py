@@ -13,7 +13,7 @@ from utils.datasets.alignment import (
     RecordingAlignmentError,
     recording_contract,
 )
-from sim.recording.recording_setup import prepare_recording_roots
+from sim.recording.setup import prepare_recording_roots
 from utils.arms.spec import load_arm_spec
 from utils.arms.calibration import resolve_calibration
 

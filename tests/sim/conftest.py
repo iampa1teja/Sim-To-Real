@@ -32,7 +32,7 @@ def imported_urdf_arm(request,tmp_path_factory):
         arguments+=['--camera','Camera_1=wrist_cam']
     # The entrypoint prepends /workspace/s2r/src, so set path precedence *after*
     # SDK setup. This proves the temporary repository and its mount are used.
-    bootstrap='import sys,runpy; sys.path.insert(0,sys.argv.pop(1)); sys.argv[0]="sim.arms.urdf_import"; runpy.run_module("sim.arms.urdf_import",run_name="__main__")'
+    bootstrap='import sys,runpy; sys.path.insert(0,sys.argv.pop(1)); sys.argv[0]="sim.workspace.arms.urdf_import"; runpy.run_module("sim.workspace.arms.urdf_import",run_name="__main__")'
     environment=dict(os.environ)
     for key in ('S2R_ARM','S2R_ARMS_DIR','S2R_SCENES_DIR','S2R_TASKS_DIR'):
         environment.pop(key,None)

@@ -20,7 +20,7 @@ def _value(value, index):
 
 
 def reset_stage_traces(env, env_ids=None):
-    from sim.envs.mdp import env_indices
+    from sim.workspace.envs.mdp import env_indices
 
     for index in env_indices(env, env_ids).tolist():
         env._stage_traces[index] = StageTrace(env._stage_task)
@@ -30,7 +30,7 @@ def reset_stage_traces(env, env_ids=None):
 def install_stage_tracking(env, task=None):
     """Run each success term once, then inspect that exact pre-reset frame."""
     from utils.arms.spec import load_arm_spec
-    from sim.envs.mdp import as_torch
+    from sim.workspace.envs.mdp import as_torch
 
     task = load_task(task) if isinstance(task, (str, type(None))) else task
     arm = getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]

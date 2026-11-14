@@ -62,7 +62,7 @@ def apply_scene_lighting(stage, room_root, lighting):
             xform.ClearXformOpOrder()
             xform.AddTransformOp().Set(transform)
         elif "euler_degrees" in values:
-            from sim.scene.cameras import euler_xyz_degrees_to_xyzw
+            from sim.workspace.scene.cameras import euler_xyz_degrees_to_xyzw
 
             x, y, z, w = euler_xyz_degrees_to_xyzw(values["euler_degrees"])
             xform = UsdGeom.Xformable(light)
@@ -88,7 +88,7 @@ def apply_robot_appearance(stage, robot_root, arm, look):
 
 def set_scene_light_exposure(env, env_ids, exposure):
     """Set exposure only on lights marked exposure_dr in this environment's scene."""
-    from sim.envs.mdp._common import _env_prim_path, env_indices
+    from sim.workspace.envs.mdp._common import _env_prim_path, env_indices
 
     if not math.isfinite(float(exposure)):
         raise ValueError("Light exposure must be finite")

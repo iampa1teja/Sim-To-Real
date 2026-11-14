@@ -14,7 +14,7 @@ plus task_meta/ object sidecars and meta/dr_replay_manifest.json.
 # - --arm/--scene/--task/--variant select the env. S2R_* are exported before importing any core/sim module
 #   that reads them at import.
 # - DR ranges come from task.toml [task.dr] (the same values apply_eval_dr uses).
-# - Joint units go through JointMapping; the recorder is sim.recording.lerobot_recorder.LeRobotRecorder.
+# - Joint units go through JointMapping; the recorder is sim.recording.recorder.LeRobotRecorder.
 
 import argparse
 import json
@@ -23,7 +23,7 @@ from pathlib import Path
 
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from utils.provenance import git_commit
-from sim.app import apply_selection, add_launch_arguments, launch, close_app
+from sim import apply_selection, add_launch_arguments, launch, close_app
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REPLAY_DR_TERMS = ("light", "robot_color")  # camera views stay fixed to the calibrated real setup
@@ -97,7 +97,7 @@ def check_source_fps(src_root, fps) -> None:
 
 def read_dr_ranges(task):
     """DR ranges exactly as the task's eval_dr variant uses them (needs a launched app for ROBOT_COLORS)."""
-    from sim.envs.mdp.appearance import ROBOT_COLORS
+    from sim.workspace.envs.mdp.appearance import ROBOT_COLORS
     from sim.datagen.dr_variants import DRRanges
 
     dr = task.spec.raw.get("dr", {})
@@ -116,9 +116,9 @@ def make_env(args):
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
 
-    import sim.envs
+    import sim.workspace.envs
 
-    env_id = sim.envs.TASK.gym_id(args.variant)
+    env_id = sim.workspace.envs.TASK.gym_id(args.variant)
     env_cfg = parse_env_cfg(env_id, device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
     env_cfg.seed = args.seed
     if env_cfg.terminations is not None and any(
@@ -153,7 +153,7 @@ def make_mapping(env, *, arm=None, mapping=None, source_root=None, unit=None):
 
 
 def make_writer(args, sim_cameras, device, *, arm=None):
-    from sim.recording.lerobot_recorder import LeRobotRecorder
+    from sim.recording.recorder import LeRobotRecorder
 
     writer = LeRobotRecorder(
         task_name=args.lang_blue,  # default only; every frame's task is set per episode
@@ -235,11 +235,11 @@ def main(argv=None):
 
     env = writer = None
     try:
-        import sim.envs
+        import sim.workspace.envs
         from sim.recording.replay_scene import SceneReplayer
 
         source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm, task=task)
-        ranges = read_dr_ranges(sim.envs.TASK)
+        ranges = read_dr_ranges(sim.workspace.envs.TASK)
         plan = plan_episodes([s.index for s in source], colors, terms, ranges, args.seed,
                              args.include_originals, args.lang_blue, args.lang_red)
         if args.limit > 0:

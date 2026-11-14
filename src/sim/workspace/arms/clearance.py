@@ -17,9 +17,9 @@ def ready_route_validator(spec,kinematics):
     from utils.geometry import quaternion_matrix,anchor_quaternion
     from core.tasks.base import Pose
     from core.tasks.loader import load_task
-    from sim.arms.ready_pose import bounds
-    from sim.datagen.ik import IKOptions
-    from sim.scene.geometry import collision_body_points,table_plane
+    from sim.workspace.arms.ready_pose import bounds
+    from sim.actions.ik import IKOptions
+    from sim.workspace.scene.geometry import collision_body_points,table_plane
 
     scene=load_scene_spec(DEFAULT_SCENE)
     task=load_task(DEFAULT_TASK)

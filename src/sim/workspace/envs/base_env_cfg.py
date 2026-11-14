@@ -14,7 +14,7 @@ from isaaclab.utils import configclass
 from isaaclab_newton.physics import MJWarpSolverCfg, NewtonCfg
 from isaaclab_visualizers.kit import KitVisualizerCfg
 
-from sim.envs.mdp import (
+from sim.workspace.envs.mdp import (
     JointPositionActionCfg,
     apply_runtime_joint_limits,
     ee_frame_state,
@@ -23,8 +23,8 @@ from sim.envs.mdp import (
     randomize_robot_color,
     reset_joints_by_offset,
 )
-from sim.envs.mdp.mimic import MimicJointPositionAction, reset_joints_with_mimic
-from sim.scene.arm import load_arm_cfg, load_arm_spec
+from sim.workspace.envs.mdp.mimic import MimicJointPositionAction, reset_joints_with_mimic
+from sim.workspace.scene.arm import load_arm_cfg, load_arm_spec
 from utils.arms.spec import ArmSpec
 
 
@@ -107,7 +107,7 @@ class BaseEnvCfg(ManagerBasedRLEnvCfg):
     terminations = None
 
     def __post_init__(self):
-        from sim.solver_numerics import install_mjwarp_precision_guard
+        from sim.workspace.solver_numerics import install_mjwarp_precision_guard
 
         install_mjwarp_precision_guard()
         arm = self.arm_spec or load_arm_spec()[0]

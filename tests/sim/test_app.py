@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 
 
-source = Path(__file__).resolve().parents[2] / "src/sim/app.py"
+source = Path(__file__).resolve().parents[2] / "src/sim/__init__.py"
 spec = importlib.util.spec_from_file_location("s2r_app", source)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -72,7 +72,7 @@ def test_shared_app_import_does_not_import_simulator_sdk():
     source_root = str(source.parents[1])
     env = dict(os.environ, PYTHONPATH=source_root)
     result = subprocess.run([sys.executable, '-c',
-        "import sys; import sim.app; assert not any(name.startswith(('isaaclab', 'omni', 'pxr')) "
+        "import sys; import sim; assert not any(name.startswith(('isaaclab', 'omni', 'pxr')) "
         "for name in sys.modules)"], env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
 
