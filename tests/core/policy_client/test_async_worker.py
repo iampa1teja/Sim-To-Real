@@ -146,6 +146,30 @@ def test_control_pause_expires_buffered_targets(connected):
     assert tick(policy) == 5
 
 
+def test_capture_jitter_does_not_delay_the_refill_boundary(connected):
+    policy, client, clock = connected(refill_seconds=.4)
+    clock.now = .0002
+    tick(policy)
+    complete(policy, client, clock, .2)
+    tick(policy)
+    for step in [3,4,5]:
+        clock.now = step * .1 + .0001
+        tick(policy)
+    assert len(policy._async.playback.rows) == 4
+    assert policy._async.pending is not None
+    client.requests.get(timeout=1)
+
+
+def test_pause_does_not_restart_starvation_grace(connected):
+    policy, client, clock = connected(refill_seconds=0, starvation_grace=.25)
+    tick(policy)
+    complete(policy, client, clock, .1)
+    assert tick(policy) == 1
+    clock.advance(2)
+    with pytest.raises(InferenceFault, match='starvation'):
+        tick(policy)
+
+
 def test_blend_window_and_gripper_exclusion():
     options = SmoothingConfig(blend_steps=3)
     playback = AlignedPlayback(['arm', 'grip'], 10, .1, options, gripper_indices=(1,))

@@ -112,6 +112,7 @@ class AlignedPlayback:
         self.chunk_id = -1
         self.turnaround = 0.0
         self.accepted_chunks = 0
+        self.exhausted_at = None
         self.ema.reset()
 
     def add_chunk(self, actions, observation, step, now, turnaround):
@@ -148,14 +149,16 @@ class AlignedPlayback:
     def action(self, now, generation):
         # A delayed camera/control tick must not replay already expired targets.
         while self.rows and self.rows[0][5] <= now + 1e-9:
-            self.rows.popleft()
+            self.exhausted_at = self.rows.popleft()[5]
         held = not self.rows
         if held:
             if self.last_target is None:
                 raise RuntimeError('An initial measured hold target is required')
             raw = sent = self.last_target.copy()
         else:
-            raw, target, origin, self.chunk_id, self.turnaround, _ = self.rows.popleft()
+            raw, target, origin, self.chunk_id, self.turnaround, valid_until = self.rows.popleft()
+            if not self.rows:
+                self.exhausted_at = valid_until
             sent = self.ema.apply(target)
             if self.options.ema_alpha != 1.0 and self.ema_origin is not None:
                 origin = min(origin, self.ema_origin)
@@ -310,14 +313,17 @@ class AsyncInference:
             self.last_tick = info
             if info.held:
                 if self.held_since is None:
-                    self.held_since = now
+                    self.held_since = min(now, self.playback.exhausted_at) if self.playback.exhausted_at is not None else now
                 if now - self.held_since > self.starvation_grace:
                     self._fail('Policy action starvation grace exceeded')
             else:
                 self.held_since = None
             recent = float(np.percentile(self.turnarounds, 95)) if self.turnarounds else 0.
             threshold = max(self.refill_seconds, recent + self.dt)
-            remaining = max(0., self.playback.rows[-1][5] - now - self.dt) if self.playback.rows else 0.
+            # Playback already expires rows against the wall clock. Count the
+            # remaining dispatch slots: sub-period capture jitter must not defer
+            # an exact refill boundary by an entire control period.
+            remaining = len(self.playback.rows) * self.dt
             if self.pending is None and remaining <= threshold:
                 if model_input is None:
                     captured_at = self.clock.monotonic()
