@@ -29,7 +29,5 @@ host = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["cli*", "core*", "sim*"]
+include = ["core*", "sim*"]
 
-[project.scripts]
-s2r = "cli.main:main"

@@ -16,8 +16,3 @@ def repo_dir(folder: str) -> Path:
             return parent / folder
     raise FileNotFoundError(f"No {folder}/ directory above {here}")
 
-
-def plan_new(*args, **kwargs):
-    """Compatibility entrypoint for SDK-free extension/import planning."""
-    from cli.plan import plan_new as plan
-    return plan(*args, **kwargs)

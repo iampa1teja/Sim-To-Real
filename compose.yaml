@@ -14,6 +14,9 @@ services:
       S2R_ARM: ${S2R_ARM:-so101}
       S2R_SCENE: ${S2R_SCENE:-rpd_meeting_room}
       S2R_TASK: ${S2R_TASK:-pick_place_cube}
+      # Recorded as provenance in datasets and eval sets; the container cannot resolve the worktree itself.
+      # Start with: S2R_GIT_COMMIT=$(git rev-parse HEAD) docker compose up -d sim
+      S2R_GIT_COMMIT: ${S2R_GIT_COMMIT:-}
     volumes:
       - .:/workspace/s2r
       - ${S2R_DATASETS:-./datasets}:/workspace/datasets
@@ -32,7 +35,37 @@ services:
               count: all 
               capabilities: [gpu]
 
+  # Policy server. Start one policy with, for example:
+  #   S2R_POLICY=molmoact2 S2R_CHECKPOINT=molmoact2_so101 S2R_MODELS_DIR=/external_storage/molmoact2 \
+  #     docker compose --profile serve up -d serve
+  # The port is the policy's default_port from its policy.toml.
+  serve:
+    profiles: ["serve"]
+    image: s2r-serve:${S2R_SERVE_TAG:-latest}
+    container_name: s2r-serve-${S2R_POLICY:-policy}
+    network_mode: host
+    init: true
+    command:
+      - --policy
+      - ${S2R_POLICY:-}
+      - --checkpoint
+      - /workspace/models/${S2R_CHECKPOINT:-}
+    volumes:
+      - ./policies:/policies
+      - policy-cache:/opt/cache
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+      - ${S2R_MODELS_DIR:-~/models}:/workspace/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 volumes:
+  policy-cache:
+    name: policy-cache
   isaac-kit-cache:
   isaac-ov-cache:
   isaac-gl-cache:

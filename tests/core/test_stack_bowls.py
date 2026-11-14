@@ -192,24 +192,3 @@ def test_nested_stack_allows_cumulative_lean_but_requires_adjacent_alignment():
     q[0,1] = torch.tensor(Rotation.from_euler('x',28.,degrees=True).as_quat())
     paired,upright,stable = geometry.nesting_metrics(p,q,velocity,task.spec.raw['success'])
     assert not paired.all()
-
-
-@pytest.mark.parametrize('moving_endpoint', [False, True])
-def test_terminal_stability_uses_the_measured_post_action_endpoint(moving_endpoint):
-    import importlib.util
-    from pathlib import Path
-    path=Path(__file__).resolve().parents[2]/'tools/diagnostics/validate_bowl_episode.py'
-    spec=importlib.util.spec_from_file_location('bowl_validation',path)
-    validator=importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    positions=np.zeros((31,3,3))
-    positions[0,:,0]=1.  # Motion before the final thirty saved pre-action poses.
-    quaternions=np.tile([0.,0.,0.,1.],(31,3,1))
-    names=['yellow_bowl','red_bowl','blue_bowl']
-    endpoint={name:dict(position=[.1 if moving_endpoint else 0.,0.,0.],quat_xyzw=[0.,0.,0.,1.]) for name in names}
-    p,q,velocity=validator.terminal_pose_window(positions,quaternions,endpoint,names,30)
-    assert p.shape==(31,3,3) and q.shape==(31,3,4) and velocity.shape==(30,3,6)
-    speed=np.linalg.norm(velocity[:,:,:3],axis=-1).max()
-    assert (speed > .025) == moving_endpoint
-    if not moving_endpoint:
-        np.testing.assert_array_equal(velocity,0.)

@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-# Front door: use the project's host environment when uv sync has created it.
-repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-python_bin=python3
-if [[ -x "$repo_dir/.venv/bin/python" ]]; then
-    python_bin="$repo_dir/.venv/bin/python"
-fi
-exec env PYTHONPATH="$repo_dir/src${PYTHONPATH:+:$PYTHONPATH}" "$python_bin" -m cli "$@"

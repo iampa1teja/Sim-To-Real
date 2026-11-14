@@ -1,12 +1,14 @@
 # Repository conventions
 
-The restructure is on branch `v2`; Phases 0–5 and 7 are complete, with Phase 6 deferred. See `docs/restructure-status.md` for phase gates and verified evidence.
-Do not start the next phase until the current phase's CPU suite and simulator checks pass.
+Branch `v3` is restructuring `v2` for readability. `RESTRUCTURE.md` holds the approved plan, the phase order
+and the decision log; follow it. Do not start the next phase until the current phase's checks pass:
+locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, and the full suite in `s2r-sim`.
 
 - `src/core/` must not import Isaac Sim, Isaac Lab, Kit, or `pxr`. Simulator-specific code belongs in `src/sim/`.
-- `s2r` is the only installed console command. Plans invoke Python modules; keep CLI planning free of SDK
-  imports and side effects so `--dry-run` prints the actual command. Sync includes arms, scenes, tasks, policies
-  and configs. Host plans pass `S2R_GIT_COMMIT` into containers whose worktree pointer cannot resolve there.
+- There is no CLI on `v3` yet (`s2r`, `src/cli` and `sim.check` return after the restructure). Run programs as
+  modules inside the container, for example `s2r-entrypoint python -m sim.eval.run --config_path ...`. Start the
+  containers with `docker compose` (`sim` service; `serve` profile for a policy server) and pass
+  `S2R_GIT_COMMIT=$(git rev-parse HEAD)`, because the container cannot resolve the worktree pointer itself.
 - The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
   for their lifetime. Scene loaders also resolve selectors at call time; the Gym registry and task modules still
   select registrations at import time, so choose selectors before importing them. Shared selection and Kit
@@ -80,11 +82,8 @@ Do not start the next phase until the current phase's CPU suite and simulator ch
   outside the repository; its files are preserved.
 - Run CPU checks with `PYTHONPATH=src python -m pytest tests -q`. The existing `s2r-sim` container includes the
   required Python/Isaac dependencies; run simulator scripts through `s2r-entrypoint python` there.
-- `s2r check --static` runs host manifest/entrypoint validation without Isaac/USD or Torch imports; NumPy is its
-  only external dependency. `uv sync --group host` installs the host tools; it is not a complete test
-  environment, and tests that need Isaac Lab, USD, LeRobot or MJWarp fail or skip there. Run the full suite
-  inside `s2r-sim`.
-  Without `--static`, the command additionally launches selected headless simulator checks; coordinate GPU use.
+- `uv sync --group host` installs host tools only; it is not a complete test environment, and tests that need
+  Isaac Lab, USD, LeRobot or MJWarp fail or skip there. Run the full suite inside `s2r-sim`.
 - Keep local hardware settings in ignored `.env`; `.env.example` contains portable example values.
 - Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
   jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
