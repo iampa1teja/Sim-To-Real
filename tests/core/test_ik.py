@@ -51,7 +51,7 @@ def test_arm_bounds_require_an_arm_joint(synthetic_arm):
 
 @pytest.mark.parametrize('hook_name', ['make_ik', 'make_kinematics'])
 def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypatch, hook_name):
-    import utils.arms.spec as arm_spec
+    import utils.arms.arms as arms_module
     import sim.actions.ik as ik_module
 
     sentinel, robot = object(), object()
@@ -64,7 +64,7 @@ def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypa
         return sentinel
 
     utils = SimpleNamespace(**{hook_name: hook})
-    monkeypatch.setattr(arm_spec, 'load_arm_utils', lambda arm: utils)
+    monkeypatch.setattr(arms_module, 'load_arm_utils', lambda arm: utils)
     def unexpected(*args, **kwargs):
         pytest.fail('An available arm hook must be used')
     monkeypatch.setattr(ik_module, 'ArticulationIK', unexpected)
@@ -81,7 +81,7 @@ def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypa
 
 @pytest.mark.parametrize('utils', [None, SimpleNamespace()])
 def test_factories_choose_defaults_without_an_arm_hook(synthetic_arm, monkeypatch, utils):
-    import utils.arms.spec as arm_spec
+    import utils.arms.arms as arms_module
     import sim.actions.ik as ik_module
 
     live, offline, robot = object(), object(), object()
@@ -92,7 +92,7 @@ def test_factories_choose_defaults_without_an_arm_hook(synthetic_arm, monkeypatc
     def default_offline(*args, **kwargs):
         calls.append(('offline', args, kwargs))
         return offline
-    monkeypatch.setattr(arm_spec, 'load_arm_utils', lambda arm: utils)
+    monkeypatch.setattr(arms_module, 'load_arm_utils', lambda arm: utils)
     monkeypatch.setattr(ik_module, 'ArticulationIK', default_live)
     monkeypatch.setattr(ik_module, 'ArmKinematics', SimpleNamespace(from_arm=default_offline))
     kwargs = {'position_offset_m': [.01, .02, .03]}

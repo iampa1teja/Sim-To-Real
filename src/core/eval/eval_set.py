@@ -10,12 +10,12 @@ from pathlib import Path
 
 import numpy as np
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.arms.mapping import mapping_for_arm
 from utils.arms.calibration import validate_mapping
 from utils.hashing import json_sha256
-from .geometry import (circular_mean, face_yaw, hull, hull_distance, inside_polygon,
-                       rotation_matrix, sample_yaw, supported_on_table, wrap_yaw)
+from utils.geometry import (circular_mean, face_yaw_wxyz, hull, hull_distance, inside_polygon,
+                       rotation_matrix_wxyz, sample_yaw, supported_on_table, wrap_yaw)
 from .starts import (RecordedStarts, copy_objects, objects_to_poses, poses_to_objects, primary_object, task_instance)
 
 SPLITS = ('id', 'ood', 'yaw', 'train')
@@ -35,14 +35,13 @@ def normalize_scene(scene, task=None):
         if len(candidates) != 1:
             raise ValueError('Legacy scene geometry requires one unambiguous fixed object')
         name = candidates[0]
-        rotation = rotation_matrix(scene['base_quaternion_wxyz'])
+        rotation = rotation_matrix_wxyz(scene['base_quaternion_wxyz'])
         position = rotation.T @ (np.asarray(scene['box_position_world']) - np.asarray(scene['base_position_world']))
-        from utils.geometry import quaternion_multiply
+        from utils.geometry import quaternion_multiply, wxyz_to_xyzw, xyzw_to_wxyz
 
         base = scene['base_quaternion_wxyz']
-        w, x, y, z = scene['box_quaternion_wxyz']
-        relative = quaternion_multiply((-base[1], -base[2], -base[3], base[0]), (x, y, z, w))
-        orientation = [relative[3], *relative[:3]]
+        relative = quaternion_multiply((-base[1], -base[2], -base[3], base[0]), wxyz_to_xyzw(scene['box_quaternion_wxyz']))
+        orientation = xyzw_to_wxyz(relative).tolist()
         objects.setdefault(name, {}).update(position_world=scene['box_position_world'],
             orientation_world_wxyz=scene['box_quaternion_wxyz'], position=position.tolist(),
             orientation_wxyz=orientation, size=scene['box_size_m'], bottom_origin=True)
@@ -96,7 +95,7 @@ def validate_eval_set(data, *, arm=None, task=None):
             if not np.isfinite([start['x'], start['y'], start['yaw']]).all():
                 raise ValueError('Nonfinite start pose')
             if 'orientation_wxyz' in start:
-                rotation_matrix(start['orientation_wxyz'])
+                rotation_matrix_wxyz(start['orientation_wxyz'])
         else:
             if not isinstance(start.get('objects'), dict) or not start['objects']:
                 raise ValueError('Eval start needs named object poses')
@@ -104,7 +103,7 @@ def validate_eval_set(data, *, arm=None, task=None):
                 position = np.asarray(pose['position'], dtype=float)
                 if not isinstance(name, str) or not name or position.shape != (3,) or not np.isfinite(position).all():
                     raise ValueError('Object positions must contain three finite metres')
-                rotation_matrix(pose['orientation_wxyz'])
+                rotation_matrix_wxyz(pose['orientation_wxyz'])
             if task is not None and set(start['objects']) - set(task_instance(task).spec.objects):
                 raise ValueError('Eval start contains objects not declared by the task')
         state = np.asarray(start['arm_start_state'])
@@ -210,7 +209,7 @@ def _generate_recorded_region(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n
     pan_offset = circular_mean(bearings, 2 * np.pi)
     pan = (bearings - pan_offset + np.pi) % (2 * np.pi) - np.pi
     pan_limits = [float(pan.min() - np.deg2rad(10)), float(pan.max() + np.deg2rad(10))]
-    recorded_yaws = np.array([face_yaw(q) for _, q in poses])
+    recorded_yaws = np.array([face_yaw_wxyz(q) for _, q in poses])
     relative_yaws = wrap_yaw(recorded_yaws - bearings)
     mean_state = np.mean(recorded.robot_states, axis=0).tolist()
     rng = np.random.default_rng(seed)
@@ -258,7 +257,7 @@ def _generate_recorded_region(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n
     for source in list(starts[:n_yaw]):
         starts.append(row('yaw', [source['x'], source['y']], source.pop('paired_yaw'), paired_id=source['id']))
     for index, (p, q) in enumerate(poses):
-        starts.append(row('train', p[:2], face_yaw(q), orientation_wxyz=q.tolist(), source_episode=recorded.episode_ids[index]))
+        starts.append(row('train', p[:2], face_yaw_wxyz(q), orientation_wxyz=q.tolist(), source_episode=recorded.episode_ids[index]))
         starts[-1]['source_start_id'] = starts[-1]['id']
     data = dict(schema_version=1, reference_frame='robot base link (base)', units='m', angle_units='rad',
                 dataset_path=str(Path(dataset).resolve()), seed=seed, git_commit=git_commit,

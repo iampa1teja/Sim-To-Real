@@ -16,6 +16,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
 from core.tasks.loader import load_task, load_task_module
+from utils.geometry import wxyz_to_xyzw
 from sim.workspace.envs.mdp._common import as_torch
 from sim.workspace.envs.mdp.appearance import set_robot_color
 from sim.workspace.envs.mdp.cameras import (
@@ -35,7 +36,7 @@ class SceneReplayer:
                  external_camera=None, wrist_camera=None,
                  render_passes=2, object_name=None, task=None, arm=None):
         """mapping: utils.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
-        from utils.arms.spec import load_arm_spec
+        from utils.arms.arms import load_arm_spec
         from utils.scene import load_scene_spec
 
         self.env = env
@@ -108,7 +109,7 @@ class SceneReplayer:
             raise ValueError(f"Replay objects {sorted(pose_base)} != task objects {sorted(self.objects)}")
         for name, values in pose_base.items():
             pose = torch.as_tensor(np.asarray(values), dtype=base_pos.dtype, device=base_pos.device).reshape(1, 7)
-            quat_xyzw = torch.cat((pose[:, 4:7], pose[:, 3:4]), dim=-1)
+            quat_xyzw = wxyz_to_xyzw(pose[:, 3:7])
             pos_w, quat_w = math_utils.combine_frame_transforms(base_pos, base_quat, pose[:, :3], quat_xyzw)
             obj = self.objects[name]
             obj.write_root_pose_to_sim_index(root_pose=torch.cat((pos_w, quat_w), dim=-1), env_ids=self.env_ids)

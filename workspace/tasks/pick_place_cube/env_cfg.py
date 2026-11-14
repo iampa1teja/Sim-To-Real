@@ -1,4 +1,4 @@
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.geometry import Pose, transform_pose
 from utils.scene import load_scene_spec
 
@@ -101,7 +101,7 @@ def apply_teleop(cfg, task):
     cfg.scene.white_box = RigidObjectCfg(
         prim_path=BOX_PRIM,
         spawn=sim_utils.UsdFileCfg(usd_path=str(box.usd), visual_material=_material("white_box", task, scene)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=box_pose.position, rot=box_pose.orientation_xyzw),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=box_pose.position, rot=box_pose.quat_xyzw),
     )
     cfg.scene.blue_cube = RigidObjectCfg(
         prim_path=CUBE_PRIM,

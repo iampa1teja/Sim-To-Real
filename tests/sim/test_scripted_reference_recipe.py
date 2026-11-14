@@ -7,7 +7,7 @@ import yaml
 
 from utils.arms.calibration import resolve_calibration
 from utils.arms.mapping import JointMapping
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from sim.datagen.scripted import GenerationContext
 
 

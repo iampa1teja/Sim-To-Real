@@ -45,7 +45,7 @@ def test_bad_action_cannot_reach_robot():
 
 def test_degree_mode_wrist_start_is_encoded_with_calibrated_zero(monkeypatch):
     from dataclasses import replace
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import resolve_calibration
     from utils.arms.mapping import units_to_physical
     monkeypatch.delenv("S2R_ARMS_DIR", raising=False)

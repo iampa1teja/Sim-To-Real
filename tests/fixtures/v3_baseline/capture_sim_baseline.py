@@ -1,4 +1,7 @@
-"""Record the v3 Phase 0 simulator-side baseline as JSON files.
+"""Records the v2 baseline, so run it from the Phase 0 commit (45b0731), where the v2 module paths it
+imports (sim.app, sim.envs) still exist. It is not kept in step with later phases.
+
+Record the v3 Phase 0 simulator-side baseline as JSON files.
 
 Run once inside the ``s2r-sim`` container, from the repository root:
 
@@ -185,9 +188,10 @@ def json_safe(value, _active=None):
 
 def task_variants():
     sys.path.insert(0, str(SRC))
-    from core.tasks.base import available_tasks, load_task_spec
+    from core.tasks.base import load_task_spec
+    from utils.workspace import available
 
-    return {name: load_task_spec(name).all_variants() for name in available_tasks() if not name.startswith("_")}
+    return {name: load_task_spec(name).all_variants() for name in available("tasks", "task.toml") if not name.startswith("_")}
 
 
 def one_cfg(args):

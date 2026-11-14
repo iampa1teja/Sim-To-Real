@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import re
-import sys
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
@@ -19,6 +17,7 @@ from isaaclab_visualizers.kit import KitVisualizerCfg
 from utils.arms.spec import ArmSpec
 from utils.geometry import mount_joint_positions, mount_pose
 from utils.scene import SceneSpec, load_mount_spec, load_scene_spec
+from utils.workspace import load_file_module
 from sim.workspace.envs.base_env_cfg import BaseEnvCfg, _config_to_dict
 from sim.workspace.envs.mdp import env_indices, image_raw, image_rgb_raw
 from sim.workspace.scene.appearance import apply_robot_appearance, apply_scene_lighting
@@ -144,17 +143,8 @@ def _customize(cfg, scene):
         return
     filename, attribute = scene.hook.split(":", 1)
     path = (scene.directory / filename).resolve()
-    module_name = "_s2r_scene_hook_" + hashlib.sha256(str(path).encode()).hexdigest()
-    if module_name not in sys.modules:
-        definition = importlib.util.spec_from_file_location(module_name, path)
-        module = importlib.util.module_from_spec(definition)
-        sys.modules[module_name] = module
-        try:
-            definition.loader.exec_module(module)
-        except BaseException:
-            sys.modules.pop(module_name, None)
-            raise
-    function = getattr(sys.modules[module_name], attribute)
+    module = load_file_module(path, "_s2r_scene_hook_" + hashlib.sha256(str(path).encode()).hexdigest())
+    function = getattr(module, attribute)
     if not callable(function):
         raise TypeError(f"Scene hook {scene.hook!r} is not callable")
     function(cfg, scene)
@@ -172,7 +162,7 @@ class SceneEnvCfg(BaseEnvCfg):
         mount = load_mount_spec(scene, arm)
         pose = mount_pose(scene, mount, arm)
         self.scene.robot.init_state.pos = pose.position
-        self.scene.robot.init_state.rot = pose.orientation_xyzw
+        self.scene.robot.init_state.rot = pose.quat_xyzw
         self.scene.robot.init_state.joint_pos = mount_joint_positions(arm, mount)
         self.scene.room = AssetBaseCfg(
             prim_path="{ENV_REGEX_NS}/Room",

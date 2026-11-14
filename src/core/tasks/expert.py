@@ -61,7 +61,7 @@ def gripper_commands(context, object_width_m):
 def grasp_orientation(context, object_pose, orientation):
     """Nearest cube face normal about the table normal; preserve this after pickup."""
     import numpy as np
-    from utils.geometry import quaternion_matrix, quaternion_multiply
+    from utils.geometry import rotation_matrix_xyzw, quaternion_multiply
 
     arm = context.arm
     if arm is None or 'z' not in arm.ik.orientation_axes or arm.gripper is None:
@@ -70,12 +70,12 @@ def grasp_orientation(context, object_pose, orientation):
         return orientation
     normal = np.asarray(context.table_normal, dtype=float)
     normal /= np.linalg.norm(normal)
-    closing = quaternion_matrix(orientation) @ arm.gripper.closing_axis
+    closing = rotation_matrix_xyzw(orientation) @ arm.gripper.closing_axis
     closing -= np.dot(closing, normal) * normal
     if np.linalg.norm(closing) < 1e-8:
         raise ValueError('Gripper closing axis must lie in the table plane for grasp yaw alignment')
     closing /= np.linalg.norm(closing)
-    rotation = quaternion_matrix(object_pose.quat_xyzw)
+    rotation = rotation_matrix_xyzw(object_pose.quat_xyzw)
     angles = []
     for direction in (rotation[:, 0], -rotation[:, 0], rotation[:, 1], -rotation[:, 1]):
         direction = direction - np.dot(direction, normal) * normal

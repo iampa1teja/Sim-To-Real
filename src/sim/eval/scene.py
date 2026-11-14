@@ -1,16 +1,16 @@
 """Capture task-independent live geometry for fixed evaluation starts."""
 import numpy as np
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.scene import load_scene_spec
 from core.tasks.loader import load_task
 
 
 def capture_scene(env, task=None, index=0):
     from pxr import Gf, UsdGeom
-    from core.eval.geometry import hull, rotation_matrix
-    from utils.geometry import anchor_quaternion
-    from sim.workspace.envs.mdp._common import _wxyz, as_torch
+    from utils.geometry import hull, rotation_matrix_wxyz
+    from utils.geometry import anchor_quaternion, xyzw_to_wxyz
+    from sim.workspace.envs.mdp._common import as_torch
     from sim.workspace.scene.geometry import anchor_prim, table_plane
 
     task = task or load_task(getattr(env.cfg, "task_name", None))
@@ -26,14 +26,14 @@ def capture_scene(env, task=None, index=0):
         return as_torch(value).detach().cpu().numpy()
 
     base_p = array(robot.data.body_link_pos_w)[index, ids[0]]
-    base_q = _wxyz(array(robot.data.body_link_quat_w)[index, ids[0]])
-    rotation = rotation_matrix(base_q)
+    base_q = xyzw_to_wxyz(array(robot.data.body_link_quat_w)[index, ids[0]])
+    rotation = rotation_matrix_wxyz(base_q)
     result = dict(source="live scene after reset", arm=arm.name, task=task.name,
                   base_position_world=base_p.tolist(), base_quaternion_wxyz=base_q.tolist(),
                   joint_mapping=getattr(env.cfg, "sim_joint_mapping", None), objects={})
     result["frames"] = {
         name: dict(position_world=list(anchor.position),
-                   orientation_world_wxyz=_wxyz(anchor_quaternion(anchor)).tolist())
+                   orientation_world_wxyz=xyzw_to_wxyz(anchor_quaternion(anchor)).tolist())
         for name, anchor in scene.anchors.items()
     }
     result["frames"].update(
@@ -60,7 +60,7 @@ def capture_scene(env, task=None, index=0):
     for name, spec in task.spec.objects.items():
         asset = env.scene[name]
         world_p = array(asset.data.root_pos_w)[index]
-        world_q = _wxyz(array(asset.data.root_quat_w)[index])
+        world_q = xyzw_to_wxyz(array(asset.data.root_quat_w)[index])
         # Pure frame math uses XYZW; the benchmark boundary is explicitly WXYZ.
         import isaaclab.utils.math as math_utils
         position, orientation = math_utils.subtract_frame_transforms(
@@ -71,13 +71,13 @@ def capture_scene(env, task=None, index=0):
         )
         size = spec.size or spec.params.get("size_outer") or getattr(asset.cfg.spawn, "size", None)
         row = dict(position_world=world_p.tolist(), orientation_world_wxyz=world_q.tolist(),
-                   position=array(position)[0].tolist(), orientation_wxyz=_wxyz(array(orientation)[0]).tolist(),
+                   position=array(position)[0].tolist(), orientation_wxyz=xyzw_to_wxyz(array(orientation)[0]).tolist(),
                    bottom_origin=bool(spec.params.get("bottom_origin", False)))
         if size is not None:
             row["size"] = list(size)
             corners = np.array([[x, y, z] for x in (-.5, .5) for y in (-.5, .5)
                                 for z in ((0., 1.) if row["bottom_origin"] else (-.5, .5))])
-            world = (corners * np.asarray(size)) @ rotation_matrix(world_q).T + world_p
+            world = (corners * np.asarray(size)) @ rotation_matrix_wxyz(world_q).T + world_p
             row["footprint_base_xy"] = hull(((world - base_p) @ rotation)[:, :2]).tolist()
         result["objects"][name] = row
     return result
@@ -86,7 +86,7 @@ def capture_scene(env, task=None, index=0):
 def validate_scene_geometry(live, expected, task, *, atol=1e-5):
     """Keep the frozen base/table/static-object guard without constraining sampled poses."""
     from core.eval.eval_set import normalize_scene
-    from core.eval.geometry import polygons_match
+    from utils.geometry import polygons_match
 
     expected = normalize_scene(expected, task)
     for key in ("base_position_world", "base_quaternion_wxyz", "table_plane_world"):

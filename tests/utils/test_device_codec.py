@@ -9,7 +9,7 @@ import pytest
 
 from utils.arms.calibration import follower_mapping_from_calibration, load_unit, with_device_codec
 from utils.arms.mapping import JointMapping, physical_to_units, units_to_physical, mapping_for_arm, raw_joint_limits
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 
 
 @pytest.fixture

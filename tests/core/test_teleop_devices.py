@@ -7,7 +7,7 @@ import pytest
 pytest.importorskip("lerobot")
 
 from utils.arms.calibration import resolve_calibration
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from sim.teleop import devices
 
 

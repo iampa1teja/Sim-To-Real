@@ -43,14 +43,14 @@ def test_light_exposure_dr_changes_only_marked_lights_in_selected_environment(mo
 def test_empty_appearance_does_not_require_fitted_arm_materials(monkeypatch):
     def unavailable(arm):
         raise AssertionError("An empty scene look must not load a fitted arm hook")
-    monkeypatch.setattr("utils.arms.spec.load_arm_utils", unavailable)
+    monkeypatch.setattr("utils.arms.arms.load_arm_utils", unavailable)
     apply_robot_appearance(None, "/Robot", object(), {})
     apply_robot_appearance(None, "/Robot", object(), {"appearance": {}})
 
 
 def test_scene_look_is_explicit_and_arm_material_declarations_are_preserved(monkeypatch):
     calls = []
-    monkeypatch.setattr("utils.arms.spec.load_arm_utils",
+    monkeypatch.setattr("utils.arms.arms.load_arm_utils",
                         lambda arm: SimpleNamespace(apply_appearance=lambda *args: calls.append(args)))
     arm = SimpleNamespace(appearance={"body_material": "Looks/Body"})
     look = {"appearance": {"paint": [1, 0, 0]}}

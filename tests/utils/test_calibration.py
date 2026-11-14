@@ -9,7 +9,7 @@ import pytest
 from utils.arms.calibration import (
     factory_mapping, follower_mapping_from_calibration, load_unit, resolve_calibration,
 )
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.arms.mapping import JointMapping
 from utils.datasets.alignment import recording_contract, validate_recording_root, RecordingAlignmentError, MARKER
 

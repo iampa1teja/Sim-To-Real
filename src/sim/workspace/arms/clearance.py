@@ -14,7 +14,7 @@ def ready_route_validator(spec,kinematics):
     from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
     from utils.geometry import mount_pose
     from utils.scene import load_scene_spec, load_mount_spec
-    from utils.geometry import quaternion_matrix,anchor_quaternion
+    from utils.geometry import rotation_matrix_xyzw,anchor_quaternion,xyzw_to_wxyz
     from core.tasks.base import Pose
     from core.tasks.loader import load_task
     from sim.workspace.arms.ready_pose import bounds
@@ -24,7 +24,7 @@ def ready_route_validator(spec,kinematics):
     scene=load_scene_spec(DEFAULT_SCENE)
     task=load_task(DEFAULT_TASK)
     mount=mount_pose(scene,load_mount_spec(scene,spec),spec)
-    rotation=quaternion_matrix(mount.orientation_xyzw)
+    rotation=rotation_matrix_xyzw(mount.quat_xyzw)
     room=Usd.Stage.Open(str(scene.room_usd))
     plane=table_plane(room,room.GetPseudoRoot(),scene.anchors['table'])
     stage=Usd.Stage.Open(str(spec.usd_path))
@@ -45,8 +45,7 @@ def ready_route_validator(spec,kinematics):
     base=coordinates[kinematics.base_id]
     base_world=rotation@(base[:3]*kinematics._meters_per_unit)+mount.position
     base_rotation=rotation@matrix_from_quat(torch.as_tensor(base[3:],dtype=torch.float64)).numpy()
-    geometry=dict(base_position_world=base_world.tolist(),base_quaternion_wxyz=[
-        *mount.orientation_xyzw[3:],*mount.orientation_xyzw[:3]],frames={})
+    geometry=dict(base_position_world=base_world.tolist(),base_quaternion_wxyz=xyzw_to_wxyz(mount.quat_xyzw).tolist(),frames={})
     for name,anchor in scene.anchors.items():
         quat=anchor_quaternion(anchor)
         geometry['frames'][name]=dict(position_world=list(anchor.position),orientation_world_wxyz=[quat[3],*quat[:3]])

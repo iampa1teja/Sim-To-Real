@@ -48,11 +48,11 @@ class PickPlaceTask(Task):
         return "dropped_outside"
 
     def _over_box(self, cube, box):
-        from core.eval.geometry import footprint, hull, inside_polygon, rotation_matrix
+        from utils.geometry import footprint, hull, inside_polygon, rotation_matrix_wxyz
 
         size = tuple(self.spec.objects["white_box"].params["size_outer"])
         qx, qy, qz, qw = box.quat_xyzw
-        polygon = footprint(box.position, rotation_matrix((qw, qx, qy, qz)), size, bottom_origin=True)
+        polygon = footprint(box.position, rotation_matrix_wxyz((qw, qx, qy, qz)), size, bottom_origin=True)
         return inside_polygon(cube[:2], hull(polygon))
 
     def progress_label(self, flags, state):
@@ -63,13 +63,13 @@ class PickPlaceTask(Task):
         return label
 
     def start_is_valid(self, start, scene):
-        from core.eval.geometry import footprint, footprints_overlap, resting_pose, rotation_matrix, upright_orientation
+        from utils.geometry import footprint, footprints_overlap, resting_pose, rotation_matrix_wxyz, upright_orientation_wxyz
 
         if not super().start_is_valid(start, scene):
             return False
         pose = start["blue_cube"]
         x, y, z, w = pose.quat_xyzw
-        q = upright_orientation(scene["base_quaternion_wxyz"], scene["table_plane_world"], (w, x, y, z))
+        q = upright_orientation_wxyz(scene["base_quaternion_wxyz"], scene["table_plane_world"], (w, x, y, z))
         size = scene.get("objects", {}).get("blue_cube", {}).get("size", scene.get("cube_size_m"))
         world, rotation = resting_pose(pose.position, q, scene["base_position_world"],
                                        scene["base_quaternion_wxyz"], scene["table_plane_world"], size)
@@ -77,7 +77,7 @@ class PickPlaceTask(Task):
         position = box.get("position_world", box.get("position_world_m", scene.get("box_position_world")))
         quaternion = box.get("orientation_world_wxyz", scene.get("box_quaternion_wxyz"))
         box_size = box.get("size", scene.get("box_size_m", self.spec.objects["white_box"].params["size_outer"]))
-        polygon = footprint(position, rotation_matrix(quaternion), box_size, bottom_origin=True)
+        polygon = footprint(position, rotation_matrix_wxyz(quaternion), box_size, bottom_origin=True)
         return not footprints_overlap(footprint(world, rotation, size), polygon)
 
 TASK = PickPlaceTask(load_task_spec("pick_place_cube"))

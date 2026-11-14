@@ -13,7 +13,8 @@ import pytest
 import torch
 
 from utils.arms.spec import (ArmSpec, GripperSpec, HardwareSpec, IKSpec, InitialStateSpec,
-                            JointSpec, LeRobotSpec, LinksSpec, load_arm_spec)
+                            JointSpec, LeRobotSpec, LinksSpec)
+from utils.arms.arms import load_arm_spec
 from sim.actions.ik import ArmKinematics, ArticulationIK, IKOptions, _JointStep, _controller_cfg
 
 

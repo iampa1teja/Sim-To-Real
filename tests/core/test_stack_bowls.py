@@ -78,8 +78,8 @@ def test_first_placement_ignores_unstacked_third_bowl_height():
 def test_rim_grasps_follow_pan_instead_of_a_fixed_world_direction():
     from core.tasks.base import Pose, StepState
     from core.tasks.expert import ExpertContext
-    from utils.arms.spec import load_arm_spec
-    from utils.geometry import quaternion_matrix
+    from utils.arms.arms import load_arm_spec
+    from utils.geometry import rotation_matrix_xyzw
     task = load_task('stack_bowls')
     objects = dict(yellow_bowl=Pose((.18,-.12,.05)), red_bowl=Pose((-.05,-.22,.05)),
                    blue_bowl=Pose((-.22,-.14,.05)))
@@ -95,7 +95,7 @@ def test_rim_grasps_follow_pan_instead_of_a_fixed_world_direction():
         assert transport.pose.position[2] > max(p.position[2] for p in objects.values())+.05
         centre = np.asarray(objects[name].position)
         offset = np.asarray(grasp.pose.position)-centre
-        rotation = quaternion_matrix(grasp.pose.quat_xyzw)
+        rotation = rotation_matrix_xyzw(grasp.pose.quat_xyzw)
         closing = rotation[:,0]
         directions.append(closing)
         assert np.isclose(np.linalg.norm(offset[:2]),.058)
@@ -111,7 +111,7 @@ def test_replans_next_pickup_after_the_support_bowl_moves():
     from dataclasses import replace
     from core.tasks.base import Pose, StepState
     from core.tasks.expert import ExpertContext
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     task = load_task('stack_bowls')
     objects = dict(yellow_bowl=Pose((.185,-.24,.05)), red_bowl=Pose((0.,-.24,.05)),
                    blue_bowl=Pose((-.185,-.24,.05)))
@@ -131,8 +131,8 @@ def test_replans_next_pickup_after_the_support_bowl_moves():
 def test_bowl_orientation_feedback_reduces_tilt_and_freezes_on_release():
     from core.tasks.base import Pose, StepState
     from core.tasks.expert import ExpertContext
-    from utils.arms.spec import load_arm_spec
-    from utils.geometry import quaternion_matrix
+    from utils.arms.arms import load_arm_spec
+    from utils.geometry import rotation_matrix_xyzw
     from scipy.spatial.transform import Rotation
     task = load_task('stack_bowls')
     tilted = tuple(Rotation.from_euler('x',17,degrees=True).as_quat())
@@ -143,8 +143,8 @@ def test_bowl_orientation_feedback_reduces_tilt_and_freezes_on_release():
     expert = task.expert();plan = expert.plan(context)
     waypoint = next(p for p in plan if p.name=='blue_bowl_transport')
     result = expert.control_orientation(waypoint,context.state,context.control_pose,[0.,0.,0.,1.],context,1.)
-    original_up = quaternion_matrix(tilted)[:,2]
-    corrected_up = quaternion_matrix(result) @ original_up
+    original_up = rotation_matrix_xyzw(tilted)[:,2]
+    corrected_up = rotation_matrix_xyzw(result) @ original_up
     assert corrected_up[2] > original_up[2]
     context.state.signals['holding'] = False
     frozen = expert.control_orientation(waypoint,context.state,context.control_pose,[0.,0.,1.,0.],context,1.)

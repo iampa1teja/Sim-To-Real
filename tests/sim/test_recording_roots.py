@@ -14,7 +14,7 @@ from utils.datasets.alignment import (
     recording_contract,
 )
 from sim.recording.setup import prepare_recording_roots
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.arms.calibration import resolve_calibration
 
 

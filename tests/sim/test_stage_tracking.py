@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 pytest.importorskip("isaaclab")
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from core.tasks.base import Task
 from core.tasks.loader import load_task
 from sim.eval.stage_tracking import install_stage_tracking

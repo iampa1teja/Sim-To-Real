@@ -129,7 +129,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         import gymnasium as gym
 
         import sim.workspace.envs
-        from utils.arms.spec import load_arm_spec
+        from utils.arms.arms import load_arm_spec
         from utils.arms.mapping import JointMapping
         from utils.datasets.alignment import mark_recording_root
         from sim.teleop.spawner import ObjectSpawner

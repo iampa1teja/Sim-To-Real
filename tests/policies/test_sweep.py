@@ -50,7 +50,7 @@ def test_sweep_bounds_speed_and_exact_holds(sweep):
 
 def test_home_uses_scene_mount_and_exclusion_preserves_indices(sweep):
     from utils.arms.calibration import load_unit
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.mapping import units_to_physical
     from utils.geometry import mount_joint_positions
     from utils.scene import load_scene_spec, load_mount_spec

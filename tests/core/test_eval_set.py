@@ -8,7 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from core.eval.compare import compare
 from core.eval.eval_set import (EvalSetStarts, convert_eval_set, eval_set_digest,
                                      generate_eval_set, load_eval_set, main, validate_eval_set)

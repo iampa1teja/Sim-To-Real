@@ -6,43 +6,33 @@ that action through the task's real signals and StageTrace; failed buffers are d
 from dataclasses import asdict
 import json
 from pathlib import Path
-import tempfile
 
 import numpy as np
 
-from core.eval.geometry import rotation_matrix
-from utils.geometry import quaternion_multiply
+from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, xyzw_to_wxyz
 from core.tasks.base import Pose, StepState
 from core.tasks.stages import StageTrace
 from utils.datasets.task_meta import save_task_trajectory, validate_task_meta
+from utils.io import atomic_write_text
 
 
 def write_json(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, suffix=".tmp", delete=False) as stream:
-            temporary = Path(stream.name)
-            json.dump(data, stream, indent=2, allow_nan=False)
-        temporary.replace(path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+    atomic_write_text(path, json.dumps(data, indent=2, allow_nan=False))
 
 
 def relative_pose(base, pose):
     bx, by, bz, bw = base.quat_xyzw
-    position = rotation_matrix((bw, bx, by, bz)).T @ (np.asarray(pose.position) - base.position)
+    position = rotation_matrix_wxyz((bw, bx, by, bz)).T @ (np.asarray(pose.position) - base.position)
     quaternion = np.asarray(quaternion_multiply((-bx, -by, -bz, bw), pose.quat_xyzw))
     quaternion /= np.linalg.norm(quaternion)
     return Pose.from_lists(position, quaternion)
 
 
 def pose_matrix(pose):
-    x, y, z, w = pose.quat_xyzw
     result = np.eye(4)
-    result[:3, :3] = rotation_matrix((w, x, y, z))
+    result[:3, :3] = rotation_matrix_wxyz(xyzw_to_wxyz(pose.quat_xyzw))
     result[:3, 3] = pose.position
     return result.tolist()
 
@@ -190,8 +180,7 @@ class LiveRollout:
                          float(np.mean(joints[self.gripper_ids])) if self.gripper_ids else 0., values)
 
     def control_pose(self, state):
-        x, y, z, w = state.ee.quat_xyzw
-        position = np.asarray(state.ee.position) + rotation_matrix((w, x, y, z)) @ self.control_offset
+        position = np.asarray(state.ee.position) + rotation_matrix_wxyz(xyzw_to_wxyz(state.ee.quat_xyzw)) @ self.control_offset
         return Pose.from_lists(position, state.ee.quat_xyzw)
 
     def step(self, target_sim, *, action_raw=None, target_eef_pose=None, gripper_action=None, phase=None):

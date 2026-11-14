@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from utils.arms.spec import ArmSpec, load_arm_spec
+from utils.arms.spec import ArmSpec
+from utils.arms.arms import load_arm_spec
 from utils.arms.calibration import raw_endpoints
 
 def _raw_endpoints(mapping, joint_order, gripper_joints):

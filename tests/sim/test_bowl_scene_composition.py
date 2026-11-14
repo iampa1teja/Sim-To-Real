@@ -1,7 +1,7 @@
 """Bowl task composition retains three hollow assets and sufficient contact storage."""
 import pytest
 pytest.importorskip('isaaclab')
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from core.tasks.loader import load_task, resolve
 from sim.workspace.envs import scene_builder
 

@@ -22,7 +22,7 @@ from dataclasses import fields, is_dataclass
 import os
 import importlib
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.calibration.check import calibration_root
 
 

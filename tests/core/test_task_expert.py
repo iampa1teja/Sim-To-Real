@@ -68,7 +68,7 @@ def test_transport_arc_preserves_clearance_and_targets_container_center():
 
 
 def test_transport_arc_uses_rigid_world_geometry_on_a_tilted_table():
-    from utils.geometry import quaternion_matrix
+    from utils.geometry import rotation_matrix_xyzw
 
     task = load_task("pick_place_cube")
     base = Pose((0., 0., .75))
@@ -76,7 +76,7 @@ def test_transport_arc_uses_rigid_world_geometry_on_a_tilted_table():
                       Pose((0., 0., 1.)), 0.)
     original = task.expert().plan(ExpertContext(state, state.ee, (0., 0., 1.), arm_base=base))
     quaternion = (0., np.sin(.2), 0., np.cos(.2))
-    rotation, shift = quaternion_matrix(quaternion), np.array([2., -3., 1.])
+    rotation, shift = rotation_matrix_xyzw(quaternion), np.array([2., -3., 1.])
     def transformed(pose):
         return Pose.from_lists(rotation @ pose.position + shift, quaternion)
     moved = StepState({name: transformed(pose) for name, pose in state.objects.items()}, transformed(state.ee), 0.)
@@ -146,7 +146,7 @@ def test_raised_release_opens_without_extra_closed_hold_over_container():
 
 def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
     from utils.arms.spec import IKSpec
-    from utils.geometry import quaternion_matrix
+    from utils.geometry import rotation_matrix_xyzw
     from core.tasks.expert import Waypoint
 
     grip = replace(synthetic_arm.gripper, closed_gap_m=0., open_gap_m=.08,
@@ -162,7 +162,7 @@ def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
     assert points[2].gripper_open_gap_m == 0.
     assert all(point.gripper_open_fraction is None for point in points)
     assert all(point.pose.quat_xyzw == points[0].pose.quat_xyzw for point in points)
-    closing = quaternion_matrix(points[0].pose.quat_xyzw) @ grip.closing_axis
+    closing = rotation_matrix_xyzw(points[0].pose.quat_xyzw) @ grip.closing_axis
     np.testing.assert_allclose(closing, [np.cos(yaw), np.sin(yaw), 0.], atol=1e-12)
     with pytest.raises(ValueError, match='Exactly one'):
         Waypoint('bad', state.ee, .5, gripper_open_gap_m=.04)

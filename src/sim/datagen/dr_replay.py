@@ -143,7 +143,7 @@ def discover_sim_cameras(env) -> dict:
 def make_mapping(env, *, arm=None, mapping=None, source_root=None, unit=None):
     """Use recorded calibration or an explicit unit; no scene calibration or hardware reads."""
     from utils.arms.mapping import JointMapping
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.datasets.sources import replay_joint_mapping
 
     arm = arm or load_arm_spec()[0]
@@ -206,7 +206,7 @@ def main(argv=None):
 
     from sim.datagen.dr_variants import cube_colors, build_manifest, parse_csv, plan_episodes, write_json_atomic
     from utils.datasets.sources import load_source, replay_joint_mapping
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from core.tasks.loader import load_task
 
     arm, _ = load_arm_spec(args.arm)

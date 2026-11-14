@@ -5,14 +5,15 @@ import sys
 import types
 from typing import Any
 
-from core.tasks.base import TASK_NAME, TASK_PACKAGE, Task, available_tasks, tasks_dir
+from core.tasks.base import TASK_NAME, TASK_PACKAGE, Task
+from utils.workspace import available, kind_dir
 
 _loaded: dict[str, Task] = {}
 
 
 def _ensure_package() -> None:
     package = sys.modules.get(TASK_PACKAGE)
-    path = [str(tasks_dir())]
+    path = [str(kind_dir("tasks"))]
     if package is None:
         package = types.ModuleType(TASK_PACKAGE)
         package.__path__ = path
@@ -28,9 +29,9 @@ def load_task(name: str | None = None) -> Task:
         return _loaded[name]
     if not name.isidentifier():
         raise ValueError(f"Task folder name {name!r} must be a valid Python identifier")
-    if name not in available_tasks():
-        raise FileNotFoundError(f"Unknown task {name!r}; available: {available_tasks()}")
-    if not (tasks_dir() / name / "__init__.py").is_file():
+    if name not in available("tasks", "task.toml"):
+        raise FileNotFoundError(f"Unknown task {name!r}; available: {available("tasks", "task.toml")}")
+    if not (kind_dir("tasks") / name / "__init__.py").is_file():
         raise FileNotFoundError(f"tasks/{name}/__init__.py is missing; it must define TASK")
 
     _ensure_package()
@@ -58,8 +59,8 @@ def resolve(entry_point: str) -> Any:
 def load_task_module(module: str, task: str | None = None):
     # Import an Isaac-free task helper such as tasks/<task>/benchmark.py (S2R_TASK by default).
     task = task or TASK_NAME
-    if task not in available_tasks():
-        raise FileNotFoundError(f"Unknown task {task!r}; available: {available_tasks()}")
+    if task not in available("tasks", "task.toml"):
+        raise FileNotFoundError(f"Unknown task {task!r}; available: {available("tasks", "task.toml")}")
     _ensure_package()
     try:
         return importlib.import_module(f"{TASK_PACKAGE}.{task}.{module}")

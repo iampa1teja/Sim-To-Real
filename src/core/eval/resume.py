@@ -2,29 +2,17 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import re
-import tempfile
+
+from utils.io import atomic_write_text
 
 
 def write_report(path, report):
     """Replace the report atomically; an interrupted write retains the last episode."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=f".{path.name}.",
-                                         suffix=".tmp", delete=False) as handle:
-            temporary = Path(handle.name)
-            json.dump(report, handle, indent=2, allow_nan=False)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+    atomic_write_text(path, json.dumps(report, indent=2, allow_nan=False) + "\n", fsync=True)
 
 
 def read_report(path):

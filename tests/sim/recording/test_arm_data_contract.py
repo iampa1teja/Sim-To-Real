@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.arms import mapping as evaluation
 from core.eval import eval_set as benchmark, starts
 from utils.datasets.sources import load_source, recorded_joint_mapping, replay_joint_mapping

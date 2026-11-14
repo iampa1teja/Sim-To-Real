@@ -1,7 +1,6 @@
 """Shared adapters for Isaac Lab tensor and ProxyArray data."""
 
 import re
-import numpy as np
 import torch
 
 
@@ -11,7 +10,7 @@ def as_torch(x):
 
 
 def _arm_spec(env):
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
 
     return getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]
 
@@ -29,18 +28,6 @@ def env_indices(env, env_ids):
     if isinstance(env_ids, slice):
         return all_ids[env_ids]
     return torch.as_tensor(env_ids, device=env.device, dtype=torch.long).reshape(-1)
-
-
-def _wxyz(q):
-    """XYZW (Isaac Lab 3.0) -> WXYZ (v1 on-disk / numpy geometry helpers)."""
-    q = np.asarray(q, dtype=float)
-    return np.concatenate([q[..., 3:4], q[..., :3]], axis=-1)
-
-
-def _xyzw(q):
-    """WXYZ -> XYZW."""
-    q = np.asarray(q, dtype=float)
-    return np.concatenate([q[..., 1:4], q[..., 0:1]], axis=-1)
 
 
 def _env_prim_path(env, asset, index):

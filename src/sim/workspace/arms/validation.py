@@ -7,11 +7,11 @@ import numpy as np
 
 
 def workspace_sweep(spec, kin, task, geometry):
-    from core.eval.geometry import rotation_matrix
+    from utils.geometry import rotation_matrix_wxyz
     from core.tasks.base import Pose
     from sim.actions.ik import IKOptions
 
-    rotation=rotation_matrix(geometry['base_quaternion_wxyz'])
+    rotation=rotation_matrix_wxyz(geometry['base_quaternion_wxyz'])
     base=np.asarray(geometry['base_position_world'])
     plane=geometry['table_plane_world']
     tracked=task.spec.start.get('object',task.spec.tracked_objects[0])
@@ -41,7 +41,7 @@ def workspace_sweep(spec, kin, task, geometry):
             size=np.asarray(row.get('size',width))[:2]/2
         for x in np.arange(-size[0],size[0]+1e-8,.05):
             for y in np.arange(-size[1],size[1]+1e-8,.05):
-                world=np.asarray(row['position_world'])+rotation_matrix(row['orientation_world_wxyz'])@np.array([x,y,obj.params.get('floor_z',0.)+width[2]/2])
+                world=np.asarray(row['position_world'])+rotation_matrix_wxyz(row['orientation_world_wxyz'])@np.array([x,y,obj.params.get('floor_z',0.)+width[2]/2])
                 cells.append(('container',world))
     rows=[]
     for region,world in cells:
@@ -90,7 +90,7 @@ def validate_import(name,*,repo=None):
     import gymnasium as gym
     import torch
     from isaaclab_tasks.utils import parse_env_cfg
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
     from sim.actions.ik import ArmKinematics,make_ik
     from core.tasks.base import Pose

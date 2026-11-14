@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 
 
 # Motion range of every joint in every sample file: ({joint: [range, ...]}, [file, ...]).

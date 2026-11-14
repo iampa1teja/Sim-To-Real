@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import tomllib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -9,19 +8,12 @@ from typing import Any
 
 import numpy as np
 
-from utils.paths import DEFAULT_TASK, repo_dir
+from utils.geometry import Pose
+from utils.paths import DEFAULT_TASK
+from utils.workspace import available, kind_dir, read_toml
 
 TASK_NAME = os.environ.get("S2R_TASK", DEFAULT_TASK)
 TASK_PACKAGE = "s2r_tasks"
-
-
-def tasks_dir() -> Path:
-    configured = os.environ.get("S2R_TASKS_DIR")
-    return Path(configured) if configured else repo_dir("tasks")
-
-
-def available_tasks() -> list[str]:
-    return sorted(p.name for p in tasks_dir().iterdir() if (p / "task.toml").is_file())
 
 
 def gym_id(task: str, variant: str) -> str:
@@ -32,16 +24,6 @@ def _target(path: Path, key: str, target: Any) -> str:
     if not isinstance(target, str) or target.count(":") != 1:
         raise ValueError(f"{path}: {key} must be 'module:function', got {target!r}")
     return target
-
-
-@dataclass(frozen=True, slots=True)
-class Pose:
-    position: tuple[float, float, float]
-    quat_xyzw: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 1.0)
-
-    @classmethod
-    def from_lists(cls, position, quat_xyzw=(0.0, 0.0, 0.0, 1.0)) -> Pose:
-        return cls(tuple(float(v) for v in position), tuple(float(v) for v in quat_xyzw))
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,12 +88,11 @@ class TaskSpec:
 
 def load_task_spec(name: str | None = None) -> TaskSpec:
     name = name or TASK_NAME
-    task_dir = tasks_dir() / name
+    task_dir = kind_dir("tasks") / name
     path = task_dir / "task.toml"
     if not path.is_file():
-        raise FileNotFoundError(f"No task.toml for task {name!r}; available: {available_tasks()}")
-    with open(path, "rb") as handle:
-        table = tomllib.load(handle).get("task", {})
+        raise FileNotFoundError(f"No task.toml for task {name!r}; available: {available('tasks', 'task.toml')}")
+    table = read_toml(path).get("task", {})
     if table.get("name", name) != name:
         raise ValueError(f"{path}: [task] name = {table['name']!r} but the folder is {name!r}")
 
@@ -187,8 +168,7 @@ class Task(ABC):
             return pose
         if scene is None:
             raise ValueError(f"Task {self.name!r} starts in frame {frame!r} require captured scene geometry")
-        from core.eval.geometry import rotation_matrix
-        from utils.geometry import quaternion_multiply
+        from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, wxyz_to_xyzw
 
         source = {"position_world": (0, 0, 0), "orientation_world_wxyz": (1, 0, 0, 0)} if frame == "world" else scene.get("frames", {}).get(frame)
         if source is None:
@@ -197,10 +177,10 @@ class Task(ABC):
         source_q = np.asarray(source["orientation_world_wxyz"])
         base_q = np.asarray(scene["base_quaternion_wxyz"])
         base_inverse_xyzw = (-base_q[1], -base_q[2], -base_q[3], base_q[0])
-        world = source_p + rotation_matrix(source_q) @ np.asarray(pose.position)
-        position = rotation_matrix(base_q).T @ (world - scene["base_position_world"])
+        world = source_p + rotation_matrix_wxyz(source_q) @ np.asarray(pose.position)
+        position = rotation_matrix_wxyz(base_q).T @ (world - scene["base_position_world"])
         orientation = quaternion_multiply(base_inverse_xyzw, quaternion_multiply(
-            (source_q[1], source_q[2], source_q[3], source_q[0]), pose.quat_xyzw))
+            wxyz_to_xyzw(source_q), pose.quat_xyzw))
         return Pose.from_lists(position, orientation)
 
     @abstractmethod
@@ -229,10 +209,10 @@ class Task(ABC):
 
     def start_is_valid(self, start: dict[str, Pose], scene: dict[str, Any]) -> bool:
         """Require sampled footprints to fit the table and clear other objects."""
-        from core.eval.geometry import footprint, footprints_overlap, inside_polygon, resting_pose, rotation_matrix, upright_orientation
+        from utils.geometry import footprint, footprints_overlap, inside_polygon, resting_pose, rotation_matrix_wxyz, upright_orientation_wxyz, xyzw_to_wxyz
 
         footprints = {}
-        base_rotation = rotation_matrix(scene["base_quaternion_wxyz"])
+        base_rotation = rotation_matrix_wxyz(scene["base_quaternion_wxyz"])
         for name, pose in start.items():
             if name not in self.spec.objects:
                 return False
@@ -240,12 +220,11 @@ class Task(ABC):
             size = scene.get("objects", {}).get(name, {}).get("size", spec.size or spec.params.get("size_outer"))
             if size is None:
                 continue
-            x, y, z, w = pose.quat_xyzw
-            q = (w, x, y, z)
+            q = xyzw_to_wxyz(pose.quat_xyzw)
             position = np.asarray(pose.position)
-            rotation = rotation_matrix(q)
+            rotation = rotation_matrix_wxyz(q)
             if "table_plane_world" in scene:
-                q = upright_orientation(scene["base_quaternion_wxyz"], scene["table_plane_world"], q)
+                q = upright_orientation_wxyz(scene["base_quaternion_wxyz"], scene["table_plane_world"], q)
                 world, world_rotation = resting_pose(position, q, scene["base_position_world"],
                                                      scene["base_quaternion_wxyz"], scene["table_plane_world"], size)
                 position = base_rotation.T @ (world - scene["base_position_world"])
@@ -261,7 +240,7 @@ class Task(ABC):
             if "footprint_base_xy" in obj:
                 fixed[name] = np.asarray(obj["footprint_base_xy"])
             elif all(key in obj for key in ("position", "orientation_wxyz", "size")):
-                fixed[name] = footprint(obj["position"], rotation_matrix(obj["orientation_wxyz"]), obj["size"],
+                fixed[name] = footprint(obj["position"], rotation_matrix_wxyz(obj["orientation_wxyz"]), obj["size"],
                                         bottom_origin=bool(obj.get("bottom_origin", False)))
         items = list(footprints.items())
         for index, (_, polygon) in enumerate(items):

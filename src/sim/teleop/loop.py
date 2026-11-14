@@ -12,6 +12,7 @@ def object_pose_in_base(env, name, base_id):
     """Capture one base-relative object pose on device; sidecars use WXYZ."""
     import isaaclab.utils.math as math_utils
     from sim.workspace.envs.mdp._common import as_torch
+    from utils.geometry import xyzw_to_wxyz
 
     scene = env.unwrapped.scene
     robot, obj = scene['robot'], scene[name]
@@ -19,7 +20,7 @@ def object_pose_in_base(env, name, base_id):
         as_torch(robot.data.body_link_pos_w)[:, base_id], as_torch(robot.data.body_link_quat_w)[:, base_id],
         as_torch(obj.data.root_pos_w), as_torch(obj.data.root_quat_w),
     )
-    return torch.cat((position, quaternion[:, 3:4], quaternion[:, :3]), dim=-1)[0].clone()
+    return torch.cat((position, xyzw_to_wxyz(quaternion)), dim=-1)[0].clone()
 
 
 def _write_sidecar(root, index, *, poses, sizes, fps, task, arm, reference_frame):

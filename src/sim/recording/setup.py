@@ -7,12 +7,12 @@ delayed until a recorder is built (after the Isaac app has launched).
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import signal
 import stat
 from pathlib import Path
+
+from utils.hashing import legacy_json_sha256
 
 
 def exit_cleanly_on_termination() -> None:
@@ -97,7 +97,7 @@ def prepare_recording_roots(roots: list[str], contract: dict, *, on_mismatch: st
         if on_mismatch == "error":
             raise
 
-    suffix = "-cal-" + hashlib.sha256(json.dumps(contract, sort_keys=True).encode()).hexdigest()[:12]
+    suffix = "-cal-" + legacy_json_sha256(contract)[:12]
     candidates = [os.fspath(Path(root).with_name(Path(root).name + suffix)) for root in roots]
     # A conflicting candidate is an error: never relabel or overwrite existing recordings.
     validate(candidates)
@@ -162,7 +162,7 @@ def make_recorders(
     None when there is no physical follower.
     """
     from .recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
 
     arm = arm or load_arm_spec()[0]
 

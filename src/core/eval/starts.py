@@ -4,8 +4,8 @@ import json
 
 import numpy as np
 
-from utils.arms.spec import load_arm_spec
-from .geometry import rotation_matrix
+from utils.arms.arms import load_arm_spec
+from utils.geometry import rotation_matrix_wxyz, wxyz_to_xyzw, xyzw_to_wxyz
 
 
 def task_instance(task=None):
@@ -65,7 +65,7 @@ def load_starts(directory, *, task=None, arm=None, legacy_object=None):
                 orientation = np.asarray(values['orientation_wxyz'][0], dtype=float)
                 if position.shape != (3,) or not np.isfinite(position).all():
                     raise ValueError('position frame 0 must contain three finite values')
-                rotation_matrix(orientation)
+                rotation_matrix_wxyz(orientation)
                 objects[name] = dict(position=position, orientation_wxyz=orientation / np.linalg.norm(orientation))
             starts.append(objects)
         except (KeyError, IndexError, TypeError, ValueError) as error:
@@ -191,9 +191,8 @@ def poses_to_objects(poses):
     """Convert Task's XYZW Pose contract into the WXYZ disk/reset contract."""
     objects = {}
     for name, pose in poses.items():
-        x, y, z, w = pose.quat_xyzw
         objects[name] = dict(position=np.asarray(pose.position, dtype=float),
-                             orientation_wxyz=np.array([w, x, y, z], dtype=float))
+                             orientation_wxyz=xyzw_to_wxyz(pose.quat_xyzw))
     return objects
 
 
@@ -202,6 +201,5 @@ def objects_to_poses(objects):
 
     result = {}
     for name, pose in objects.items():
-        w, x, y, z = pose['orientation_wxyz']
-        result[name] = Pose.from_lists(pose['position'], (x, y, z, w))
+        result[name] = Pose.from_lists(pose['position'], wxyz_to_xyzw(pose['orientation_wxyz']))
     return result

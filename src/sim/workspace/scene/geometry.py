@@ -5,7 +5,7 @@ import weakref
 import numpy as np
 from pxr import Gf, Usd, UsdGeom, UsdPhysics
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.scene import load_scene_spec
 
 

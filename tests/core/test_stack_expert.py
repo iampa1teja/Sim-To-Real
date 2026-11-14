@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from utils.geometry import quaternion_matrix
+from utils.geometry import rotation_matrix_xyzw
 from core.tasks.base import Pose, StepState
 from core.tasks.expert import ExpertContext
 from core.tasks.loader import load_task
@@ -11,7 +11,7 @@ from core.tasks.loader import load_task
 def context(options=None, rotation=(0., 0., 0., 1.)):
     poses = {"cube_a": Pose((.183, -.085, .76), rotation), "cube_b": Pose((.235, -.125, .76), rotation)}
     return ExpertContext(StepState(poses, Pose((.1, -.1, .9)), 0.), Pose((.1, -.1, .9)),
-                         tuple(quaternion_matrix(rotation)[:, 2]), options or {}, Pose((0., 0., .75)))
+                         tuple(rotation_matrix_xyzw(rotation)[:, 2]), options or {}, Pose((0., 0., .75)))
 
 
 def test_stack_target_open_close_and_fast_transport_are_task_owned():
@@ -35,7 +35,7 @@ def test_lower_height_uses_the_red_cube_orientation_basis():
     current = context(rotation=quaternion)
     points = load_task("stack_two_cubes").expert().plan(current)
     lower = next(point for point in points if point.name == "lower")
-    expected = np.asarray(current.state.objects["cube_b"].position) + quaternion_matrix(quaternion)[:, 2] * .0205
+    expected = np.asarray(current.state.objects["cube_b"].position) + rotation_matrix_xyzw(quaternion)[:, 2] * .0205
     np.testing.assert_allclose(lower.pose.position, expected, atol=1e-12)
 
 

@@ -11,6 +11,8 @@ import shutil
 
 import numpy as np
 
+from utils.hashing import file_sha256
+
 
 def _pairs(values, label):
     result = {}
@@ -117,7 +119,7 @@ def stage_sources(args):
             shutil.copy2(args.ros2_control, destination)
         for path in (temporary/'source').rglob('*'):
             if path.is_file():
-                choices.source_hashes[str(path.relative_to(temporary))] = hashlib.sha256(path.read_bytes()).hexdigest()
+                choices.source_hashes[str(path.relative_to(temporary))] = file_sha256(path)
         # The expanded original preserves provenance. A second converter input
         # resolves mesh URIs against the copied sources and bounds continuous axes.
         (temporary/'source'/f'{args.name}.urdf').write_text(text)
@@ -130,7 +132,7 @@ def stage_sources(args):
                 destination = temporary/'source'/'external_meshes'/hashlib.sha256(str(original).encode()).hexdigest()[:12]/original.name
                 destination.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copy2(original,destination)
-                choices.source_hashes[str(destination.relative_to(temporary))] = hashlib.sha256(original.read_bytes()).hexdigest()
+                choices.source_hashes[str(destination.relative_to(temporary))] = file_sha256(original)
                 resolved = target/destination.relative_to(temporary)
             else:
                 root, relative = max(candidates,key=lambda item:len(item[0].parts))
@@ -356,11 +358,11 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
     from utils.paths import DEFAULT_SCENE
     from utils.geometry import mount_pose
     from utils.scene import load_scene_spec, load_mount_spec
-    from utils.geometry import quaternion_matrix
+    from utils.geometry import rotation_matrix_xyzw
     scene=load_scene_spec(DEFAULT_SCENE)
     pose=mount_pose(scene,load_mount_spec(scene,spec),spec)
     gravity_original=kin._model.gravity.numpy().copy()
-    gravity_local=gravity_original@quaternion_matrix(pose.orientation_xyzw)
+    gravity_local=gravity_original@rotation_matrix_xyzw(pose.quat_xyzw)
     kin._model.gravity.assign(gravity_local)
     broad_positions=reach_samples(spec,kin,count=100)[0]
     positions=np.vstack([sample_positions,broad_positions]) if sample_positions is not None else broad_positions
@@ -413,8 +415,8 @@ def _write(paths, model, checks):
 
 def _spec(paths):
     import tomllib
-    from utils.arms.spec import _parse_spec
-    return _parse_spec(paths['choices'].name,paths['directory'],tomllib.loads((paths['directory']/'arm.toml').read_text())['arm'])
+    from utils.arms.spec import parse_arm_spec
+    return parse_arm_spec(paths['choices'].name,paths['directory'],tomllib.loads((paths['directory']/'arm.toml').read_text())['arm'])
 
 
 def run_import(argv=None):
@@ -471,7 +473,7 @@ def run_import(argv=None):
                         if not choices.ready_info['converged']:
                             choices.fallbacks.append(dict(step='ready_pose',fallback='zero clamped into limits',error='No grid target converged'))
                         _write(paths,model,checks); spec=_spec(paths)
-                    from utils.arms.spec import load_arm_spec
+                    from utils.arms.arms import load_arm_spec
                     from utils.paths import DEFAULT_ARM
                     yaw=step('base_yaw',lambda:base_yaw_for_scene(spec,load_arm_spec(DEFAULT_ARM)[0],kinematics=kin),
                              'Keep zero base yaw, tagged TODO')
@@ -568,7 +570,7 @@ def derive_workspace_mount(spec,paths):
     from utils.paths import DEFAULT_SCENE
     from utils.geometry import mount_pose
     from utils.scene import load_scene_spec, load_mount_spec
-    from utils.geometry import quaternion_matrix
+    from utils.geometry import rotation_matrix_xyzw
     from sim.actions.ik import ArmKinematics
     from sim.workspace.scene.geometry import collision_body_points,table_plane
     import tomllib
@@ -589,7 +591,7 @@ def derive_workspace_mount(spec,paths):
     coordinates=kin._evaluate(np.array([joint.initial for joint in spec.action_joints]))
     body=coordinates[kin.base_id]
     points=points@matrix_from_quat(torch.tensor(body[3:])).numpy().T+body[:3]*kin._meters_per_unit
-    points=points@quaternion_matrix(pose.orientation_xyzw).T+pose.position
+    points=points@rotation_matrix_xyzw(pose.quat_xyzw).T+pose.position
     clearance=points[:,2]-plane[0]*points[:,0]-plane[1]*points[:,1]-plane[2]
     correction=max(0.,-float(clearance.min())+.0002)
     if correction<=.001:

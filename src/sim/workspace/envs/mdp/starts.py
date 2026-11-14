@@ -5,14 +5,15 @@ import os
 import numpy as np
 import torch
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from core.tasks.base import Pose
 from core.tasks.loader import load_task
-from sim.workspace.envs.mdp._common import _wxyz, _xyzw, as_torch, env_indices
+from utils.geometry import wxyz_to_xyzw, xyzw_to_wxyz
+from sim.workspace.envs.mdp._common import as_torch, env_indices
 
 
 def _poses(objects):
-    return {name: Pose.from_lists(row["position"], _xyzw(row["orientation_wxyz"]))
+    return {name: Pose.from_lists(row["position"], wxyz_to_xyzw(row["orientation_wxyz"]))
             for name, row in objects.items()}
 
 
@@ -28,7 +29,7 @@ class _TaskStarts:
         for _ in range(10000):
             poses = sample_start_in_base(self.task, self.rng, self.scene)
             objects = {name: dict(position=np.asarray(pose.position),
-                                  orientation_wxyz=_wxyz(pose.quat_xyzw)) for name, pose in poses.items()}
+                                  orientation_wxyz=xyzw_to_wxyz(pose.quat_xyzw)) for name, pose in poses.items()}
             if accepts_random is None or accepts_random(objects):
                 return -1, objects, "random"
         raise ValueError(f"Cannot sample a valid start for task {self.task.name!r} after 10000 attempts")
@@ -46,7 +47,7 @@ def reset_from_starts(
     from isaaclab.utils.math import quat_mul
     from utils.arms.mapping import dataset_state_to_radians
     from core.eval.eval_set import EvalSetStarts
-    from core.eval.geometry import resting_pose, upright_orientation
+    from utils.geometry import resting_pose, upright_orientation_wxyz
     from core.eval.starts import RecordedStarts
     from sim.eval.scene import capture_scene
 
@@ -87,7 +88,7 @@ def reset_from_starts(
     for index in ids.tolist():
         live = capture_scene(env, task, index)
         base_p = body_pos[index, base_id].detach().cpu().numpy()
-        base_q = _wxyz(body_quat[index, base_id].detach().cpu().numpy())
+        base_q = xyzw_to_wxyz(body_quat[index, base_id].detach().cpu().numpy())
         plane = live.get("table_plane_world")
         if hasattr(sampler, "scene"):
             sampler.scene = live
@@ -107,13 +108,13 @@ def reset_from_starts(
             size = spec.size or spec.params.get("size_outer") or getattr(asset.cfg.spawn, "size", None)
             if plane is not None and size is not None and spec.params.get("rest_on_table", True):
                 if start == -1 or (eval_set and sampler.current["split"] != "train"):
-                    orientation = upright_orientation(base_q, plane, orientation)
+                    orientation = upright_orientation_wxyz(base_q, plane, orientation)
                 world, _ = resting_pose(position, orientation, base_p, base_q, plane, size)
             else:
-                from core.eval.geometry import rotation_matrix
-                world = base_p + rotation_matrix(base_q) @ position
+                from utils.geometry import rotation_matrix_wxyz
+                world = base_p + rotation_matrix_wxyz(base_q) @ position
             world_orientation = quat_mul(body_quat[index, base_id],
-                torch.as_tensor(_xyzw(orientation), device=env.device, dtype=body_quat.dtype))
+                torch.as_tensor(wxyz_to_xyzw(orientation), device=env.device, dtype=body_quat.dtype))
             object_rows[name].append((world, world_orientation))
         env._task_start_index[index], env._task_start_zone[index] = start, zone
         if eval_set:

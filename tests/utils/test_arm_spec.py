@@ -4,7 +4,8 @@ import tomllib
 
 import pytest
 
-from utils.arms.spec import _parse_spec, load_arm_spec, load_arm_utils
+from utils.arms.spec import parse_arm_spec
+from utils.arms.arms import load_arm_spec, load_arm_utils
 
 
 def test_so101_owns_order_limits_and_optional_mount_camera(monkeypatch):
@@ -50,7 +51,7 @@ def test_invalid_contracts_fail_clearly(synthetic_arm, change, error):
     raw = tomllib.loads((synthetic_arm.directory / "arm.toml").read_text())["arm"]
     change(raw)
     with pytest.raises(ValueError, match=error):
-        _parse_spec("synthetic", synthetic_arm.directory, raw)
+        parse_arm_spec("synthetic", synthetic_arm.directory, raw)
 
 
 def test_optional_utils_loads_by_explicit_path(synthetic_arm):
@@ -79,7 +80,7 @@ def test_invalid_ik_contract(synthetic_arm, ik, error):
     raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
     raw['ik'] = ik
     with pytest.raises(ValueError, match=error):
-        _parse_spec('synthetic', synthetic_arm.directory, raw)
+        parse_arm_spec('synthetic', synthetic_arm.directory, raw)
 
 
 def test_optional_ik_defaults(synthetic_arm):
@@ -94,7 +95,7 @@ def test_ik_settings_with_a_spare_arm_joint(synthetic_arm):
                               limits=[-180.0, 180.0], initial=0.0) for index in range(5))
     raw['ik'] = dict(orientation_axes=['x', 'y', 'z'], position_offset_m=[0.01, 0.02, 0.03],
                      method='adaptive_dls', joint_limit_avoidance_gain=0.2, joint_limit_avoidance_margin=0.4)
-    arm = _parse_spec('synthetic', synthetic_arm.directory, raw)
+    arm = parse_arm_spec('synthetic', synthetic_arm.directory, raw)
     assert sum(joint.role == 'arm' for joint in arm.joints) == 7
     assert arm.ik.orientation_axes == ('x', 'y', 'z')
     assert arm.ik.position_offset_m == (0.01, 0.02, 0.03)
@@ -103,7 +104,7 @@ def test_ik_settings_with_a_spare_arm_joint(synthetic_arm):
     assert arm.ik.joint_limit_avoidance_margin == 0.4
     raw['joints'].pop()
     with pytest.raises(ValueError, match='no spare joint for limit avoidance'):
-        _parse_spec('synthetic', synthetic_arm.directory, raw)
+        parse_arm_spec('synthetic', synthetic_arm.directory, raw)
 
 
 def _with_mimic(synthetic_arm):
@@ -120,7 +121,7 @@ def test_mimics_are_physical_joints_but_never_codec_or_action_axes(synthetic_arm
     from utils.arms.mapping import JointMapping, raw_joint_limits
     from utils.arms.calibration import validate_mapping
 
-    arm = _parse_spec('synthetic', synthetic_arm.directory, _with_mimic(synthetic_arm))
+    arm = parse_arm_spec('synthetic', synthetic_arm.directory, _with_mimic(synthetic_arm))
     assert arm.joint_names == ('pan', 'left', 'slide')
     assert arm.usd_joint_names == ('Pan', 'Left', 'Slide', 'Right')
     assert arm.action_usd_joint_names == ('Pan', 'Left', 'Slide')
@@ -147,18 +148,18 @@ def test_invalid_mimics(synthetic_arm, change, error):
     raw = _with_mimic(synthetic_arm)
     change(raw)
     with pytest.raises(ValueError, match=error):
-        _parse_spec('synthetic', synthetic_arm.directory, raw)
+        parse_arm_spec('synthetic', synthetic_arm.directory, raw)
 
 
 def test_gap_maps_include_reversed_open_direction_and_clamp(synthetic_arm):
     raw = _with_mimic(synthetic_arm)
-    gripper = _parse_spec('synthetic', synthetic_arm.directory, raw).gripper
+    gripper = parse_arm_spec('synthetic', synthetic_arm.directory, raw).gripper
     assert gripper.gap_m(0.02) == pytest.approx(0.04)
     assert gripper.q_for_gap(0.04) == pytest.approx(0.02)
     assert gripper.q_for_gap(100) == pytest.approx(0.04)
     assert gripper.q_for_gap(-1) == 0.0
     raw['gripper'].update(closed_position=0.04, open_position=0.0)
-    gripper = _parse_spec('synthetic', synthetic_arm.directory, raw).gripper
+    gripper = parse_arm_spec('synthetic', synthetic_arm.directory, raw).gripper
     assert gripper.q_for_gap(0.08) == pytest.approx(0.0)
     assert gripper.gap_m(0.04) == 0.0
 
@@ -166,7 +167,7 @@ def test_gap_maps_include_reversed_open_direction_and_clamp(synthetic_arm):
 def test_simulation_manifest_needs_no_hardware_driver(synthetic_arm):
     raw = _with_mimic(synthetic_arm)
     del raw['lerobot'], raw['hardware']
-    arm = _parse_spec('synthetic', synthetic_arm.directory, raw)
+    arm = parse_arm_spec('synthetic', synthetic_arm.directory, raw)
     assert not arm.lerobot.use_degrees
     assert arm.lerobot.follower_type == 'unconfigured'
 

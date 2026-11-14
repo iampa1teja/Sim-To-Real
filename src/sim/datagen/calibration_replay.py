@@ -57,7 +57,7 @@ def main(argv=None):
         import numpy as np
         import torch
         from utils.arms.mapping import physical_to_units, units_to_physical
-        from utils.arms.spec import load_arm_spec
+        from utils.arms.arms import load_arm_spec
         from utils.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
         from utils.hashing import tree_sha256
         from sim.workspace.envs.mdp._common import as_torch

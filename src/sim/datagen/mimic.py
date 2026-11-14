@@ -253,17 +253,17 @@ def parse_args(argv=None):
 
 async def load_source_pool(context, spec):
     """Use upstream segmentation for either SDK HDF5 or shared LeRobot annotations."""
-    import hashlib
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
     from utils.arms.mapping import JointMapping
     from utils.datasets.sources import load_source, recorded_joint_mapping
+    from utils.hashing import file_sha256
 
     env = context.raw
     pool = DataGenInfoPool(env, env.cfg, env.device)
     if context.args.input_file is not None:
         pool.load_from_dataset_file(str(context.args.input_file))
         provenance = {'input_file': str(context.args.input_file.resolve()),
-                      'sha256': hashlib.sha256(context.args.input_file.read_bytes()).hexdigest()}
+                      'sha256': file_sha256(context.args.input_file)}
     else:
         root = context.args.source_dataset
         report_path = root / 'meta/datagen.json'
@@ -289,7 +289,7 @@ async def load_source_pool(context, spec):
                 if bool(flags[0]) or not bool(flags.any()):
                     raise ValueError(f'Mimic source episode {source.index} needs an observed 0-to-1 transition for {signal}')
             await pool.add_episode(episode)
-            hashes[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+            hashes[path.name] = file_sha256(path)
         provenance = {'source_dataset': str(root.resolve()), 'annotation_sha256': hashes,
                       'source_joint_mapping': saved or context.calibration.mapping,
                       'control_offset_m': list(context.ik.position_offset_m)}
@@ -411,12 +411,11 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
                     base = env.s2r_last_target.detach().cpu().numpy()
                     base_pose = _matrix_pose(base)
                     position, orientation = env._base()
-                    from utils.geometry import quaternion_multiply
-                    from core.eval.geometry import rotation_matrix
+                    from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, xyzw_to_wxyz
                     from core.tasks.base import Pose
                     p = position[0].detach().cpu().numpy()
                     q = orientation[0].detach().cpu().numpy()
-                    world = p + rotation_matrix((q[3], q[0], q[1], q[2])) @ base_pose.position
+                    world = p + rotation_matrix_wxyz(xyzw_to_wxyz(q)) @ base_pose.position
                     requested = Pose.from_lists(world, quaternion_multiply(q, base_pose.quat_xyzw))
                     rollout.step(target, target_eef_pose=requested, gripper_action=env.s2r_last_gripper,
                                  phase='isaaclab_mimic')

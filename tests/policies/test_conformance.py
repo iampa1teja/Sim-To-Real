@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from utils.arms.calibration import resolve_calibration
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from core.policy_client.contract import ArmInfo, ClientPolicy, load_client_policy
 from core.policy_client.discovery import discover
 from core.policy_client.transport import MsgSerializer

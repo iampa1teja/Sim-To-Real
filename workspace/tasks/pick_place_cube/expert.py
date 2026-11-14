@@ -2,7 +2,7 @@
 import math
 import numpy as np
 
-from core.eval.geometry import rotation_matrix
+from utils.geometry import rotation_matrix_wxyz
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 
@@ -71,7 +71,7 @@ class PickPlaceExpert:
         cube = np.asarray(context.state.objects["blue_cube"].position, dtype=float)
         box = context.state.objects["white_box"]
         qx, qy, qz, qw = box.quat_xyzw
-        rotation = rotation_matrix((qw, qx, qy, qz))
+        rotation = rotation_matrix_wxyz((qw, qx, qy, qz))
         normal = np.asarray(context.table_normal, dtype=float)
         normal /= np.linalg.norm(normal)
         orientation = tuple(options.get("orientation_xyzw", context.control_pose.quat_xyzw))

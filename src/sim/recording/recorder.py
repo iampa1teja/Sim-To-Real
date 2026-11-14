@@ -17,7 +17,8 @@ from lerobot.datasets.io_utils import load_episodes
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.utils.constants import DEFAULT_FEATURES
 
-from utils.arms.spec import ArmSpec, load_arm_spec
+from utils.arms.spec import ArmSpec
+from utils.arms.arms import load_arm_spec
 
 
 class RecordingDataset(LeRobotDataset):

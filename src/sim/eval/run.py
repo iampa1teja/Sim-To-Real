@@ -339,7 +339,7 @@ def setup(args_cli, simulation_app, resources):
     from isaaclab_tasks.utils import parse_env_cfg
     import sim.workspace.envs
     from utils.arms.mapping import JointMapping
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import resolve_calibration
     from core.policy_client.grasp import GraspConfig
     from core.eval.resume import read_report

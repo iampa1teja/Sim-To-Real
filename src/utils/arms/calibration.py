@@ -13,7 +13,8 @@ import math
 import os
 from pathlib import Path
 
-from utils.arms.spec import ArmSpec, load_arm_spec
+from utils.arms.spec import ArmSpec
+from utils.arms.arms import load_arm_spec
 from utils.hashing import file_sha256
 
 

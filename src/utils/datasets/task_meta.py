@@ -3,9 +3,9 @@
 import argparse
 import json
 import math
-import os
 from pathlib import Path
-import tempfile
+
+from utils.io import atomic_write_text
 
 SIDECAR_DIR = "task_meta"
 LEGACY_SIDECAR_DIR = "pick_place_meta"
@@ -151,18 +151,7 @@ def load_object_poses(root, index, object_name=None, **kwargs):
 
 def _write(path, payload):
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=path.parent,
-                                         suffix=".tmp", delete=False) as stream:
-            temporary = Path(stream.name)
-            json.dump(payload, stream, allow_nan=False)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+    atomic_write_text(path, json.dumps(payload, allow_nan=False), fsync=True, encoding="utf-8", newline="\n")
 
 
 def save_task_trajectory(root, episode_index, poses, object_sizes, fps, *, task, arm,

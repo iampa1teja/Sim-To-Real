@@ -71,7 +71,7 @@ Arm, scene and task are data. `S2R_ARM`, `S2R_SCENE` and `S2R_TASK` (or `--arm/-
 
 ## Arm and calibration selection
 
-`utils.arms.spec.load_arm_spec()` returns `(ArmSpec, arm_directory)`. The arm's ordered `[[arm.joints]]` tables
+`utils.arms.arms.load_arm_spec()` returns `(ArmSpec, arm_directory)`. The arm's ordered `[[arm.joints]]` tables
 own LeRobot names, USD names, joint types and roles, initial values, and runtime limits. Optional gripper,
 wrist-roll, and wrist-camera settings live in the arm folder. CAD-specific collision and appearance hooks live
 in `<arm>_utils.py`. The SO101 camera variants share one CAD asset through a small USD override layer.

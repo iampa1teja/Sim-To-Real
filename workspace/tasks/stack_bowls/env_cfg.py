@@ -55,7 +55,7 @@ def apply_teleop(cfg, task):
                 visual_material=MattePrintedPlasticCfg(
                     diffuse_color=tuple(spec.params['color']),
                     roughness=appearance['roughness'], metallic=0.0)),
-            init_state=RigidObjectCfg.InitialStateCfg(pos=pose.position, rot=pose.orientation_xyzw)))
+            init_state=RigidObjectCfg.InitialStateCfg(pos=pose.position, rot=pose.quat_xyzw)))
     names = arm.gripper.friction_bodies or arm.gripper.contact_bodies
     pattern = '('+'|'.join(map(re.escape, names))+')'
     cfg.scene.contact_grasp = ContactSensorCfg(prim_path='{ENV_REGEX_NS}/Robot/'+pattern,

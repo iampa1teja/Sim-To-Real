@@ -10,7 +10,7 @@ import pytest
 
 from utils.arms.calibration import resolve_calibration
 from utils.arms.mapping import units_to_physical
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.datasets.sources import recorded_joint_mapping
 from utils.hashing import tree_sha256
 

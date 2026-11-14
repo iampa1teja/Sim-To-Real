@@ -13,6 +13,7 @@ import numpy as np
 
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.tasks.base import Pose
+from utils.geometry import wxyz_to_xyzw
 from core.tasks.expert import ExpertContext
 from utils.cli import parse_yaml_args
 from sim import add_launch_arguments, apply_selection, close_app, launch
@@ -176,8 +177,7 @@ class GenerationContext:
         return getattr(self.env, "unwrapped", self.env)
 
     def target_pose(self, target):
-        from utils.geometry import quaternion_multiply
-        from core.eval.geometry import rotation_matrix
+        from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, xyzw_to_wxyz
 
         matrix = self.kinematics.fk(LiveRollout._numpy(target).reshape(-1))
         local = _matrix_pose(matrix)
@@ -185,7 +185,7 @@ class GenerationContext:
         base_id = robot.find_bodies(self.arm.links.base)[0][0]
         p = LiveRollout._numpy(robot.data.body_link_pos_w)[0, base_id]
         q = LiveRollout._numpy(robot.data.body_link_quat_w)[0, base_id]
-        world = p + rotation_matrix((q[3], q[0], q[1], q[2])) @ local.position
+        world = p + rotation_matrix_wxyz(xyzw_to_wxyz(q)) @ local.position
         return Pose.from_lists(world, quaternion_multiply(q, local.quat_xyzw))
 
     def gripper_target(self, target, fraction=None, gap_m=None):
@@ -207,7 +207,7 @@ class GenerationContext:
                     joint=self.arm.action_joints[index]
                     result[:,index]=joint.limits[0]+fraction*(joint.limits[1]-joint.limits[0])
                 return result
-            from utils.arms.spec import load_arm_utils
+            from utils.arms.arms import load_arm_utils
             hook = getattr(load_arm_utils(self.arm), 'gripper_q_for_gap', None)
             if hook is not None:
                 ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
@@ -281,7 +281,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from isaaclab_tasks.utils import parse_env_cfg
     from isaaclab.managers import EventTermCfg
     import sim.workspace.envs
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import resolve_sim_calibration
     from utils.arms.mapping import JointMapping
     from utils.datasets.alignment import mark_recording_root, recording_contract
@@ -415,8 +415,7 @@ def execute_expert(context, rollout, expert):
     a, b, _ = geometry["table_plane_world"]
     normal = np.array([-a, -b, 1.])
     normal /= np.linalg.norm(normal)
-    w, x, y, z = geometry["base_quaternion_wxyz"]
-    arm_base = Pose.from_lists(geometry["base_position_world"], (x, y, z, w))
+    arm_base = Pose.from_lists(geometry["base_position_world"], wxyz_to_xyzw(geometry["base_quaternion_wxyz"]))
     planning_context = ExpertContext(initial, rollout.control_pose(initial), tuple(normal),
                                      context.args.expert_options, arm_base=arm_base, arm=context.arm)
     waypoints = expert.plan(planning_context)

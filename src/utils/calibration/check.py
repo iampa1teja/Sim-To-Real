@@ -21,7 +21,7 @@ import json
 import os
 from pathlib import Path
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 
 # Standard deviations from the mean motion range before a joint is flagged.
 N_STD = 2.0

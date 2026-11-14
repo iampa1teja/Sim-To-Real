@@ -56,7 +56,7 @@ def test_local_server_numpy_response_and_disallowed_classes():
 
 
 def test_local_server_codec_does_not_double_transform(monkeypatch):
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import resolve_calibration
     from core.policy_client.contract import ArmInfo
     LocalLeRobotPolicy = _local_tcp().LocalLeRobotPolicy
@@ -205,7 +205,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     import gymnasium
     from utils.arms.calibration import resolve_calibration
     from utils.arms.mapping import JointMapping
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from sim.eval.sim_real.trials import parse_args, run
     from core.rollout import real_rollout
     from sim.teleop import agent, loop
@@ -265,7 +265,7 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
     import threading
     import torch
     import gymnasium
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import resolve_calibration
     from utils.arms.mapping import JointMapping
     from core.rollout import real_rollout, paired_gui

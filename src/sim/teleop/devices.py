@@ -15,7 +15,7 @@ from lerobot.utils.feature_utils import combine_feature_dicts,  build_dataset_fr
 from lerobot.utils.constants import ACTION, OBS_STR
 
 from utils.arms.calibration import load_device_calibration, resolve_calibration
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 
 def make_camera_configs(cameras: dict, fps: int,) -> dict:
     result = {}

@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from utils.arms.spec import load_arm_spec
-from utils.geometry import Pose, anchor_basis, anchor_position, camera_quaternion, euler_xyz_degrees_to_xyzw, frame_to_world, mount_joint_positions, mount_pose, quaternion_matrix, transform_pose, world_to_frame
+from utils.arms.arms import load_arm_spec
+from utils.geometry import Pose, anchor_basis, anchor_position, camera_quaternion, euler_xyz_degrees_to_xyzw, frame_to_world, mount_joint_positions, mount_pose, rotation_matrix_xyzw, transform_pose, world_to_frame
 from utils.scene import AnchorSpec, MountSpec, load_mount_spec, load_scene_spec
 
 
@@ -16,8 +16,8 @@ def test_meeting_mount_correction_is_added_in_world_metres():
     np.testing.assert_array_equal(pose.position, [0.696053387506893, -0.6128356057211214, 0.7717429149057083])
     # Captured from Gf yaw*tilt before migration. Configures exact float32 targets.
     expected = [-0.0009490871253245302, -0.009222361160756174, 0.9991571638848088, -0.039987612405775586]
-    np.testing.assert_array_equal(np.asarray(pose.orientation_xyzw, dtype=np.float32), np.asarray(expected, dtype=np.float32))
-    np.testing.assert_allclose(pose.orientation_xyzw, expected, atol=1e-14, rtol=0)
+    np.testing.assert_array_equal(np.asarray(pose.quat_xyzw, dtype=np.float32), np.asarray(expected, dtype=np.float32))
+    np.testing.assert_allclose(pose.quat_xyzw, expected, atol=1e-14, rtol=0)
     assert mount_joint_positions(arm, mount)["Pitch"] == -1.57
 
 
@@ -37,7 +37,7 @@ def test_fixed_camera_euler_order_matches_refined_gf_rotation():
     expected = [0.026340993876749055, -0.3223150580700269, -0.9448851899562549, 0.051099248372479186]
     quaternion = camera_quaternion(scene.cameras["realsense_rgb"])
     # Gf may choose the equivalent negative quaternion. Compare active rotations.
-    np.testing.assert_allclose(quaternion_matrix(quaternion), quaternion_matrix(expected), atol=1e-14, rtol=0)
+    np.testing.assert_allclose(rotation_matrix_xyzw(quaternion), rotation_matrix_xyzw(expected), atol=1e-14, rtol=0)
 
 
 def test_missing_mount_uses_anchor_and_manifest_joint_defaults(synthetic_arm):
@@ -61,7 +61,7 @@ def test_world_and_arm_frame_round_trip_and_pose_rotation():
     np.testing.assert_allclose(world_to_frame(world, "arm_base", scene, arm), position, atol=1e-15)
     transformed = transform_pose(Pose(position), "arm_base", scene, arm)
     np.testing.assert_allclose(transformed.position, world, atol=0)
-    np.testing.assert_allclose(quaternion_matrix(transformed.orientation_xyzw), quaternion_matrix(arm.orientation_xyzw), atol=0)
+    np.testing.assert_allclose(rotation_matrix_xyzw(transformed.quat_xyzw), rotation_matrix_xyzw(arm.quat_xyzw), atol=0)
     with pytest.raises(ValueError, match="explicit arm pose"):
         frame_to_world(position, "arm_base", scene)
 
@@ -77,8 +77,8 @@ def test_surveyed_right_is_orthogonalized_into_one_rigid_pose_frame():
     local = Pose((0.2, -0.1, 0.05), euler_xyz_degrees_to_xyzw((10, 20, 30)))
     world = transform_pose(local, "table", scene)
     np.testing.assert_allclose(world.position, np.asarray(anchor.position) + basis @ local.position, atol=0)
-    np.testing.assert_allclose(quaternion_matrix(world.orientation_xyzw),
-                               basis @ quaternion_matrix(local.orientation_xyzw), atol=1e-15)
+    np.testing.assert_allclose(rotation_matrix_xyzw(world.quat_xyzw),
+                               basis @ rotation_matrix_xyzw(local.quat_xyzw), atol=1e-15)
 
 
 @pytest.mark.parametrize("value", [0, [1, 2], [0, float("nan"), 1]])

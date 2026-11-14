@@ -14,22 +14,13 @@ import numpy as np
 
 def _local_tcp():
     """Load policies/molmoact2/local_tcp.py by path; the policies folder is not an importable package."""
-    import importlib.util
     import sys
     from core.policy_client.discovery import get_manifest
+    from utils.workspace import load_file_module
 
-    module_name = '_s2r_policy_molmoact2_local_tcp'
-    if module_name not in sys.modules:
-        definition = importlib.util.spec_from_file_location(
-            module_name, Path(get_manifest('molmoact2').path) / 'local_tcp.py')
-        module = importlib.util.module_from_spec(definition)
-        sys.modules[module_name] = module
-        try:
-            definition.loader.exec_module(module)
-        except BaseException:
-            sys.modules.pop(module_name, None)
-            raise
-    return sys.modules[module_name]
+    name = '_s2r_policy_molmoact2_local_tcp'
+    # Once loaded, the policy manifests are not rediscovered.
+    return sys.modules.get(name) or load_file_module(Path(get_manifest('molmoact2').path) / 'local_tcp.py', name)
 
 
 def run(args, app):

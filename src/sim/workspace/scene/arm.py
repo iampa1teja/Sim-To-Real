@@ -15,8 +15,9 @@ from sim.workspace.scene.contact_materials import (
     GRASP_FRICTION, GRASP_ROLLING_FRICTION, bind_contact_material, enable_collision_meshes,
 )
 
-# The toml reading lives in core so hardware code can use it without Isaac.
-from utils.arms.spec import ArmSpec, arms_dir, load_arm_spec  # noqa: F401  (re-exported)
+# Manifest reading lives in utils.arms so hardware code can use it without Isaac.
+from utils.arms.spec import ArmSpec
+from utils.arms.arms import load_arm_spec  # noqa: F401  (re-exported)
 
 
 @configclass

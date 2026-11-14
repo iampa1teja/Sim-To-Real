@@ -3,7 +3,7 @@ import math
 import numpy as np
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands
-from utils.geometry import quaternion_matrix
+from utils.geometry import rotation_matrix_xyzw
 
 
 class BowlsExpert:
@@ -35,7 +35,7 @@ class BowlsExpert:
             return self._orientation_cache.get(name, nominal)
         normal = np.asarray(context.table_normal)
         normal /= np.linalg.norm(normal)
-        up = quaternion_matrix(state.objects[name].quat_xyzw)[:,2]
+        up = rotation_matrix_xyzw(state.objects[name].quat_xyzw)[:,2]
         axis = np.cross(up, normal)
         sine = np.linalg.norm(axis)
         angle = math.atan2(sine, float(np.dot(up, normal)))
@@ -73,7 +73,7 @@ class BowlsExpert:
         def grasp_frame(centre, side=1.):
             if not jaw:
                 axis = context.arm.gripper.closing_axis or (1.,0.,0.)
-                direction = quaternion_matrix(fallback_orientation) @ axis
+                direction = rotation_matrix_xyzw(fallback_orientation) @ axis
                 direction -= normal*np.dot(direction,normal)
                 direction /= np.linalg.norm(direction)
                 return direction, fallback_orientation

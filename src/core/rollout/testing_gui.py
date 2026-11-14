@@ -18,7 +18,7 @@ import uuid
 
 import numpy as np
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK, repo_root
 from core.policy_client.discovery import discover
 from core.rollout import real_rollout

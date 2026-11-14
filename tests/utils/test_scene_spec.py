@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 from utils.scene import load_mount_spec, load_scene_spec
 from utils.hashing import json_sha256
 

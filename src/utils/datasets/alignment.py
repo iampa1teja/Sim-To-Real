@@ -1,10 +1,10 @@
 """Record the selected arm/mapping and reject calibration changes on dataset resume."""
-import hashlib
 import json
 from pathlib import Path
 
 from utils.arms.calibration import resolve_calibration
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
+from utils.hashing import legacy_json_sha256
 
 MARKER = "meta/recording_alignment.json"
 
@@ -25,7 +25,7 @@ def recording_contract(*, follower_id, leader_id, calibration_selection=None, ar
         joint_names=list(arm.joint_names), joint_units=[joint.unit for joint in arm.action_joints],
         joint_roles=[joint.role for joint in arm.action_joints], use_degrees=arm.lerobot.use_degrees,
         joint_mapping=selection.mapping, follower_id=follower_id, leader_id=leader_id,
-        calibration_sha256=hashlib.sha256(json.dumps(calibration, sort_keys=True).encode()).hexdigest(),
+        calibration_sha256=legacy_json_sha256(calibration),
         start_sync="follower_state", synced_joints=list(arm.joint_names),
         wrist_rezero=bool(arm.wrist_roll and arm.wrist_roll.relative_in_teleop),
         sim_wrist_relative=bool(arm.wrist_roll and arm.wrist_roll.relative_in_teleop),

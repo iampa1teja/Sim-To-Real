@@ -14,10 +14,10 @@ import json
 import os
 from pathlib import Path
 import shutil
-import tempfile
 import uuid
 
 from utils.datasets.task_meta import SIDECAR_DIR, LEGACY_SIDECAR_DIR, sidecar_path, replace_episode_meta
+from utils.io import atomic_write_text
 
 
 def transaction_path(root):
@@ -240,18 +240,7 @@ class RerecordingSession:
         journal = transaction_path(self.roots["sim"])
         if journal.exists():
             raise RuntimeError(f"Unresolved re-record transaction: {journal}. Restart the recorder.")
-        temporary = None
-        try:
-            with tempfile.NamedTemporaryFile(mode="w", dir=journal.parent, prefix=journal.name,
-                                             suffix=".tmp", delete=False) as stream:
-                temporary = Path(stream.name)
-                json.dump(entries, stream)
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary, journal)
-        finally:
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
+        atomic_write_text(journal, json.dumps(entries), fsync=True)
         try:
             for entry in entries:
                 Path(entry["root"]).rename(entry["backup"])

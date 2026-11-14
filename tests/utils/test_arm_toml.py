@@ -6,7 +6,7 @@ import pytest
 
 from utils.arms.arm_toml import ImportChoices,build_arm_toml,build_report
 from utils.arms.urdf import UrdfModel,expand_xacro,find_packages
-from utils.arms.spec import load_arm_spec
+from utils.arms.arms import load_arm_spec
 
 FIXTURES=Path(__file__).resolve().parents[1]/'fixtures'/'urdf'
 

@@ -36,7 +36,7 @@ def apply_teleop(cfg, task):
                 collision_props=contact_properties(), physics_material_path="physicsMaterial",
                 physics_material=contact_material(GRASP_FRICTION, rolling_friction=GRASP_ROLLING_FRICTION),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=tuple(spec.params["color"]), roughness=.5),
-            ), init_state=RigidObjectCfg.InitialStateCfg(pos=pose.position, rot=pose.orientation_xyzw),
+            ), init_state=RigidObjectCfg.InitialStateCfg(pos=pose.position, rot=pose.quat_xyzw),
         ))
     names = arm.gripper.contact_bodies
     expression = re.escape(names[0]) if len(names) == 1 else "(" + "|".join(map(re.escape, names)) + ")"

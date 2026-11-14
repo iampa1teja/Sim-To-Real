@@ -86,7 +86,7 @@ def test_migration_validates_all_episodes_before_publishing(tmp_path):
 
 
 def test_source_reads_multiple_objects_and_legacy_with_explicit_context(tmp_path):
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
 
     arm = load_arm_spec("so101")[0]
     task = SimpleNamespace(name="stack", spec=SimpleNamespace(tracked_objects=tuple(SIZES)))

@@ -2,7 +2,7 @@
 import math
 import numpy as np
 
-from core.eval.geometry import rotation_matrix
+from utils.geometry import rotation_matrix_wxyz
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 
@@ -24,7 +24,7 @@ class StackExpert:
 
         def rotation(pose):
             x, y, z, w = pose.quat_xyzw
-            return rotation_matrix((w, x, y, z))
+            return rotation_matrix_wxyz((w, x, y, z))
 
         red_rotation = rotation(red)
         blue_half = np.asarray(self.task.spec.objects["cube_a"].size) / 2

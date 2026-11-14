@@ -40,7 +40,7 @@ def ready_pose(spec, kinematics):
     from utils.scene import load_scene_spec, load_mount_spec
     scene=load_scene_spec(DEFAULT_SCENE)
     mounting=mount_pose(scene,load_mount_spec(scene,spec),spec)
-    cache_key=(tuple(spec.ik.position_offset_m),tuple(mounting.position),tuple(mounting.orientation_xyzw))
+    cache_key=(tuple(spec.ik.position_offset_m),tuple(mounting.position),tuple(mounting.quat_xyzw))
     cached=getattr(kinematics,'_import_ready_cache',{})
     if cache_key in cached:
         q,info=cached[cache_key]

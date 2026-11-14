@@ -12,7 +12,7 @@ import numpy as np
 
 def make_sweep(*, arm='so101', unit='rpd_follower', scene='rpd_meeting_room', fps=30,
                hold_s=2.0, speed_deg_s=15.0, holds=9, margin_deg=5.0, exclude=''):
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.calibration import load_unit
     from utils.arms.mapping import physical_to_units, raw_joint_limits
     from utils.geometry import mount_joint_positions

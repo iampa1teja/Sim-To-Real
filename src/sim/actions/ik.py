@@ -520,7 +520,7 @@ class ArmKinematics:
 
 def make_ik(robot, arm, **kwargs):
     """Construct the optional arm-owned IK backend, or the library adapter."""
-    from utils.arms.spec import load_arm_utils
+    from utils.arms.arms import load_arm_utils
 
     hook = getattr(load_arm_utils(arm), 'make_ik', None)
     return hook(robot, arm, **kwargs) if hook is not None else ArticulationIK(robot, arm, **kwargs)
@@ -528,7 +528,7 @@ def make_ik(robot, arm, **kwargs):
 
 def make_kinematics(arm, **kwargs):
     """Construct the optional arm-owned command kinematics, or Newton FK."""
-    from utils.arms.spec import load_arm_utils
+    from utils.arms.arms import load_arm_utils
 
     hook = getattr(load_arm_utils(arm), 'make_kinematics', None)
     return hook(arm, **kwargs) if hook is not None else ArmKinematics.from_arm(arm, **kwargs)

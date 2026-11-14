@@ -62,7 +62,7 @@ def joint_ranges(arm, mapping):
 
 def sim_start_roll_units(mapping, mount=None, arm=None):
     """Optional sim-start roll expressed in the selected unit's raw convention."""
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
     from utils.arms.mapping import physical_to_units
     from utils.scene import load_scene_spec, load_mount_spec
 
@@ -246,7 +246,7 @@ def camera_specs(args):
 def validate(args):
     """Argument errors found before touching any hardware."""
     from utils.arms.calibration import resolve_calibration
-    from utils.arms.spec import load_arm_spec
+    from utils.arms.arms import load_arm_spec
 
     errors = []
     if not args.follower_port:
