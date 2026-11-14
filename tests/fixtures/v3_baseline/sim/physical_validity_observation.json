@@ -1,0 +1,15 @@
+{
+  "source": "user observation after verification",
+  "user_statement": "there is one issue here, the arm didn't actually drop the bowl, it slipped thorugh it, that wasn't actually intended",
+  "finding": "reported bowl pass-through/interpenetration during manipulation",
+  "independently_verified": false,
+  "episode_seed": null,
+  "contact_pair": null,
+  "cause": "not established",
+  "interpretation": "Stage failure labels and task-signal accepted episodes do not establish physical contact validity.",
+  "evidence_locations": [
+    "workspace/tasks/stack_bowls/__init__.py:34",
+    "src/sim/datagen/rollout.py:97"
+  ],
+  "scope": "Documentation/evidence correction only; no source, physics or asset changes."
+}

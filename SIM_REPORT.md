@@ -2,6 +2,7 @@
 
 Verified on 2026-11-14. **Overall: FAIL — the v3 equivalence gate is not satisfied.**
 
+- **User-reported physical failure: bowl pass-through/interpenetration.** The user observed the bowl passing through contact geometry during manipulation, rather than an ordinary physical release/drop. The exact episode/contact pair and cause have not yet been independently verified. Existing stage labels and accepted-episode counts do not establish physically valid contact behavior; see the observation below.
 - **Six new test failures:** stale `from sim.datagen import spawner` imports at `tests/sim/test_sim_real.py:212` and `:274`; all six passed in Phase 0.
 - **Eval smoke cannot complete:** live geometry differs from the stored eval set at `base_position_world` (`src/sim/eval/scene.py:95`), aborting before the first of nine selected episodes. Stage rates are unavailable; no geometry was recaptured or bypassed.
 - **Scripted generation differs between commits.** Per-attempt outcomes and available same-seed array comparisons are below. Several recipes did not produce the requested two accepted episodes; equivalence is unverified wherever a matching accepted array is absent.
@@ -1786,6 +1787,16 @@ docker exec s2r-sim s2r-entrypoint python -m core.eval.eval_set --help
 **PASS** (command exit 0); full output: [commands/help_core_eval_eval_set.json](tests/fixtures/v3_baseline/sim/commands/help_core_eval_eval_set.json).
 
 All seven returned 0 with help text and no import error. Scripted generation and eval help were also inspected before choosing runtime flags.
+
+## Post-verification physical observation
+
+The user reported that the arm did not actually drop the bowl: the bowl passed through geometry, which was unintended. Record this as a **reported bowl pass-through/interpenetration failure**, rather than diagnosing an ordinary release/drop. The exact contact pair (gripper/bowl or bowl/bowl), episode/seed and first affected frame remain to be confirmed. Tunneling, collider configuration and contact-solver behavior are possible explanations, not established causes.
+
+The existing bowl classifier at `workspace/tasks/stack_bowls/__init__.py:34` returns stage-based labels (`never_grasped`, `one_bowl_only`, `incomplete_stack`, `stack_not_confirmed`). These labels do not identify whether an object was released, slipped out, or passed through collision geometry. The raw labels in the recorded reports are retained as emitted; they are not physical diagnoses.
+
+`src/sim/datagen/rollout.py:97` accepts episodes when task success was latched, still holds at the final observation, and recorded frames exist. That acceptance condition has no separate penetration check. The accepted-episode counts above therefore describe task-signal acceptance; they do **not** certify physical validity of the bowl interaction. This correction does not establish whether the behavior was introduced by v3 or already occurred on Phase 0.
+
+No collision geometry, asset, physics parameter, task-success rule or source file was changed. The user observation is preserved separately in `tests/fixtures/v3_baseline/sim/physical_validity_observation.json`.
 
 ## Limits and steps that could not be completed
 
