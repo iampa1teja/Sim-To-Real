@@ -333,6 +333,7 @@ class Move:
     ``waypoint_timeout_seconds`` (max(8, 3 * move_seconds)), ``position_tolerance_m`` (0.004),
     ``orientation_xyzw`` (the current control orientation, turned to the nearest object face),
     the gripper opening options, and ``object_feedback`` (False) for object-centre goals.
+    A task can change these defaults with ``expert_options`` in its ``task.py``.
     """
 
     def __init__(self, obj):
@@ -367,27 +368,36 @@ class Move:
         orientation = tuple(ctx.options.get("orientation_xyzw", ctx.control_pose.quat_xyzw))
         return grasp_orientation(ctx, ctx.state.objects[self.obj], orientation)
 
-    def waypoint(self, ctx, name, position, opening, seconds=None, *, object_goal=False):
+    def feedback(self, ctx):
+        """Whether object-centre goals carry ``object_ref`` (the pickup TCP offset is then kept)."""
+        return ctx.options.get("object_feedback", False)
+
+    def waypoint(self, ctx, name, position, opening, seconds=None, *, object_goal=False, tolerance=None):
         options = ctx.options
         duration = self.duration(ctx)
         seconds = duration if seconds is None else seconds
         timeout = float(options.get("waypoint_timeout_seconds", max(8., duration * 3)))
         return Waypoint(name, Pose.from_lists(position, self.orientation(ctx)), duration_s=seconds,
-                        tolerance_m=float(options.get("position_tolerance_m", .004)),
+                        tolerance_m=float(options.get("position_tolerance_m", .004)) if tolerance is None else tolerance,
                         timeout_s=max(timeout, seconds),
-                        object_ref=self.obj if object_goal and options.get("object_feedback", False) else None,
+                        object_ref=self.obj if object_goal and self.feedback(ctx) else None,
                         **opening)
 
 
 class Expert:
-    """Plans a task's moves in order; the scripted runner calls ``plan(context)``."""
+    """Plans a task's moves in order; the scripted runner calls ``plan(context)``.
 
-    def __init__(self, moves, objects):
+    ``defaults`` are the task's expert option defaults; the runner's options override them.
+    """
+
+    def __init__(self, moves, objects, defaults=None):
         self.moves = tuple(moves)
         self.objects = objects
+        self.defaults = dict(defaults or {})
 
     def plan(self, context):
         values = {item.name: getattr(context, item.name) for item in fields(ExpertContext)}
+        values["options"] = {**self.defaults, **context.options}
         ctx = MoveContext(**values, objects=self.objects)
         for move in self.moves:
             move.validate(ctx)

@@ -21,21 +21,27 @@
 - ``reached(obj, target, relation="over", held=grasp)``: while ``grasp`` reports holding, the object
   centre lies inside the convex hull of the target's footprint. Today this is computed from the
   core ``StepState`` poses only, so it publishes no signal and has no simulator evaluation.
+- ``reached(obj, target, relation="aligned", held=grasp, xy_tol=...)``: ``grasp`` reports holding and
+  the object footprint lies within the target's top face plus ``xy_tol`` (the ``placed(on_top)``
+  alignment, at any height). Evaluated in the simulator and published under the stage name.
 """
 import numpy as np
 
 from sim.actions.action import Check, object_size
+from sim.actions.checks.placed import aligned
 
 
 class Reached(Check):
-    def __init__(self, a, b, dist=None, *, relation="near", held=None, signal="reach_distance"):
-        if (a == "gripper") != (relation == "near"):
-            raise ValueError("reached supports ('gripper', obj, dist) and (obj, target, relation='over')")
+    def __init__(self, a, b, dist=None, *, relation="near", held=None, xy_tol=None, signal="reach_distance"):
+        if relation not in ("near", "over", "aligned") or (a == "gripper") != (relation == "near"):
+            raise ValueError("reached supports ('gripper', obj, dist) and (obj, target, relation='over'|'aligned')")
         if relation == "near" and dist is None:
             raise ValueError("reached('gripper', obj) needs dist")
+        if relation == "aligned" and (held is None or xy_tol is None):
+            raise ValueError("reached(relation='aligned') needs held and xy_tol")
         self.a, self.b, self.dist = a, b, dist
-        self.relation, self.held, self.signal = relation, held, signal
-        self.in_sim = relation == "near"
+        self.relation, self.held, self.xy_tol, self.signal = relation, held, xy_tol, signal
+        self.in_sim = relation != "over"
 
     def children(self):
         return () if self.held is None else (self.held,)
@@ -50,11 +56,16 @@ class Reached(Check):
         return torch.linalg.vector_norm(frame.gripper_point - frame.position[self.b], dim=-1)
 
     def evaluate(self, frame):
+        if self.relation == "aligned":
+            holding, _ = self.held.update(frame)
+            return holding & aligned(frame, self.a, self.b, self.xy_tol)
         if self.relation != "near":
             return super().evaluate(frame)
         return self.distance(frame) <= self.dist
 
     def signals(self, frame, name):
+        if self.relation == "aligned":
+            return super().signals(frame, name)
         return {self.signal: self.distance(frame)} if self.relation == "near" else {}
 
     # Core side -----------------------------------------------------------------------------------
@@ -64,6 +75,8 @@ class Reached(Check):
             target = np.asarray(state.objects[self.b].position)
             fallback = np.linalg.norm(np.asarray(state.ee.position) - target)
             return float(state.signals.get(self.signal, fallback)) <= self.dist
+        if self.relation == "aligned":
+            return super().observe(state, name, objects)
         if self.held is not None and not bool(state.signals.get("holding", False)):
             return False
         return self._over(np.asarray(state.objects[self.a].position), state.objects[self.b], objects[self.b])
@@ -78,5 +91,5 @@ class Reached(Check):
         return inside_polygon(point[:2], hull(polygon))
 
 
-def reached(a, b, dist=None, *, relation="near", held=None, signal="reach_distance"):
-    return Reached(a, b, dist, relation=relation, held=held, signal=signal)
+def reached(a, b, dist=None, *, relation="near", held=None, xy_tol=None, signal="reach_distance"):
+    return Reached(a, b, dist, relation=relation, held=held, xy_tol=xy_tol, signal=signal)

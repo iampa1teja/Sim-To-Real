@@ -3,8 +3,10 @@
 ``task.py`` exposes plain module-level names:
 
 - ``stages``: dict of stage name -> check, in ``task.toml`` stage order; the last one is success.
-- ``expert`` (optional): list of moves, planned in order by the scripted expert.
+- ``expert`` (optional): list of moves, planned in order by the scripted expert;
+  ``expert_options`` (optional) changes the moves' option defaults (the runner's options still win).
 - optional hooks for genuinely task-specific rules:
+  ``sample_start(sample)`` the start poses, given ``sample()`` that draws one start-object pose;
   ``start_is_valid(task, start, scene)`` an extra start rule, applied after the generic one;
   ``failure_mode(flags, state)`` the failure name of an unsuccessful episode (default ``"timeout"``);
   ``progress_label(label, flags, state)`` extends the generic progress label;
@@ -75,6 +77,13 @@ class Task(BaseTask):
     def observe(self, state: StepState) -> dict[str, bool]:
         return {name: bool(check.observe(state, name, self.spec.objects)) for name, check in self.stage_checks.items()}
 
+    def sample_start(self, rng):
+        rule = self._hook("sample_start")
+        if rule is None:
+            return super().sample_start(rng)
+        name = self.spec.start.get("object", self.spec.tracked_objects[0])
+        return rule(lambda: super(Task, self).sample_start(rng)[name])
+
     def start_is_valid(self, start, scene) -> bool:
         if not super().start_is_valid(start, scene):
             return False
@@ -113,4 +122,4 @@ class Task(BaseTask):
             raise NotImplementedError(f"Task {self.name!r} has no expert in task.py")
         from sim.actions.action import Expert
 
-        return Expert(moves, self.spec.objects)
+        return Expert(moves, self.spec.objects, getattr(self.module, "expert_options", None))

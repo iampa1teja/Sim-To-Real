@@ -18,17 +18,18 @@
 Lift is measured from the object's lowest height since reset, not an absolute world Z: the room's
 table is ~0.76 m up, so a world-Z threshold would read "lifted" while the cube is still on the table.
 
-Two comparisons are used today and both are kept: the stage itself compares in float64 with ``>=``
-(``evaluate``), while the grasp hysteresis in ``grasped`` uses the strict float comparison ``>``
-(``raised``).
+Two comparison rules are used today and both are kept. By default the stage compares in float64 with
+``>=`` (``evaluate``) while the grasp hysteresis in ``grasped`` uses the strict float32 comparison ``>``
+(``raised``). With ``float32_ge=True`` both compare the float32 height with ``>=``.
 """
 from sim.actions.action import Tracker
 
 
 class Lifted(Tracker):
-    def __init__(self, obj, min_lift=0.01):
+    def __init__(self, obj, min_lift=0.01, *, float32_ge=False):
         self.obj = obj
         self.min_lift = min_lift
+        self.float32_ge = float32_ge
 
     def initial(self, frame):
         return {"rest_z": frame.position[self.obj][:, 2].clone()}
@@ -48,11 +49,13 @@ class Lifted(Tracker):
         return z - state["rest_z"]
 
     def raised(self, frame):
-        return self.height(frame) > self.min_lift
+        height = self.height(frame)
+        return height >= self.min_lift if self.float32_ge else height > self.min_lift
 
     def evaluate(self, frame):
-        return self.height(frame).double() >= self.min_lift
+        height = self.height(frame)
+        return height >= self.min_lift if self.float32_ge else height.double() >= self.min_lift
 
 
-def lifted(obj, min_lift=0.01):
-    return Lifted(obj, min_lift)
+def lifted(obj, min_lift=0.01, *, float32_ge=False):
+    return Lifted(obj, min_lift, float32_ge=float32_ge)

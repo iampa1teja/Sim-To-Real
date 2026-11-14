@@ -4,6 +4,14 @@
 ``floor_z``; centred unless ``place_xy`` is given). ``transport="arc"`` carries it at the lift height
 around the actual arm base instead of cutting through the inner workspace; ``"direct"`` goes straight
 to the point above the placement. The pickup orientation is kept throughout the transport.
+
+``relation="on_top"`` (``transport="direct"`` only) stacks the object on the target: its centre goes
+along the target's own up axis by the target's half height, the object's half extent along that axis
+and ``clearance`` (option ``stack_clearance_m``). It goes to ``transport`` above that point, then
+``lower`` and ``release`` there with the tighter tolerance ``precise`` (``yaw_precise`` when the arm
+controls yaw), and ``retreat``/``settle`` back at the lift height. ``settle`` lasts at least
+``settle_steps`` control steps (option ``control_fps``, 30). ``feedback="yaw"`` sets ``object_ref``
+on these waypoints exactly when the arm controls yaw (default ``"option"``: the ``object_feedback`` option).
 """
 import math
 
@@ -68,18 +76,37 @@ def transport_arc(start, end, origin, normal, margin, *, interpolate_radius=Fals
     return points
 
 
+def _controls_yaw(ctx):
+    return ctx.arm is not None and "z" in ctx.arm.ik.orientation_axes
+
+
+def _rotation(pose):
+    qx, qy, qz, qw = pose.quat_xyzw
+    return rotation_matrix_wxyz((qw, qx, qy, qz))
+
+
 class Place(Move):
     def __init__(self, obj, target, relation="inside", *, transport="arc", lift=.09, retreat=.06,
-                 clearance=.003, release_height=0., arc_margin=.01, release_seconds=.8, settle_seconds=1.5):
-        if relation != "inside":
-            raise ValueError(f"place relation {relation!r} is not supported yet; use 'inside'")
+                 clearance=.003, release_height=0., arc_margin=.01, release_seconds=.8, settle_seconds=1.5,
+                 precise=None, yaw_precise=None, settle_steps=0, feedback="option"):
+        if relation not in ("inside", "on_top"):
+            raise ValueError(f"place relation must be 'inside' or 'on_top', got {relation!r}")
         if transport not in ("arc", "direct"):
             raise ValueError(f"place transport must be 'arc' or 'direct', got {transport!r}")
+        if relation == "on_top" and (transport != "direct" or None in (precise, yaw_precise)):
+            raise ValueError("place(relation='on_top') needs transport='direct', precise and yaw_precise")
+        if feedback not in ("option", "yaw"):
+            raise ValueError(f"place feedback must be 'option' or 'yaw', got {feedback!r}")
         super().__init__(obj)
         self.target, self.relation, self.transport = target, relation, transport
         self.lift, self.retreat, self.clearance = lift, retreat, clearance
         self.release_height, self.arc_margin = release_height, arc_margin
         self.release_seconds, self.settle_seconds = release_seconds, settle_seconds
+        self.precise, self.yaw_precise, self.settle_steps = precise, yaw_precise, settle_steps
+        self.feedback_rule = feedback
+
+    def feedback(self, ctx):
+        return _controls_yaw(ctx) if self.feedback_rule == "yaw" else super().feedback(ctx)
 
     def placement(self, ctx):
         """World position of the object centre when placed."""
@@ -104,6 +131,8 @@ class Place(Move):
         return np.asarray(box.position) + rotation @ local
 
     def validate(self, ctx):
+        if self.relation == "on_top":
+            return self._validate_on_top(ctx)
         options = ctx.options
         if {"transport_orientation_xyzw", "transport_roll_degrees"} & options.keys():
             raise ValueError("The expert keeps its pickup orientation during transport; remove transport roll overrides")
@@ -115,6 +144,8 @@ class Place(Move):
 
     def plan(self, ctx):
         self.validate(ctx)
+        if self.relation == "on_top":
+            return self._plan_on_top(ctx)
         options = ctx.options
         normal = self.normal(ctx)
         placed = self.placement(ctx)
@@ -149,9 +180,63 @@ class Place(Move):
             point("settle", retreat, opened, float(options.get("settle_seconds", self.settle_seconds))),
         )
 
+    # On top of another object ------------------------------------------------------------------------
+
+    def _on_top_position(self, ctx):
+        """World position of the object centre resting on the target, along the target's up axis."""
+        support = ctx.state.objects[self.target]
+        rotation = _rotation(support)
+        half = np.asarray(self.size(ctx)) / 2
+        support_half = np.asarray(self.size(ctx, self.target)) / 2
+        height = np.abs((rotation.T @ _rotation(ctx.state.objects[self.obj]))[2]) @ half
+        clearance = float(ctx.options.get("stack_clearance_m", self.clearance))
+        return np.asarray(support.position) + rotation[:, 2] * (support_half[2] + height + clearance)
+
+    def _validate_on_top(self, ctx):
+        options = ctx.options
+        if {"transport_roll_degrees", "transport_orientation_xyzw"} & options.keys():
+            raise ValueError("Stack expert keeps the pickup orientation; transport roll overrides are unsupported")
+        normal = np.asarray(ctx.table_normal, dtype=float)
+        if not np.isfinite(normal).all() or np.linalg.norm(normal) < 1e-12:
+            raise ValueError("Stack expert requires a finite table normal")
+        clearance = float(options.get("stack_clearance_m", self.clearance))
+        if not math.isfinite(clearance) or clearance < 0:
+            raise ValueError("stack_clearance_m must be finite and nonnegative")
+        if min(float(options.get("approach_height_m", self.retreat)), float(options.get("lift_height_m", self.lift))) <= 0:
+            raise ValueError("Approach and lift heights must be positive")
+        self.gripper(ctx)
+        self.orientation(ctx)
+        fps = float(options.get("control_fps", 30.))
+        if not math.isfinite(fps) or fps <= 0:
+            raise ValueError("control_fps must be positive")
+
+    def _plan_on_top(self, ctx):
+        options = ctx.options
+        stacked = self._on_top_position(ctx)
+        above = stacked + self.normal(ctx) * float(options.get("lift_height_m", self.lift))
+        opened, closed = self.gripper(ctx)
+        precise = min(float(options.get("position_tolerance_m", .004)), self.precise)
+        if _controls_yaw(ctx):
+            precise = min(precise, self.yaw_precise)
+        settle = max(float(options.get("settle_seconds", self.settle_seconds)),
+                     self.settle_steps / float(options.get("control_fps", 30.)))
+
+        def point(name, position, opening, seconds=None, tolerance=None):
+            return self.waypoint(ctx, name, position, opening, seconds, object_goal=True, tolerance=tolerance)
+
+        return (
+            point("transport", above, closed, float(options.get("transport_seconds", self.duration(ctx)))),
+            point("lower", stacked, closed, tolerance=precise),
+            point("release", stacked, opened, float(options.get("release_seconds", self.release_seconds)), precise),
+            point("retreat", above, opened),
+            point("settle", above, opened, settle),
+        )
+
 
 def place(obj, target, relation="inside", *, transport="arc", lift=.09, retreat=.06, clearance=.003,
-          release_height=0., arc_margin=.01, release_seconds=.8, settle_seconds=1.5):
+          release_height=0., arc_margin=.01, release_seconds=.8, settle_seconds=1.5,
+          precise=None, yaw_precise=None, settle_steps=0, feedback="option"):
     return Place(obj, target, relation, transport=transport, lift=lift, retreat=retreat, clearance=clearance,
                  release_height=release_height, arc_margin=arc_margin, release_seconds=release_seconds,
-                 settle_seconds=settle_seconds)
+                 settle_seconds=settle_seconds, precise=precise, yaw_precise=yaw_precise,
+                 settle_steps=settle_steps, feedback=feedback)

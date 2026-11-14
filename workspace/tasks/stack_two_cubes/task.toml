@@ -2,12 +2,9 @@
 name = "stack_two_cubes"
 instruction = "Stack the blue cube on top of the red cube"
 default_variant = "teleop"
+variants = ["teleop", "eval"]
 stages = ["reached", "grasped", "lifted", "over_target", "stacked", "success"]
 tracked_objects = ["cube_a", "cube_b"]
-
-[task.variants]
-teleop = "env_cfg:apply_teleop"
-eval = "env_cfg:apply_eval"
 
 [task.start]
 object = "cube_a"
@@ -30,15 +27,7 @@ mass = 0.008
 frame = "arm_base"
 position = [0.20, -0.08, 0.05]
 color = [0.8, 0.04, 0.03]
-
-[task.success]
-min_lift = 0.01
-force_threshold = 2.0
-warmup_steps = 30
-confirm_steps = 25
-xy_tolerance = 0.004
-z_tolerance = 0.004
-max_speed = 0.05
+reset_to_default = true  # teleop: back at this pose for every new demonstration
 
 [task.episode]
 decimation = 4

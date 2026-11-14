@@ -29,6 +29,28 @@ Relations (target frame from its live XYZW pose):
 from sim.actions.action import Check, object_size
 
 
+def relative(frame, obj, target):
+    """``obj`` centre in the target frame, and the half extent of its oriented box along those axes."""
+    import isaaclab.utils.math as math_utils
+    import torch
+
+    target_pos, target_quat = frame.position[target], frame.orientation[target]
+    inverse = math_utils.quat_inv(target_quat)
+    rel = math_utils.quat_apply(inverse, frame.position[obj] - target_pos)
+    rotation = math_utils.matrix_from_quat(math_utils.quat_mul(inverse, frame.orientation[obj]))
+    half_size = rel.new_tensor(object_size(frame.objects[obj])) / 2
+    return rel, torch.matmul(rotation.abs(), half_size)
+
+
+def aligned(frame, obj, target, xy_tol):
+    """The footprint of ``obj`` lies within the target's top face plus ``xy_tol`` (any height)."""
+    import torch
+
+    rel, extent = relative(frame, obj, target)
+    target_half = rel.new_tensor(object_size(frame.objects[target])) / 2
+    return torch.all(rel[:, :2].abs() + extent[:, :2] <= target_half[:2] + xy_tol, dim=-1)
+
+
 class Placed(Check):
     def __init__(self, obj, target, relation="inside", *, grasp, warmup_steps=30,
                  xy_tol=None, z_tol=None, max_speed=None):
@@ -44,23 +66,12 @@ class Placed(Check):
     def children(self):
         return (self.grasp,)
 
-    def _relative(self, frame):
-        import isaaclab.utils.math as math_utils
-        import torch
-
-        target_pos, target_quat = frame.position[self.target], frame.orientation[self.target]
-        inverse = math_utils.quat_inv(target_quat)
-        rel = math_utils.quat_apply(inverse, frame.position[self.obj] - target_pos)
-        rotation = math_utils.matrix_from_quat(math_utils.quat_mul(inverse, frame.orientation[self.obj]))
-        half_size = rel.new_tensor(object_size(frame.objects[self.obj])) / 2
-        return rel, torch.matmul(rotation.abs(), half_size)
-
     def _inside(self, frame):
         import torch
 
         params = frame.objects[self.target].params
         size, floor_z = params["size_outer"], params["floor_z"]
-        rel, extent = self._relative(frame)
+        rel, extent = relative(frame, self.obj, self.target)
         inner = rel.new_tensor(tuple(params["inner_half_size"]))
         within_xy = torch.all(rel[:, :2].abs() + extent[:, :2] <= inner, dim=-1)
         # Use the centre at the floor so small contact-solver penetrations do not
@@ -73,12 +84,11 @@ class Placed(Check):
     def _on_top(self, frame):
         import torch
 
-        rel, extent = self._relative(frame)
+        rel, extent = relative(frame, self.obj, self.target)
         target_half = rel.new_tensor(object_size(frame.objects[self.target])) / 2
-        aligned = torch.all(rel[:, :2].abs() + extent[:, :2] <= target_half[:2] + self.xy_tol, dim=-1)
         on_top = (rel[:, 2] - target_half[2] - extent[:, 2]).abs() <= self.z_tol
         stable = torch.linalg.vector_norm(frame.velocity[self.obj][:, :3], dim=-1) <= self.max_speed
-        return aligned & on_top & stable
+        return aligned(frame, self.obj, self.target, self.xy_tol) & on_top & stable
 
     def evaluate(self, frame):
         holding, ever = self.grasp.update(frame)

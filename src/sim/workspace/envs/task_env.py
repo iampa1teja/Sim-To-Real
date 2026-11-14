@@ -111,9 +111,12 @@ def plan_task_cfg(spec, variant, arm, scene) -> TaskCfgPlan:
     start_object = spec.start.get("object", spec.tracked_objects[0])
     tracking = TermPlan("reset_tracking", f"{__name__}:reset_task_tracking", {"task": spec.name}, mode="reset")
     if variant == "teleop":
+        # Objects declared with reset_to_default = true go back to their declared pose on every reset.
+        restore = tuple(name for name, item in spec.objects.items() if item.params.get("reset_to_default", False))
+        events = [TermPlan("reset_target", f"{__name__}:reset_to_default", {"names": restore}, mode="reset")] if restore else []
         # The spawnable start object stays parked until sim.teleop.spawner places it at the jaw.
-        events = [TermPlan("reset_from_starts", "sim.workspace.envs.mdp:park_object",
-                           {"asset_cfg": Entity(start_object)}, mode="reset"), tracking]
+        events += [TermPlan("reset_from_starts", "sim.workspace.envs.mdp:park_object",
+                            {"asset_cfg": Entity(start_object)}, mode="reset"), tracking]
     else:
         events = [TermPlan("reset_from_starts", "sim.workspace.envs.mdp.starts:reset_from_starts",
                            {"task": spec.name, "starts_dir": None, "mode": "cycle", "random_fraction": 0.0,
@@ -275,6 +278,19 @@ def _ids(env, env_ids):
     if isinstance(env_ids, slice):
         return all_ids[env_ids]
     return torch.as_tensor(env_ids, device=env.device, dtype=torch.long).reshape(-1)
+
+
+def reset_to_default(env, env_ids, names):
+    """Teleop: put ``names`` back at their declared start pose, at rest, for a fresh demonstration."""
+    from sim.workspace.envs.mdp import as_torch, env_indices
+
+    ids = env_indices(env, env_ids)
+    for name in names:
+        target = env.scene[name]
+        pose = as_torch(target.data.default_root_state)[ids, :7].clone()
+        pose[:, :3] += as_torch(env.scene.env_origins)[ids]
+        target.write_root_pose_to_sim_index(root_pose=pose, env_ids=ids)
+        target.write_root_velocity_to_sim_index(root_velocity=pose.new_zeros((len(ids), 6)), env_ids=ids)
 
 
 def reset_task_tracking(env, env_ids, task):
