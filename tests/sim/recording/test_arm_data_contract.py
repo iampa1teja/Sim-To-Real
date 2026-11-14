@@ -7,10 +7,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from core.arms.spec import load_arm_spec
-from core.arms import mapping as evaluation
-from core.benchmark import eval_set as benchmark, starts
-from core.datasets.sources import load_source, recorded_joint_mapping, replay_joint_mapping
+from utils.arms.spec import load_arm_spec
+from utils.arms import mapping as evaluation
+from core.eval import eval_set as benchmark, starts
+from utils.datasets.sources import load_source, recorded_joint_mapping, replay_joint_mapping
 
 
 @pytest.fixture
@@ -117,7 +117,7 @@ def test_replay_uses_recorded_mapping_and_refuses_conflicting_unit(tmp_path, arm
 
     different = {name: dict(span) for name, span in mapping.items()}
     different["yaw"]["joint_max"] = 180
-    monkeypatch.setattr("core.arms.calibration.resolve_calibration",
+    monkeypatch.setattr("utils.arms.calibration.resolve_calibration",
                         lambda *args, **kwargs: SimpleNamespace(mapping=different))
     with pytest.raises(ValueError, match="differs from the dataset mapping"):
         replay_joint_mapping(root, arm, unit="another_unit")
@@ -136,7 +136,7 @@ def test_recorded_mapping_preserves_reversed_device_codec(tmp_path, arm, monkeyp
     np.testing.assert_allclose(evaluation.dataset_state_to_radians([0, 0, 0, 0], saved, arm=arm),
                                [0.04, 0, 0.25, -0.04])
     # Matching physical spans alone cannot establish equivalent device units.
-    monkeypatch.setattr("core.arms.calibration.resolve_calibration",
+    monkeypatch.setattr("utils.arms.calibration.resolve_calibration",
                         lambda *args, **kwargs: SimpleNamespace(mapping=arm.runtime_joint_limits))
     with pytest.raises(ValueError, match="differs from the dataset mapping"):
         replay_joint_mapping(tmp_path, arm, unit="different_direction")
@@ -150,7 +150,7 @@ def test_explicit_default_codec_and_implicit_default_are_equivalent(tmp_path, ar
     (tmp_path / "meta/recording_alignment.json").write_text(json.dumps({
         "arm": arm.name, "joint_names": arm.joint_names, "joint_mapping": mapping,
     }))
-    monkeypatch.setattr("core.arms.calibration.resolve_calibration",
+    monkeypatch.setattr("utils.arms.calibration.resolve_calibration",
                         lambda *args, **kwargs: SimpleNamespace(mapping=arm.runtime_joint_limits))
     saved, provenance = replay_joint_mapping(tmp_path, arm, unit="same_encoding")
     assert provenance["mode"] == "recorded"

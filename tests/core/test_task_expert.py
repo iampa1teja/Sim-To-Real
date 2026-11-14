@@ -68,7 +68,7 @@ def test_transport_arc_preserves_clearance_and_targets_container_center():
 
 
 def test_transport_arc_uses_rigid_world_geometry_on_a_tilted_table():
-    from core.scenes.anchors import quaternion_matrix
+    from utils.geometry import quaternion_matrix
 
     task = load_task("pick_place_cube")
     base = Pose((0., 0., .75))
@@ -145,8 +145,8 @@ def test_raised_release_opens_without_extra_closed_hold_over_container():
 
 
 def test_physical_gap_waypoints_and_nearest_cube_face(synthetic_arm):
-    from core.arms.spec import IKSpec
-    from core.scenes.anchors import quaternion_matrix
+    from utils.arms.spec import IKSpec
+    from utils.geometry import quaternion_matrix
     from core.tasks.expert import Waypoint
 
     grip = replace(synthetic_arm.gripper, closed_gap_m=0., open_gap_m=.08,

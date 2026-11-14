@@ -9,7 +9,7 @@ import subprocess
 
 import numpy as np
 
-from core.datasets.task_meta import read_task_meta, save_task_trajectory
+from utils.datasets.task_meta import read_task_meta, save_task_trajectory
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / 'workspace/policies/groot_n17/train'

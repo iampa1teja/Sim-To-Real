@@ -14,8 +14,8 @@ from lerobot.datasets.pipeline_features import aggregate_pipeline_dataset_featur
 from lerobot.utils.feature_utils import combine_feature_dicts,  build_dataset_frame
 from lerobot.utils.constants import ACTION, OBS_STR
 
-from core.arms.calibration import load_device_calibration, resolve_calibration
-from core.arms.spec import load_arm_spec
+from utils.arms.calibration import load_device_calibration, resolve_calibration
+from utils.arms.spec import load_arm_spec
 
 def make_camera_configs(cameras: dict, fps: int,) -> dict:
     result = {}

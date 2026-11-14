@@ -1,15 +1,15 @@
 """Capture task-independent live geometry for fixed evaluation starts."""
 import numpy as np
 
-from core.arms.spec import load_arm_spec
-from core.scenes import load_scene_spec
+from utils.arms.spec import load_arm_spec
+from utils.scene import load_scene_spec
 from core.tasks.loader import load_task
 
 
 def capture_scene(env, task=None, index=0):
     from pxr import Gf, UsdGeom
-    from core.benchmark.geometry import hull, rotation_matrix
-    from core.scenes.anchors import anchor_quaternion
+    from core.eval.geometry import hull, rotation_matrix
+    from utils.geometry import anchor_quaternion
     from sim.envs.mdp._common import _wxyz, as_torch
     from sim.scene.geometry import anchor_prim, table_plane
 
@@ -85,8 +85,8 @@ def capture_scene(env, task=None, index=0):
 
 def validate_scene_geometry(live, expected, task, *, atol=1e-5):
     """Keep the frozen base/table/static-object guard without constraining sampled poses."""
-    from core.benchmark.eval_set import normalize_scene
-    from core.benchmark.geometry import polygons_match
+    from core.eval.eval_set import normalize_scene
+    from core.eval.geometry import polygons_match
 
     expected = normalize_scene(expected, task)
     for key in ("base_position_world", "base_quaternion_wxyz", "table_plane_world"):

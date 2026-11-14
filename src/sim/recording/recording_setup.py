@@ -76,7 +76,7 @@ def prepare_recording_roots(roots: list[str], contract: dict, *, on_mismatch: st
     Selection never creates directories or rewrites alignment markers. The recorder owns
     initialization, and a repeated launch with the same contract selects the same pair.
     """
-    from core.datasets.alignment import RecordingAlignmentError, validate_recording_root
+    from utils.datasets.alignment import RecordingAlignmentError, validate_recording_root
     from .rerecording import recover_replacement
 
     if on_mismatch not in ("error", "new"):
@@ -162,7 +162,7 @@ def make_recorders(
     None when there is no physical follower.
     """
     from .lerobot_recorder import LeRobotRecorder, SynchronizedLeRobotRecorders
-    from core.arms.spec import load_arm_spec
+    from utils.arms.spec import load_arm_spec
 
     arm = arm or load_arm_spec()[0]
 

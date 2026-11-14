@@ -2,7 +2,7 @@
 import math
 import numpy as np
 
-from core.benchmark.geometry import rotation_matrix
+from core.eval.geometry import rotation_matrix
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands, grasp_orientation
 

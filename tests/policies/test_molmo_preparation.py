@@ -8,11 +8,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from core.arms.calibration import resolve_calibration
-from core.arms.mapping import units_to_physical
-from core.arms.spec import load_arm_spec
-from core.datasets.sources import recorded_joint_mapping
-from core.utils.hashing import tree_sha256
+from utils.arms.calibration import resolve_calibration
+from utils.arms.mapping import units_to_physical
+from utils.arms.spec import load_arm_spec
+from utils.datasets.sources import recorded_joint_mapping
+from utils.hashing import tree_sha256
 
 SCRIPTS = Path(__file__).resolve().parents[2] / 'workspace/policies/molmoact2/train'
 

@@ -4,7 +4,7 @@ import ipaddress
 import json
 from urllib.parse import parse_qs, urlsplit
 
-from core.paths import repo_dir
+from utils.paths import repo_dir
 
 
 class TestingHttpServer(ThreadingHTTPServer):

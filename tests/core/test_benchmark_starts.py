@@ -6,8 +6,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from core.benchmark import eval_set as benchmark, starts as evaluation
-from core.utils.hashing import json_sha256
+from core.eval import eval_set as benchmark, starts as evaluation
+from utils.hashing import json_sha256
 
 
 SETS = Path(__file__).resolve().parents[2] / "workspace/tasks/pick_place_cube/eval_sets"

@@ -33,9 +33,9 @@ def source_mapping(source, arm_name, unit):
     if not (repository / 'src/core').is_dir():
         repository = Path('/workspace/repo')
     sys.path.insert(0, str(repository / 'src'))
-    from core.arms.spec import load_arm_spec
-    from core.arms.calibration import resolve_calibration
-    from core.datasets.sources import recorded_joint_mapping
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.calibration import resolve_calibration
+    from utils.datasets.sources import recorded_joint_mapping
 
     arm, _ = load_arm_spec(arm_name)
     if (arm.name != 'so101' or list(arm.joint_names) != JOINTS + ['gripper']

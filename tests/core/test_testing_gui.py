@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 import numpy as np
 import pytest
 
-from core.arms.spec import load_arm_spec
+from utils.arms.spec import load_arm_spec
 from core.rollout.testing_gui import RealArmSession, parse_args
 from core.rollout.testing_http import TestingHttpServer as ConsoleServer
 

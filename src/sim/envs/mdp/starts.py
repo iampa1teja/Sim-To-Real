@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 
-from core.arms.spec import load_arm_spec
+from utils.arms.spec import load_arm_spec
 from core.tasks.base import Pose
 from core.tasks.loader import load_task
 from sim.envs.mdp._common import _wxyz, _xyzw, as_torch, env_indices
@@ -44,10 +44,10 @@ def reset_from_starts(
     reset_robot=True, eval_set=None, splits=None, repeats=1, start_offset=0, benchmark_selection="all",
 ):
     from isaaclab.utils.math import quat_mul
-    from core.arms.mapping import dataset_state_to_radians
-    from core.benchmark.eval_set import EvalSetStarts
-    from core.benchmark.geometry import resting_pose, upright_orientation
-    from core.benchmark.starts import RecordedStarts
+    from utils.arms.mapping import dataset_state_to_radians
+    from core.eval.eval_set import EvalSetStarts
+    from core.eval.geometry import resting_pose, upright_orientation
+    from core.eval.starts import RecordedStarts
     from sim.eval.scene import capture_scene
 
     task = load_task(task or getattr(env.cfg, "task_name", None)) if isinstance(task, (str, type(None))) else task
@@ -110,7 +110,7 @@ def reset_from_starts(
                     orientation = upright_orientation(base_q, plane, orientation)
                 world, _ = resting_pose(position, orientation, base_p, base_q, plane, size)
             else:
-                from core.benchmark.geometry import rotation_matrix
+                from core.eval.geometry import rotation_matrix
                 world = base_p + rotation_matrix(base_q) @ position
             world_orientation = quat_mul(body_quat[index, base_id],
                 torch.as_tensor(_xyzw(orientation), device=env.device, dtype=body_quat.dtype))

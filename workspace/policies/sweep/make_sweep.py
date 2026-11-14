@@ -12,10 +12,11 @@ import numpy as np
 
 def make_sweep(*, arm='so101', unit='rpd_follower', scene='rpd_meeting_room', fps=30,
                hold_s=2.0, speed_deg_s=15.0, holds=9, margin_deg=5.0, exclude=''):
-    from core.arms.spec import load_arm_spec
-    from core.arms.calibration import load_unit
-    from core.arms.mapping import physical_to_units, raw_joint_limits
-    from core.scenes import load_scene_spec, load_mount_spec, mount_joint_positions
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.calibration import load_unit
+    from utils.arms.mapping import physical_to_units, raw_joint_limits
+    from utils.geometry import mount_joint_positions
+    from utils.scene import load_scene_spec, load_mount_spec
 
     if fps <= 0 or hold_s <= 0 or speed_deg_s <= 0 or holds < 1 or margin_deg < 0:
         raise ValueError('fps, hold-s, speed and holds must be positive; margin must be nonnegative')

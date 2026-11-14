@@ -17,7 +17,7 @@ import shutil
 import tempfile
 import uuid
 
-from core.datasets.task_meta import SIDECAR_DIR, LEGACY_SIDECAR_DIR, sidecar_path, replace_episode_meta
+from utils.datasets.task_meta import SIDECAR_DIR, LEGACY_SIDECAR_DIR, sidecar_path, replace_episode_meta
 
 
 def transaction_path(root):
@@ -211,7 +211,7 @@ class RerecordingSession:
     # Save the episode. ``sidecar(root, index)`` writes its object trajectory next to the sim dataset first.
     # A normal save returns the new index; a re-record splices it into the target slot and returns the target.
     def save_episode(self, sidecar=None):
-        from core.datasets.task_meta import validate_task_trajectories
+        from utils.datasets.task_meta import validate_task_trajectories
         self._save_started = self.original is not None
         index = self.group.save_episode()
         if index is None:

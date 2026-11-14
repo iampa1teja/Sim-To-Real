@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import torch
 
-from core.arms.spec import (ArmSpec, GripperSpec, HardwareSpec, IKSpec, InitialStateSpec,
+from utils.arms.spec import (ArmSpec, GripperSpec, HardwareSpec, IKSpec, InitialStateSpec,
                             JointSpec, LeRobotSpec, LinksSpec, load_arm_spec)
 from sim.datagen.ik import ArmKinematics, ArticulationIK, IKOptions, _JointStep, _controller_cfg
 

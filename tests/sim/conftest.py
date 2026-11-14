@@ -22,7 +22,7 @@ def imported_urdf_arm(request,tmp_path_factory):
                         ignore=shutil.ignore_patterns('__pycache__'))
     (temporary/'workspace'/'arms').mkdir()
     # Reference selection is data-driven, as it is in the importer.
-    from core.paths import DEFAULT_ARM
+    from utils.paths import DEFAULT_ARM
     shutil.copytree(repository/'workspace'/'arms'/DEFAULT_ARM,temporary/'workspace'/'arms'/DEFAULT_ARM,symlinks=True)
     package=repository/'tests'/'fixtures'/'urdf'/(request.param+'_pkg')
     source=next(package.glob('robot.urdf*'))

@@ -8,14 +8,14 @@ from dataclasses import replace
 import unittest
 from unittest.mock import call, patch
 
-from core.datasets.alignment import (
+from utils.datasets.alignment import (
     MARKER,
     RecordingAlignmentError,
     recording_contract,
 )
 from sim.recording.recording_setup import prepare_recording_roots
-from core.arms.spec import load_arm_spec
-from core.arms.calibration import resolve_calibration
+from utils.arms.spec import load_arm_spec
+from utils.arms.calibration import resolve_calibration
 
 
 class RecordingRootsTests(unittest.TestCase):

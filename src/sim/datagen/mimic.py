@@ -255,8 +255,8 @@ async def load_source_pool(context, spec):
     """Use upstream segmentation for either SDK HDF5 or shared LeRobot annotations."""
     import hashlib
     from isaaclab_mimic.datagen.datagen_info_pool import DataGenInfoPool
-    from core.arms.mapping import JointMapping
-    from core.datasets.sources import load_source, recorded_joint_mapping
+    from utils.arms.mapping import JointMapping
+    from utils.datasets.sources import load_source, recorded_joint_mapping
 
     env = context.raw
     pool = DataGenInfoPool(env, env.cfg, env.device)
@@ -411,8 +411,8 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
                     base = env.s2r_last_target.detach().cpu().numpy()
                     base_pose = _matrix_pose(base)
                     position, orientation = env._base()
-                    from core.scenes import quaternion_multiply
-                    from core.benchmark.geometry import rotation_matrix
+                    from utils.geometry import quaternion_multiply
+                    from core.eval.geometry import rotation_matrix
                     from core.tasks.base import Pose
                     p = position[0].detach().cpu().numpy()
                     q = orientation[0].detach().cpu().numpy()

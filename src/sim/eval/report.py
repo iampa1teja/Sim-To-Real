@@ -2,9 +2,9 @@
 
 import json
 import sys
-from core.benchmark import report as benchmark_report
-from core.benchmark.report import results_report
-from core.benchmark.resume import write_report
+from core.eval import report as benchmark_report
+from core.eval.report import results_report
+from core.eval.resume import write_report
 
 
 def episode_metadata(context):

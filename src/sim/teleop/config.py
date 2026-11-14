@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Literal
 
-from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from sim.app import add_launch_arguments
 
 

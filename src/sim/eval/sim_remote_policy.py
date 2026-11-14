@@ -15,7 +15,7 @@ from core.policy_client.contract import ArmInfo
 
 class SimRemotePolicy(RemotePolicy):
     def __init__(self, mapping, cameras, rename_map=None, *, arm_spec=None, arm_info=None, **kwargs):
-        """mapping: core.arms.mapping.JointMapping; cameras: sim camera names; rename_map: sim -> policy name."""
+        """mapping: utils.arms.mapping.JointMapping; cameras: sim camera names; rename_map: sim -> policy name."""
         self.mapping = mapping
         self.cameras = list(cameras)
         self.rename_map = dict(rename_map or {})

@@ -5,7 +5,7 @@ import pytest
 def test_sp7_filters_welded_and_joint_adjacent_parts_only():
     pytest.importorskip('pxr')
     from pxr import Usd, UsdGeom, UsdPhysics
-    from core.arms.spec import load_arm_spec, load_arm_utils
+    from utils.arms.spec import load_arm_spec, load_arm_utils
 
     stage = Usd.Stage.CreateInMemory()
     root = UsdGeom.Xform.Define(stage, '/Robot').GetPrim()
@@ -40,7 +40,7 @@ def test_sp7_filters_welded_and_joint_adjacent_parts_only():
 def test_sp7_guides_do_not_disable_jaw_or_base_contacts():
     pytest.importorskip('pxr')
     from pxr import Usd, UsdPhysics
-    from core.arms.spec import load_arm_spec, load_arm_utils
+    from utils.arms.spec import load_arm_spec, load_arm_utils
 
     arm = load_arm_spec('sp7')[0]
     stage = Usd.Stage.Open(str(arm.usd_path))

@@ -9,7 +9,7 @@ from typing import Any
 
 import numpy as np
 
-from core.paths import DEFAULT_TASK, repo_dir
+from utils.paths import DEFAULT_TASK, repo_dir
 
 TASK_NAME = os.environ.get("S2R_TASK", DEFAULT_TASK)
 TASK_PACKAGE = "s2r_tasks"
@@ -187,8 +187,8 @@ class Task(ABC):
             return pose
         if scene is None:
             raise ValueError(f"Task {self.name!r} starts in frame {frame!r} require captured scene geometry")
-        from core.benchmark.geometry import rotation_matrix
-        from core.scenes import quaternion_multiply
+        from core.eval.geometry import rotation_matrix
+        from utils.geometry import quaternion_multiply
 
         source = {"position_world": (0, 0, 0), "orientation_world_wxyz": (1, 0, 0, 0)} if frame == "world" else scene.get("frames", {}).get(frame)
         if source is None:
@@ -229,7 +229,7 @@ class Task(ABC):
 
     def start_is_valid(self, start: dict[str, Pose], scene: dict[str, Any]) -> bool:
         """Require sampled footprints to fit the table and clear other objects."""
-        from core.benchmark.geometry import footprint, footprints_overlap, inside_polygon, resting_pose, rotation_matrix, upright_orientation
+        from core.eval.geometry import footprint, footprints_overlap, inside_polygon, resting_pose, rotation_matrix, upright_orientation
 
         footprints = {}
         base_rotation = rotation_matrix(scene["base_quaternion_wxyz"])

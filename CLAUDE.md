@@ -15,7 +15,7 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   argument helpers live in `sim.app` and are safe before Kit startup.
 - Launch simulator programs through `sim.app.launch` after choosing arm/scene/task. Recording lives in
   `sim.teleop.agent`, evaluation in `sim.eval.run`, generation in `sim.datagen`, and real rollout in
-  `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `core.utils.config`; flags override YAML.
+  `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `utils.cli`; flags override YAML.
 - `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
   optional `.gripper`/`.wrist_roll`, and the declared wrist cameras. No arm-specific names or motor indices belong
   in generic source. Optional spawn/appearance hooks are loaded by path from the arm folder's `utils.py`.
@@ -74,7 +74,7 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   task-specific environment attributes. Object placement/start frames are declared in the task manifest.
 - Schema-2 sidecars store every declared tracked object in `task_meta/`; readers accept legacy `pick_place_meta/`.
   Write task/arm identity, reference frame and metre units, with one WXYZ object pose per committed dataset frame.
-  Pure readers, validation, migration and source handling belong in `core.datasets`.
+  Pure readers, validation, migration and source handling belong in `utils.datasets`.
   Saved eval-set arm states are raw units interpreted through that set's mapping, not the active unit's mapping.
   Approved schema-2 eval-set conversions retain `legacy_eval_set_id` for comparison; preserve every scheduled
   start/seed. Schema migration does not change or bypass the live geometry guard.

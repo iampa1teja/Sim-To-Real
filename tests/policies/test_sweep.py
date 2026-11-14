@@ -49,10 +49,11 @@ def test_sweep_bounds_speed_and_exact_holds(sweep):
 
 
 def test_home_uses_scene_mount_and_exclusion_preserves_indices(sweep):
-    from core.arms.calibration import load_unit
-    from core.arms.spec import load_arm_spec
-    from core.arms.mapping import units_to_physical
-    from core.scenes import load_scene_spec, load_mount_spec, mount_joint_positions
+    from utils.arms.calibration import load_unit
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.mapping import units_to_physical
+    from utils.geometry import mount_joint_positions
+    from utils.scene import load_scene_spec, load_mount_spec
     arm = load_arm_spec('so101')[0]
     mount = mount_joint_positions(arm, load_mount_spec(load_scene_spec('rpd_meeting_room'), arm))
     physical = units_to_physical(sweep['home_raw'], load_unit(arm, 'rpd_follower').mapping,

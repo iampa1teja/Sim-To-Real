@@ -51,7 +51,7 @@ def test_arm_bounds_require_an_arm_joint(synthetic_arm):
 
 @pytest.mark.parametrize('hook_name', ['make_ik', 'make_kinematics'])
 def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypatch, hook_name):
-    import core.arms.spec as arm_spec
+    import utils.arms.spec as arm_spec
     import sim.datagen.ik as ik_module
 
     sentinel, robot = object(), object()
@@ -81,7 +81,7 @@ def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypa
 
 @pytest.mark.parametrize('utils', [None, SimpleNamespace()])
 def test_factories_choose_defaults_without_an_arm_hook(synthetic_arm, monkeypatch, utils):
-    import core.arms.spec as arm_spec
+    import utils.arms.spec as arm_spec
     import sim.datagen.ik as ik_module
 
     live, offline, robot = object(), object(), object()

@@ -5,7 +5,7 @@ import torch
 from scipy.spatial.transform import Rotation
 pytest.importorskip('newton')
 pytest.importorskip('isaaclab')
-from core.arms.spec import load_arm_spec
+from utils.arms.spec import load_arm_spec
 from sim.datagen.ik import ArmKinematics, IKOptions
 from sim.datagen.bounded_ik import BoundedPoseStep
 

@@ -8,13 +8,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from core.arms.spec import load_arm_spec
-from core.benchmark.compare import compare
-from core.benchmark.eval_set import (EvalSetStarts, convert_eval_set, eval_set_digest,
+from utils.arms.spec import load_arm_spec
+from core.eval.compare import compare
+from core.eval.eval_set import (EvalSetStarts, convert_eval_set, eval_set_digest,
                                      generate_eval_set, load_eval_set, main, validate_eval_set)
-from core.benchmark.starts import RecordedStarts
-from core.benchmark.smoke import MilestoneDeadline
-from core.datasets.task_meta import save_task_trajectory
+from core.eval.starts import RecordedStarts
+from core.eval.smoke import MilestoneDeadline
+from utils.datasets.task_meta import save_task_trajectory
 from core.tasks.loader import load_task
 
 SETS = Path(__file__).resolve().parents[2] / 'workspace/tasks/pick_place_cube/eval_sets'
@@ -135,7 +135,7 @@ def test_eval_set_cli_accepts_explicit_provenance_without_git(tmp_path, monkeypa
     root, task, arm, scene = _dataset(tmp_path)
     scene_path = tmp_path / 'scene.json'
     scene_path.write_text(json.dumps(scene))
-    monkeypatch.setattr('core.utils.provenance.git_commit', lambda *args, **kwargs: pytest.fail('git consulted'))
+    monkeypatch.setattr('utils.provenance.git_commit', lambda *args, **kwargs: pytest.fail('git consulted'))
     output = tmp_path / 'eval.json'
     main(['--dataset', str(root), '--out', str(output), '--task', task.name, '--arm', arm.name,
           '--scene_json', str(scene_path), '--n_id', '2', '--n_ood', '0', '--n_yaw', '0',

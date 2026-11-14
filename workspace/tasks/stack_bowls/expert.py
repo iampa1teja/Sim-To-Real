@@ -3,7 +3,7 @@ import math
 import numpy as np
 from core.tasks.base import Pose
 from core.tasks.expert import Waypoint, gripper_commands
-from core.scenes.anchors import quaternion_matrix
+from utils.geometry import quaternion_matrix
 
 
 class BowlsExpert:

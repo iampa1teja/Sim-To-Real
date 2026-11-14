@@ -29,5 +29,5 @@ host = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["core*", "sim*"]
+include = ["core*", "sim*", "utils*"]
 

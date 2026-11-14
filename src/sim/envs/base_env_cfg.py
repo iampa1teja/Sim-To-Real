@@ -25,7 +25,7 @@ from sim.envs.mdp import (
 )
 from sim.envs.mdp.mimic import MimicJointPositionAction, reset_joints_with_mimic
 from sim.scene.arm import load_arm_cfg, load_arm_spec
-from core.arms.spec import ArmSpec
+from utils.arms.spec import ArmSpec
 
 
 def _config_to_dict(cfg):

@@ -23,7 +23,7 @@ def object_pose_in_base(env, name, base_id):
 
 
 def _write_sidecar(root, index, *, poses, sizes, fps, task, arm, reference_frame):
-    from core.datasets.task_meta import save_task_trajectory
+    from utils.datasets.task_meta import save_task_trajectory
 
     save_task_trajectory(root, index, poses, sizes, fps, task=task, arm=arm, reference_frame=reference_frame)
 

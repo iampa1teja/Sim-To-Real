@@ -35,8 +35,9 @@ def downward_rotation(spec):
 def ready_pose(spec, kinematics):
     from sim.datagen.ik import IKOptions
 
-    from core.paths import DEFAULT_SCENE
-    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
+    from utils.paths import DEFAULT_SCENE
+    from utils.geometry import mount_pose
+    from utils.scene import load_scene_spec, load_mount_spec
     scene=load_scene_spec(DEFAULT_SCENE)
     mounting=mount_pose(scene,load_mount_spec(scene,spec),spec)
     cache_key=(tuple(spec.ik.position_offset_m),tuple(mounting.position),tuple(mounting.orientation_xyzw))

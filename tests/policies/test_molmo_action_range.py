@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from core.arms.calibration import resolve_calibration
-from core.arms.spec import load_arm_spec
+from utils.arms.calibration import resolve_calibration
+from utils.arms.spec import load_arm_spec
 from core.policy_client.contract import ArmInfo, load_client_policy
 from core.policy_client.discovery import get_manifest
 from core.rollout.real_rollout import clamp_action, joint_ranges

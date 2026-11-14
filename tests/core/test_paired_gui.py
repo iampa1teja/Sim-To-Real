@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 import numpy as np
 import pytest
 
-from core.arms.spec import load_arm_spec
+from utils.arms.spec import load_arm_spec
 from core.rollout.paired_gui import PairedEvaluationGui, trial_arguments
 
 

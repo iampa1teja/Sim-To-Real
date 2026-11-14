@@ -71,7 +71,7 @@ Arm, scene and task are data. `S2R_ARM`, `S2R_SCENE` and `S2R_TASK` (or `--arm/-
 
 ## Arm and calibration selection
 
-`core.arms.spec.load_arm_spec()` returns `(ArmSpec, arm_directory)`. The arm's ordered `[[arm.joints]]` tables
+`utils.arms.spec.load_arm_spec()` returns `(ArmSpec, arm_directory)`. The arm's ordered `[[arm.joints]]` tables
 own LeRobot names, USD names, joint types and roles, initial values, and runtime limits. Optional gripper,
 wrist-roll, and wrist-camera settings live in the arm folder. CAD-specific collision and appearance hooks live
 in `<arm>_utils.py`. The SO101 camera variants share one CAD asset through a small USD override layer.
@@ -129,8 +129,8 @@ objects; select it through `task:` in a recording/evaluation YAML or `--task sta
 
 New recordings write schema-2 `task_meta/episode_<index>.json` sidecars with task/arm identity, metre positions,
 WXYZ orientations and a size/trajectory entry for every `task.tracked_objects` name. Each trajectory has exactly
-one pose per dataset frame. Dataset sources and alignment live in `core.datasets`; benchmark geometry, starts,
-statistics and comparison live in `core.benchmark`. Existing single-object `pick_place_meta/` datasets remain
+one pose per dataset frame. Dataset sources and alignment live in `utils.datasets`; benchmark geometry, starts,
+statistics and comparison live in `core.eval`. Existing single-object `pick_place_meta/` datasets remain
 readable through the same production source/start readers. Use `s2r migrate <dataset> --task <task> --arm <arm>` to write schema-2 sidecars explicitly.
 
 ## Commands
@@ -152,15 +152,15 @@ Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides t
 | `s2r eval --config_path configs/eval/pick_place.yaml` | `python -m sim.eval.run` | Evaluate a served policy on the fixed benchmark |
 | `s2r test-gui --config_path configs/rollout/gui.yaml` | `python -m core.rollout.testing_gui` | Open the real-arm prompt and policy testing GUI |
 | `s2r rollout ...` | `python -m core.rollout.real_rollout` | Run a served policy on the real follower |
-| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.benchmark.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
+| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.eval.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
 | `s2r datagen --source dr_replay ...` | `python -m sim.datagen.dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
 | `s2r datagen --config_path configs/datagen/scripted.yaml` | `cli.datagen` selects `sim.datagen.scripted` | Task-owned waypoints, bounded IK and successful episodes only |
 | `s2r datagen --config_path configs/datagen/mimic.yaml` | `cli.datagen` selects `sim.datagen.mimic` | Isaac Lab Mimic retargets annotated source demonstrations; successful episodes only |
 | `s2r calibration-replay ...` | `python -m sim.datagen.calibration_replay` | Method B calibration replay (physics, keeps successes) |
-| `s2r calibration-report --gap ...` | `python -m core.calibration.report` | Tracking-gap report |
-| `s2r calibrate leader\|follower --port ...` | `python -m core.calibration.calibrate` | LeRobot calibration saved where `arm.toml` expects it |
-| `s2r calibration-check --id follower_arm_1` | `python -m core.calibration.check` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
-| `s2r calibration-stats` | `python -m core.calibration.stats` | Rebuild stats from `arms/so101/calibration/samples/` |
+| `s2r calibration-report --gap ...` | `python -m utils.calibration.report` | Tracking-gap report |
+| `s2r calibrate leader\|follower --port ...` | `python -m utils.calibration.calibrate` | LeRobot calibration saved where `arm.toml` expects it |
+| `s2r calibration-check --id follower_arm_1` | `python -m utils.calibration.check` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
+| `s2r calibration-stats` | `python -m utils.calibration.stats` | Rebuild stats from `arms/so101/calibration/samples/` |
 | `s2r envs` | `python -m cli.list_envs` | List arms, scenes, tasks and gym ids |
 
 Policy commands run on the host (or a remote GPU with `--host user@box --remote-root /abs/path`):

@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import torch
 import yaml
 
-from core.arms.calibration import resolve_calibration
-from core.arms.mapping import JointMapping
-from core.arms.spec import load_arm_spec
+from utils.arms.calibration import resolve_calibration
+from utils.arms.mapping import JointMapping
+from utils.arms.spec import load_arm_spec
 from sim.datagen.scripted import GenerationContext
 
 

@@ -11,10 +11,10 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 from core.tasks.base import Pose
 from core.tasks.expert import ExpertContext
-from core.utils.config import parse_yaml_args
+from utils.cli import parse_yaml_args
 from sim.app import add_launch_arguments, apply_selection, close_app, launch
 from sim.datagen.rollout import LiveRollout, SuccessRecorder, write_json
 
@@ -176,8 +176,8 @@ class GenerationContext:
         return getattr(self.env, "unwrapped", self.env)
 
     def target_pose(self, target):
-        from core.scenes import quaternion_multiply
-        from core.benchmark.geometry import rotation_matrix
+        from utils.geometry import quaternion_multiply
+        from core.eval.geometry import rotation_matrix
 
         matrix = self.kinematics.fk(LiveRollout._numpy(target).reshape(-1))
         local = _matrix_pose(matrix)
@@ -207,7 +207,7 @@ class GenerationContext:
                     joint=self.arm.action_joints[index]
                     result[:,index]=joint.limits[0]+fraction*(joint.limits[1]-joint.limits[0])
                 return result
-            from core.arms.spec import load_arm_utils
+            from utils.arms.spec import load_arm_utils
             hook = getattr(load_arm_utils(self.arm), 'gripper_q_for_gap', None)
             if hook is not None:
                 ids = [index for index, joint in enumerate(self.arm.action_joints) if joint.role == "gripper"]
@@ -281,10 +281,10 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from isaaclab_tasks.utils import parse_env_cfg
     from isaaclab.managers import EventTermCfg
     import sim.envs
-    from core.arms.spec import load_arm_spec
-    from core.arms.calibration import resolve_sim_calibration
-    from core.arms.mapping import JointMapping
-    from core.datasets.alignment import mark_recording_root, recording_contract
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.calibration import resolve_sim_calibration
+    from utils.arms.mapping import JointMapping
+    from utils.datasets.alignment import mark_recording_root, recording_contract
     from sim.envs.mdp.starts import reset_from_starts
     from sim.envs.scene_builder import drop_unused_camera_outputs
     from sim.datagen.dr_replay import discover_sim_cameras
@@ -366,7 +366,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
 
 def make_report(context, *, source_provenance=None):
     from dataclasses import asdict
-    from core.utils.provenance import git_commit
+    from utils.provenance import git_commit
     arm, args = context.arm, context.args
     return {"schema_version": 1, "source": context.source, "dataset": str(Path(args.destination).resolve()),
             "repo_id": args.repo_id, "arm": arm.name, "task": context.task.name, "scene": args.scene,

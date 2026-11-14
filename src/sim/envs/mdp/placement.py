@@ -27,7 +27,7 @@ def reset_object_pose(
     cuboid spawn's ``size`` (USD objects pass it from task.toml ``size``).
     """
     from sim.scene.geometry import gripper_tip_local_offset, table_plane
-    from core.scenes import load_scene_spec
+    from utils.scene import load_scene_spec
 
     env_ids = env_indices(env, env_ids)
     if len(env_ids) == 0:

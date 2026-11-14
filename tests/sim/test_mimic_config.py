@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from core.arms.spec import load_arm_spec
+from utils.arms.spec import load_arm_spec
 from sim.datagen.mimic import MimicSpec, make_mimic_cfg
 
 

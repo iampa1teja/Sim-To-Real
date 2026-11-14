@@ -1,7 +1,7 @@
 """Frozen eval sets keep their digests and stored starts through the v3 restructure.
 
 Needs only numpy and the stdlib: no torch, pyarrow or Isaac. The eval-set module still imports torch
-indirectly (core.arms.mapping), so when torch is absent it is imported once with a stand-in ``torch``.
+indirectly (utils.arms.mapping), so when torch is absent it is imported once with a stand-in ``torch``.
 """
 import functools
 import importlib
@@ -17,7 +17,7 @@ import pytest
 # --- _locate: the only place later restructure phases should need to edit --------------------------------
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
-EVAL_SET_MODULES = ("core.eval.eval_set", "core.benchmark.eval_set")   # first importable wins
+EVAL_SET_MODULES = ("core.eval.eval_set",)# first importable wins
 TASK_LOADER_MODULES = ("core.tasks.loader",)                          # provides load_task(name)
 POSE_MODULES = ("core.tasks.base",)                                   # provides Pose.from_lists(pos, xyzw)
 TASK_DIRS = ("workspace/tasks", "tasks")                              # first existing wins

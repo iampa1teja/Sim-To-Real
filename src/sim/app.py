@@ -24,7 +24,7 @@ def rendering_kit_args(existing: str = "") -> str:
 
 
 def apply_selection(cfg) -> None:
-    from core.paths import repo_dir
+    from utils.paths import repo_dir
 
     for kind, name in (("arms", cfg.arm), ("scenes", cfg.scene)):
         if not (repo_dir(kind) / name).is_dir():

@@ -21,7 +21,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from core.paths import repo_dir
+from utils.paths import repo_dir
 
 # <repo>/gui, found the same way as arms/, scenes/ and tasks/.
 WEB_DIR = repo_dir("gui")

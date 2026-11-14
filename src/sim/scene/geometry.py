@@ -5,8 +5,8 @@ import weakref
 import numpy as np
 from pxr import Gf, Usd, UsdGeom, UsdPhysics
 
-from core.arms.spec import load_arm_spec
-from core.scenes import load_scene_spec
+from utils.arms.spec import load_arm_spec
+from utils.scene import load_scene_spec
 
 
 def fixed_jaw_mesh_name() -> str:

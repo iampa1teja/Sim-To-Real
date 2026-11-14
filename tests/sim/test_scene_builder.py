@@ -8,8 +8,8 @@ import pytest
 pytest.importorskip("isaaclab")
 from pxr import Usd, UsdPhysics, UsdShade
 
-from core.scenes import load_scene_spec
-from core.arms.spec import load_arm_spec
+from utils.scene import load_scene_spec
+from utils.arms.spec import load_arm_spec
 from core.tasks.loader import load_task, resolve
 from sim.envs import scene_builder
 

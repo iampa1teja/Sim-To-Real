@@ -50,7 +50,7 @@ def test_scripted_imported_arm_controls_are_explicit_and_validated(tmp_path, mon
 
 def test_start_variation_is_seeded_and_does_not_mutate_task_or_fingers(tmp_path, monkeypatch):
     import numpy as np
-    from core.arms.spec import load_arm_spec
+    from utils.arms.spec import load_arm_spec
     from core.tasks.loader import load_task
     from sim.datagen import scripted
 

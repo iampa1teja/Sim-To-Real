@@ -48,7 +48,7 @@ class PickPlaceTask(Task):
         return "dropped_outside"
 
     def _over_box(self, cube, box):
-        from core.benchmark.geometry import footprint, hull, inside_polygon, rotation_matrix
+        from core.eval.geometry import footprint, hull, inside_polygon, rotation_matrix
 
         size = tuple(self.spec.objects["white_box"].params["size_outer"])
         qx, qy, qz, qw = box.quat_xyzw
@@ -63,7 +63,7 @@ class PickPlaceTask(Task):
         return label
 
     def start_is_valid(self, start, scene):
-        from core.benchmark.geometry import footprint, footprints_overlap, resting_pose, rotation_matrix, upright_orientation
+        from core.eval.geometry import footprint, footprints_overlap, resting_pose, rotation_matrix, upright_orientation
 
         if not super().start_is_valid(start, scene):
             return False

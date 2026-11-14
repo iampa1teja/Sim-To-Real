@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import torch
 
-from core.datasets.task_meta import load_task_meta
+from utils.datasets.task_meta import load_task_meta
 from core.tasks.base import Pose, StepState, Task
 from core.tasks.loader import load_task
 from sim.datagen.rollout import LiveRollout, SuccessRecorder
@@ -197,8 +197,8 @@ def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
 
 def test_live_step_records_before_action_and_observes_success_after_it(tmp_path):
     pytest.importorskip("isaaclab")
-    from core.arms.mapping import JointMapping
-    from core.arms.spec import load_arm_spec
+    from utils.arms.mapping import JointMapping
+    from utils.arms.spec import load_arm_spec
     original = load_arm_spec()[0]
     arm = replace(original, name="permuted_four_axis", joints=(
         original.joints[-1],
@@ -276,8 +276,8 @@ def test_live_step_records_before_action_and_observes_success_after_it(tmp_path)
 
 def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monkeypatch):
     pytest.importorskip("isaaclab")
-    from core.arms.mapping import JointMapping
-    from core.arms.spec import load_arm_spec
+    from utils.arms.mapping import JointMapping
+    from utils.arms.spec import load_arm_spec
     import sim.datagen.scripted
     arm = load_arm_spec()[0]
     events = []
@@ -301,8 +301,8 @@ def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monk
 
 
 def test_measured_jaw_gap_respects_reversed_open_direction(monkeypatch):
-    import core.arms.spec
-    monkeypatch.setattr(core.arms.spec,'load_arm_utils',lambda arm:None)
+    import utils.arms.spec
+    monkeypatch.setattr(utils.arms.spec,'load_arm_utils',lambda arm:None)
     class Mapping:
         raw_mins=torch.tensor([-100.,0.])
         raw_maxs=torch.tensor([100.,100.])

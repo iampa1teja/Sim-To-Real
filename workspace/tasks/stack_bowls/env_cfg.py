@@ -6,7 +6,7 @@ from isaaclab.managers import EventTermCfg as EventTerm, TerminationTermCfg as D
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
 from isaaclab.sim.spawners.from_files import spawn_from_usd
-from core.scenes import Pose, transform_pose
+from utils.geometry import Pose, transform_pose
 from sim.envs.mdp import time_out
 from sim.envs.mdp.starts import assert_reset_event_order, reset_from_starts
 from sim.envs.scene_builder import drop_unused_camera_outputs

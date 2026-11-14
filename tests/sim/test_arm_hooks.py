@@ -12,7 +12,7 @@ except ImportError:
 @unittest.skipUnless(Usd is not None and importlib.util.find_spec("isaaclab"), "Requires s2r-sim USD")
 class ArmHooksTests(unittest.TestCase):
     def test_arm_without_utils_only_promotes_its_own_meshes(self):
-        from core.arms.spec import load_arm_spec
+        from utils.arms.spec import load_arm_spec
         from sim.scene.contact_materials import enable_collision_meshes
 
         stage = Usd.Stage.CreateInMemory()

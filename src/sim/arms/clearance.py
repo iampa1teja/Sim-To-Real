@@ -11,9 +11,10 @@ def ready_route_validator(spec,kinematics):
     import torch
     from pxr import Usd, UsdPhysics
     from isaaclab.utils.math import matrix_from_quat
-    from core.paths import DEFAULT_SCENE,DEFAULT_TASK
-    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
-    from core.scenes.anchors import quaternion_matrix,anchor_quaternion
+    from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
+    from utils.geometry import mount_pose
+    from utils.scene import load_scene_spec, load_mount_spec
+    from utils.geometry import quaternion_matrix,anchor_quaternion
     from core.tasks.base import Pose
     from core.tasks.loader import load_task
     from sim.arms.ready_pose import bounds

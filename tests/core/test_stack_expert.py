@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from core.scenes import quaternion_matrix
+from utils.geometry import quaternion_matrix
 from core.tasks.base import Pose, StepState
 from core.tasks.expert import ExpertContext
 from core.tasks.loader import load_task
@@ -49,7 +49,7 @@ def test_settle_cannot_be_shorter_than_confirmation_and_no_carry_roll():
 
 def test_yaw_controlled_stack_preserves_pickup_offset_without_changing_legacy(synthetic_arm):
     from dataclasses import replace
-    from core.arms.spec import IKSpec
+    from utils.arms.spec import IKSpec
     from core.tasks.expert import ExpertContext
     from core.tasks.base import Pose,StepState
     from core.tasks.loader import load_task

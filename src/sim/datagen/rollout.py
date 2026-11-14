@@ -10,11 +10,11 @@ import tempfile
 
 import numpy as np
 
-from core.benchmark.geometry import rotation_matrix
-from core.scenes import quaternion_multiply
+from core.eval.geometry import rotation_matrix
+from utils.geometry import quaternion_multiply
 from core.tasks.base import Pose, StepState
 from core.tasks.stages import StageTrace
-from core.datasets.task_meta import save_task_trajectory, validate_task_meta
+from utils.datasets.task_meta import save_task_trajectory, validate_task_meta
 
 
 def write_json(path, data):

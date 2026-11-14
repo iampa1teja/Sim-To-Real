@@ -13,7 +13,7 @@ from sim.datagen.scripted import add_generation_launch_arguments, make_report, p
 
 
 def build_parser():
-    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+    from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, required=True)
@@ -56,10 +56,10 @@ def main(argv=None):
     try:
         import numpy as np
         import torch
-        from core.arms.mapping import physical_to_units, units_to_physical
-        from core.arms.spec import load_arm_spec
-        from core.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
-        from core.utils.hashing import tree_sha256
+        from utils.arms.mapping import physical_to_units, units_to_physical
+        from utils.arms.spec import load_arm_spec
+        from utils.datasets.sources import load_source, recorded_joint_mapping, _mapping_bounds
+        from utils.hashing import tree_sha256
         from sim.envs.mdp._common import as_torch
         from sim.recording.replay_scene import SceneReplayer
 

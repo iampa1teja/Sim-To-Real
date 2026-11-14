@@ -7,7 +7,7 @@ import os
 import random
 import tempfile
 
-from core.scenes import load_scene_spec
+from utils.scene import load_scene_spec
 
 
 def cube_colors(scene=None) -> dict[str, tuple[float, float, float]]:

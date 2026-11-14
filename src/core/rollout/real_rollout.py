@@ -55,16 +55,16 @@ class EpisodeResult:
 
 def joint_ranges(arm, mapping):
     """Raw action bounds from the selected calibration's actual device codec."""
-    from core.arms.mapping import raw_joint_limits
+    from utils.arms.mapping import raw_joint_limits
     bounds = raw_joint_limits(arm, mapping)
     return tuple(bounds[name] for name in arm.joint_names)
 
 
 def sim_start_roll_units(mapping, mount=None, arm=None):
     """Optional sim-start roll expressed in the selected unit's raw convention."""
-    from core.arms.spec import load_arm_spec
-    from core.arms.mapping import physical_to_units
-    from core.scenes import load_scene_spec, load_mount_spec
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.mapping import physical_to_units
+    from utils.scene import load_scene_spec, load_mount_spec
 
     arm = arm or load_arm_spec()[0]
     if arm.wrist_roll is None:
@@ -182,7 +182,7 @@ def write_report(path, header, episodes):
 
 
 def build_parser():
-    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+    from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 
     env = os.environ.get
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -225,7 +225,7 @@ def build_parser():
 
 def parse_args(argv=None):
     """Load YAML defaults, then apply explicit flags and the task's instruction."""
-    from core.utils.config import parse_yaml_args
+    from utils.cli import parse_yaml_args
 
     args = parse_yaml_args(build_parser(), argv, json_fields=("rename_map",))
     if args.lang_instruction is None:
@@ -245,8 +245,8 @@ def camera_specs(args):
 
 def validate(args):
     """Argument errors found before touching any hardware."""
-    from core.arms.calibration import resolve_calibration
-    from core.arms.spec import load_arm_spec
+    from utils.arms.calibration import resolve_calibration
+    from utils.arms.spec import load_arm_spec
 
     errors = []
     if not args.follower_port:

@@ -35,7 +35,7 @@ WORKDIR /workspace/s2r
 COPY pyproject.toml ./
 COPY src/ src/
 RUN uv pip install --python "$PYTHON" --no-deps --no-build-isolation -e /workspace/s2r
-RUN $PYTHON -c "import core, sim"
+RUN $PYTHON -c "import core, sim, utils"
 
 ENV PYTHONPATH=/workspace/s2r/src:/workspace/s2r
 

@@ -66,7 +66,7 @@ def enable_collision_meshes(root, arm=None):
             container.RemoveAppliedSchema(schema)
         container.RemoveAPI(UsdPhysics.MeshCollisionAPI)
         container.RemoveAPI(UsdPhysics.CollisionAPI)
-    from core.arms.spec import load_arm_spec, load_arm_utils
+    from utils.arms.spec import load_arm_spec, load_arm_utils
 
     arm = arm or load_arm_spec()[0]
     utilities = load_arm_utils(arm)

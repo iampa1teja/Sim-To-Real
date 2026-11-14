@@ -7,7 +7,7 @@ import numpy as np
 
 
 def workspace_sweep(spec, kin, task, geometry):
-    from core.benchmark.geometry import rotation_matrix
+    from core.eval.geometry import rotation_matrix
     from core.tasks.base import Pose
     from sim.datagen.ik import IKOptions
 
@@ -90,8 +90,8 @@ def validate_import(name,*,repo=None):
     import gymnasium as gym
     import torch
     from isaaclab_tasks.utils import parse_env_cfg
-    from core.arms.spec import load_arm_spec
-    from core.paths import DEFAULT_SCENE,DEFAULT_TASK
+    from utils.arms.spec import load_arm_spec
+    from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
     from sim.datagen.ik import ArmKinematics,make_ik
     from core.tasks.base import Pose
     from sim.envs.mdp._common import as_torch

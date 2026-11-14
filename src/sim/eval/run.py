@@ -22,7 +22,7 @@ The env is S2R-<task>-<variant> (default variant: eval). Flags override the YAML
 # - --arm/--scene/--task/--variant pick the env through sim.envs. S2R_* are exported before importing any
 #   core/sim module that reads them at import. The arm USD comes from arms/<arm>/arm.toml.
 # - --config_path reads the configs/eval YAML directly.
-# - Joint units go through core.arms.mapping.JointMapping and sim.eval.sim_remote_policy.SimRemotePolicy.
+# - Joint units go through utils.arms.mapping.JointMapping and sim.eval.sim_remote_policy.SimRemotePolicy.
 #   Settling holds the reset pose from the first observation.
 # - Task plugins supply signals/stages; benchmark and dataset handling are shared core modules.
 import argparse
@@ -134,7 +134,7 @@ def load_yaml_config(path):
 
 
 def _build_parser():
-    from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+    from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
 
     parser = argparse.ArgumentParser(description="S2R policy evaluation in simulation (remote policy server).")
     parser.add_argument("--config_path", type=Path, default=None, help="configs/eval YAML; flags override it")
@@ -338,12 +338,12 @@ def setup(args_cli, simulation_app, resources):
     import torch
     from isaaclab_tasks.utils import parse_env_cfg
     import sim.envs
-    from core.arms.mapping import JointMapping
-    from core.arms.spec import load_arm_spec
-    from core.arms.calibration import resolve_calibration
+    from utils.arms.mapping import JointMapping
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.calibration import resolve_calibration
     from core.policy_client.grasp import GraspConfig
-    from core.benchmark.resume import read_report
-    from core.benchmark.eval_set import EvalSetStarts
+    from core.eval.resume import read_report
+    from core.eval.eval_set import EvalSetStarts
     from sim.eval.stage_tracking import install_stage_tracking
     from sim.eval.sim_remote_policy import SimRemotePolicy
     from sim.teleop.controls.keyboard import KeyboardControl
@@ -362,7 +362,7 @@ def setup(args_cli, simulation_app, resources):
     if not smoke_test and (smoke_selection != "first_five" or smoke_reach is not None):
         raise ValueError("Smoke selection and deadlines require --smoke-test")
     if smoke_reach is not None:
-        from core.benchmark.smoke import MilestoneDeadline
+        from core.eval.smoke import MilestoneDeadline
 
         smoke_budget = MilestoneDeadline(smoke_reach, smoke_progress, milestones=task.stages[:-1])
         if not getattr(args_cli, "eval_set", None):
@@ -474,7 +474,7 @@ def setup(args_cli, simulation_app, resources):
     install_stage_tracking(env.unwrapped, task)
     smoke_deadline = None
     if smoke_budget is not None:
-        from core.benchmark.smoke import install_milestone_deadline
+        from core.eval.smoke import install_milestone_deadline
 
         smoke_deadline = install_milestone_deadline(
             env.unwrapped, smoke_reach, smoke_progress, milestones=task.stages[:-1]

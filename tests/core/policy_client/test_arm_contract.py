@@ -5,8 +5,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from core.arms.calibration import resolve_calibration
-from core.arms.spec import load_arm_spec
+from utils.arms.calibration import resolve_calibration
+from utils.arms.spec import load_arm_spec
 from core.policy_client.adapter import build_plugin_client
 from core.policy_client.contract import ArmInfo, load_client_policy
 from core.policy_client.discovery import get_manifest, load_manifest

@@ -29,7 +29,7 @@ def reset_stage_traces(env, env_ids=None):
 
 def install_stage_tracking(env, task=None):
     """Run each success term once, then inspect that exact pre-reset frame."""
-    from core.arms.spec import load_arm_spec
+    from utils.arms.spec import load_arm_spec
     from sim.envs.mdp import as_torch
 
     task = load_task(task) if isinstance(task, (str, type(None))) else task

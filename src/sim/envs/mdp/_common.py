@@ -11,7 +11,7 @@ def as_torch(x):
 
 
 def _arm_spec(env):
-    from core.arms.spec import load_arm_spec
+    from utils.arms.spec import load_arm_spec
 
     return getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]
 

@@ -18,11 +18,11 @@ import uuid
 
 import numpy as np
 
-from core.arms.spec import load_arm_spec
-from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK, repo_root
+from utils.arms.spec import load_arm_spec
+from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK, repo_root
 from core.policy_client.discovery import discover
 from core.rollout import real_rollout
-from core.utils.config import parse_yaml_args
+from utils.cli import parse_yaml_args
 
 
 HARDWARE_ENV = ('ROBOT_PORT', 'ROBOT_ID', 'CAMERA_GRIPPER', 'CAMERA_EXTERNAL',

@@ -2,8 +2,8 @@
 
 import pytest
 
-from core.arms.calibration import resolve_calibration
-from core.datasets.alignment import RecordingAlignmentError
+from utils.arms.calibration import resolve_calibration
+from utils.datasets.alignment import RecordingAlignmentError
 from sim.teleop import agent
 from sim.teleop.config import AgentConfig, DatasetConfig
 
@@ -11,7 +11,7 @@ from sim.teleop.config import AgentConfig, DatasetConfig
 def test_factory_recording_prepares_alignment_even_without_device_calibration_paths(synthetic_arm, monkeypatch, tmp_path):
     selection = resolve_calibration(synthetic_arm, environ={})
     assert selection.follower_path is None and selection.leader_path is None
-    monkeypatch.setattr("core.arms.calibration.resolve_calibration", lambda **_: selection)
+    monkeypatch.setattr("utils.arms.calibration.resolve_calibration", lambda **_: selection)
     ports = []
     monkeypatch.setattr(agent, "validate_serial_ports", lambda values: ports.append(values))
     root = tmp_path / "recording"
@@ -30,7 +30,7 @@ def test_factory_recording_prepares_alignment_even_without_device_calibration_pa
 
 def test_factory_alignment_mismatch_is_rejected_before_device_port_validation(synthetic_arm, monkeypatch, tmp_path):
     selection = resolve_calibration(synthetic_arm, environ={})
-    monkeypatch.setattr("core.arms.calibration.resolve_calibration", lambda **_: selection)
+    monkeypatch.setattr("utils.arms.calibration.resolve_calibration", lambda **_: selection)
     root = tmp_path / "recording"
     (root / "meta").mkdir(parents=True)
     marker = root / "meta/recording_alignment.json"

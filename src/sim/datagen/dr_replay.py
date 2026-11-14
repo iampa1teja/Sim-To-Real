@@ -21,8 +21,8 @@ import json
 import os
 from pathlib import Path
 
-from core.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
-from core.utils.provenance import git_commit
+from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
+from utils.provenance import git_commit
 from sim.app import apply_selection, add_launch_arguments, launch, close_app
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -61,7 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def parse_args(argv=None):
-    from core.utils.config import parse_yaml_args
+    from utils.cli import parse_yaml_args
 
     parser = build_parser()
     add_launch_arguments(parser)
@@ -142,9 +142,9 @@ def discover_sim_cameras(env) -> dict:
 
 def make_mapping(env, *, arm=None, mapping=None, source_root=None, unit=None):
     """Use recorded calibration or an explicit unit; no scene calibration or hardware reads."""
-    from core.arms.mapping import JointMapping
-    from core.arms.spec import load_arm_spec
-    from core.datasets.sources import replay_joint_mapping
+    from utils.arms.mapping import JointMapping
+    from utils.arms.spec import load_arm_spec
+    from utils.datasets.sources import replay_joint_mapping
 
     arm = arm or load_arm_spec()[0]
     if mapping is None:
@@ -167,7 +167,7 @@ def make_writer(args, sim_cameras, device, *, arm=None):
 def replay_episode(replayer, writer, src, planned, fps) -> None:
     """Render one planned episode from its source episode and save it with its object sidecar."""
     from sim.datagen.dr_variants import cube_colors
-    from core.datasets.task_meta import save_task_trajectory
+    from utils.datasets.task_meta import save_task_trajectory
 
     replayer.apply(cube_colors()[planned.color], planned.color, planned.draw)
     for i in range(src.length):
@@ -205,8 +205,8 @@ def main(argv=None):
     import torch
 
     from sim.datagen.dr_variants import cube_colors, build_manifest, parse_csv, plan_episodes, write_json_atomic
-    from core.datasets.sources import load_source, replay_joint_mapping
-    from core.arms.spec import load_arm_spec
+    from utils.datasets.sources import load_source, replay_joint_mapping
+    from utils.arms.spec import load_arm_spec
     from core.tasks.loader import load_task
 
     arm, _ = load_arm_spec(args.arm)

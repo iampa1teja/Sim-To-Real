@@ -14,7 +14,7 @@ import torch
 from lerobot.datasets.feature_utils import validate_episode_buffer
 from lerobot.utils.constants import DEFAULT_FEATURES
 
-from core.arms.spec import ArmSpec, load_arm_spec
+from utils.arms.spec import ArmSpec, load_arm_spec
 from .recording_dataset import RecordingDataset
 
 

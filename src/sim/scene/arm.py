@@ -16,7 +16,7 @@ from sim.scene.contact_materials import (
 )
 
 # The toml reading lives in core so hardware code can use it without Isaac.
-from core.arms.spec import ArmSpec, arms_dir, load_arm_spec  # noqa: F401  (re-exported)
+from utils.arms.spec import ArmSpec, arms_dir, load_arm_spec  # noqa: F401  (re-exported)
 
 
 @configclass

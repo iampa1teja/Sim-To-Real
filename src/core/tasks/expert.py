@@ -61,7 +61,7 @@ def gripper_commands(context, object_width_m):
 def grasp_orientation(context, object_pose, orientation):
     """Nearest cube face normal about the table normal; preserve this after pickup."""
     import numpy as np
-    from core.scenes.anchors import quaternion_matrix, quaternion_multiply
+    from utils.geometry import quaternion_matrix, quaternion_multiply
 
     arm = context.arm
     if arm is None or 'z' not in arm.ik.orientation_axes or arm.gripper is None:

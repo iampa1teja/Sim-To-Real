@@ -19,8 +19,8 @@ from sim.teleop.config import AgentConfig, parse_config
 from sim.teleop.loop import LoopResources, gui_panes, run_loop
 
 def _prepare(cfg: AgentConfig):
-    from core.arms.calibration import resolve_calibration
-    from core.datasets.alignment import recording_contract
+    from utils.arms.calibration import resolve_calibration
+    from utils.datasets.alignment import recording_contract
 
     selection = resolve_calibration(
         follower_id=cfg.follower.id if cfg.follower.enabled else None,
@@ -129,16 +129,16 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         import gymnasium as gym
 
         import sim.envs
-        from core.arms.spec import load_arm_spec
-        from core.arms.mapping import JointMapping
-        from core.datasets.alignment import mark_recording_root
+        from utils.arms.spec import load_arm_spec
+        from utils.arms.mapping import JointMapping
+        from utils.datasets.alignment import mark_recording_root
         from sim.datagen.spawner import ObjectSpawner
         from sim.recording.rerecording import RerecordingSession
         from sim.teleop.devices import connect_device
 
         exit_cleanly_on_termination()
         if cfg.telemetry.joint_angle_log:
-            from core.calibration.telemetry import JointAngleTelemetry
+            from utils.calibration.telemetry import JointAngleTelemetry
 
             telemetry = JointAngleTelemetry(cfg.telemetry.joint_angle_log, selection=selection,
                                             provenance={"agent": "sim.teleop.agent", "sim_wrist_start_rezero": True})
@@ -202,7 +202,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                 tracked[name] = tuple(float(value) for value in size)
             base_id = env.unwrapped.scene["robot"].find_bodies(arm.links.base)[0][0]
         if recorders is not None and tracked is not None:
-            from core.datasets.task_meta import validate_task_trajectories
+            from utils.datasets.task_meta import validate_task_trajectories
 
             validate_task_trajectories(recorders.recorders["sim"].dataset_root,
                                        recorders.recorders["sim"].episode_lengths(), cfg.fps,

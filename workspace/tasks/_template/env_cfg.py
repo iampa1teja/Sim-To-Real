@@ -5,7 +5,7 @@ from isaaclab.assets import RigidObjectCfg
 from isaaclab.managers import EventTermCfg as EventTerm, TerminationTermCfg as DoneTerm, SceneEntityCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.utils import configclass
-from core.scenes import Pose, transform_pose
+from utils.geometry import Pose, transform_pose
 from sim.envs.mdp import park_object, time_out
 from sim.envs.mdp.starts import assert_reset_event_order, reset_from_starts
 from sim.envs.scene_builder import drop_unused_camera_outputs

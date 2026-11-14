@@ -44,8 +44,8 @@ def stage_sources(args):
     import tempfile
     import tomllib
     import xml.etree.ElementTree as ET
-    from core.arms.urdf import UrdfModel, expand_xacro, find_packages
-    from core.arms.arm_toml import ImportChoices
+    from utils.arms.urdf import UrdfModel, expand_xacro, find_packages
+    from utils.arms.arm_toml import ImportChoices
 
     if not args.name.isidentifier() or args.name.startswith('_'):
         raise ValueError(f'Arm name {args.name!r} must be a public Python identifier')
@@ -123,7 +123,7 @@ def stage_sources(args):
         (temporary/'source'/f'{args.name}.urdf').write_text(text)
         document = ET.fromstring(text)
         for element in document.findall('.//mesh'):
-            from core.arms.urdf import resolve_mesh
+            from utils.arms.urdf import resolve_mesh
             original = resolve_mesh(element.attrib['filename'], source.parent, packages)
             candidates = [(root, relative) for root,relative in copied if original.is_relative_to(root)]
             if not candidates:
@@ -353,9 +353,10 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
     from sim.arms.ready_pose import reach_samples
 
     kin=kinematics
-    from core.paths import DEFAULT_SCENE
-    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
-    from core.scenes.anchors import quaternion_matrix
+    from utils.paths import DEFAULT_SCENE
+    from utils.geometry import mount_pose
+    from utils.scene import load_scene_spec, load_mount_spec
+    from utils.geometry import quaternion_matrix
     scene=load_scene_spec(DEFAULT_SCENE)
     pose=mount_pose(scene,load_mount_spec(scene,spec),spec)
     gravity_original=kin._model.gravity.numpy().copy()
@@ -399,7 +400,7 @@ def derive_actuators(spec, kinematics, model, *, sample_positions=None):
 
 
 def _write(paths, model, checks):
-    from core.arms.arm_toml import build_arm_toml,build_report
+    from utils.arms.arm_toml import build_arm_toml,build_report
     choices=paths['choices']
     directory=paths['directory']
     (directory/'arm.toml').write_text(build_arm_toml(model,choices))
@@ -412,7 +413,7 @@ def _write(paths, model, checks):
 
 def _spec(paths):
     import tomllib
-    from core.arms.spec import _parse_spec
+    from utils.arms.spec import _parse_spec
     return _parse_spec(paths['choices'].name,paths['directory'],tomllib.loads((paths['directory']/'arm.toml').read_text())['arm'])
 
 
@@ -470,8 +471,8 @@ def run_import(argv=None):
                         if not choices.ready_info['converged']:
                             choices.fallbacks.append(dict(step='ready_pose',fallback='zero clamped into limits',error='No grid target converged'))
                         _write(paths,model,checks); spec=_spec(paths)
-                    from core.arms.spec import load_arm_spec
-                    from core.paths import DEFAULT_ARM
+                    from utils.arms.spec import load_arm_spec
+                    from utils.paths import DEFAULT_ARM
                     yaw=step('base_yaw',lambda:base_yaw_for_scene(spec,load_arm_spec(DEFAULT_ARM)[0],kinematics=kin),
                              'Keep zero base yaw, tagged TODO')
                     if yaw is not None:
@@ -564,9 +565,10 @@ def derive_workspace_mount(spec,paths):
     from pxr import Usd
     import torch
     from isaaclab.utils.math import matrix_from_quat
-    from core.paths import DEFAULT_SCENE
-    from core.scenes import load_scene_spec,load_mount_spec,mount_pose
-    from core.scenes.anchors import quaternion_matrix
+    from utils.paths import DEFAULT_SCENE
+    from utils.geometry import mount_pose
+    from utils.scene import load_scene_spec, load_mount_spec
+    from utils.geometry import quaternion_matrix
     from sim.datagen.ik import ArmKinematics
     from sim.scene.geometry import collision_body_points,table_plane
     import tomllib

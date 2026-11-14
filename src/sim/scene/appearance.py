@@ -74,7 +74,7 @@ def apply_scene_lighting(stage, room_root, lighting):
 
 def apply_robot_appearance(stage, robot_root, arm, look):
     """Delegate an explicitly supplied fitted look to the arm-folder hook."""
-    from core.arms.spec import load_arm_utils
+    from utils.arms.spec import load_arm_utils
 
     if not look:
         return

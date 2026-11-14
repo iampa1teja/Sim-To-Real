@@ -270,8 +270,8 @@ def test_mimic_attempt_refuses_physics_from_a_running_coroutine():
 
 def test_source_raw_units_are_decoded_before_sdk_gripper_extraction():
     pytest.importorskip("isaaclab")
-    from core.arms.spec import load_arm_spec
-    from core.arms.mapping import JointMapping
+    from utils.arms.spec import load_arm_spec
+    from utils.arms.mapping import JointMapping
 
     arm = load_arm_spec('so101')[0]
     mapping = JointMapping.from_arm(arm, arm.runtime_joint_limits, device='cpu')

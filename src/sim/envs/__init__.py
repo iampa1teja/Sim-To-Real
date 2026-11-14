@@ -3,8 +3,8 @@ import os
 
 import gymnasium as gym
 
-from core.paths import DEFAULT_TASK
-from core.scenes import load_scene_spec, selected_scene_name
+from utils.paths import DEFAULT_TASK
+from utils.scene import load_scene_spec, selected_scene_name
 from core.tasks.loader import load_task, resolve
 
 _ENV_CLASS = "isaaclab.envs:ManagerBasedRLEnv"

@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from core.arms.calibration import resolve_calibration
-from core.arms.spec import load_arm_spec
+from utils.arms.calibration import resolve_calibration
+from utils.arms.spec import load_arm_spec
 from core.policy_client.contract import ArmInfo, ClientPolicy, load_client_policy
 from core.policy_client.discovery import discover
 from core.policy_client.transport import MsgSerializer

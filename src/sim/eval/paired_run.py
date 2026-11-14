@@ -36,7 +36,7 @@ def run(args, app):
     import gymnasium as gym
     import torch
     import sim.envs
-    from core.arms.mapping import JointMapping
+    from utils.arms.mapping import JointMapping
     from core.policy_client.contract import ArmInfo
     from core.rollout.paired_gui import PairedEvaluationGui, trial_arguments
     from core.rollout.real_rollout import connect_follower, joint_ranges, make_policy, camera_specs

@@ -3,7 +3,7 @@
 Kinematic replay: joint states and the object pose are written directly and the scene is
 rendered without stepping physics, so the motion is exactly the recorded one.
 """
-# - Joints: raw dataset units -> radians through core.arms.mapping.JointMapping,
+# - Joints: raw dataset units -> radians through utils.arms.mapping.JointMapping,
 #   written to the arm.toml joints in order with the *_index write APIs.
 # - Sidecar poses are WXYZ; they are converted to XYZW and composed with Isaac Lab's combine_frame_transforms.
 #   The base body comes from arm.toml.
@@ -34,9 +34,9 @@ class SceneReplayer:
     def __init__(self, env, mapping, dr_ranges, cameras,
                  external_camera=None, wrist_camera=None,
                  render_passes=2, object_name=None, task=None, arm=None):
-        """mapping: core.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
-        from core.arms.spec import load_arm_spec
-        from core.scenes import load_scene_spec
+        """mapping: utils.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
+        from utils.arms.spec import load_arm_spec
+        from utils.scene import load_scene_spec
 
         self.env = env
         self.arm = arm or getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]

@@ -52,7 +52,7 @@ def connect_trial_policies(factory, executor=None):
 
 def parse_args(argv=None):
     from core.rollout.real_rollout import build_parser
-    from core.utils.config import parse_yaml_args
+    from utils.cli import parse_yaml_args
     from core.tasks.loader import load_task
     from sim.app import add_launch_arguments
 
@@ -202,7 +202,7 @@ def main(argv=None):
     if errors:
         raise ValueError('; '.join(errors))
     if not args.no_leader:
-        from core.arms.calibration import resolve_calibration
+        from utils.arms.calibration import resolve_calibration
         args.calibration_selection = resolve_calibration(
             args.arm_spec, unit=args.unit, follower_id=args.follower_id, leader_id=args.leader_id)
     app = launch(args, enable_cameras=True)
