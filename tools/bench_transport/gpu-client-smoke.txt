@@ -1,0 +1,4 @@
+CPU-only protocol smoke; no GPU model or physical robot was used.
+sync: exit=0; ticks=30; held=0; request_samples=4; output validated
+async: exit=0; ticks=30; held=1; request_samples=29; output validated
+Example server stopped; no worker/server process left running.

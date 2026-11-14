@@ -6,8 +6,8 @@
 ........................................................................ [ 65%]
 ................................................................ [ 75%]
 .............................................................. [ 84%]
-.....................................ss............................. [ 95%]
-...............................                                          [100%]
+......................................ss............................ [ 95%]
+................................                                         [100%]
 =============================== warnings summary ===============================
 ../../opt/isaaclab-venv/lib/python3.12/site-packages/torch/jit/_script.py:1488: 35 warnings
   /opt/isaaclab-venv/lib/python3.12/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
@@ -36,12 +36,12 @@ tests/sim/test_scene_builder.py: 27 warnings
 
 tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
 tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
-  /tmp/pytest-of-root/pytest-228/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:34: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
+  /tmp/pytest-of-root/pytest-229/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:34: DeprecationWarning: MujocoRigidBodyPropertiesCfg is deprecated. Use [UsdPhysicsRigidBodyCfg(...), PhysxRigidBodyCfg(...), MujocoRigidBodyCfg(...)] instead; MujocoRigidBodyPropertiesCfg will be removed in 3.2.
     size=spec.size, rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(),
 
 tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
 tests/cli/test_extensions.py::test_scaffolded_composition_builds_and_exports_sdk_config_without_source_edits
-  /tmp/pytest-of-root/pytest-228/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:35: DeprecationWarning: MassPropertiesCfg is deprecated. Use [MassCfg(...)] instead; MassPropertiesCfg will be removed in 3.2.
+  /tmp/pytest-of-root/pytest-229/test_scaffolded_composition_bu0/tasks/guide_task/env_cfg.py:35: DeprecationWarning: MassPropertiesCfg is deprecated. Use [MassCfg(...)] instead; MassPropertiesCfg will be removed in 3.2.
     mass_props=sim_utils.MassPropertiesCfg(mass=spec.params["mass"]),
 
 tests/sim/test_ik_controller.py: 10 warnings
@@ -96,4 +96,4 @@ tests/sim/test_scene_builder.py::test_two_cube_task_composes_from_its_folder[eva
 =========================== short test summary info ============================
 SKIPPED [1] tests/sim/test_mimic_joints.py:7: The jaw fixture has no mimic follower
 SKIPPED [1] tests/sim/test_parallel_gripper_geometry.py:8: Parallel geometry applies to the seven-axis fixture
-655 passed, 2 skipped, 159 warnings, 22 subtests passed in 230.62s (0:03:50)
+656 passed, 2 skipped, 159 warnings, 22 subtests passed in 232.40s (0:03:52)

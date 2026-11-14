@@ -77,8 +77,18 @@ def main():
     diff = subprocess.check_output(['git','diff','--name-only','origin/v2','--',*protected],cwd=ROOT,text=True)
     if diff.strip():
         problems.append('Protected transport/default simulator/policy files changed: '+diff.strip())
+    env_path = RAW/'environment.json'
+    if env_path.exists():
+        implementation = json.loads(env_path.read_text())['implementation_commit']
+        runtime = ['src/core/policy_client/async_worker.py','src/core/policy_client/remote_policy.py',
+                   'src/core/policy_client/smoothing.py','tools/bench_transport/bench.py',
+                   'tools/bench_transport/common.py','tools/bench_transport/servers.py']
+        drift = subprocess.check_output(['git','diff','--name-only',implementation,'--',*runtime],cwd=ROOT,text=True)
+        if drift.strip():
+            problems.append('Benchmark runtime differs from its recorded commit: '+drift.strip())
     cpu = (HERE/'cpu-suite.txt').read_text()
-    if (HERE/'cpu-suite.exitcode').read_text().strip() != '0' or '655 passed, 2 skipped' not in cpu:
+    cpu_verified = (HERE/'cpu-suite.exitcode').read_text().strip() == '0' and '656 passed, 2 skipped' in cpu
+    if not cpu_verified:
         problems.append('Full CPU suite evidence missing')
     status = dict(complete=not problems,cells=len(rows),expected_cells=36,problems=problems,
                   reference_commit=REFERENCE,raw_sha256=hashes)
@@ -105,25 +115,45 @@ def main():
         f'The 216 reference summaries come unchanged from benchmark commit `{REFERENCE}` '
         '([published report](https://github.com/iampa1teja/Sim-To-Real/blob/'+REFERENCE+'/tools/bench_transport/REPORT.md)). '
         'They are a prior serial run on this workstation, not concurrent paired trials. '
-        'New hardware/software evidence is summarized in [environment](async_environment.json).','',
+        'New hardware/software and the measured runtime commit are recorded in '
+        '[environment](async_environment.json); the audit rejects runtime drift after collection.','',
+        '## What changed','',
+        'RemotePolicy now has an opt-in single-owner socket worker. Control ticks poll completed '
+        'requests and continue dispatching buffered actions. Refill uses remaining control slots '
+        'and max(configured refill, recent turnaround p95 + one period), with one inference in flight. '
+        'Copied observation snapshots carry generation, monotonic capture time and control step; '
+        'arrivals trim elapsed repeated steps and replace the aligned buffer.','',
+        'Starvation repeats the applied, bounded target and faults after grace; request deadlines '
+        'latch faults without waiting on the network. Reset, Stop, instruction change and faults '
+        'invalidate older replies. Optional blending/EMA, role-based gripper exclusions, grasp '
+        'feedback and seed acknowledgements remain available. Real callers keep range clamps, '
+        'first-fresh-target checks and motion locks. Simulator defaults remain deterministic.','',
+        'An initial pilot exposed a one-period refill delay caused by sub-period capture jitter. '
+        'The accepted matrix is remeasured after correcting the control-slot boundary. Clock tests '
+        'also verify that a long control pause expires targets and does not restart starvation '
+        'grace. Pilot data is ignored and is not mixed with these summaries.','',
         '## Target checks','']
     lr = {key(b):b for b in baseline if b['stack']=='lerobot' and b['encoding']=='raw' and b['setup']=='default'}
     if rows:
-        p95_deltas = [(key(r['spec']),r['action_age_ms']['p95']-float(lr[key(r['spec'])]['action_age_ms_p95'])) for r in rows]
-        violations = [(k,d) for k,d in p95_deltas if d>0]
+        age_deltas = [(key(r['spec']),p,r['action_age_ms'][p]-float(lr[key(r['spec'])]['action_age_ms_'+p]))
+                      for r in rows for p in ['p50','p95','p99','max']]
+        violations = [(k,p,d) for k,p,d in age_deltas if d>0]
         holds_ok=sum(r['steady_held_ticks']<=9 for r in rows)
         report += [f'{holds_ok}/{len(rows)} collected runs meet the single-digit hold target after startup; '
                    f'{sum(r["steady_held_ticks"] for r in rows)} steady-state held ticks in total. '
                    f'Startup holds range from {min(r["startup_held_ticks"] for r in rows)} to '
                    f'{max(r["startup_held_ticks"] for r in rows)} ticks.','',
-                   f'Age p95 is no worse than the matched LeRobot raw/default reference in '
-                   f'{len(rows)-len(violations)}/{len(rows)} collected cells. Differences are computed '
-                   'per payload/delay; no pooled percentile is claimed.']
+                   'Age is compared separately at p50, p95, p99 and max against the matched '
+                   'LeRobot raw/default reference (its raw encoding is the primary comparison). '
+                   'Differences are computed per payload/delay; no pooled percentile is claimed.', '',
+                   '| Age statistic | New cells no worse than reference |', '|---|---:|',
+                   *[f'| {p} | {sum(q==p and delta<=0 for _,q,delta in age_deltas)}/{len(rows)} |'
+                     for p in ['p50','p95','p99','max']]]
         if violations:
-            report += ['', 'Cells above the reference p95 (new minus reference, ms):',
-                       *[f'- {h}×{w}, {c} cameras, chunk {n}, delay {d}: {delta:+.3f}' for (h,w,c,n,d),delta in violations],
+            report += ['', 'Statistics above the reference (new minus reference, ms):', '',
+                       *[f'- {h}×{w}, {c} cameras, chunk {n}, delay {d}, {p}: {delta:+.3f}' for (h,w,c,n,d),p,delta in violations],
                        '', 'Single runs have scheduler/copy jitter and no CPU affinity. These differences '
-                       'remain target misses; they are not erased by a tolerance. Review turnaround '
+                       'remain strict single-run target misses; they are not erased by a tolerance. Review turnaround '
                        'and per-tick traces before tuning refill or making a hardware claim.']
         report += ['']
     report += ['## Side-by-side measurements','',
@@ -149,9 +179,11 @@ def main():
                           ' | '.join(f'{r["action_age_ms"][p]:.3f}' for p in ['p50','p95','p99','max'])+
                           f' | {r["chunk_replacements"]} | '+
                           ' / '.join(f'{r["turnaround_ms"][p]:.3f}' for p in ['p50','p95','p99','max'])+' |')
-    report += ['', '## Validation and limits','',
-        'Full CPU suite: **655 passed, 22 subtests passed, 2 existing skips**, exit 0 '
-        '([log](cpu-suite.txt)). The skips are the original inapplicable jaw cases in '
+    cpu_status = ('Full CPU suite: **656 passed, 22 subtests passed, 2 existing skips**, exit 0 '
+                  '([log](cpu-suite.txt)). ' if cpu_verified else
+                  'The final full-suite rerun is pending; [last saved suite log](cpu-suite.txt). ')
+    report += ['', '## Validation and limits','',cpu_status+
+        'The two baseline skips are the original inapplicable jaw cases in '
         '`test_mimic_joints.py` and `test_parallel_gripper_geometry.py`; neither test was changed. '
         'No new skips, ignore flags or deselections were introduced. The only pre-existing test file '
         'modified is `test_transport.py`, which gained a real-ZMQ async example-server test; its '
@@ -159,9 +191,12 @@ def main():
         'and a fake monotonic clock.','',
         'Default simulator evaluation remains step-driven: `SimulationSmoother`, fixed schedules, '
         'seeds, eval loop and simulator policy wrapper retain their existing default behavior. '
-        'Temporal ensembling is explicitly rejected in async mode. Socket close drains a pending '
-        'call up to its transport timeout on the worker; cancellation invalidates playback immediately '
+        'Temporal ensembling is explicitly rejected in async mode. Socket close drains the pending '
+        'RPC sequence on the worker (each RPC retains its configured transport timeout); cancellation invalidates playback immediately '
         'and never waits on that socket.','',
+        'Both documented client modes also passed against the real ZMQ example server on CPU '
+        '([utility validation](gpu-client-smoke.txt)); the GPU-serving command was checked through '
+        'the CLI dry-run planner. This did not execute a GPU model or open a physical robot.','',
         'Hardware validation still required: real-arm clamp/first-target/Stop behavior under device '
         'latency and operator races, real GPU inference tail latency, calibrated action/units parity, '
         'trajectory jerk and physical smoothness. Fixed synthetic RGB/actions and one run per cell '
