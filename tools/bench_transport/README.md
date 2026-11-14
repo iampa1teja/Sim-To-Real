@@ -127,6 +127,8 @@ docker rm -f s2r-transport-netns
 
 The shell trap removes its netem qdisc on normal exit/failure. The final audit checks coverage, sample counts/statistics, request/response byte equality, nonempty loss-free captures, packet-length totals, all 1,800 tick indices, held counts/ages, production invariance and a zero-skip CPU-suite result. Inspect its evidence before accepting the report; it does not infer successful physical behavior.
 
+The audit scopes Git's `safe.directory` option to this checkout for its production-diff command, so it also works when the namespace container runs as root against the host user's bind mount. The original final-audit error is preserved in [acceptance-container-git.txt](results/failures/acceptance-container-git.txt). After that correction, the complete matrix resumed without remeasuring completed cells and passed acceptance: [output](results/matrix-final-resume.txt), [exit code 0](results/matrix-final-resume.exitcode).
+
 To reproduce the cold-session diagnostic, stop other benchmark work, apply 5 ms netem in the dedicated namespace, and run:
 
 ```bash

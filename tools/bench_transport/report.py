@@ -127,7 +127,10 @@ def audit(rows):
                 ages = [float(t['age_ms']) for t in ticks if t['age_ms']]
                 if ages and (min(ages) < 0 or not np.isclose(np.percentile(ages, 95), row['action_age_ms']['p95'])):
                     problems.append(f'{path.name}: action-age sample mismatch')
-    changed = subprocess.check_output(['git', 'diff', '--name-only', 'origin/v2', '--',
+    # The namespace container runs as root against the host user's bind mount.
+    # Trust only this checkout for this command; do not alter global Git config.
+    changed = subprocess.check_output(['git', '-c', f'safe.directory={ROOT}',
+                                      'diff', '--name-only', 'origin/v2', '--',
                                       'src', 'policies', 'docker', 'configs'], cwd=ROOT, text=True).strip()
     if changed:
         problems.append('Production files changed: ' + changed)
@@ -176,7 +179,8 @@ def main():
               'by fixed zero chunks after 0/50/150 ms sleep. They do not establish GPU end-to-end latency, policy '
               'quality, physical smoothness or useful language behavior. [Exact commands and metric definitions](README.md).', '',
               '## Measured facts', '',
-              'Software/hardware are recorded per run in `results/*/environment.json`. '
+              'Software/hardware are recorded per run in `results/*/environment.json` '
+              '([host details](results/localhost/environment.json), [OS release](results/os-release.txt)). '
               'Client/server CPU percentages use process CPU time divided by wall time; one busy core is 100%. '
               'Request/response sizes below include captured loopback Ethernet/IP/TCP framing and ACKs, amortized '
               'over measured exchanges. This is packet accounting on `lo`, not physical link serialization. '
@@ -277,8 +281,8 @@ def main():
                    f'(positive means lower latency); {int(np.sum(savings < 0))}/{len(savings)} cells regress. '
                    'The serializer is therefore a candidate improvement whose per-payload distributions '
                    'need review, rather than a universal latency win.', '']
-        report += ['| Stack / encoding / setup | Delay ms | Mean held ticks per run | Median per-run age p95 ms |',
-                   '|---|---:|---:|---:|']
+        report += ['| Stack / encoding / setup | Delay ms | Mean held ticks per run | Median per-run age p95 ms | Mean replacements per run |',
+                   '|---|---:|---:|---:|---:|']
         for delay in [50, 150]:
             groups = sorted({(r['spec']['stack'], r['spec']['encoding'], r['spec']['setup']) for r in controls})
             for group in groups:
@@ -286,8 +290,14 @@ def main():
                             tuple(r['spec'][k] for k in ['stack', 'encoding', 'setup']) == group]
                 report.append('| ' + ' / '.join(group) + f' | {delay} | ' +
                               f"{np.mean([r['held_ticks'] for r in selected]):.1f} | " +
-                              f"{np.median([r['action_age_ms']['p95'] for r in selected]):.3f} |")
-        report += ['', 'Recommendation (engineering inference): **keep ZMQ plus specific improvements**. '
+                              f"{np.median([r['action_age_ms']['p95'] for r in selected]):.3f} | " +
+                              f"{np.mean([r['chunk_replacements'] for r in selected]):.1f} |")
+        report += ['', 'Measured control behavior: LeRobot\'s asynchronous engine reduced held ticks '
+                   'despite its higher synchronous transport latency. The smaller tuned refill reduced '
+                   'mean replacements but increased the median per-run age p95 for both encodings and '
+                   'delays. Existing ZMQ prefetch increased mean holds relative to synchronous mode. '
+                   'Fewer replacements alone therefore did not establish better action freshness.', '',
+                   'Recommendation (engineering inference): **keep ZMQ plus specific improvements**. '
                    'Before promoting the raw dtype/shape serializer, add production validation/bounds and '
                    'wire-version negotiation, and confirm gains for the payloads with measured regressions. '
                    'Implement a real single-owner background inference worker '

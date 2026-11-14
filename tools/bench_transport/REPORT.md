@@ -1,12 +1,12 @@
 # ZMQ versus LeRobot 0.7 remote inference
 
-Status: INCOMPLETE — measurements/acceptance still in progress. 324/432 matrix cells recorded. See [audit](results/audit.json).
+Status: complete. 432/432 matrix cells recorded. See [audit](results/audit.json).
 
 These CPU numbers isolate transport, processors and client scheduling. Neural inference is replaced by fixed zero chunks after 0/50/150 ms sleep. They do not establish GPU end-to-end latency, policy quality, physical smoothness or useful language behavior. [Exact commands and metric definitions](README.md).
 
 ## Measured facts
 
-Software/hardware are recorded per run in `results/*/environment.json`. Client/server CPU percentages use process CPU time divided by wall time; one busy core is 100%. Request/response sizes below include captured loopback Ethernet/IP/TCP framing and ACKs, amortized over measured exchanges. This is packet accounting on `lo`, not physical link serialization. Application bytes and all four codec timing distributions are in [summary.csv](results/summary.csv); every RTT, codec sample, packet header/length and control tick is retained in compressed raw files.
+Software/hardware are recorded per run in `results/*/environment.json` ([host details](results/localhost/environment.json), [OS release](results/os-release.txt)). Client/server CPU percentages use process CPU time divided by wall time; one busy core is 100%. Request/response sizes below include captured loopback Ethernet/IP/TCP framing and ACKs, amortized over measured exchanges. This is packet accounting on `lo`, not physical link serialization. Application bytes and all four codec timing distributions are in [summary.csv](results/summary.csv); every RTT, codec sample, packet header/length and control tick is retained in compressed raw files.
 
 ### A — synchronous transport, zero inference delay
 
@@ -95,6 +95,114 @@ Our synchronous driver and prefetch setup call the real production `RemotePolicy
 
 | H×W / cameras / chunk | Stack / encoding / setup | Delay ms | Held / 1800 | Missed | Age p50 ms | Age p95 ms | Age p99 ms | Age max ms | Replacements |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 224×224 / 1 / 16 | lerobot / jpeg / default | 150.000 | 5.000 | 0.000 | 267.108 | 333.889 | 333.968 | 369.834 | 371.000 |
+| 224×224 / 1 / 16 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 300.509 | 433.868 | 433.964 | 633.780 | 198.000 |
+| 224×224 / 1 / 16 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 100.542 | 133.937 | 134.011 | 167.235 | 994.000 |
+| 224×224 / 1 / 16 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 234.617 | 433.876 | 433.982 | 533.917 | 149.000 |
+| 224×224 / 1 / 16 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 266.841 | 333.782 | 333.930 | 336.057 | 379.000 |
+| 224×224 / 1 / 16 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 300.487 | 433.855 | 433.977 | 600.550 | 198.000 |
+| 224×224 / 1 / 16 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 100.536 | 133.922 | 133.973 | 136.664 | 1034.000 |
+| 224×224 / 1 / 16 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 235.393 | 433.859 | 433.948 | 500.608 | 149.000 |
+| 224×224 / 1 / 16 | zmq_npy / raw / prefetch | 150.000 | 556.000 | 556.000 | 600.112 | 800.306 | 800.404 | 800.548 | 137.000 |
+| 224×224 / 1 / 16 | zmq_npy / raw / sync | 150.000 | 360.000 | 360.000 | 433.574 | 733.271 | 766.599 | 766.605 | 89.000 |
+| 224×224 / 1 / 16 | zmq_npy / raw / prefetch | 50.000 | 139.000 | 139.000 | 400.132 | 600.309 | 600.404 | 600.470 | 138.000 |
+| 224×224 / 1 / 16 | zmq_npy / raw / sync | 50.000 | 106.000 | 106.000 | 300.098 | 566.510 | 566.598 | 566.609 | 105.000 |
+| 224×224 / 1 / 30 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 400.177 | 600.485 | 600.626 | 800.510 | 127.000 |
+| 224×224 / 1 / 30 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 533.870 | 867.281 | 900.599 | 1136.174 | 77.000 |
+| 224×224 / 1 / 30 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 300.161 | 500.464 | 500.608 | 600.535 | 128.000 |
+| 224×224 / 1 / 30 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 500.225 | 867.271 | 900.599 | 1000.600 | 69.000 |
+| 224×224 / 1 / 30 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 400.155 | 600.502 | 600.616 | 767.131 | 127.000 |
+| 224×224 / 1 / 30 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 533.827 | 867.275 | 900.589 | 1067.259 | 77.000 |
+| 224×224 / 1 / 30 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 267.735 | 500.449 | 500.620 | 567.248 | 128.000 |
+| 224×224 / 1 / 30 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 483.882 | 867.239 | 900.596 | 967.253 | 69.000 |
+| 224×224 / 1 / 30 | zmq_npy / raw / prefetch | 150.000 | 268.000 | 268.000 | 833.458 | 1233.486 | 1267.069 | 1267.252 | 66.000 |
+| 224×224 / 1 / 30 | zmq_npy / raw / sync | 150.000 | 212.000 | 212.000 | 666.849 | 1199.853 | 1233.262 | 1233.276 | 52.000 |
+| 224×224 / 1 / 30 | zmq_npy / raw / prefetch | 50.000 | 67.000 | 67.000 | 633.417 | 1033.477 | 1067.085 | 1067.446 | 66.000 |
+| 224×224 / 1 / 30 | zmq_npy / raw / sync | 50.000 | 59.000 | 59.000 | 533.421 | 1000.091 | 1033.251 | 1033.291 | 58.000 |
+| 224×224 / 1 / 50 | lerobot / jpeg / default | 150.000 | 5.000 | 0.000 | 700.773 | 1233.837 | 1267.243 | 1433.955 | 52.000 |
+| 224×224 / 1 / 50 | lerobot / jpeg / tuned | 150.000 | 5.000 | 0.000 | 867.193 | 1500.706 | 1567.244 | 1733.960 | 41.000 |
+| 224×224 / 1 / 50 | lerobot / jpeg / default | 50.000 | 2.000 | 0.000 | 600.952 | 1133.775 | 1167.237 | 1233.957 | 52.000 |
+| 224×224 / 1 / 50 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 833.553 | 1500.582 | 1567.191 | 1667.205 | 39.000 |
+| 224×224 / 1 / 50 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 700.773 | 1233.813 | 1267.258 | 1433.962 | 52.000 |
+| 224×224 / 1 / 50 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 867.168 | 1500.623 | 1567.218 | 1733.922 | 41.000 |
+| 224×224 / 1 / 50 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 600.892 | 1133.787 | 1167.245 | 1233.604 | 52.000 |
+| 224×224 / 1 / 50 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 817.345 | 1500.601 | 1567.200 | 1634.002 | 39.000 |
+| 224×224 / 1 / 50 | zmq_npy / raw / prefetch | 150.000 | 156.000 | 156.000 | 1166.748 | 1866.818 | 1933.734 | 1933.854 | 38.000 |
+| 224×224 / 1 / 50 | zmq_npy / raw / sync | 150.000 | 136.000 | 136.000 | 1000.146 | 1833.181 | 1899.861 | 1899.987 | 33.000 |
+| 224×224 / 1 / 50 | zmq_npy / raw / prefetch | 50.000 | 39.000 | 39.000 | 966.723 | 1666.794 | 1733.707 | 1733.905 | 38.000 |
+| 224×224 / 1 / 50 | zmq_npy / raw / sync | 50.000 | 36.000 | 36.000 | 866.694 | 1633.418 | 1699.848 | 1699.944 | 35.000 |
+| 224×224 / 2 / 16 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 267.192 | 333.948 | 334.017 | 400.610 | 362.000 |
+| 224×224 / 2 / 16 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 300.617 | 433.958 | 467.369 | 667.371 | 198.000 |
+| 224×224 / 2 / 16 | lerobot / jpeg / default | 50.000 | 2.000 | 0.000 | 100.677 | 134.007 | 134.191 | 167.306 | 930.000 |
+| 224×224 / 2 / 16 | lerobot / jpeg / tuned | 50.000 | 2.000 | 0.000 | 266.985 | 433.911 | 434.024 | 533.844 | 149.000 |
+| 224×224 / 2 / 16 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 267.118 | 333.901 | 333.994 | 335.960 | 376.000 |
+| 224×224 / 2 / 16 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 300.579 | 433.910 | 433.982 | 600.645 | 198.000 |
+| 224×224 / 2 / 16 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 100.589 | 133.982 | 134.062 | 137.536 | 1023.000 |
+| 224×224 / 2 / 16 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 234.585 | 433.862 | 433.970 | 500.628 | 149.000 |
+| 224×224 / 2 / 16 | zmq_npy / raw / prefetch | 150.000 | 556.000 | 556.000 | 600.117 | 800.299 | 800.392 | 800.532 | 137.000 |
+| 224×224 / 2 / 16 | zmq_npy / raw / sync | 150.000 | 360.000 | 360.000 | 433.515 | 733.307 | 766.587 | 766.645 | 89.000 |
+| 224×224 / 2 / 16 | zmq_npy / raw / prefetch | 50.000 | 139.000 | 139.000 | 400.123 | 600.298 | 600.410 | 600.520 | 138.000 |
+| 224×224 / 2 / 16 | zmq_npy / raw / sync | 50.000 | 106.000 | 106.000 | 300.091 | 566.503 | 566.601 | 566.613 | 105.000 |
+| 224×224 / 2 / 30 | lerobot / jpeg / default | 150.000 | 5.000 | 0.000 | 400.214 | 600.535 | 600.765 | 800.494 | 127.000 |
+| 224×224 / 2 / 30 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 533.945 | 900.170 | 900.696 | 1100.713 | 77.000 |
+| 224×224 / 2 / 30 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 300.404 | 500.601 | 533.947 | 633.871 | 128.000 |
+| 224×224 / 2 / 30 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 500.395 | 867.479 | 900.692 | 1000.598 | 69.000 |
+| 224×224 / 2 / 30 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 400.142 | 600.541 | 600.662 | 767.298 | 127.000 |
+| 224×224 / 2 / 30 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 533.886 | 867.326 | 900.655 | 1067.215 | 77.000 |
+| 224×224 / 2 / 30 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 267.676 | 500.541 | 500.662 | 567.207 | 128.000 |
+| 224×224 / 2 / 30 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 483.790 | 867.318 | 900.622 | 967.385 | 69.000 |
+| 224×224 / 2 / 30 | zmq_npy / raw / prefetch | 150.000 | 268.000 | 268.000 | 833.381 | 1233.472 | 1267.077 | 1267.310 | 66.000 |
+| 224×224 / 2 / 30 | zmq_npy / raw / sync | 150.000 | 212.000 | 212.000 | 666.844 | 1199.847 | 1233.259 | 1233.276 | 52.000 |
+| 224×224 / 2 / 30 | zmq_npy / raw / prefetch | 50.000 | 67.000 | 67.000 | 633.437 | 1033.454 | 1067.021 | 1067.137 | 66.000 |
+| 224×224 / 2 / 30 | zmq_npy / raw / sync | 50.000 | 59.000 | 59.000 | 533.437 | 1000.097 | 1033.234 | 1033.276 | 58.000 |
+| 224×224 / 2 / 50 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 733.752 | 1233.919 | 1300.436 | 1467.329 | 52.000 |
+| 224×224 / 2 / 50 | lerobot / jpeg / tuned | 150.000 | 5.000 | 0.000 | 867.225 | 1533.771 | 1567.309 | 1767.325 | 41.000 |
+| 224×224 / 2 / 50 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 633.659 | 1133.913 | 1167.351 | 1300.385 | 52.000 |
+| 224×224 / 2 / 50 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 833.696 | 1500.793 | 1567.299 | 1700.554 | 39.000 |
+| 224×224 / 2 / 50 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 700.743 | 1233.885 | 1267.299 | 1433.975 | 52.000 |
+| 224×224 / 2 / 50 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 867.185 | 1500.663 | 1567.236 | 1734.009 | 41.000 |
+| 224×224 / 2 / 50 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 600.978 | 1133.744 | 1167.301 | 1233.939 | 52.000 |
+| 224×224 / 2 / 50 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 817.108 | 1500.634 | 1567.272 | 1634.030 | 39.000 |
+| 224×224 / 2 / 50 | zmq_npy / raw / prefetch | 150.000 | 156.000 | 156.000 | 1166.734 | 1866.803 | 1933.728 | 1933.933 | 38.000 |
+| 224×224 / 2 / 50 | zmq_npy / raw / sync | 150.000 | 136.000 | 136.000 | 1000.163 | 1833.180 | 1899.922 | 1899.944 | 33.000 |
+| 224×224 / 2 / 50 | zmq_npy / raw / prefetch | 50.000 | 39.000 | 39.000 | 966.704 | 1666.809 | 1733.719 | 1733.875 | 38.000 |
+| 224×224 / 2 / 50 | zmq_npy / raw / sync | 50.000 | 36.000 | 36.000 | 866.682 | 1633.383 | 1699.910 | 1699.963 | 35.000 |
+| 224×224 / 3 / 16 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 267.292 | 334.025 | 367.248 | 400.756 | 356.000 |
+| 224×224 / 3 / 16 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 333.962 | 467.291 | 467.618 | 667.297 | 198.000 |
+| 224×224 / 3 / 16 | lerobot / jpeg / default | 50.000 | 2.000 | 0.000 | 133.702 | 134.187 | 167.351 | 170.018 | 881.000 |
+| 224×224 / 3 / 16 | lerobot / jpeg / tuned | 50.000 | 2.000 | 0.000 | 267.444 | 467.263 | 467.477 | 533.924 | 149.000 |
+| 224×224 / 3 / 16 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 267.199 | 333.960 | 334.051 | 337.669 | 374.000 |
+| 224×224 / 3 / 16 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 300.624 | 433.997 | 434.055 | 600.605 | 198.000 |
+| 224×224 / 3 / 16 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 100.653 | 134.044 | 134.175 | 137.526 | 1005.000 |
+| 224×224 / 3 / 16 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 235.248 | 433.958 | 434.062 | 500.670 | 149.000 |
+| 224×224 / 3 / 16 | zmq_npy / raw / prefetch | 150.000 | 556.000 | 556.000 | 600.120 | 800.309 | 800.415 | 800.703 | 137.000 |
+| 224×224 / 3 / 16 | zmq_npy / raw / sync | 150.000 | 360.000 | 360.000 | 433.526 | 733.283 | 766.602 | 766.617 | 89.000 |
+| 224×224 / 3 / 16 | zmq_npy / raw / prefetch | 50.000 | 139.000 | 139.000 | 400.119 | 600.307 | 600.394 | 600.481 | 138.000 |
+| 224×224 / 3 / 16 | zmq_npy / raw / sync | 50.000 | 106.000 | 106.000 | 300.095 | 566.513 | 566.600 | 566.611 | 105.000 |
+| 224×224 / 3 / 30 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 400.896 | 633.883 | 634.046 | 834.060 | 127.000 |
+| 224×224 / 3 / 30 | lerobot / jpeg / tuned | 150.000 | 5.000 | 0.000 | 567.216 | 900.664 | 934.071 | 1100.489 | 77.000 |
+| 224×224 / 3 / 30 | lerobot / jpeg / default | 50.000 | 2.000 | 0.000 | 301.039 | 533.933 | 534.110 | 600.722 | 128.000 |
+| 224×224 / 3 / 30 | lerobot / jpeg / tuned | 50.000 | 2.000 | 0.000 | 500.840 | 900.688 | 934.035 | 967.475 | 69.000 |
+| 224×224 / 3 / 30 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 400.329 | 600.561 | 600.723 | 767.375 | 127.000 |
+| 224×224 / 3 / 30 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 533.989 | 867.382 | 900.697 | 1067.445 | 77.000 |
+| 224×224 / 3 / 30 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 268.057 | 500.593 | 500.722 | 567.418 | 128.000 |
+| 224×224 / 3 / 30 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 483.888 | 867.370 | 900.713 | 967.485 | 69.000 |
+| 224×224 / 3 / 30 | zmq_npy / raw / prefetch | 150.000 | 268.000 | 268.000 | 833.379 | 1233.465 | 1267.042 | 1267.171 | 66.000 |
+| 224×224 / 3 / 30 | zmq_npy / raw / sync | 150.000 | 212.000 | 212.000 | 666.863 | 1199.842 | 1233.253 | 1233.277 | 52.000 |
+| 224×224 / 3 / 30 | zmq_npy / raw / prefetch | 50.000 | 67.000 | 67.000 | 633.433 | 1033.528 | 1067.087 | 1067.184 | 66.000 |
+| 224×224 / 3 / 30 | zmq_npy / raw / sync | 50.000 | 59.000 | 59.000 | 533.424 | 1000.061 | 1033.256 | 1033.277 | 58.000 |
+| 224×224 / 3 / 50 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 734.052 | 1267.236 | 1300.651 | 1500.700 | 52.000 |
+| 224×224 / 3 / 50 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 900.552 | 1534.066 | 1600.698 | 1800.614 | 41.000 |
+| 224×224 / 3 / 50 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 634.109 | 1167.195 | 1200.698 | 1300.746 | 52.000 |
+| 224×224 / 3 / 50 | lerobot / jpeg / tuned | 50.000 | 3.000 | 0.000 | 834.193 | 1534.031 | 1600.685 | 1700.710 | 39.000 |
+| 224×224 / 3 / 50 | lerobot / raw / default | 150.000 | 5.000 | 0.000 | 700.863 | 1233.924 | 1267.330 | 1433.964 | 52.000 |
+| 224×224 / 3 / 50 | lerobot / raw / tuned | 150.000 | 5.000 | 0.000 | 867.201 | 1500.729 | 1567.332 | 1734.047 | 41.000 |
+| 224×224 / 3 / 50 | lerobot / raw / default | 50.000 | 2.000 | 0.000 | 600.886 | 1133.829 | 1167.339 | 1234.097 | 52.000 |
+| 224×224 / 3 / 50 | lerobot / raw / tuned | 50.000 | 2.000 | 0.000 | 817.403 | 1500.658 | 1567.355 | 1634.005 | 39.000 |
+| 224×224 / 3 / 50 | zmq_npy / raw / prefetch | 150.000 | 156.000 | 156.000 | 1166.736 | 1866.790 | 1933.718 | 1933.930 | 38.000 |
+| 224×224 / 3 / 50 | zmq_npy / raw / sync | 150.000 | 136.000 | 136.000 | 1000.107 | 1833.176 | 1899.919 | 1899.944 | 33.000 |
+| 224×224 / 3 / 50 | zmq_npy / raw / prefetch | 50.000 | 39.000 | 39.000 | 966.740 | 1666.831 | 1733.713 | 1733.859 | 38.000 |
+| 224×224 / 3 / 50 | zmq_npy / raw / sync | 50.000 | 36.000 | 36.000 | 866.747 | 1633.415 | 1699.855 | 1699.944 | 35.000 |
 | 480×640 / 1 / 16 | lerobot / jpeg / default | 150.000 | 6.000 | 0.000 | 267.549 | 367.411 | 367.536 | 400.892 | 342.000 |
 | 480×640 / 1 / 16 | lerobot / jpeg / tuned | 150.000 | 6.000 | 0.000 | 334.221 | 467.470 | 467.574 | 667.500 | 198.000 |
 | 480×640 / 1 / 16 | lerobot / jpeg / default | 50.000 | 3.000 | 0.000 | 134.136 | 167.549 | 167.696 | 200.620 | 791.000 |
@@ -390,14 +498,31 @@ Compatibility findings from source inspection (inferences, not model acceptance)
 
 ## Recommendation and migration work
 
-Recommendation is pending the complete A/B matrix. No final migration decision is claimed from smoke tests or partially collected cells.
+Across matched localhost cells, the median relative change from the raw-array codec is 48.9% lower p50 RTT; LeRobot raw has a median p50 ratio of 13.23× versus our npy serializer. These summarize per-cell ratios, not pooled latency percentiles.
+
+Raw-codec p50 improvements range from -60.4% to 70.0% (positive means lower latency); 2/18 cells regress. The serializer is therefore a candidate improvement whose per-payload distributions need review, rather than a universal latency win.
+
+| Stack / encoding / setup | Delay ms | Mean held ticks per run | Median per-run age p95 ms | Mean replacements per run |
+|---|---:|---:|---:|---:|
+| lerobot / jpeg / default | 50 | 2.8 | 534.025 | 334.4 |
+| lerobot / jpeg / tuned | 50 | 2.8 | 900.634 | 86.4 |
+| lerobot / raw / default | 50 | 2.2 | 500.710 | 380.9 |
+| lerobot / raw / tuned | 50 | 2.1 | 867.445 | 85.7 |
+| zmq_npy / raw / prefetch | 50 | 81.8 | 1033.482 | 80.7 |
+| zmq_npy / raw / sync | 50 | 67.2 | 1000.073 | 65.9 |
+| lerobot / jpeg / default | 150 | 5.8 | 633.978 | 174.6 |
+| lerobot / jpeg / tuned | 150 | 5.8 | 900.767 | 107.0 |
+| lerobot / raw / default | 150 | 5.2 | 600.656 | 182.1 |
+| lerobot / raw / tuned | 150 | 5.2 | 867.471 | 105.3 |
+| zmq_npy / raw / prefetch | 150 | 326.8 | 1233.481 | 80.3 |
+| zmq_npy / raw / sync | 150 | 236.2 | 1199.846 | 58.0 |
+
+Measured control behavior: LeRobot's asynchronous engine reduced held ticks despite its higher synchronous transport latency. The smaller tuned refill reduced mean replacements but increased the median per-run age p95 for both encodings and delays. Existing ZMQ prefetch increased mean holds relative to synchronous mode. Fewer replacements alone therefore did not establish better action freshness.
+
+Recommendation (engineering inference): **keep ZMQ plus specific improvements**. Before promoting the raw dtype/shape serializer, add production validation/bounds and wire-version negotiation, and confirm gains for the payloads with measured regressions. Implement a real single-owner background inference worker with monotonic observation provenance, stale-prefix trimming, deadline handling and retained-target dispatch; the present prefetch helper alone does not overlap blocking network calls. Preserve ArmInfo calibration/role/type checks and benchmark the new worker separately. LeRobot offers a substantially richer lifecycle/admission and asynchronous execution implementation, but adopting it entails two model/processor exports or adapters, simulator dispatch/hold integration, contract/calibration mapping, separate serving dependencies, and new reset/fault/prompt parity validation. The observed cold-session delivery failure also needs a verified transport/startup solution for large raw images under latency; the benchmark warmup allowance is not a production recovery design. The CPU comparison does not establish a GPU latency or task-success reason to undertake that migration. Validate these decisions against the separate GPU budget before rollout.
 
 ## Acceptance and limits
 
 One run per cell, seeded synthetic high-entropy RGB, localhost TCP, no CPU affinity or hard real-time guarantees. JPEG q90 reduces bytes at a lossy encoding/decoding cost; real camera compressibility may differ. The observer adds lightweight timing instrumentation and packet capture overhead. Fixed actions measure continuity/freshness, not trajectory jerk or policy responsiveness. Tiny ACT is loaded/warmed with saved processors, then only its chunk prediction entry point is replaced; processor and protocol costs remain real.
 
 The full CPU suite log is [cpu-tests-final.txt](results/cpu-tests-final.txt), with its [process exit code](results/cpu-tests-final.exitcode). The approved fixture correction retains both import embodiments and applies the two parallel-specific checks only to their matching fixture. Production invariance, raw-data checks, matrix coverage and test evidence are audited by `report.py --require-complete`. The GPU follow-up commands in README are intentionally not part of the CPU acceptance run.
-
-Outstanding acceptance items:
-
-- control: 108/216 cells, 108 missing, 0 extra

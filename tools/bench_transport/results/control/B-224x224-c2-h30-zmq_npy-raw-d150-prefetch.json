@@ -1,0 +1,53 @@
+{
+  "ticks": 1800,
+  "held_ticks": 268,
+  "missed_dispatch_ticks": 268,
+  "chunk_replacements": 66,
+  "executed_source_transitions": 66,
+  "late_chunk_arrivals": 0,
+  "action_age_ms": {
+    "n": 1796,
+    "mean": 830.3866389103005,
+    "p50": 833.380826501525,
+    "p95": 1233.472080744832,
+    "p99": 1267.0773474535963,
+    "max": 1267.3097489969223
+  },
+  "elapsed_s": 60.000065767002525,
+  "client_cpu_percent": 0.5666660455345459,
+  "server_cpu_percent": 0.18333313237882384,
+  "effective_refill_s": null,
+  "tick_call_ms": {
+    "n": 1532,
+    "mean": 6.816705853797057,
+    "p50": 0.13905800369684584,
+    "p95": 0.3791894479945768,
+    "p99": 153.3862466597202,
+    "max": 155.4346139964764
+  },
+  "spec": {
+    "height": 224,
+    "width": 224,
+    "cameras": 2,
+    "chunk": 30,
+    "stack": "zmq_npy",
+    "encoding": "raw",
+    "mode": "B",
+    "infer_ms": 150,
+    "setup": "prefetch",
+    "prefetch": 7,
+    "blend": 2,
+    "iterations": 1000,
+    "warmup": 50,
+    "warmup_timeout_budget": 3,
+    "seconds": 60,
+    "checkpoint_dir": "/home/rpuser1/Isaac-Sim-to-Real/tools/bench_transport/checkpoints",
+    "device": "cpu",
+    "real_forward": false,
+    "netem_ms": 0,
+    "capture": false,
+    "config_path": "tools/bench_transport/results/control/B-224x224-c2-h30-zmq_npy-raw-d150-prefetch.server.json",
+    "destination": "tools/bench_transport/results/control/B-224x224-c2-h30-zmq_npy-raw-d150-prefetch.json",
+    "port": 51633
+  }
+}
