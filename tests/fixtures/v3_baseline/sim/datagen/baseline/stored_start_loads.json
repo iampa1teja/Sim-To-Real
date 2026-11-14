@@ -1,0 +1,3520 @@
+{
+  "pick_place_v1_75ep_reach150_seed1984.json": {
+    "count": 150,
+    "eval_set_id": "4102164c55500b043c6cab4697a96c1c7d429decce138e1b6fd4e0eff9e99084",
+    "rows": [
+      {
+        "id": "id-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-040",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-041",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-042",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-043",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-044",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-045",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-046",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-047",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-048",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-049",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-050",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-051",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-052",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-053",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-054",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-055",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-056",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-057",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-058",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-059",
+        "loaded": true,
+        "valid_stored_scene": false,
+        "valid_normalized_stored_scene": false,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-060",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-061",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-062",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-063",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-064",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-065",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-066",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-067",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-068",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-069",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-070",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-071",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-072",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-073",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-074",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      }
+    ]
+  },
+  "pick_place_v1_75ep_seed1984.json": {
+    "count": 200,
+    "eval_set_id": "81e9e9472846750875c81880918a15156e8cdd46a01d746e6f575bcfff525e23",
+    "rows": [
+      {
+        "id": "id-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-040",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-041",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-042",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-043",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-044",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-045",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-046",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-047",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-048",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-049",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-050",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-051",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-052",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-053",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-054",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-055",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-056",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-057",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-058",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-059",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-060",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-061",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-062",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-063",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-064",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-065",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-066",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-067",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-068",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-069",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-070",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-071",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-072",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-073",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-074",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-040",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-041",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-042",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-043",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-044",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-045",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-046",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-047",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-048",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-049",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-050",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-051",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-052",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-053",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-054",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-055",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-056",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-057",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-058",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-059",
+        "loaded": true,
+        "valid_stored_scene": false,
+        "valid_normalized_stored_scene": false,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-060",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-061",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-062",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-063",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-064",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-065",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-066",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-067",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-068",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-069",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-070",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-071",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-072",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-073",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-074",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      }
+    ]
+  },
+  "pick_place_v1_seed1984.json": {
+    "count": 150,
+    "eval_set_id": "dddd4db4d7f9092db3f218d9f7ef42e60844e28bf2e7bc062bea80e054e5444f",
+    "rows": [
+      {
+        "id": "id-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-040",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-041",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-042",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-043",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-044",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-045",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-046",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-047",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-048",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-049",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-050",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-051",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-052",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-053",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-054",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-055",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-056",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-057",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-058",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "id-059",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "ood-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "yaw-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-000",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-001",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-002",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-003",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-004",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-005",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-006",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-007",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-008",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-009",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-010",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-011",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-012",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-013",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-014",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-015",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-016",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-017",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-018",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-019",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-020",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-021",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-022",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-023",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-024",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-025",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-026",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-027",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-028",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-029",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-030",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-031",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-032",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-033",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-034",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-035",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-036",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-037",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-038",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-039",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-040",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-041",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-042",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-043",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-044",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-045",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-046",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-047",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-048",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      },
+      {
+        "id": "train-049",
+        "loaded": true,
+        "valid_stored_scene": true,
+        "valid_normalized_stored_scene": true,
+        "robot_state_dimensions": 6
+      }
+    ]
+  }
+}

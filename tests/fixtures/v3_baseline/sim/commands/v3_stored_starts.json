@@ -1,0 +1,7 @@
+{
+  "label": "v3_stored_starts",
+  "command": "docker exec s2r-sim s2r-entrypoint python /tmp/v3_start_loader_probe.py --phase v3",
+  "started_utc": "2026-11-14T14:29:43.922406+00:00",
+  "exit_code": 0,
+  "output": "{\n  \"pick_place_v1_75ep_reach150_seed1984.json\": {\n    \"count\": 150,\n    \"loaded\": 150,\n    \"rejected\": [\n      \"train-059\"\n    ]\n  },\n  \"pick_place_v1_75ep_seed1984.json\": {\n    \"count\": 200,\n    \"loaded\": 200,\n    \"rejected\": [\n      \"train-059\"\n    ]\n  },\n  \"pick_place_v1_seed1984.json\": {\n    \"count\": 150,\n    \"loaded\": 150,\n    \"rejected\": []\n  }\n}\n"
+}

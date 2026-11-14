@@ -1,0 +1,7 @@
+{
+  "label": "help_sim_workspace_arms_urdf_import",
+  "command": "docker exec s2r-sim s2r-entrypoint python -m sim.workspace.arms.urdf_import --help",
+  "started_utc": "2026-11-14T14:29:47.689334+00:00",
+  "exit_code": 0,
+  "output": "usage: urdf_import.py [-h] --urdf URDF --ee_link EE_LINK [--gripper GRIPPER]\n                      [--base_link BASE_LINK] [--camera CAMERA]\n                      [--package_path PACKAGE_PATH]\n                      [--ros2_control ROS2_CONTROL] [--rename RENAME]\n                      [--grasp_depth_m GRASP_DEPTH_M]\n                      [--continuous_limit_deg CONTINUOUS_LIMIT_DEG] [--force]\n                      [--repo REPO]\n                      name\n\nImport a ROS description package into a simulation arm folder. SDK imports are\nlocal and occur only after sim.launch. A failed simulator step is recorded in\nimport-report.json; source/flag errors fail before publish.\n\npositional arguments:\n  name\n\noptions:\n  -h, --help            show this help message and exit\n  --urdf URDF\n  --ee_link EE_LINK\n  --gripper GRIPPER\n  --base_link BASE_LINK\n  --camera CAMERA\n  --package_path PACKAGE_PATH\n  --ros2_control ROS2_CONTROL\n  --rename RENAME\n  --grasp_depth_m GRASP_DEPTH_M\n  --continuous_limit_deg CONTINUOUS_LIMIT_DEG\n  --force\n  --repo REPO\n"
+}

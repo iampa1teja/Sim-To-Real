@@ -1,0 +1,13 @@
+{
+  "command": [
+    "docker",
+    "exec",
+    "s2r-sim",
+    "s2r-entrypoint",
+    "python",
+    "-c",
+    "import yaml,pathlib; p=pathlib.Path('workspace/configs/datagen/stack_bowls.yaml'); d=yaml.safe_load(p.read_text()); d.pop('starts_dir',None); o=pathlib.Path('/workspace/s2r/outputs/v3-sim-checks/v3/stack_bowls-random.yaml'); o.parent.mkdir(parents=True,exist_ok=True); o.write_text(yaml.safe_dump(d,sort_keys=False)); print(o)"
+  ],
+  "exit_code": 0,
+  "output": "/workspace/s2r/outputs/v3-sim-checks/v3/stack_bowls-random.yaml\n"
+}

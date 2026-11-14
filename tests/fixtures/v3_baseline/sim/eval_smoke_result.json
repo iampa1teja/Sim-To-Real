@@ -1,0 +1,78 @@
+{
+  "complete": false,
+  "requested_episodes": 9,
+  "checkpoint": "stage_2_main/checkpoint-60000",
+  "seed": 1984,
+  "step_dt": 0.03333333333333333,
+  "episode_length_s": 30.0,
+  "action_horizon": 8,
+  "action_repeat": 1,
+  "policy_cameras": [
+    "room",
+    "wrist"
+  ],
+  "policy_joint_transform": null,
+  "resume_settings": {
+    "policy": "example",
+    "policy_options": {
+      "embodiment_tag": "NEW_EMBODIMENT"
+    },
+    "cube_starts": "/workspace/datasets/pick_place_v1_calibrated_A",
+    "rename_map": {
+      "realsense_rgb": "room",
+      "wrist_cam": "wrist"
+    },
+    "lang": "Pick up the blue cube and place it in the white box",
+    "lang_by_color": null,
+    "render_warmup": 2,
+    "smoothing": {
+      "prefetch_steps": 0,
+      "blend_steps": 0,
+      "ema_alpha": 1.0,
+      "smooth_gripper": false,
+      "temporal_ensemble": 0,
+      "te_decay": 0.01
+    },
+    "grasp": {
+      "gripper_latch": false,
+      "latch_close_below": null,
+      "latch_confirm_steps": 3,
+      "latch_open_above": null,
+      "latch_release_confirm": 5,
+      "latch_min_hold": 30,
+      "latch_dataset": "",
+      "latch_steady_steps": 10,
+      "latch_steady_max_delta": 2.0,
+      "gripper_empty_closed": null,
+      "latch_empty_margin": 3.0,
+      "latch_empty_confirm": 15,
+      "latch_reopen_steps": 15
+    },
+    "seed_per_episode": false
+  },
+  "smoke_test": {
+    "selection": "one_per_zone",
+    "reach_timeout_s": null,
+    "progress_timeout_s": null
+  },
+  "overall": {
+    "episodes": 0,
+    "successes": 0,
+    "success_rate": null,
+    "success_rate_ci95": [
+      null,
+      null
+    ],
+    "stage_rates": {
+      "reached": null,
+      "grasped": null,
+      "lifted": null,
+      "over_box": null,
+      "placed": null,
+      "success": null
+    },
+    "failure_modes": {},
+    "median_time_to_success_s": null
+  },
+  "episodes": []
+}

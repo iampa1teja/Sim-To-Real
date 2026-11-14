@@ -1,0 +1,18 @@
+{
+  "v3_commit": "f423b29b8752590308cebf7716a6b40e203ecdbb",
+  "baseline_commit": "45b07310ee8f18e6c6f85a2d36e1993082e8a1a1",
+  "image": "sha256:cfb85d8696a20d44965c561f63b49c0f5c7d9ab8dc5c4af4536d75710cb2a9a7",
+  "restore_server": "User says no need to restart it; leave stopped",
+  "no_source_changes": true,
+  "baseline_capture": "all7cfg succeeded;636pass1fail8skip; failure provenance env; no script fixes",
+  "v3_pytest": "585 passed,7failed,6skipped;6 new failures test_sim_real stale spawner import; provenance common failure",
+  "v3_env": "PASS all7so101 plus sp7 teleop, reset+20zero steps, utils correct afterKit",
+  "cfg_comparison": "366 differing strings:156 simple path-prefix;210 namespace/hookname refs; zero numeric/nonstring differences",
+  "v3_initial_datagen": "done:pick1/10,stack0/10,bowls2/7 earlystop; initial hashes differ bowlseed105 first actionstep0 max16.206417083740234 state step2 max16.473655700683594",
+  "v3_all10": "complete 10 attempts,2 accepted, seed105908frames; firstdiff action0/state2 max19.292896270751953/19.616626739501953",
+  "eval_smoke": "FAIL geometry guard src/sim/eval/scene.py:95 base_position_world, serverconnected,0/9,stage ratesnull",
+  "image_rebuilt": false,
+  "baseline_capture_script_modified": false,
+  "headless": true,
+  "gpu_jobs_sequential": true
+}

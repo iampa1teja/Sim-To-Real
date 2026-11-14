@@ -1,0 +1,61 @@
+{
+  "executable": "/opt/isaaclab-venv/bin/python",
+  "find_spec_shared": null,
+  "find_spec_utils": null,
+  "git": {
+    "commit": "45b07310ee8f18e6c6f85a2d36e1993082e8a1a1",
+    "source": "S2R_GIT_COMMIT"
+  },
+  "python": "3.12.14 (tags/v3.12.14-dirty:2abcf90, Sep  4 2026, 14:51:53) [GCC 11.4.0]",
+  "pythonpath": "/opt/isaaclab-venv/lib/python3.12/site-packages:/workspace/s2r/src:/workspace/s2r:/workspace/s2r/src:/workspace/s2r:/isaac-sim/kit/python/lib/python3.12:/isaac-sim/kit/python/lib/python3.12/site-packages:/isaac-sim/python_packages:/isaac-sim/exts/isaacsim.simulation_app:/isaac-sim/kit/kernel/py:/isaac-sim/kit/plugins/bindings-python:/isaac-sim/exts/isaacsim.replicator.episode_recorder/pip_prebundle:/isaac-sim/exts/isaacsim.replicator.teleop/pip_prebundle:/isaac-sim/exts/isaacsim.asset.validation/pip_prebundle:/isaac-sim/extsDeprecated/isaacsim.robot_motion.lula/pip_prebundle:/isaac-sim/exts/isaacsim.robot_motion.cumotion/pip_prebundle:/isaac-sim/exts/isaacsim.robot_motion.pink/pip_prebundle:/isaac-sim/exts/isaacsim.asset.exporter.urdf/pip_prebundle:/isaac-sim/extscache/omni.kit.pip_archive-0.0.0+187cf21b.lx64.cp312/pip_prebundle:/isaac-sim/exts/omni.isaac.core_archive/pip_prebundle:/isaac-sim/exts/omni.pip.compute/pip_prebundle:/isaac-sim/exts/omni.pip.cloud/pip_prebundle",
+  "selection_env": {
+    "S2R_ARM": "so101",
+    "S2R_GIT_COMMIT": "45b07310ee8f18e6c6f85a2d36e1993082e8a1a1",
+    "S2R_SCENE": "rpd_meeting_room",
+    "S2R_TASK": "pick_place_cube"
+  },
+  "shared_candidates": [],
+  "sys_path": [
+    "/workspace/s2r/tests/fixtures/v3_baseline",
+    "/opt/isaaclab-venv/lib/python3.12/site-packages",
+    "/workspace/s2r/src",
+    "/workspace/s2r",
+    "/isaac-sim/kit/python/lib/python3.12",
+    "/isaac-sim/kit/python/lib/python3.12/site-packages",
+    "/isaac-sim/python_packages",
+    "/isaac-sim/exts/isaacsim.simulation_app",
+    "/isaac-sim/kit/kernel/py",
+    "/isaac-sim/kit/plugins/bindings-python",
+    "/isaac-sim/exts/isaacsim.replicator.episode_recorder/pip_prebundle",
+    "/isaac-sim/exts/isaacsim.replicator.teleop/pip_prebundle",
+    "/isaac-sim/exts/isaacsim.asset.validation/pip_prebundle",
+    "/isaac-sim/extsDeprecated/isaacsim.robot_motion.lula/pip_prebundle",
+    "/isaac-sim/exts/isaacsim.robot_motion.cumotion/pip_prebundle",
+    "/isaac-sim/exts/isaacsim.robot_motion.pink/pip_prebundle",
+    "/isaac-sim/exts/isaacsim.asset.exporter.urdf/pip_prebundle",
+    "/isaac-sim/extscache/omni.kit.pip_archive-0.0.0+187cf21b.lx64.cp312/pip_prebundle",
+    "/isaac-sim/exts/omni.isaac.core_archive/pip_prebundle",
+    "/isaac-sim/exts/omni.pip.compute/pip_prebundle",
+    "/isaac-sim/exts/omni.pip.cloud/pip_prebundle",
+    "/isaac-sim/kit/python/lib/python312.zip",
+    "/isaac-sim/kit/python/lib/python3.12/lib-dynload",
+    "__editable__.isaaclab-28.0.0.finder.__path_hook__",
+    "__editable__.isaaclab_contrib-3.2.0.finder.__path_hook__",
+    "__editable__.isaaclab_mimic-2.0.12.finder.__path_hook__",
+    "__editable__.isaaclab_newton-9.1.4.finder.__path_hook__",
+    "__editable__.isaaclab_tasks-25.2.0.finder.__path_hook__",
+    "__editable__.isaaclab_teleop-0.10.3.finder.__path_hook__",
+    "/workspace/lerobot/src",
+    "/opt/isaaclab-venv/lib/python3.12/site-packages/cmeel.prefix/lib/python3.12/site-packages",
+    "/isaac-sim/exts/isaacsim.robot_motion.pink/pip_prebundle/cmeel.prefix/lib/python3.12/site-packages",
+    "/opt/isaaclab-venv/lib/python3.12/site-packages/rerun_sdk"
+  ],
+  "utils_candidates": [],
+  "versions": {
+    "isaaclab": "28.0.0",
+    "isaacsim": "error: PackageNotFoundError('isaacsim')",
+    "numpy": "2.5.1",
+    "pytest": "9.1.1",
+    "torch": "2.11.0+cu130"
+  }
+}

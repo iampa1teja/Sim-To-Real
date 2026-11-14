@@ -1,0 +1,1725 @@
+{
+  "scripted": {
+    "v3_comparison_phase": "v3",
+    "baseline_accepted": 0,
+    "v3_accepted": 1,
+    "baseline_attempts": 10,
+    "v3_attempts": 10,
+    "episode_outcomes": {
+      "baseline": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 492,
+          "steps": 492,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "never_reached",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": false,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 506,
+          "steps": 506,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "missed_grasp",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 484,
+          "steps": 484,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 499,
+          "steps": 499,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "missed_grasp",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 496,
+          "steps": 496,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ],
+      "v3": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": true,
+          "reason": "task_success",
+          "failure_mode": null,
+          "frames": 391,
+          "steps": 391,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": true,
+            "placed": true,
+            "success": true
+          },
+          "latched_success": true,
+          "final_success": true
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "never_reached",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": false,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 502,
+          "steps": 502,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "missed_grasp",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 484,
+          "steps": 484,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 499,
+          "steps": 499,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": false,
+          "reason": "waypoint_timeout:approach",
+          "failure_mode": "missed_grasp",
+          "frames": 240,
+          "steps": 240,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_box",
+          "frames": 496,
+          "steps": 496,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_box": false,
+            "placed": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ]
+    },
+    "outcome_differences": [
+      {
+        "attempt": 0,
+        "field": "accepted",
+        "baseline": false,
+        "v3": true
+      },
+      {
+        "attempt": 0,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "task_success"
+      },
+      {
+        "attempt": 0,
+        "field": "failure_mode",
+        "baseline": "dropped_before_box",
+        "v3": null
+      },
+      {
+        "attempt": 0,
+        "field": "frames",
+        "baseline": 492,
+        "v3": 391
+      },
+      {
+        "attempt": 0,
+        "field": "steps",
+        "baseline": 492,
+        "v3": 391
+      },
+      {
+        "attempt": 0,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_box": false,
+          "placed": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_box": true,
+          "placed": true,
+          "success": true
+        }
+      },
+      {
+        "attempt": 0,
+        "field": "latched_success",
+        "baseline": false,
+        "v3": true
+      },
+      {
+        "attempt": 0,
+        "field": "final_success",
+        "baseline": false,
+        "v3": true
+      },
+      {
+        "attempt": 3,
+        "field": "frames",
+        "baseline": 506,
+        "v3": 502
+      },
+      {
+        "attempt": 3,
+        "field": "steps",
+        "baseline": 506,
+        "v3": 502
+      }
+    ],
+    "arrays": [],
+    "array_comparison_status": "UNVERIFIED: no accepted episodes in one or both runs",
+    "newly_accepted_seeds": [
+      101
+    ]
+  },
+  "stack_two_cubes": {
+    "v3_comparison_phase": "v3",
+    "baseline_accepted": 0,
+    "v3_accepted": 0,
+    "baseline_attempts": 10,
+    "v3_attempts": 10,
+    "episode_outcomes": {
+      "baseline": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": false,
+          "reason": "waypoint_timeout:transport",
+          "failure_mode": "timeout_holding",
+          "frames": 444,
+          "steps": 444,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_target",
+          "frames": 399,
+          "steps": 399,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 462,
+          "steps": 462,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_target",
+          "frames": 399,
+          "steps": 399,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "dropped_before_target",
+          "frames": 492,
+          "steps": 492,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 466,
+          "steps": 466,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 459,
+          "steps": 459,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 459,
+          "steps": 459,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ],
+      "v3": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": false,
+          "reason": "waypoint_timeout:transport",
+          "failure_mode": "timeout_holding",
+          "frames": 444,
+          "steps": 444,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_target",
+          "frames": 408,
+          "steps": 408,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "dropped_before_target",
+          "frames": 461,
+          "steps": 461,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 459,
+          "steps": 459,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 492,
+          "steps": 492,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "timeout_holding",
+          "frames": 466,
+          "steps": 466,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "waypoint_timeout:lower",
+          "failure_mode": "stacked_not_confirmed",
+          "frames": 459,
+          "steps": 459,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": true,
+            "stacked": true,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": false,
+          "reason": "waypoint_timeout:descend",
+          "failure_mode": "missed_grasp",
+          "frames": 300,
+          "steps": 300,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "dropped_before_target",
+          "frames": 399,
+          "steps": 399,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "over_target": false,
+            "stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ]
+    },
+    "outcome_differences": [
+      {
+        "attempt": 0,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_target": true,
+          "stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_target": false,
+          "stacked": false,
+          "success": false
+        }
+      },
+      {
+        "attempt": 2,
+        "field": "frames",
+        "baseline": 399,
+        "v3": 408
+      },
+      {
+        "attempt": 2,
+        "field": "steps",
+        "baseline": 399,
+        "v3": 408
+      },
+      {
+        "attempt": 3,
+        "field": "failure_mode",
+        "baseline": "timeout_holding",
+        "v3": "dropped_before_target"
+      },
+      {
+        "attempt": 3,
+        "field": "frames",
+        "baseline": 462,
+        "v3": 461
+      },
+      {
+        "attempt": 3,
+        "field": "steps",
+        "baseline": 462,
+        "v3": 461
+      },
+      {
+        "attempt": 4,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "waypoint_timeout:lower"
+      },
+      {
+        "attempt": 4,
+        "field": "failure_mode",
+        "baseline": "dropped_before_target",
+        "v3": "timeout_holding"
+      },
+      {
+        "attempt": 4,
+        "field": "frames",
+        "baseline": 399,
+        "v3": 459
+      },
+      {
+        "attempt": 4,
+        "field": "steps",
+        "baseline": 399,
+        "v3": 459
+      },
+      {
+        "attempt": 5,
+        "field": "failure_mode",
+        "baseline": "dropped_before_target",
+        "v3": "timeout_holding"
+      },
+      {
+        "attempt": 7,
+        "field": "failure_mode",
+        "baseline": "timeout_holding",
+        "v3": "stacked_not_confirmed"
+      },
+      {
+        "attempt": 7,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_target": false,
+          "stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "over_target": true,
+          "stacked": true,
+          "success": false
+        }
+      },
+      {
+        "attempt": 9,
+        "field": "reason",
+        "baseline": "waypoint_timeout:lower",
+        "v3": "expert_finished_without_success"
+      },
+      {
+        "attempt": 9,
+        "field": "failure_mode",
+        "baseline": "timeout_holding",
+        "v3": "dropped_before_target"
+      },
+      {
+        "attempt": 9,
+        "field": "frames",
+        "baseline": 459,
+        "v3": 399
+      },
+      {
+        "attempt": 9,
+        "field": "steps",
+        "baseline": 459,
+        "v3": 399
+      }
+    ],
+    "arrays": [],
+    "array_comparison_status": "UNVERIFIED: no accepted episodes in one or both runs",
+    "newly_accepted_seeds": []
+  },
+  "stack_bowls": {
+    "v3_comparison_phase": "v3_all10",
+    "baseline_accepted": 1,
+    "v3_accepted": 2,
+    "baseline_attempts": 10,
+    "v3_attempts": 10,
+    "episode_outcomes": {
+      "baseline": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": false,
+          "reason": "waypoint_timeout:blue_bowl_lower",
+          "failure_mode": "incomplete_stack",
+          "frames": 988,
+          "steps": 988,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "waypoint_timeout:blue_bowl_retreat",
+          "failure_mode": "incomplete_stack",
+          "frames": 1079,
+          "steps": 1079,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "waypoint_timeout:blue_bowl_transport",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 991,
+          "steps": 991,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": true,
+          "reason": "task_success",
+          "failure_mode": null,
+          "frames": 915,
+          "steps": 915,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": true,
+            "success": true
+          },
+          "latched_success": true,
+          "final_success": true
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "waypoint_timeout:yellow_bowl_descend",
+          "failure_mode": "never_grasped",
+          "frames": 276,
+          "steps": 276,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": false,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 975,
+          "steps": 975,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ],
+      "v3": [
+        {
+          "attempt": 0,
+          "seed": 101,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 1,
+          "seed": 102,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 974,
+          "steps": 974,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 2,
+          "seed": 103,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 977,
+          "steps": 977,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 3,
+          "seed": 104,
+          "accepted": false,
+          "reason": "waypoint_timeout:yellow_bowl_lift",
+          "failure_mode": "one_bowl_only",
+          "frames": 368,
+          "steps": 368,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": false,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 4,
+          "seed": 105,
+          "accepted": true,
+          "reason": "task_success",
+          "failure_mode": null,
+          "frames": 908,
+          "steps": 908,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": true,
+            "success": true
+          },
+          "latched_success": true,
+          "final_success": true
+        },
+        {
+          "attempt": 5,
+          "seed": 106,
+          "accepted": false,
+          "reason": "waypoint_timeout:yellow_bowl_transport",
+          "failure_mode": "one_bowl_only",
+          "frames": 432,
+          "steps": 432,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": false,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 6,
+          "seed": 107,
+          "accepted": false,
+          "reason": "waypoint_timeout:blue_bowl_release",
+          "failure_mode": "incomplete_stack",
+          "frames": 1051,
+          "steps": 1051,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 7,
+          "seed": 108,
+          "accepted": false,
+          "reason": "waypoint_timeout:yellow_bowl_descend",
+          "failure_mode": "never_grasped",
+          "frames": 276,
+          "steps": 276,
+          "stages": {
+            "reached": true,
+            "grasped": false,
+            "lifted": false,
+            "first_bowl_stacked": false,
+            "second_bowl_lifted": false,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        },
+        {
+          "attempt": 8,
+          "seed": 109,
+          "accepted": true,
+          "reason": "task_success",
+          "failure_mode": null,
+          "frames": 901,
+          "steps": 901,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": true,
+            "success": true
+          },
+          "latched_success": true,
+          "final_success": true
+        },
+        {
+          "attempt": 9,
+          "seed": 110,
+          "accepted": false,
+          "reason": "expert_finished_without_success",
+          "failure_mode": "incomplete_stack",
+          "frames": 972,
+          "steps": 972,
+          "stages": {
+            "reached": true,
+            "grasped": true,
+            "lifted": true,
+            "first_bowl_stacked": true,
+            "second_bowl_lifted": true,
+            "all_bowls_stacked": false,
+            "success": false
+          },
+          "latched_success": false,
+          "final_success": false
+        }
+      ]
+    },
+    "outcome_differences": [
+      {
+        "attempt": 0,
+        "field": "reason",
+        "baseline": "waypoint_timeout:blue_bowl_lower",
+        "v3": "expert_finished_without_success"
+      },
+      {
+        "attempt": 0,
+        "field": "frames",
+        "baseline": 988,
+        "v3": 972
+      },
+      {
+        "attempt": 0,
+        "field": "steps",
+        "baseline": 988,
+        "v3": 972
+      },
+      {
+        "attempt": 1,
+        "field": "reason",
+        "baseline": "waypoint_timeout:blue_bowl_retreat",
+        "v3": "expert_finished_without_success"
+      },
+      {
+        "attempt": 1,
+        "field": "frames",
+        "baseline": 1079,
+        "v3": 974
+      },
+      {
+        "attempt": 1,
+        "field": "steps",
+        "baseline": 1079,
+        "v3": 974
+      },
+      {
+        "attempt": 2,
+        "field": "reason",
+        "baseline": "waypoint_timeout:blue_bowl_transport",
+        "v3": "expert_finished_without_success"
+      },
+      {
+        "attempt": 2,
+        "field": "frames",
+        "baseline": 972,
+        "v3": 977
+      },
+      {
+        "attempt": 2,
+        "field": "steps",
+        "baseline": 972,
+        "v3": 977
+      },
+      {
+        "attempt": 2,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": false,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": true,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": false,
+          "success": false
+        }
+      },
+      {
+        "attempt": 3,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "waypoint_timeout:yellow_bowl_lift"
+      },
+      {
+        "attempt": 3,
+        "field": "failure_mode",
+        "baseline": "incomplete_stack",
+        "v3": "one_bowl_only"
+      },
+      {
+        "attempt": 3,
+        "field": "frames",
+        "baseline": 991,
+        "v3": 368
+      },
+      {
+        "attempt": 3,
+        "field": "steps",
+        "baseline": 991,
+        "v3": 368
+      },
+      {
+        "attempt": 3,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": true,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": false,
+          "second_bowl_lifted": false,
+          "all_bowls_stacked": false,
+          "success": false
+        }
+      },
+      {
+        "attempt": 4,
+        "field": "frames",
+        "baseline": 915,
+        "v3": 908
+      },
+      {
+        "attempt": 4,
+        "field": "steps",
+        "baseline": 915,
+        "v3": 908
+      },
+      {
+        "attempt": 5,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "waypoint_timeout:yellow_bowl_transport"
+      },
+      {
+        "attempt": 5,
+        "field": "failure_mode",
+        "baseline": "incomplete_stack",
+        "v3": "one_bowl_only"
+      },
+      {
+        "attempt": 5,
+        "field": "frames",
+        "baseline": 972,
+        "v3": 432
+      },
+      {
+        "attempt": 5,
+        "field": "steps",
+        "baseline": 972,
+        "v3": 432
+      },
+      {
+        "attempt": 5,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": true,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": false,
+          "second_bowl_lifted": false,
+          "all_bowls_stacked": false,
+          "success": false
+        }
+      },
+      {
+        "attempt": 6,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "waypoint_timeout:blue_bowl_release"
+      },
+      {
+        "attempt": 6,
+        "field": "frames",
+        "baseline": 972,
+        "v3": 1051
+      },
+      {
+        "attempt": 6,
+        "field": "steps",
+        "baseline": 972,
+        "v3": 1051
+      },
+      {
+        "attempt": 8,
+        "field": "accepted",
+        "baseline": false,
+        "v3": true
+      },
+      {
+        "attempt": 8,
+        "field": "reason",
+        "baseline": "expert_finished_without_success",
+        "v3": "task_success"
+      },
+      {
+        "attempt": 8,
+        "field": "failure_mode",
+        "baseline": "incomplete_stack",
+        "v3": null
+      },
+      {
+        "attempt": 8,
+        "field": "frames",
+        "baseline": 975,
+        "v3": 901
+      },
+      {
+        "attempt": 8,
+        "field": "steps",
+        "baseline": 975,
+        "v3": 901
+      },
+      {
+        "attempt": 8,
+        "field": "stages",
+        "baseline": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": true,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": false,
+          "success": false
+        },
+        "v3": {
+          "reached": true,
+          "grasped": true,
+          "lifted": true,
+          "first_bowl_stacked": true,
+          "second_bowl_lifted": true,
+          "all_bowls_stacked": true,
+          "success": true
+        }
+      },
+      {
+        "attempt": 8,
+        "field": "latched_success",
+        "baseline": false,
+        "v3": true
+      },
+      {
+        "attempt": 8,
+        "field": "final_success",
+        "baseline": false,
+        "v3": true
+      }
+    ],
+    "arrays": [
+      {
+        "baseline_episode_index": 0,
+        "v3_episode_index": 0,
+        "seed": 105,
+        "column": "action",
+        "baseline_sha256": "daf21fdb6d52cda2cb5ddc83fea0a82d574d26c6e7fe4b35243152412f945231",
+        "v3_sha256": "4ff6f7c745edce5f819fd6d149e5bee21d55da7dcee1ef7da9c6d3ff39451292",
+        "baseline_shape": [
+          915,
+          6
+        ],
+        "v3_shape": [
+          908,
+          6
+        ],
+        "first_differing_step": 0,
+        "first_differing_joint": 1,
+        "max_absolute_difference_shared_extent": 19.292896270751953
+      },
+      {
+        "baseline_episode_index": 0,
+        "v3_episode_index": 0,
+        "seed": 105,
+        "column": "observation.state",
+        "baseline_sha256": "9972f8c22936c02214dc91e7bf25b33ae4592c394afb56ccab20b908bf9625c1",
+        "v3_sha256": "6be8f9fc54079a9f4c1eb3032e10943f45d564d00cae074fbff9eada4d2e89c3",
+        "baseline_shape": [
+          915,
+          6
+        ],
+        "v3_shape": [
+          908,
+          6
+        ],
+        "first_differing_step": 2,
+        "first_differing_joint": 2,
+        "max_absolute_difference_shared_extent": 19.616626739501953
+      }
+    ],
+    "array_comparison_status": "FAIL: array hashes differ",
+    "newly_accepted_seeds": [
+      109
+    ]
+  }
+}

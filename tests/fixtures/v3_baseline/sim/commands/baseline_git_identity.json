@@ -1,0 +1,7 @@
+{
+  "label": "baseline_git_identity",
+  "command": "git rev-parse HEAD",
+  "started_utc": "2026-11-14T14:15:53.393594+00:00",
+  "exit_code": 0,
+  "output": "45b07310ee8f18e6c6f85a2d36e1993082e8a1a1\n"
+}

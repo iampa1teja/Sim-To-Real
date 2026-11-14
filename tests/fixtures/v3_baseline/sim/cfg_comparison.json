@@ -1,0 +1,2254 @@
+{
+  "pick_place_cube__eval": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.check_eval_order.func",
+        "baseline": "sim.envs.mdp.starts:assert_reset_event_order",
+        "v3": "sim.workspace.envs.mdp.starts:assert_reset_event_order",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.starts:reset_from_starts",
+        "v3": "sim.workspace.envs.mdp.starts:reset_from_starts",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.white_box.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "v3": "/workspace/s2r/workspace/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "pick_place_cube__eval_dr": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.check_eval_order.func",
+        "baseline": "sim.envs.mdp.starts:assert_reset_event_order",
+        "v3": "sim.workspace.envs.mdp.starts:assert_reset_event_order",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.eval_robot_color.func",
+        "baseline": "sim.envs.mdp.appearance:randomize_robot_color",
+        "v3": "sim.workspace.envs.mdp.appearance:randomize_robot_color",
+        "path_only": false
+      },
+      {
+        "key": "events.eval_room_light.func",
+        "baseline": "sim.scene.appearance:randomize_scene_light_exposure",
+        "v3": "sim.workspace.scene.appearance:randomize_scene_light_exposure",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.starts:reset_from_starts",
+        "v3": "sim.workspace.envs.mdp.starts:reset_from_starts",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.white_box.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "v3": "/workspace/s2r/workspace/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "pick_place_cube__teleop": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.placement:park_object",
+        "v3": "sim.workspace.envs.mdp.placement:park_object",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.white_box.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "v3": "/workspace/s2r/workspace/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "stack_bowls__eval": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.check_eval_order.func",
+        "baseline": "sim.envs.mdp.starts:assert_reset_event_order",
+        "v3": "sim.workspace.envs.mdp.starts:assert_reset_event_order",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.starts:reset_from_starts",
+        "v3": "sim.workspace.envs.mdp.starts:reset_from_starts",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.blue_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.red_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.yellow_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "stack_bowls__teleop": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.check_eval_order.func",
+        "baseline": "sim.envs.mdp.starts:assert_reset_event_order",
+        "v3": "sim.workspace.envs.mdp.starts:assert_reset_event_order",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.starts:reset_from_starts",
+        "v3": "sim.workspace.envs.mdp.starts:reset_from_starts",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.blue_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.red_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.yellow_bowl.spawn.usd_path",
+        "baseline": "/workspace/s2r/tasks/stack_bowls/assets/bowl.usd",
+        "v3": "/workspace/s2r/workspace/tasks/stack_bowls/assets/bowl.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "stack_two_cubes__eval": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.check_eval_order.func",
+        "baseline": "sim.envs.mdp.starts:assert_reset_event_order",
+        "v3": "sim.workspace.envs.mdp.starts:assert_reset_event_order",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.starts:reset_from_starts",
+        "v3": "sim.workspace.envs.mdp.starts:reset_from_starts",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  },
+  "stack_two_cubes__teleop": {
+    "baseline_cfg_captured": true,
+    "v3_cfg_captured": true,
+    "construction_status": "PASS",
+    "steps_completed": 20,
+    "differences": [
+      {
+        "key": "arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "events.cache_static_geometry.func",
+        "baseline": "sim.scene.geometry:cache_scene_geometry",
+        "v3": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:configure_scene_updates",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.configure_scene_updates.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_from_starts.func",
+        "baseline": "sim.envs.mdp.placement:park_object",
+        "v3": "sim.workspace.envs.mdp.placement:park_object",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.reset_set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "events.runtime_joint_limits.func",
+        "baseline": "sim.envs.mdp.limits:apply_runtime_joint_limits",
+        "v3": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.func",
+        "baseline": "sim.envs.scene_builder:set_robot_materials",
+        "v3": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "events.set_robot_visual_material.params.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "observations.policy.ee_frame_state.func",
+        "baseline": "sim.envs.mdp.obs:ee_frame_state",
+        "v3": "sim.workspace.envs.mdp.obs:ee_frame_state",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.depth_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.instance_id_seg_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_realsense_rgb.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "observations.visual.rgb_wrist_cam.func",
+        "baseline": "sim.envs.mdp.obs:image_rgb_raw",
+        "v3": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_realsense_rgb.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.camera_wrist_cam.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.class_type",
+        "baseline": "sim.scene.cameras:CalibratedTiledCamera",
+        "v3": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.renderer_cfg.class_type",
+        "baseline": "sim.scene.renderer:CalibratedRtxRenderer",
+        "v3": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+        "path_only": false
+      },
+      {
+        "key": "scene.realsense_depth.spawn.func",
+        "baseline": "sim.scene.cameras:_spawn_named_camera",
+        "v3": "sim.workspace.scene.cameras:_spawn_named_camera",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.directory",
+        "baseline": "/workspace/s2r/arms/so101",
+        "v3": "/workspace/s2r/workspace/arms/so101",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.robot.spawn.arm_spec.utils",
+        "baseline": "/workspace/s2r/arms/so101/so101_utils.py",
+        "v3": "/workspace/s2r/workspace/arms/so101/utils.py",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.func",
+        "baseline": "sim.scene.arm:_spawn_arm",
+        "v3": "sim.workspace.scene.arm:_spawn_arm",
+        "path_only": false
+      },
+      {
+        "key": "scene.robot.spawn.usd_path",
+        "baseline": "/workspace/s2r/arms/so101/usd/SO-ARM101-USD.usd",
+        "v3": "/workspace/s2r/workspace/arms/so101/usd/SO-ARM101-USD.usd",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.func",
+        "baseline": "_s2r_scene_hook_f9414b32f8e2f9819b7a43ced370f854a35532d67f4d413a2709e541fd65d734:spawn_room",
+        "v3": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene.room.spawn.scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene.room.spawn.usd_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.appearance_path",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/appearance.json",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.directory",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+        "path_only": true
+      },
+      {
+        "key": "scene_spec.hook",
+        "baseline": "scene.py:customize",
+        "v3": "utils.py:customize",
+        "path_only": false
+      },
+      {
+        "key": "scene_spec.room_usd",
+        "baseline": "/workspace/s2r/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "v3": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+        "path_only": true
+      },
+      {
+        "key": "sim.default_visualizer_cfg.class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      },
+      {
+        "key": "sim.visualizer_cfgs[0].class_type",
+        "baseline": "sim.scene.viewport:CalibratedKitVisualizer",
+        "v3": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "path_only": false
+      }
+    ]
+  }
+}

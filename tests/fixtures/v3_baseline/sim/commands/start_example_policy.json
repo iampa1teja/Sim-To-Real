@@ -1,0 +1,7 @@
+{
+  "label": "start_example_policy",
+  "command": "S2R_POLICY=example docker compose --profile serve up -d serve",
+  "started_utc": "2026-11-14T14:30:02.267127+00:00",
+  "exit_code": 0,
+  "output": "time=\"2026-11-14T20:00:02+05:30\" level=warning msg=\"volume \\\"policy-cache\\\" already exists but was not created by Docker Compose. Use `external: true` to use an existing volume\"\n Container s2r-serve-example Creating \n Container s2r-serve-example Created \n Container s2r-serve-example Starting \n Container s2r-serve-example Started \n"
+}

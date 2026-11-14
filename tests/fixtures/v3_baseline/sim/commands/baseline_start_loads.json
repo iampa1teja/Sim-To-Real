@@ -1,0 +1,7 @@
+{
+  "label": "baseline_start_loads",
+  "command": "docker exec -e S2R_GIT_COMMIT=45b07310ee8f18e6c6f85a2d36e1993082e8a1a1 s2r-sim s2r-entrypoint python /tmp/v3_start_loader_probe.py --phase baseline",
+  "started_utc": "2026-11-14T14:14:52.188777+00:00",
+  "exit_code": 1,
+  "output": "Traceback (most recent call last):\n  File \"/tmp/v3_start_loader_probe.py\", line 14, in <module>\n    task=load_task('pick_place_cube'); source=module.EvalSetStarts(path,task=task)\n                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/s2r/src/core/benchmark/eval_set.py\", line 160, in __init__\n    self.data = load_eval_set(path, arm=arm, task=self.task)\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/s2r/src/core/benchmark/eval_set.py\", line 119, in load_eval_set\n    return validate_eval_set(json.loads(Path(path).read_text()), arm=arm, task=task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/s2r/src/core/benchmark/eval_set.py\", line 72, in validate_eval_set\n    raise ValueError('Unsupported eval set schema or coordinate units')\nValueError: Unsupported eval set schema or coordinate units\n"
+}

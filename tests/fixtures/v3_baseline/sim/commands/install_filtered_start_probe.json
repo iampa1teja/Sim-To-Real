@@ -1,0 +1,7 @@
+{
+  "label": "install_filtered_start_probe",
+  "command": "docker cp /tmp/v3-sim-checks/start_loader_probe.py s2r-sim:/tmp/v3_start_loader_probe.py",
+  "started_utc": "2026-11-14T14:15:06.393574+00:00",
+  "exit_code": 0,
+  "output": ""
+}

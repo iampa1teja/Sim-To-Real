@@ -1,0 +1,7 @@
+{
+  "label": "checkout_v3",
+  "command": "git checkout v3 && git rev-parse HEAD",
+  "started_utc": "2026-11-14T14:29:22.054393+00:00",
+  "exit_code": 0,
+  "output": "Previous HEAD position was 45b0731 Phase 0: add restructure safety-net tests and sim baseline capture\nSwitched to branch 'v3'\nYour branch is up to date with 'origin/v3'.\nf423b29b8752590308cebf7716a6b40e203ecdbb\n"
+}

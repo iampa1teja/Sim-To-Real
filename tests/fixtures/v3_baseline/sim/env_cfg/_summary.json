@@ -1,0 +1,9 @@
+{
+  "pick_place_cube__eval": "ok",
+  "pick_place_cube__eval_dr": "ok",
+  "pick_place_cube__teleop": "ok",
+  "stack_bowls__eval": "ok",
+  "stack_bowls__teleop": "ok",
+  "stack_two_cubes__eval": "ok",
+  "stack_two_cubes__teleop": "ok"
+}

@@ -1,0 +1,7 @@
+{
+  "label": "compose_v3",
+  "command": "S2R_GIT_COMMIT=$(git rev-parse HEAD) docker compose -f compose.yaml -f compose.hardware.yaml up -d sim",
+  "started_utc": "2026-11-14T14:09:52.025880+00:00",
+  "exit_code": 0,
+  "output": " Container s2r-sim Recreate \n Container s2r-sim Recreated \n Container s2r-sim Starting \n Container s2r-sim Started \n"
+}

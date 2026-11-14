@@ -1,0 +1,7 @@
+{
+  "label": "cfg_comparison",
+  "command": "python3 /tmp/v3-sim-checks/compare_cfgs.py",
+  "started_utc": "2026-11-14T14:33:30.903627+00:00",
+  "exit_code": 0,
+  "output": "{\n  \"pick_place_cube__eval\": {\n    \"differences\": 49,\n    \"path_only\": 22,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"pick_place_cube__eval_dr\": {\n    \"differences\": 51,\n    \"path_only\": 22,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"pick_place_cube__teleop\": {\n    \"differences\": 55,\n    \"path_only\": 22,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"stack_bowls__eval\": {\n    \"differences\": 51,\n    \"path_only\": 24,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"stack_bowls__teleop\": {\n    \"differences\": 58,\n    \"path_only\": 24,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"stack_two_cubes__eval\": {\n    \"differences\": 48,\n    \"path_only\": 21,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  },\n  \"stack_two_cubes__teleop\": {\n    \"differences\": 54,\n    \"path_only\": 21,\n    \"construction\": \"PASS\",\n    \"steps\": 20\n  }\n}\n"
+}

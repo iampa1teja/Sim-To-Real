@@ -1,0 +1,7 @@
+{
+  "label": "v3_system_identity",
+  "command": "git rev-parse HEAD && docker inspect s2r-sim --format \"{{.Image}} {{.Config.WorkingDir}}\" && docker version --format \"{{json .Server.Version}}\" && nvidia-smi --query-gpu=name,driver_version --format=csv,noheader",
+  "started_utc": "2026-11-14T14:29:45.206691+00:00",
+  "exit_code": 0,
+  "output": "f423b29b8752590308cebf7716a6b40e203ecdbb\nsha256:cfb85d8696a20d44965c561f63b49c0f5c7d9ab8dc5c4af4536d75710cb2a9a7 /workspace/s2r\n\"28.1.1\"\nNVIDIA GeForce RTX 4090, 580.173.02\n"
+}

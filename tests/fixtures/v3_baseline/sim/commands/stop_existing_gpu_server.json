@@ -1,0 +1,7 @@
+{
+  "label": "stop_existing_gpu_server",
+  "command": "docker stop s2r-serve-molmoact2-5556",
+  "started_utc": "2026-11-14T14:10:10.693944+00:00",
+  "exit_code": 0,
+  "output": "s2r-serve-molmoact2-5556\n"
+}

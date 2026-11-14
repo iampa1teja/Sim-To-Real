@@ -1,0 +1,7 @@
+{
+  "label": "stop_example_policy",
+  "command": "docker stop s2r-serve-example && docker rm s2r-serve-example",
+  "started_utc": "2026-11-14T14:59:13.207485+00:00",
+  "exit_code": 0,
+  "output": "s2r-serve-example\ns2r-serve-example\n"
+}

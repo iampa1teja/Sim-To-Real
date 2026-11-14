@@ -1,0 +1,7 @@
+{
+  "label": "install_final_array_comparer",
+  "command": "docker cp /tmp/v3-sim-checks/compare_arrays.py s2r-sim:/tmp/v3_compare_arrays.py",
+  "started_utc": "2026-11-14T14:39:41.715906+00:00",
+  "exit_code": 0,
+  "output": ""
+}

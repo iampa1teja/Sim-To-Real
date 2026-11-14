@@ -1,0 +1,7 @@
+{
+  "label": "example_policy_startup",
+  "command": "docker logs s2r-serve-example",
+  "started_utc": "2026-11-14T14:30:12.560880+00:00",
+  "exit_code": 0,
+  "output": "Audited 3 packages in 20ms\n2026-11-14 14:30:02,879 INFO policy_server.server: Policy server listening on tcp://*:5600\n2026-11-14 14:30:02,879 INFO __main__: Starting policy 'example' on *:5600\n"
+}

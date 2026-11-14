@@ -1,0 +1,7 @@
+{
+  "label": "shadow_before_kit",
+  "command": "docker exec s2r-sim s2r-entrypoint python -c \"import importlib.util, utils; print(utils.__file__); print(importlib.util.find_spec(\\\"utils\\\").origin)\"",
+  "started_utc": "2026-11-14T14:09:59.926844+00:00",
+  "exit_code": 0,
+  "output": "/workspace/s2r/src/utils/__init__.py\n/workspace/s2r/src/utils/__init__.py\n"
+}

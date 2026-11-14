@@ -1,0 +1,5616 @@
+{
+  "arm": "sp7",
+  "cfg": {
+    "actions": {
+      "joint_positions": {
+        "asset_name": "robot",
+        "class_type": "sim.workspace.envs.mdp.mimic:MimicJointPositionAction",
+        "clip": null,
+        "debug_vis": false,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7",
+          "gripper_left_joint"
+        ],
+        "offset": 0.0,
+        "preserve_order": true,
+        "scale": 1.0,
+        "use_default_offset": false
+      }
+    },
+    "arm_spec": {
+      "actuators": {
+        "joint_0": {
+          "damping": 0.48224528698376934,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint1"
+          ],
+          "stiffness": 4.132679808736616
+        },
+        "joint_1": {
+          "damping": 3.226575353472646,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint2"
+          ],
+          "stiffness": 222.86808907027557
+        },
+        "joint_2": {
+          "damping": 1.9212480136917578,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint3"
+          ],
+          "stiffness": 84.07512075800476
+        },
+        "joint_3": {
+          "damping": 2.5455734646035895,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint4"
+          ],
+          "stiffness": 118.67814316885331
+        },
+        "joint_4": {
+          "damping": 0.5421993040336711,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint5"
+          ],
+          "stiffness": 38.28938137383658
+        },
+        "joint_5": {
+          "damping": 0.41621186668986976,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint6"
+          ],
+          "stiffness": 42.56767185105458
+        },
+        "joint_6": {
+          "damping": 0.448133941002685,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "joint7"
+          ],
+          "stiffness": 27.406586544708677
+        },
+        "joint_7": {
+          "damping": 8.20192328233845,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "gripper_left_joint"
+          ],
+          "stiffness": 500.0
+        },
+        "joint_8": {
+          "damping": 8.20192328233845,
+          "effort_limit_sim": 10.0,
+          "joint_names_expr": [
+            "gripper_right_joint"
+          ],
+          "stiffness": 500.0
+        }
+      },
+      "appearance": {},
+      "cameras": {},
+      "directory": "/workspace/s2r/workspace/arms/sp7",
+      "gripper": {
+        "approach_axis": [
+          8.410510197590617e-09,
+          0.9999797937256627,
+          0.006357054379289826
+        ],
+        "closed_gap_m": 0.0,
+        "closed_position": 0.0375,
+        "closing_axis": [
+          -1.0,
+          8.41068016255238e-09,
+          -2.8571916087427252e-15
+        ],
+        "contact_bodies": [
+          "gripper_right_link",
+          "gripper_left_link"
+        ],
+        "friction_bodies": [
+          "gripper_right_link",
+          "gripper_left_link",
+          "gripper_base_link"
+        ],
+        "joints": [
+          "gripper_left_joint"
+        ],
+        "kind": "parallel",
+        "open_gap_m": 0.08467114754960926,
+        "open_position": -0.005,
+        "tip_mesh": null
+      },
+      "hardware": {
+        "encoder_counts_per_turn": 4096,
+        "joint_ids": {
+          "gripper_left_joint": "8",
+          "joint1": "1",
+          "joint2": "2",
+          "joint3": "3",
+          "joint4": "4",
+          "joint5": "5",
+          "joint6": "6",
+          "joint7": "7"
+        },
+        "motor": "unconfigured",
+        "zero_count": 2048.0
+      },
+      "ik": {
+        "joint_limit_avoidance_gain": 0.05,
+        "joint_limit_avoidance_margin": 0.3,
+        "method": "dls",
+        "orientation_axes": [
+          "x",
+          "y",
+          "z"
+        ],
+        "position_offset_m": [
+          -0.00042498307461547155,
+          0.04973298352529152,
+          0.00014139085433376657
+        ]
+      },
+      "initial_state": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_euler_degrees": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_relative_to_anchor": true
+      },
+      "joints": [
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint1",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint1"
+        },
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint2",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint2"
+        },
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint3",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint3"
+        },
+        {
+          "initial": -1.0471975,
+          "limits": [
+            -180.00001984784282,
+            60.00002571454079
+          ],
+          "mimic": null,
+          "name": "joint4",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint4"
+        },
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint5",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint5"
+        },
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint6",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint6"
+        },
+        {
+          "initial": 0.0,
+          "limits": [
+            -89.99998127603166,
+            89.99998127603166
+          ],
+          "mimic": null,
+          "name": "joint7",
+          "role": "arm",
+          "type": "revolute",
+          "usd": "joint7"
+        },
+        {
+          "initial": 0.01625,
+          "limits": [
+            -0.005,
+            0.0375
+          ],
+          "mimic": null,
+          "name": "gripper_left_joint",
+          "role": "gripper",
+          "type": "prismatic",
+          "usd": "gripper_left_joint"
+        },
+        {
+          "initial": 0.01625,
+          "limits": [
+            -0.005,
+            0.0375
+          ],
+          "mimic": {
+            "joint": "gripper_left_joint",
+            "multiplier": 1.0,
+            "offset": 0.0
+          },
+          "name": "gripper_right_joint",
+          "role": "gripper",
+          "type": "prismatic",
+          "usd": "gripper_right_joint"
+        }
+      ],
+      "lerobot": {
+        "calibration": "simulation",
+        "follower_calibration_dir": "",
+        "follower_type": "unconfigured",
+        "leader_calibration_dir": "",
+        "leader_type": "unconfigured",
+        "modules": [],
+        "use_degrees": false
+      },
+      "links": {
+        "base": "base_link",
+        "ee": "gripper_base_link"
+      },
+      "name": "sp7",
+      "provenance": {
+        "command_line": [
+          "repair_sp7_setup.py"
+        ],
+        "conversion_path": "isaaclab.sim.converters.UrdfConverter (3.0 URDFImporterConfig)",
+        "importer_version": "1",
+        "mimic_runtime": "constraint",
+        "report_path": "import-report.json",
+        "source_hashes": {
+          "urdf/0_sp7/CMakeLists.txt": "e32317f32e0c360aebc0b946eac869ed0e2a6e8ba30b1df76b7f72d67b6de070",
+          "urdf/0_sp7/package.xml": "9979bee2dd915ef2f695c095799140dc6ce6180f03433d0b9d4b078166d401bf",
+          "urdf/1_sp7_bringup/CMakeLists.txt": "8c1b9c77c0fbb19b72576002df2d6472114d55fce3d1f58ecd799ad8a8f17484",
+          "urdf/1_sp7_bringup/config/sp7_controllers.yaml": "5d24361c902f6d8254150b3c5efe7b8e8bf127fa8ce1debbd059a55d0ace6e3d",
+          "urdf/1_sp7_bringup/launch/bringup.launch.py": "e0c3860639f124bcb4bc4cdf84c2db92096d942ac273427e8ca8a7f0f6256191",
+          "urdf/1_sp7_bringup/package.xml": "3be9e1f103240d7cbeac69ac0f088b4581ba9d3b54688c1e66e3a6f020b3a31f",
+          "urdf/2_sp7_description/CMakeLists.txt": "52f9a6a833415024a828a0f79ab0df77d143d1676371cd1974d5e29ebb7f632c",
+          "urdf/2_sp7_description/launch/display.launch.py": "ae900ad9f01c3d66976d5c692c71f3a3daa77afd5118b0cf5e1d9f086b448288",
+          "urdf/2_sp7_description/meshes/Base_motor_holder_SO101.stl": "0838a777a047297b99a91b882bfb2e6823114d1eb15a8e408700801099e62c0f",
+          "urdf/2_sp7_description/meshes/Servo_3.stl": "2c7022852c1ccab217d77d521aaa16b8beb4e4ca93073f7c0f2b864422f97bf9",
+          "urdf/2_sp7_description/meshes/base_link.stl": "8be421055e49b29225c664411946b91d3b0050ad362484364a94407a04dca12a",
+          "urdf/2_sp7_description/meshes/camera_link.stl": "abd5b652b8d05a0e502311e3939c00c215e852822932ca2a0beed1ccf235fdd1",
+          "urdf/2_sp7_description/meshes/gripper_base_link.stl": "19e6ca0e43d4d3eb2ce8dbc62b80c945dd75f1bc376e94ba0319ac50d1dd4cc2",
+          "urdf/2_sp7_description/meshes/gripper_left_link.stl": "fb91ca1b0262ff13c27b504cfa7b234c3635d5780d340b42c1babe35dcf9f328",
+          "urdf/2_sp7_description/meshes/gripper_right_link.stl": "47f738691425ea78805fa587e385586c2a307b8490fd6a257c3bd7724d6cfaad",
+          "urdf/2_sp7_description/meshes/link.stl": "11f93334b7dbdca1c70a306dab8391d087693c36cbfcc035825ef8be9b2f8834",
+          "urdf/2_sp7_description/meshes/link2.stl": "59574cadd00d8cf3fea2abc0c6bf5949e4951370c20d12f6f994511a6e76109d",
+          "urdf/2_sp7_description/meshes/link3.stl": "5a205cea6b0c01608a0e475aed4cc0a1d84bd00afaf60a299c16039491a3227c",
+          "urdf/2_sp7_description/meshes/link4.stl": "3943a6a367fcc07d1539b8c9d2961cdf69fcebba365b646eed087931fea880f1",
+          "urdf/2_sp7_description/meshes/link5.stl": "f0ec6ad57b85534969feb9a9727eb546dbec353578f4711cc359d9b50998c48a",
+          "urdf/2_sp7_description/meshes/link6.stl": "ebdf96f6281c0bc92cffd63196b5bd5e408c7dce8553cd27e3bd53a0ba171847",
+          "urdf/2_sp7_description/meshes/link7.stl": "f250150d7c5324e5b6a7b18d1bd16d88192b5eea8688fc7b92eff7807b62d256",
+          "urdf/2_sp7_description/meshes/servo.stl": "ef7a2b69965770fdb744028927c401a87da85081b8404c927750c2fe783220c3",
+          "urdf/2_sp7_description/meshes/servo_2.stl": "0ca938f656691a0e8b526c6569549ebc38a708f0707ebcb25dab4c92d78392c3",
+          "urdf/2_sp7_description/package.xml": "429ef83957b4888432277badcc7acd0e618b5c890885d537e9a0c901fdc6c154",
+          "urdf/2_sp7_description/rviz/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "urdf/2_sp7_description/urdf/sp7.ros2_control.xacro": "85bdba04d76ce0101240d72416ea6be7674bc2993594c1e56e046aeb642b83c2",
+          "urdf/2_sp7_description/urdf/sp7.urdf.xacro": "bacb65845e41eede7c2991b720f49a8e22b9571a541bd3c97eecf13cdaf2f6e5",
+          "urdf/2_sp7_description/urdf/sp7_arm.urdf.xacro": "e8c99ae3c0a311abc543dc169baf88ad64df56b90a5d7d1629071354ee90e4bd",
+          "urdf/2_sp7_description/urdf/sp7_gripper.urdf.xacro": "2941fee7b2459551da36bcc489f8e0f4e9b0694b5dc8152815a586b2bb1616bf",
+          "urdf/3_sp7_hardware/CMakeLists.txt": "df77aa32dc39544af1152b656d79ad8fdddaa0af83ba6a5ffb7c4083137d53d9",
+          "urdf/3_sp7_hardware/include/sp7_hardware/sp7_hardware.hpp": "363375271bf7e1cc76b65c272d0a95ff8e4177ab43c2f4d7e126ac9387605574",
+          "urdf/3_sp7_hardware/package.xml": "9d88bd635de4171784f5de508a84b98c1f6d948e6b4aa9752bb096e68eb0b6ad",
+          "urdf/3_sp7_hardware/sp7_hardware.xml": "f4a0e7d69c74b51452ade470bde4f256965284f2629fb4133c629fc353643a34",
+          "urdf/3_sp7_hardware/src/sp7_hardware.cpp": "5e34f4a459fa4b7fda861a901fb5c830f04d97ade3c1ac633d9ea5d99095db9c"
+        }
+      },
+      "spawn": {
+        "activate_contact_sensors": false,
+        "articulation_props": {
+          "self_collision_enabled": true
+        }
+      },
+      "usd_path": "/workspace/s2r/workspace/arms/sp7/usd/sp7.usd",
+      "utils": "/workspace/s2r/workspace/arms/sp7/utils.py",
+      "wrist_roll": null
+    },
+    "class_type": "isaaclab.envs.manager_based_rl_env:ManagerBasedRLEnv",
+    "commands": null,
+    "compute_final_obs": false,
+    "curriculum": null,
+    "decimation": 4,
+    "episode_length_s": 5.0,
+    "events": {
+      "cache_static_geometry": {
+        "func": "sim.workspace.scene.geometry:cache_scene_geometry",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "startup",
+        "params": {},
+        "resample_interval_on_reset": true
+      },
+      "configure_scene_updates": {
+        "func": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:configure_scene_updates",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "startup",
+        "params": {
+          "scene_spec": {
+            "anchors": {
+              "mount": {
+                "contact_material": false,
+                "contact_prim_pattern": null,
+                "metadata": {},
+                "position": [
+                  0.697253387506893,
+                  -0.6076356057211214,
+                  0.7635429149057084
+                ],
+                "prim_name": null,
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              },
+              "table": {
+                "contact_material": true,
+                "contact_prim_pattern": "C_Tabletop_.*",
+                "metadata": {
+                  "front_edge_coordinate": -0.6953624951871441,
+                  "reference_point": [
+                    0.65,
+                    -0.4,
+                    0.797413
+                  ],
+                  "source": "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates.",
+                  "survey_right": [
+                    0.996801706,
+                    0.079914694,
+                    0.00263459
+                  ]
+                },
+                "position": [
+                  0.7010595470832047,
+                  -0.6560733750851641,
+                  0.7927327158972449
+                ],
+                "prim_name": "Tabletop",
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              }
+            },
+            "appearance": {
+              "appearance": {
+                "ambient_intensity": 0.3875,
+                "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights.",
+                "backdrop_texture_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "backdrop_texture_scale": [
+                  2.0,
+                  2.0,
+                  2.0,
+                  1
+                ],
+                "hide_room_prims": [
+                  "/Visual/Furniture/Observed_primary_Furniture"
+                ],
+                "motor_charcoal": [
+                  0.028,
+                  0.03,
+                  0.032
+                ],
+                "motor_roughness": 0.72,
+                "robot_beige": [
+                  0.63,
+                  0.72,
+                  0.58
+                ],
+                "robot_plastic_roughness": 0.68,
+                "table_albedo_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "table_albedo_scale": [
+                  0.597,
+                  0.532,
+                  0.54,
+                  1.0
+                ],
+                "table_clearcoat": 0.02,
+                "table_roughness": 0.65,
+                "table_texture": "textures/table_albedo_v4.png",
+                "table_texture_bias": [
+                  0.022,
+                  0.026,
+                  0.022,
+                  0.0
+                ],
+                "table_texture_scale": [
+                  0.74,
+                  0.84,
+                  0.94,
+                  1.0
+                ],
+                "table_texture_wrap": "mirror",
+                "table_uv_frame": {
+                  "origin": [
+                    0.04949999999999999,
+                    -0.09450000000000001,
+                    0.80225
+                  ],
+                  "size_u": 2.4388157,
+                  "size_v": 1.2241358,
+                  "u_axis": [
+                    0.996794766632841,
+                    0.07995679946252736,
+                    0.0026652266487508913
+                  ],
+                  "v_axis": [
+                    -0.07999240724504292,
+                    0.9966259945244995,
+                    0.018380473911063334
+                  ]
+                },
+                "table_uv_scale": [
+                  1.0,
+                  1.0
+                ],
+                "wall_st_faceVarying": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    1
+                  ]
+                ],
+                "wall_texture": "textures/wall_albedo_v2.png",
+                "wall_texture_bias": [
+                  0.045,
+                  0.041,
+                  0.033,
+                  0.0
+                ],
+                "wall_texture_scale": [
+                  0.8,
+                  0.82,
+                  0.84,
+                  1.0
+                ],
+                "wrist_mount_roughness": 0.6,
+                "wrist_mount_yellow": [
+                  0.95,
+                  0.64,
+                  0.018
+                ]
+              },
+              "camera_response": {
+                "realsense_rgb": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    1.3576,
+                    1.2715,
+                    1.3222
+                  ],
+                  "lut": {
+                    "knots": null,
+                    "per_channel": [
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9654,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9942,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9395,
+                        1.0,
+                        1.0,
+                        1.0
+                      ]
+                    ]
+                  },
+                  "noise": {
+                    "a": 0.0,
+                    "b": 0.0,
+                    "seed": 101
+                  },
+                  "offset": [
+                    0.006,
+                    0.0126,
+                    0.0039
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": 0.0,
+                    "k2": 0.0
+                  }
+                },
+                "wrist_cam": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    0.8883,
+                    1.0643,
+                    1.2356
+                  ],
+                  "noise": {
+                    "a": 0.005,
+                    "b": 0.02,
+                    "seed": 202
+                  },
+                  "offset": [
+                    0.0117,
+                    -0.001,
+                    0.0054
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": -0.3804,
+                    "k2": 0.0
+                  }
+                }
+              },
+              "object_materials": {
+                "blue_cube": {
+                  "color": [
+                    0.005,
+                    0.07,
+                    0.26
+                  ],
+                  "metallic": 0.0,
+                  "roughness": 0.62
+                },
+                "white_box": {
+                  "color": [
+                    0.95,
+                    0.95,
+                    0.95
+                  ],
+                  "metallic": 0.0,
+                  "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only.",
+                  "roughness": 0.7
+                }
+              },
+              "provenance": {
+                "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+                "lighting": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+                  "diffuser_width": 0.06,
+                  "extra_lights": [
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 4389.3,
+                      "name": "OverheadPanel",
+                      "normalize": false,
+                      "position": [
+                        0.7,
+                        -1.0,
+                        3.15
+                      ],
+                      "target": [
+                        0.7,
+                        -1.0,
+                        0.8
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        1,
+                        0
+                      ],
+                      "width": 2.0
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 448.25,
+                      "name": "SideFillNegX",
+                      "normalize": false,
+                      "position": [
+                        -0.4,
+                        -0.4,
+                        1.4
+                      ],
+                      "target": [
+                        0.8,
+                        -0.5,
+                        0.85
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        0,
+                        1
+                      ],
+                      "width": 1.2
+                    }
+                  ],
+                  "intensity": 197160.0,
+                  "length": 1.2,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ]
+                },
+                "source_file": "real_setup.json",
+                "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+              }
+            },
+            "appearance_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+            "cameras": {
+              "realsense_rgb": {
+                "calibration": {
+                  "coeffs": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "cx": 330.6416015625,
+                  "cy": 253.326904296875,
+                  "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+                  "fx": 606.0668334960938,
+                  "fy": 605.6687622070312,
+                  "model": "distortion.inverse_brown_conrady",
+                  "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+                  "source": "Connected RealSense color stream, 640x480, 2026-09-24"
+                },
+                "data_types": [
+                  "rgb",
+                  "instance_id_segmentation_fast"
+                ],
+                "depth_prim_name": "realsense_camera_depth",
+                "depth_sensor": true,
+                "depth_sensor_name": "realsense_depth",
+                "euler_degrees": [
+                  37.72557881289408,
+                  0.9648100131508459,
+                  -173.47930132524786
+                ],
+                "focal_length": 20.0,
+                "height": 480,
+                "horizontal_aperture": 21.126721118736548,
+                "metadata": {
+                  "depth_display_name": "realsense_camera-depth",
+                  "display_name": "realsense_camera-rgb",
+                  "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+                },
+                "position": [
+                  0.6156803347125415,
+                  -0.024198410322280026,
+                  1.2906966171026641
+                ],
+                "prim_name": "realsense_camera_rgb",
+                "target": [
+                  0.6689514305836436,
+                  -0.4147286793179186,
+                  0.7813933675426784
+                ],
+                "up": null,
+                "vertical_aperture": 15.84504083905241,
+                "width": 640
+              }
+            },
+            "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+            "directory": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+            "hook": "utils.py:customize",
+            "lighting": {
+              "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+              "lights": {
+                "OverheadPanel": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 4389.3,
+                  "normalize": false,
+                  "position": [
+                    0.7,
+                    -1.0,
+                    3.15
+                  ],
+                  "target": [
+                    0.7,
+                    -1.0,
+                    0.8
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    1,
+                    0
+                  ],
+                  "width": 2.0
+                },
+                "SideFillNegX": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 448.25,
+                  "normalize": false,
+                  "position": [
+                    -0.4,
+                    -0.4,
+                    1.4
+                  ],
+                  "target": [
+                    0.8,
+                    -0.5,
+                    0.85
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                },
+                "Tubelight": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "exposure_dr": true,
+                  "height": 0.06,
+                  "intensity": 197160.0,
+                  "normalize": false,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                }
+              },
+              "replace": true,
+              "root": "Lighting"
+            },
+            "metadata": {
+              "source_file": "real_setup.json",
+              "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+            },
+            "name": "rpd_meeting_room",
+            "physics": {
+              "collision_decimation": 1,
+              "cone": "elliptic",
+              "impratio": 1000.0,
+              "num_substeps": 4,
+              "tolerance": 1e-08,
+              "use_mujoco_contacts": false
+            },
+            "renderer": {
+              "ambient_light_intensity": 0.3875,
+              "antialiasing_mode": "DLAA",
+              "carb_settings": {
+                "/rtx/post/histogram/enabled": false
+              },
+              "enable_ambient_occlusion": true,
+              "enable_dlssg": false,
+              "enable_global_illumination": true
+            },
+            "room_root": "Room",
+            "room_usd": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+            "viewer": {
+              "camera": "realsense_rgb",
+              "eye": [
+                1.8,
+                -1.8,
+                1.85
+              ],
+              "lookat": [
+                0.48,
+                -0.27,
+                1.02
+              ]
+            }
+          }
+        },
+        "resample_interval_on_reset": true
+      },
+      "reset_from_starts": {
+        "func": "sim.workspace.envs.mdp.placement:park_object",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "reset",
+        "params": {
+          "asset_cfg": {
+            "body_ids": "slice(None, None, None)",
+            "body_names": null,
+            "fixed_tendon_ids": "slice(None, None, None)",
+            "fixed_tendon_names": null,
+            "joint_ids": "slice(None, None, None)",
+            "joint_names": null,
+            "name": "blue_cube",
+            "object_collection_ids": "slice(None, None, None)",
+            "object_collection_names": null,
+            "preserve_order": false
+          }
+        },
+        "resample_interval_on_reset": true
+      },
+      "reset_robot_position": {
+        "func": "sim.workspace.envs.mdp.mimic:reset_joints_with_mimic",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "reset",
+        "params": {
+          "asset_cfg": {
+            "body_ids": "slice(None, None, None)",
+            "body_names": null,
+            "fixed_tendon_ids": "slice(None, None, None)",
+            "fixed_tendon_names": null,
+            "joint_ids": "slice(None, None, None)",
+            "joint_names": [
+              "joint1",
+              "joint2",
+              "joint3",
+              "joint4",
+              "joint5",
+              "joint6",
+              "joint7",
+              "gripper_left_joint"
+            ],
+            "name": "robot",
+            "object_collection_ids": "slice(None, None, None)",
+            "object_collection_names": null,
+            "preserve_order": true
+          },
+          "position_range": [
+            0.0,
+            0.0
+          ],
+          "velocity_range": [
+            0.0,
+            0.0
+          ]
+        },
+        "resample_interval_on_reset": true
+      },
+      "reset_set_robot_visual_material": {
+        "func": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "reset",
+        "params": {
+          "scene_spec": {
+            "anchors": {
+              "mount": {
+                "contact_material": false,
+                "contact_prim_pattern": null,
+                "metadata": {},
+                "position": [
+                  0.697253387506893,
+                  -0.6076356057211214,
+                  0.7635429149057084
+                ],
+                "prim_name": null,
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              },
+              "table": {
+                "contact_material": true,
+                "contact_prim_pattern": "C_Tabletop_.*",
+                "metadata": {
+                  "front_edge_coordinate": -0.6953624951871441,
+                  "reference_point": [
+                    0.65,
+                    -0.4,
+                    0.797413
+                  ],
+                  "source": "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates.",
+                  "survey_right": [
+                    0.996801706,
+                    0.079914694,
+                    0.00263459
+                  ]
+                },
+                "position": [
+                  0.7010595470832047,
+                  -0.6560733750851641,
+                  0.7927327158972449
+                ],
+                "prim_name": "Tabletop",
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              }
+            },
+            "appearance": {
+              "appearance": {
+                "ambient_intensity": 0.3875,
+                "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights.",
+                "backdrop_texture_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "backdrop_texture_scale": [
+                  2.0,
+                  2.0,
+                  2.0,
+                  1
+                ],
+                "hide_room_prims": [
+                  "/Visual/Furniture/Observed_primary_Furniture"
+                ],
+                "motor_charcoal": [
+                  0.028,
+                  0.03,
+                  0.032
+                ],
+                "motor_roughness": 0.72,
+                "robot_beige": [
+                  0.63,
+                  0.72,
+                  0.58
+                ],
+                "robot_plastic_roughness": 0.68,
+                "table_albedo_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "table_albedo_scale": [
+                  0.597,
+                  0.532,
+                  0.54,
+                  1.0
+                ],
+                "table_clearcoat": 0.02,
+                "table_roughness": 0.65,
+                "table_texture": "textures/table_albedo_v4.png",
+                "table_texture_bias": [
+                  0.022,
+                  0.026,
+                  0.022,
+                  0.0
+                ],
+                "table_texture_scale": [
+                  0.74,
+                  0.84,
+                  0.94,
+                  1.0
+                ],
+                "table_texture_wrap": "mirror",
+                "table_uv_frame": {
+                  "origin": [
+                    0.04949999999999999,
+                    -0.09450000000000001,
+                    0.80225
+                  ],
+                  "size_u": 2.4388157,
+                  "size_v": 1.2241358,
+                  "u_axis": [
+                    0.996794766632841,
+                    0.07995679946252736,
+                    0.0026652266487508913
+                  ],
+                  "v_axis": [
+                    -0.07999240724504292,
+                    0.9966259945244995,
+                    0.018380473911063334
+                  ]
+                },
+                "table_uv_scale": [
+                  1.0,
+                  1.0
+                ],
+                "wall_st_faceVarying": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    1
+                  ]
+                ],
+                "wall_texture": "textures/wall_albedo_v2.png",
+                "wall_texture_bias": [
+                  0.045,
+                  0.041,
+                  0.033,
+                  0.0
+                ],
+                "wall_texture_scale": [
+                  0.8,
+                  0.82,
+                  0.84,
+                  1.0
+                ],
+                "wrist_mount_roughness": 0.6,
+                "wrist_mount_yellow": [
+                  0.95,
+                  0.64,
+                  0.018
+                ]
+              },
+              "camera_response": {
+                "realsense_rgb": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    1.3576,
+                    1.2715,
+                    1.3222
+                  ],
+                  "lut": {
+                    "knots": null,
+                    "per_channel": [
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9654,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9942,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9395,
+                        1.0,
+                        1.0,
+                        1.0
+                      ]
+                    ]
+                  },
+                  "noise": {
+                    "a": 0.0,
+                    "b": 0.0,
+                    "seed": 101
+                  },
+                  "offset": [
+                    0.006,
+                    0.0126,
+                    0.0039
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": 0.0,
+                    "k2": 0.0
+                  }
+                },
+                "wrist_cam": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    0.8883,
+                    1.0643,
+                    1.2356
+                  ],
+                  "noise": {
+                    "a": 0.005,
+                    "b": 0.02,
+                    "seed": 202
+                  },
+                  "offset": [
+                    0.0117,
+                    -0.001,
+                    0.0054
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": -0.3804,
+                    "k2": 0.0
+                  }
+                }
+              },
+              "object_materials": {
+                "blue_cube": {
+                  "color": [
+                    0.005,
+                    0.07,
+                    0.26
+                  ],
+                  "metallic": 0.0,
+                  "roughness": 0.62
+                },
+                "white_box": {
+                  "color": [
+                    0.95,
+                    0.95,
+                    0.95
+                  ],
+                  "metallic": 0.0,
+                  "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only.",
+                  "roughness": 0.7
+                }
+              },
+              "provenance": {
+                "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+                "lighting": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+                  "diffuser_width": 0.06,
+                  "extra_lights": [
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 4389.3,
+                      "name": "OverheadPanel",
+                      "normalize": false,
+                      "position": [
+                        0.7,
+                        -1.0,
+                        3.15
+                      ],
+                      "target": [
+                        0.7,
+                        -1.0,
+                        0.8
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        1,
+                        0
+                      ],
+                      "width": 2.0
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 448.25,
+                      "name": "SideFillNegX",
+                      "normalize": false,
+                      "position": [
+                        -0.4,
+                        -0.4,
+                        1.4
+                      ],
+                      "target": [
+                        0.8,
+                        -0.5,
+                        0.85
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        0,
+                        1
+                      ],
+                      "width": 1.2
+                    }
+                  ],
+                  "intensity": 197160.0,
+                  "length": 1.2,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ]
+                },
+                "source_file": "real_setup.json",
+                "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+              }
+            },
+            "appearance_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+            "cameras": {
+              "realsense_rgb": {
+                "calibration": {
+                  "coeffs": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "cx": 330.6416015625,
+                  "cy": 253.326904296875,
+                  "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+                  "fx": 606.0668334960938,
+                  "fy": 605.6687622070312,
+                  "model": "distortion.inverse_brown_conrady",
+                  "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+                  "source": "Connected RealSense color stream, 640x480, 2026-09-24"
+                },
+                "data_types": [
+                  "rgb",
+                  "instance_id_segmentation_fast"
+                ],
+                "depth_prim_name": "realsense_camera_depth",
+                "depth_sensor": true,
+                "depth_sensor_name": "realsense_depth",
+                "euler_degrees": [
+                  37.72557881289408,
+                  0.9648100131508459,
+                  -173.47930132524786
+                ],
+                "focal_length": 20.0,
+                "height": 480,
+                "horizontal_aperture": 21.126721118736548,
+                "metadata": {
+                  "depth_display_name": "realsense_camera-depth",
+                  "display_name": "realsense_camera-rgb",
+                  "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+                },
+                "position": [
+                  0.6156803347125415,
+                  -0.024198410322280026,
+                  1.2906966171026641
+                ],
+                "prim_name": "realsense_camera_rgb",
+                "target": [
+                  0.6689514305836436,
+                  -0.4147286793179186,
+                  0.7813933675426784
+                ],
+                "up": null,
+                "vertical_aperture": 15.84504083905241,
+                "width": 640
+              }
+            },
+            "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+            "directory": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+            "hook": "utils.py:customize",
+            "lighting": {
+              "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+              "lights": {
+                "OverheadPanel": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 4389.3,
+                  "normalize": false,
+                  "position": [
+                    0.7,
+                    -1.0,
+                    3.15
+                  ],
+                  "target": [
+                    0.7,
+                    -1.0,
+                    0.8
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    1,
+                    0
+                  ],
+                  "width": 2.0
+                },
+                "SideFillNegX": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 448.25,
+                  "normalize": false,
+                  "position": [
+                    -0.4,
+                    -0.4,
+                    1.4
+                  ],
+                  "target": [
+                    0.8,
+                    -0.5,
+                    0.85
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                },
+                "Tubelight": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "exposure_dr": true,
+                  "height": 0.06,
+                  "intensity": 197160.0,
+                  "normalize": false,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                }
+              },
+              "replace": true,
+              "root": "Lighting"
+            },
+            "metadata": {
+              "source_file": "real_setup.json",
+              "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+            },
+            "name": "rpd_meeting_room",
+            "physics": {
+              "collision_decimation": 1,
+              "cone": "elliptic",
+              "impratio": 1000.0,
+              "num_substeps": 4,
+              "tolerance": 1e-08,
+              "use_mujoco_contacts": false
+            },
+            "renderer": {
+              "ambient_light_intensity": 0.3875,
+              "antialiasing_mode": "DLAA",
+              "carb_settings": {
+                "/rtx/post/histogram/enabled": false
+              },
+              "enable_ambient_occlusion": true,
+              "enable_dlssg": false,
+              "enable_global_illumination": true
+            },
+            "room_root": "Room",
+            "room_usd": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+            "viewer": {
+              "camera": "realsense_rgb",
+              "eye": [
+                1.8,
+                -1.8,
+                1.85
+              ],
+              "lookat": [
+                0.48,
+                -0.27,
+                1.02
+              ]
+            }
+          }
+        },
+        "resample_interval_on_reset": true
+      },
+      "reset_tracking": {
+        "func": "s2r_tasks.pick_place_cube.mdp:reset_pick_place_state",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "reset",
+        "params": {},
+        "resample_interval_on_reset": true
+      },
+      "runtime_joint_limits": {
+        "func": "sim.workspace.envs.mdp.limits:apply_runtime_joint_limits",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "startup",
+        "params": {},
+        "resample_interval_on_reset": true
+      },
+      "set_robot_visual_material": {
+        "func": "sim.workspace.envs.scene_builder:set_robot_materials",
+        "interval_range_s": null,
+        "is_global_time": false,
+        "min_step_count_between_reset": 0,
+        "mode": "startup",
+        "params": {
+          "scene_spec": {
+            "anchors": {
+              "mount": {
+                "contact_material": false,
+                "contact_prim_pattern": null,
+                "metadata": {},
+                "position": [
+                  0.697253387506893,
+                  -0.6076356057211214,
+                  0.7635429149057084
+                ],
+                "prim_name": null,
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              },
+              "table": {
+                "contact_material": true,
+                "contact_prim_pattern": "C_Tabletop_.*",
+                "metadata": {
+                  "front_edge_coordinate": -0.6953624951871441,
+                  "reference_point": [
+                    0.65,
+                    -0.4,
+                    0.797413
+                  ],
+                  "source": "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates.",
+                  "survey_right": [
+                    0.996801706,
+                    0.079914694,
+                    0.00263459
+                  ]
+                },
+                "position": [
+                  0.7010595470832047,
+                  -0.6560733750851641,
+                  0.7927327158972449
+                ],
+                "prim_name": "Tabletop",
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              }
+            },
+            "appearance": {
+              "appearance": {
+                "ambient_intensity": 0.3875,
+                "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights.",
+                "backdrop_texture_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "backdrop_texture_scale": [
+                  2.0,
+                  2.0,
+                  2.0,
+                  1
+                ],
+                "hide_room_prims": [
+                  "/Visual/Furniture/Observed_primary_Furniture"
+                ],
+                "motor_charcoal": [
+                  0.028,
+                  0.03,
+                  0.032
+                ],
+                "motor_roughness": 0.72,
+                "robot_beige": [
+                  0.63,
+                  0.72,
+                  0.58
+                ],
+                "robot_plastic_roughness": 0.68,
+                "table_albedo_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "table_albedo_scale": [
+                  0.597,
+                  0.532,
+                  0.54,
+                  1.0
+                ],
+                "table_clearcoat": 0.02,
+                "table_roughness": 0.65,
+                "table_texture": "textures/table_albedo_v4.png",
+                "table_texture_bias": [
+                  0.022,
+                  0.026,
+                  0.022,
+                  0.0
+                ],
+                "table_texture_scale": [
+                  0.74,
+                  0.84,
+                  0.94,
+                  1.0
+                ],
+                "table_texture_wrap": "mirror",
+                "table_uv_frame": {
+                  "origin": [
+                    0.04949999999999999,
+                    -0.09450000000000001,
+                    0.80225
+                  ],
+                  "size_u": 2.4388157,
+                  "size_v": 1.2241358,
+                  "u_axis": [
+                    0.996794766632841,
+                    0.07995679946252736,
+                    0.0026652266487508913
+                  ],
+                  "v_axis": [
+                    -0.07999240724504292,
+                    0.9966259945244995,
+                    0.018380473911063334
+                  ]
+                },
+                "table_uv_scale": [
+                  1.0,
+                  1.0
+                ],
+                "wall_st_faceVarying": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    1
+                  ]
+                ],
+                "wall_texture": "textures/wall_albedo_v2.png",
+                "wall_texture_bias": [
+                  0.045,
+                  0.041,
+                  0.033,
+                  0.0
+                ],
+                "wall_texture_scale": [
+                  0.8,
+                  0.82,
+                  0.84,
+                  1.0
+                ],
+                "wrist_mount_roughness": 0.6,
+                "wrist_mount_yellow": [
+                  0.95,
+                  0.64,
+                  0.018
+                ]
+              },
+              "camera_response": {
+                "realsense_rgb": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    1.3576,
+                    1.2715,
+                    1.3222
+                  ],
+                  "lut": {
+                    "knots": null,
+                    "per_channel": [
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9654,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9942,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9395,
+                        1.0,
+                        1.0,
+                        1.0
+                      ]
+                    ]
+                  },
+                  "noise": {
+                    "a": 0.0,
+                    "b": 0.0,
+                    "seed": 101
+                  },
+                  "offset": [
+                    0.006,
+                    0.0126,
+                    0.0039
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": 0.0,
+                    "k2": 0.0
+                  }
+                },
+                "wrist_cam": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    0.8883,
+                    1.0643,
+                    1.2356
+                  ],
+                  "noise": {
+                    "a": 0.005,
+                    "b": 0.02,
+                    "seed": 202
+                  },
+                  "offset": [
+                    0.0117,
+                    -0.001,
+                    0.0054
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": -0.3804,
+                    "k2": 0.0
+                  }
+                }
+              },
+              "object_materials": {
+                "blue_cube": {
+                  "color": [
+                    0.005,
+                    0.07,
+                    0.26
+                  ],
+                  "metallic": 0.0,
+                  "roughness": 0.62
+                },
+                "white_box": {
+                  "color": [
+                    0.95,
+                    0.95,
+                    0.95
+                  ],
+                  "metallic": 0.0,
+                  "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only.",
+                  "roughness": 0.7
+                }
+              },
+              "provenance": {
+                "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+                "lighting": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+                  "diffuser_width": 0.06,
+                  "extra_lights": [
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 4389.3,
+                      "name": "OverheadPanel",
+                      "normalize": false,
+                      "position": [
+                        0.7,
+                        -1.0,
+                        3.15
+                      ],
+                      "target": [
+                        0.7,
+                        -1.0,
+                        0.8
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        1,
+                        0
+                      ],
+                      "width": 2.0
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 448.25,
+                      "name": "SideFillNegX",
+                      "normalize": false,
+                      "position": [
+                        -0.4,
+                        -0.4,
+                        1.4
+                      ],
+                      "target": [
+                        0.8,
+                        -0.5,
+                        0.85
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        0,
+                        1
+                      ],
+                      "width": 1.2
+                    }
+                  ],
+                  "intensity": 197160.0,
+                  "length": 1.2,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ]
+                },
+                "source_file": "real_setup.json",
+                "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+              }
+            },
+            "appearance_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+            "cameras": {
+              "realsense_rgb": {
+                "calibration": {
+                  "coeffs": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "cx": 330.6416015625,
+                  "cy": 253.326904296875,
+                  "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+                  "fx": 606.0668334960938,
+                  "fy": 605.6687622070312,
+                  "model": "distortion.inverse_brown_conrady",
+                  "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+                  "source": "Connected RealSense color stream, 640x480, 2026-09-24"
+                },
+                "data_types": [
+                  "rgb",
+                  "instance_id_segmentation_fast"
+                ],
+                "depth_prim_name": "realsense_camera_depth",
+                "depth_sensor": true,
+                "depth_sensor_name": "realsense_depth",
+                "euler_degrees": [
+                  37.72557881289408,
+                  0.9648100131508459,
+                  -173.47930132524786
+                ],
+                "focal_length": 20.0,
+                "height": 480,
+                "horizontal_aperture": 21.126721118736548,
+                "metadata": {
+                  "depth_display_name": "realsense_camera-depth",
+                  "display_name": "realsense_camera-rgb",
+                  "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+                },
+                "position": [
+                  0.6156803347125415,
+                  -0.024198410322280026,
+                  1.2906966171026641
+                ],
+                "prim_name": "realsense_camera_rgb",
+                "target": [
+                  0.6689514305836436,
+                  -0.4147286793179186,
+                  0.7813933675426784
+                ],
+                "up": null,
+                "vertical_aperture": 15.84504083905241,
+                "width": 640
+              }
+            },
+            "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+            "directory": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+            "hook": "utils.py:customize",
+            "lighting": {
+              "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+              "lights": {
+                "OverheadPanel": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 4389.3,
+                  "normalize": false,
+                  "position": [
+                    0.7,
+                    -1.0,
+                    3.15
+                  ],
+                  "target": [
+                    0.7,
+                    -1.0,
+                    0.8
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    1,
+                    0
+                  ],
+                  "width": 2.0
+                },
+                "SideFillNegX": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 448.25,
+                  "normalize": false,
+                  "position": [
+                    -0.4,
+                    -0.4,
+                    1.4
+                  ],
+                  "target": [
+                    0.8,
+                    -0.5,
+                    0.85
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                },
+                "Tubelight": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "exposure_dr": true,
+                  "height": 0.06,
+                  "intensity": 197160.0,
+                  "normalize": false,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                }
+              },
+              "replace": true,
+              "root": "Lighting"
+            },
+            "metadata": {
+              "source_file": "real_setup.json",
+              "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+            },
+            "name": "rpd_meeting_room",
+            "physics": {
+              "collision_decimation": 1,
+              "cone": "elliptic",
+              "impratio": 1000.0,
+              "num_substeps": 4,
+              "tolerance": 1e-08,
+              "use_mujoco_contacts": false
+            },
+            "renderer": {
+              "ambient_light_intensity": 0.3875,
+              "antialiasing_mode": "DLAA",
+              "carb_settings": {
+                "/rtx/post/histogram/enabled": false
+              },
+              "enable_ambient_occlusion": true,
+              "enable_dlssg": false,
+              "enable_global_illumination": true
+            },
+            "room_root": "Room",
+            "room_usd": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+            "viewer": {
+              "camera": "realsense_rgb",
+              "eye": [
+                1.8,
+                -1.8,
+                1.85
+              ],
+              "lookat": [
+                0.48,
+                -0.27,
+                1.02
+              ]
+            }
+          }
+        },
+        "resample_interval_on_reset": true
+      }
+    },
+    "export_io_descriptors": false,
+    "is_finite_horizon": false,
+    "isaac_teleop": null,
+    "log_dir": null,
+    "num_rerenders_on_reset": 0,
+    "observations": {
+      "policy": {
+        "concatenate_dim": -1,
+        "concatenate_terms": false,
+        "ee_frame_state": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "sim.workspace.envs.mdp.obs:ee_frame_state",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "robot_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": [
+                "base_link",
+                "gripper_base_link"
+              ],
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "robot",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": true
+            }
+          },
+          "scale": null
+        },
+        "enable_corruption": true,
+        "flatten_history_dim": true,
+        "history_length": null,
+        "history_order": "term",
+        "joint_pos_obs": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "isaaclab.envs.mdp.observations:joint_pos",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "asset_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": [
+                "joint1",
+                "joint2",
+                "joint3",
+                "joint4",
+                "joint5",
+                "joint6",
+                "joint7",
+                "gripper_left_joint"
+              ],
+              "name": "robot",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": true
+            }
+          },
+          "scale": null
+        },
+        "joint_pos_rel": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "isaaclab.envs.mdp.observations:joint_pos_rel",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "asset_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": [
+                "joint1",
+                "joint2",
+                "joint3",
+                "joint4",
+                "joint5",
+                "joint6",
+                "joint7",
+                "gripper_left_joint"
+              ],
+              "name": "robot",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": true
+            }
+          },
+          "scale": null
+        }
+      },
+      "subtask_terms": {
+        "concatenate_dim": -1,
+        "concatenate_terms": false,
+        "cube_grasped": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "s2r_tasks.pick_place_cube.mdp:object_grasped",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "contact_sensor_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "contact_grasp",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": false
+            },
+            "force_threshold": 2.0,
+            "min_lift": 0.01,
+            "object_name": "blue_cube",
+            "warmup_steps": 30
+          },
+          "scale": null
+        },
+        "cube_placed": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "s2r_tasks.pick_place_cube.mdp:object_placed_in_container",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "contact_sensor_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "contact_grasp",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": false
+            },
+            "container_floor_z": 0.0018,
+            "container_inner_half_size": [
+              0.065625,
+              0.04064896
+            ],
+            "container_name": "white_box",
+            "container_size": [
+              0.135,
+              0.085,
+              0.045
+            ],
+            "force_threshold": 2.0,
+            "min_lift": 0.01,
+            "object_name": "blue_cube",
+            "warmup_steps": 30
+          },
+          "scale": null
+        },
+        "enable_corruption": false,
+        "flatten_history_dim": true,
+        "history_length": null,
+        "history_order": "term"
+      },
+      "visual": {
+        "concatenate_dim": -1,
+        "concatenate_terms": false,
+        "depth_realsense_rgb": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "sim.workspace.envs.mdp.obs:image_raw",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "data_type": "depth",
+            "sensor_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "realsense_depth",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": false
+            }
+          },
+          "scale": null
+        },
+        "enable_corruption": false,
+        "flatten_history_dim": true,
+        "history_length": null,
+        "history_order": "term",
+        "instance_id_seg_realsense_rgb": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "sim.workspace.envs.mdp.obs:image_raw",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "data_type": "instance_id_segmentation_fast",
+            "sensor_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "camera_realsense_rgb",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": false
+            }
+          },
+          "scale": null
+        },
+        "rgb_realsense_rgb": {
+          "clip": null,
+          "delay_hold_prob": 1.0,
+          "delay_max_lag": 0,
+          "delay_min_lag": 0,
+          "flatten_history_dim": true,
+          "func": "sim.workspace.envs.mdp.obs:image_rgb_raw",
+          "history_length": 0,
+          "modifiers": null,
+          "noise": null,
+          "params": {
+            "data_type": "rgb",
+            "sensor_cfg": {
+              "body_ids": "slice(None, None, None)",
+              "body_names": null,
+              "fixed_tendon_ids": "slice(None, None, None)",
+              "fixed_tendon_names": null,
+              "joint_ids": "slice(None, None, None)",
+              "joint_names": null,
+              "name": "camera_realsense_rgb",
+              "object_collection_ids": "slice(None, None, None)",
+              "object_collection_names": null,
+              "preserve_order": false
+            }
+          },
+          "scale": null
+        }
+      }
+    },
+    "recorders": {
+      "dataset_compression": true,
+      "dataset_export_dir_path": "/tmp/isaaclab/logs",
+      "dataset_export_mode": 1,
+      "dataset_file_handler_class_type": "isaaclab.utils.datasets.hdf5_dataset_file_handler:HDF5DatasetFileHandler",
+      "dataset_filename": "dataset",
+      "export_in_close": false,
+      "export_in_record_pre_reset": true
+    },
+    "rerender_on_reset": false,
+    "rewards": null,
+    "scene": {
+      "blue_cube": {
+        "class_type": "isaaclab.assets.rigid_object.rigid_object:RigidObject",
+        "cloning_contexts": null,
+        "collision_group": 0,
+        "debug_vis": false,
+        "disable_shape_checks": null,
+        "init_state": {
+          "ang_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "lin_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "pos": [
+            0.0,
+            0.0,
+            0.05
+          ],
+          "rot": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "prim_path": "{ENV_REGEX_NS}/CUBE",
+        "spawn": {
+          "activate_contact_sensors": false,
+          "collision_props": [
+            {
+              "_usd_applied_schema": null,
+              "_usd_namespace": "physics",
+              "collision_enabled": null,
+              "func": "isaaclab.sim.schemas:apply_namespaced"
+            },
+            {
+              "_usd_applied_schema": null,
+              "_usd_namespace": "mjc",
+              "condim": 6,
+              "func": "isaaclab_newton.sim.schemas:apply_mujoco_collision",
+              "group": null,
+              "priority": null,
+              "solimp": [
+                0.999,
+                0.999,
+                0.001,
+                0.5,
+                2.0
+              ],
+              "solmix": null,
+              "solref": [
+                0.004,
+                1.0
+              ]
+            }
+          ],
+          "copy_from_source": true,
+          "func": "isaaclab.sim.spawners.shapes.shapes:spawn_cuboid",
+          "mass_props": {
+            "_usd_applied_schema": null,
+            "_usd_field_exceptions": {},
+            "_usd_namespace": "physics",
+            "density": null,
+            "mass": 0.008
+          },
+          "mass_props_create_if_missing": false,
+          "physics_material": [
+            {
+              "_usd_applied_schema": null,
+              "_usd_namespace": "physics",
+              "density": null,
+              "dynamic_friction": 1.5,
+              "func": "isaaclab.sim.schemas:apply_namespaced",
+              "restitution": 0.0,
+              "static_friction": 1.5
+            },
+            {
+              "_usd_applied_schema": "NewtonMaterialAPI",
+              "_usd_namespace": "newton",
+              "contact_adhesion": null,
+              "contact_damping": null,
+              "contact_friction_gain": null,
+              "contact_stiffness": null,
+              "func": "isaaclab.sim.schemas:apply_namespaced",
+              "rolling_friction": 0.002,
+              "torsional_friction": null
+            }
+          ],
+          "physics_material_path": "physicsMaterial",
+          "rigid_props": {
+            "_usd_applied_schema": null,
+            "_usd_field_exceptions": {
+              "PhysxRigidBodyAPI": [
+                "physxRigidBody",
+                [
+                  "disable_gravity"
+                ]
+              ]
+            },
+            "_usd_namespace": "mjc",
+            "disable_gravity": null,
+            "gravcomp": null,
+            "kinematic_enabled": null,
+            "rigid_body_enabled": null
+          },
+          "semantic_tags": null,
+          "size": [
+            0.02,
+            0.02,
+            0.02
+          ],
+          "spawn_path": null,
+          "visible": true,
+          "visual_material": {
+            "copy_from_source": true,
+            "diffuse_color": [
+              0.005,
+              0.07,
+              0.26
+            ],
+            "emissive_color": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+            "metallic": 0.0,
+            "opacity": 1.0,
+            "roughness": 0.62,
+            "semantic_tags": null,
+            "spawn_path": null,
+            "visible": true
+          },
+          "visual_material_path": "material"
+        }
+      },
+      "camera_realsense_rgb": {
+        "background_color": null,
+        "class_type": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "cloning_contexts": [],
+        "colorize_instance_id_segmentation": true,
+        "colorize_instance_segmentation": true,
+        "colorize_semantic_segmentation": true,
+        "data_types": [
+          "rgb",
+          "instance_id_segmentation_fast"
+        ],
+        "debug_vis": false,
+        "depth_clipping_behavior": "none",
+        "height": 480,
+        "isp_cfg": null,
+        "offset": {
+          "convention": "opengl",
+          "pos": [
+            0.6156803347125415,
+            -0.024198410322280026,
+            1.2906966171026641
+          ],
+          "rot": [
+            0.026340993876749055,
+            -0.3223150580700269,
+            -0.9448851899562549,
+            0.051099248372479186
+          ]
+        },
+        "prim_path": "{ENV_REGEX_NS}/realsense_camera_rgb",
+        "renderer_cfg": {
+          "class_type": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+          "cloning_contexts": [],
+          "colorize_instance_id_segmentation": true,
+          "colorize_instance_segmentation": true,
+          "colorize_semantic_segmentation": true,
+          "depth_clipping_behavior": "none",
+          "enable_scene_partitioning": true,
+          "global_settings": {
+            "ambient_light_intensity": 0.3875,
+            "ambient_occlusion_denoiser_mode": null,
+            "antialiasing_mode": "DLAA",
+            "carb_settings": {
+              "/rtx/post/histogram/enabled": false
+            },
+            "dlss_mode": null,
+            "dome_light_upper_lower_strategy": null,
+            "enable_ambient_occlusion": true,
+            "enable_cached_raytracing": null,
+            "enable_direct_lighting": null,
+            "enable_dl_denoiser": null,
+            "enable_dlssg": false,
+            "enable_global_illumination": true,
+            "enable_reflections": null,
+            "enable_shadows": null,
+            "enable_translucency": null,
+            "max_bounces": null,
+            "max_samples_per_launch": null,
+            "samples_per_pixel": null,
+            "show_all_partitions_by_default": null,
+            "split_clearcoat": null,
+            "split_glass": null,
+            "split_rough_reflection": null,
+            "subpixel_mode": null,
+            "view_tile_limit": null
+          },
+          "launcher_type": null,
+          "renderer_type": "isaac_rtx",
+          "semantic_filter": "*:*",
+          "semantic_segmentation_mapping": {}
+        },
+        "semantic_filter": "*:*",
+        "semantic_segmentation_mapping": {},
+        "spawn": {
+          "clipping_range": [
+            0.01,
+            100.0
+          ],
+          "copy_from_source": true,
+          "display_name": "realsense_camera-rgb",
+          "distortion": null,
+          "f_stop": 0.0,
+          "focal_length": 20.0,
+          "focus_distance": 400.0,
+          "func": "sim.workspace.scene.cameras:_spawn_named_camera",
+          "horizontal_aperture": 21.126721118736548,
+          "horizontal_aperture_offset": 0.0,
+          "intrinsics": {
+            "coeffs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cx": 330.6416015625,
+            "cy": 253.326904296875,
+            "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+            "fx": 606.0668334960938,
+            "fy": 605.6687622070312,
+            "height": 480,
+            "model": "distortion.inverse_brown_conrady",
+            "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+            "source": "Connected RealSense color stream, 640x480, 2026-09-24",
+            "width": 640
+          },
+          "lock_camera": true,
+          "projection_type": "pinhole",
+          "response": {
+            "blur_sigma_px": 0.0,
+            "gain": [
+              1.3576,
+              1.2715,
+              1.3222
+            ],
+            "lut": {
+              "knots": null,
+              "per_channel": [
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9654,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9942,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9395,
+                  1.0,
+                  1.0,
+                  1.0
+                ]
+              ]
+            },
+            "noise": {
+              "a": 0.0,
+              "b": 0.0,
+              "seed": 101
+            },
+            "offset": [
+              0.006,
+              0.0126,
+              0.0039
+            ],
+            "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+            "vignette": {
+              "cx": null,
+              "cy": null,
+              "k1": 0.0,
+              "k2": 0.0
+            }
+          },
+          "semantic_tags": null,
+          "spawn_path": null,
+          "vertical_aperture": 15.84504083905241,
+          "vertical_aperture_offset": 0.0,
+          "visible": true
+        },
+        "update_latest_camera_pose": false,
+        "update_period": 0.0,
+        "width": 640
+      },
+      "class_type": "isaaclab.scene.interactive_scene:InteractiveScene",
+      "clone_cfg": {
+        "clone_combinations": [],
+        "clone_strategy": "isaaclab.cloner.cloner_strategies:sequential",
+        "clone_template": "/World/envs/env_{}",
+        "replicate_physics": true
+      },
+      "clone_in_fabric": false,
+      "contact_grasp": {
+        "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+        "cloning_contexts": [],
+        "debug_vis": false,
+        "filter_prim_paths_expr": [
+          "{ENV_REGEX_NS}/CUBE"
+        ],
+        "filter_shape_prim_expr": [],
+        "force_threshold": null,
+        "force_visualization_scale": 0.01,
+        "friction_force_visualizer_cfg": {
+          "class_type": "isaaclab.markers.visualization_markers:VisualizationMarkers",
+          "markers": {
+            "arrow": {
+              "activate_contact_sensors": false,
+              "articulation_props": null,
+              "articulation_props_create_if_missing": false,
+              "collision_props": null,
+              "copy_from_source": true,
+              "deformable_props": null,
+              "ensure_drives_exist": false,
+              "fix_root_link": null,
+              "fixed_tendons_props": null,
+              "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
+              "joint_drive_props": null,
+              "joint_drive_props_create_if_missing": false,
+              "make_uninstanceable": false,
+              "mass_props": null,
+              "mass_props_create_if_missing": false,
+              "physics_material": null,
+              "physics_material_path": "material",
+              "rigid_props": null,
+              "scale": [
+                0.04,
+                0.04,
+                0.2
+              ],
+              "semantic_tags": null,
+              "spatial_tendons_props": null,
+              "spawn_path": null,
+              "surface_deformable_props": null,
+              "usd_path": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.2/Isaac/Props/UIElements/arrow_x.usd",
+              "variants": null,
+              "visible": true,
+              "visual_material": {
+                "copy_from_source": true,
+                "diffuse_color": [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "emissive_color": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+                "metallic": 0.0,
+                "opacity": 1.0,
+                "roughness": 0.5,
+                "semantic_tags": null,
+                "spawn_path": null,
+                "visible": true
+              },
+              "visual_material_bindings": {},
+              "visual_material_path": "material",
+              "volume_deformable_props": null
+            }
+          },
+          "prim_path": "/Visuals/ContactSensor"
+        },
+        "history_length": 1,
+        "max_contact_data_count_per_prim": null,
+        "normal_force_visualizer_cfg": {
+          "class_type": "isaaclab.markers.visualization_markers:VisualizationMarkers",
+          "markers": {
+            "arrow": {
+              "activate_contact_sensors": false,
+              "articulation_props": null,
+              "articulation_props_create_if_missing": false,
+              "collision_props": null,
+              "copy_from_source": true,
+              "deformable_props": null,
+              "ensure_drives_exist": false,
+              "fix_root_link": null,
+              "fixed_tendons_props": null,
+              "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
+              "joint_drive_props": null,
+              "joint_drive_props_create_if_missing": false,
+              "make_uninstanceable": false,
+              "mass_props": null,
+              "mass_props_create_if_missing": false,
+              "physics_material": null,
+              "physics_material_path": "material",
+              "rigid_props": null,
+              "scale": [
+                0.04,
+                0.04,
+                0.2
+              ],
+              "semantic_tags": null,
+              "spatial_tendons_props": null,
+              "spawn_path": null,
+              "surface_deformable_props": null,
+              "usd_path": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/6.2/Isaac/Props/UIElements/arrow_x.usd",
+              "variants": null,
+              "visible": true,
+              "visual_material": {
+                "copy_from_source": true,
+                "diffuse_color": [
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "emissive_color": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+                "metallic": 0.0,
+                "opacity": 1.0,
+                "roughness": 0.5,
+                "semantic_tags": null,
+                "spawn_path": null,
+                "visible": true
+              },
+              "visual_material_bindings": {},
+              "visual_material_path": "material",
+              "volume_deformable_props": null
+            }
+          },
+          "prim_path": "/Visuals/ContactSensor"
+        },
+        "prim_path": "{ENV_REGEX_NS}/Robot/(gripper_right_link|gripper_left_link)",
+        "sensor_shape_prim_expr": [],
+        "track_air_time": false,
+        "track_contact_points": false,
+        "track_friction_forces": false,
+        "track_pose": false,
+        "update_period": 0.0,
+        "visualizer_cfg": {
+          "class_type": "isaaclab.markers.visualization_markers:VisualizationMarkers",
+          "markers": {
+            "contact": {
+              "activate_contact_sensors": false,
+              "collision_props": null,
+              "copy_from_source": true,
+              "func": "isaaclab.sim.spawners.shapes.shapes:spawn_sphere",
+              "mass_props": null,
+              "mass_props_create_if_missing": false,
+              "physics_material": null,
+              "physics_material_path": "material",
+              "radius": 0.02,
+              "rigid_props": null,
+              "semantic_tags": null,
+              "spawn_path": null,
+              "visible": true,
+              "visual_material": {
+                "copy_from_source": true,
+                "diffuse_color": [
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "emissive_color": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+                "metallic": 0.0,
+                "opacity": 1.0,
+                "roughness": 0.5,
+                "semantic_tags": null,
+                "spawn_path": null,
+                "visible": true
+              },
+              "visual_material_path": "material"
+            },
+            "no_contact": {
+              "activate_contact_sensors": false,
+              "collision_props": null,
+              "copy_from_source": true,
+              "func": "isaaclab.sim.spawners.shapes.shapes:spawn_sphere",
+              "mass_props": null,
+              "mass_props_create_if_missing": false,
+              "physics_material": null,
+              "physics_material_path": "material",
+              "radius": 0.02,
+              "rigid_props": null,
+              "semantic_tags": null,
+              "spawn_path": null,
+              "visible": false,
+              "visual_material": {
+                "copy_from_source": true,
+                "diffuse_color": [
+                  0.0,
+                  1.0,
+                  0.0
+                ],
+                "emissive_color": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+                "metallic": 0.0,
+                "opacity": 1.0,
+                "roughness": 0.5,
+                "semantic_tags": null,
+                "spawn_path": null,
+                "visible": true
+              },
+              "visual_material_path": "material"
+            }
+          },
+          "prim_path": "/Visuals/ContactSensor"
+        }
+      },
+      "env_spacing": 4.0,
+      "filter_collisions": true,
+      "lazy_sensor_update": true,
+      "num_envs": 1,
+      "realsense_depth": {
+        "background_color": null,
+        "class_type": "sim.workspace.scene.cameras:CalibratedTiledCamera",
+        "cloning_contexts": [],
+        "colorize_instance_id_segmentation": true,
+        "colorize_instance_segmentation": true,
+        "colorize_semantic_segmentation": true,
+        "data_types": [
+          "depth"
+        ],
+        "debug_vis": false,
+        "depth_clipping_behavior": "none",
+        "height": 480,
+        "isp_cfg": null,
+        "offset": {
+          "convention": "opengl",
+          "pos": [
+            0.6156803347125415,
+            -0.024198410322280026,
+            1.2906966171026641
+          ],
+          "rot": [
+            0.026340993876749055,
+            -0.3223150580700269,
+            -0.9448851899562549,
+            0.051099248372479186
+          ]
+        },
+        "prim_path": "{ENV_REGEX_NS}/realsense_camera_depth",
+        "renderer_cfg": {
+          "class_type": "sim.workspace.scene.renderer:CalibratedRtxRenderer",
+          "cloning_contexts": [],
+          "colorize_instance_id_segmentation": true,
+          "colorize_instance_segmentation": true,
+          "colorize_semantic_segmentation": true,
+          "depth_clipping_behavior": "none",
+          "enable_scene_partitioning": true,
+          "global_settings": {
+            "ambient_light_intensity": 0.3875,
+            "ambient_occlusion_denoiser_mode": null,
+            "antialiasing_mode": "DLAA",
+            "carb_settings": {
+              "/rtx/post/histogram/enabled": false
+            },
+            "dlss_mode": null,
+            "dome_light_upper_lower_strategy": null,
+            "enable_ambient_occlusion": true,
+            "enable_cached_raytracing": null,
+            "enable_direct_lighting": null,
+            "enable_dl_denoiser": null,
+            "enable_dlssg": false,
+            "enable_global_illumination": true,
+            "enable_reflections": null,
+            "enable_shadows": null,
+            "enable_translucency": null,
+            "max_bounces": null,
+            "max_samples_per_launch": null,
+            "samples_per_pixel": null,
+            "show_all_partitions_by_default": null,
+            "split_clearcoat": null,
+            "split_glass": null,
+            "split_rough_reflection": null,
+            "subpixel_mode": null,
+            "view_tile_limit": null
+          },
+          "launcher_type": null,
+          "renderer_type": "isaac_rtx",
+          "semantic_filter": "*:*",
+          "semantic_segmentation_mapping": {}
+        },
+        "semantic_filter": "*:*",
+        "semantic_segmentation_mapping": {},
+        "spawn": {
+          "clipping_range": [
+            0.01,
+            100.0
+          ],
+          "copy_from_source": true,
+          "display_name": "realsense_camera-depth",
+          "distortion": null,
+          "f_stop": 0.0,
+          "focal_length": 20.0,
+          "focus_distance": 400.0,
+          "func": "sim.workspace.scene.cameras:_spawn_named_camera",
+          "horizontal_aperture": 21.126721118736548,
+          "horizontal_aperture_offset": 0.0,
+          "intrinsics": {
+            "coeffs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cx": 330.6416015625,
+            "cy": 253.326904296875,
+            "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+            "fx": 606.0668334960938,
+            "fy": 605.6687622070312,
+            "height": 480,
+            "model": "distortion.inverse_brown_conrady",
+            "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+            "source": "Connected RealSense color stream, 640x480, 2026-09-24",
+            "width": 640
+          },
+          "lock_camera": true,
+          "projection_type": "pinhole",
+          "response": {
+            "blur_sigma_px": 0.0,
+            "gain": [
+              1.3576,
+              1.2715,
+              1.3222
+            ],
+            "lut": {
+              "knots": null,
+              "per_channel": [
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9654,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9942,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9395,
+                  1.0,
+                  1.0,
+                  1.0
+                ]
+              ]
+            },
+            "noise": {
+              "a": 0.0,
+              "b": 0.0,
+              "seed": 101
+            },
+            "offset": [
+              0.006,
+              0.0126,
+              0.0039
+            ],
+            "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+            "vignette": {
+              "cx": null,
+              "cy": null,
+              "k1": 0.0,
+              "k2": 0.0
+            }
+          },
+          "semantic_tags": null,
+          "spawn_path": null,
+          "vertical_aperture": 15.84504083905241,
+          "vertical_aperture_offset": 0.0,
+          "visible": true
+        },
+        "update_latest_camera_pose": false,
+        "update_period": 0.0,
+        "width": 640
+      },
+      "replicate_physics": true,
+      "robot": {
+        "actuator_value_resolution_debug_print": false,
+        "actuators": {
+          "joint_0": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 0.48224528698376934,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint1"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 4.132679808736616,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_1": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 3.226575353472646,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint2"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 222.86808907027557,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_2": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 1.9212480136917578,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint3"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 84.07512075800476,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_3": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 2.5455734646035895,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint4"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 118.67814316885331,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_4": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 0.5421993040336711,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint5"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 38.28938137383658,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_5": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 0.41621186668986976,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint6"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 42.56767185105458,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_6": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 0.448133941002685,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "joint7"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 27.406586544708677,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_7": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 8.20192328233845,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "gripper_left_joint"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 500.0,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          },
+          "joint_8": {
+            "actuator_effort_limit": null,
+            "actuator_velocity_limit": null,
+            "armature": null,
+            "class_type": "isaaclab.actuators.actuator_pd:ImplicitActuator",
+            "damping": 8.20192328233845,
+            "dynamic_friction": null,
+            "effort_limit": null,
+            "effort_limit_sim": 10.0,
+            "friction": null,
+            "joint_effort_limit": null,
+            "joint_names_expr": [
+              "gripper_right_joint"
+            ],
+            "joint_velocity_limit": null,
+            "stiffness": 500.0,
+            "velocity_limit": null,
+            "velocity_limit_sim": null,
+            "viscous_friction": null
+          }
+        },
+        "articulation_root_prim_path": null,
+        "body_ordering": null,
+        "class_type": "isaaclab.assets.articulation.articulation:Articulation",
+        "cloning_contexts": null,
+        "collision_group": 0,
+        "debug_vis": false,
+        "disable_shape_checks": null,
+        "init_state": {
+          "ang_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "joint_pos": {
+            "gripper_left_joint": 0.01625,
+            "gripper_right_joint": 0.01625,
+            "joint1": 0.0,
+            "joint2": 0.0,
+            "joint3": 0.0,
+            "joint4": -1.0471975,
+            "joint5": 0.0,
+            "joint6": 0.0,
+            "joint7": 0.0
+          },
+          "joint_vel": {
+            ".*": 0.0
+          },
+          "lin_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "pos": [
+            0.696053387506893,
+            -0.6128356057211214,
+            0.7940267259462431
+          ],
+          "rot": [
+            -0.0009490871253246191,
+            -0.009222361160757035,
+            0.9991571638848087,
+            -0.039987612405775474
+          ]
+        },
+        "joint_ordering": null,
+        "prim_path": "{ENV_REGEX_NS}/Robot",
+        "soft_joint_pos_limit_factor": 1.0,
+        "spawn": {
+          "activate_contact_sensors": true,
+          "arm_spec": {
+            "actuators": {
+              "joint_0": {
+                "damping": 0.48224528698376934,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint1"
+                ],
+                "stiffness": 4.132679808736616
+              },
+              "joint_1": {
+                "damping": 3.226575353472646,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint2"
+                ],
+                "stiffness": 222.86808907027557
+              },
+              "joint_2": {
+                "damping": 1.9212480136917578,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint3"
+                ],
+                "stiffness": 84.07512075800476
+              },
+              "joint_3": {
+                "damping": 2.5455734646035895,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint4"
+                ],
+                "stiffness": 118.67814316885331
+              },
+              "joint_4": {
+                "damping": 0.5421993040336711,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint5"
+                ],
+                "stiffness": 38.28938137383658
+              },
+              "joint_5": {
+                "damping": 0.41621186668986976,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint6"
+                ],
+                "stiffness": 42.56767185105458
+              },
+              "joint_6": {
+                "damping": 0.448133941002685,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "joint7"
+                ],
+                "stiffness": 27.406586544708677
+              },
+              "joint_7": {
+                "damping": 8.20192328233845,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "gripper_left_joint"
+                ],
+                "stiffness": 500.0
+              },
+              "joint_8": {
+                "damping": 8.20192328233845,
+                "effort_limit_sim": 10.0,
+                "joint_names_expr": [
+                  "gripper_right_joint"
+                ],
+                "stiffness": 500.0
+              }
+            },
+            "appearance": {},
+            "cameras": {},
+            "directory": "/workspace/s2r/workspace/arms/sp7",
+            "gripper": {
+              "approach_axis": [
+                8.410510197590617e-09,
+                0.9999797937256627,
+                0.006357054379289826
+              ],
+              "closed_gap_m": 0.0,
+              "closed_position": 0.0375,
+              "closing_axis": [
+                -1.0,
+                8.41068016255238e-09,
+                -2.8571916087427252e-15
+              ],
+              "contact_bodies": [
+                "gripper_right_link",
+                "gripper_left_link"
+              ],
+              "friction_bodies": [
+                "gripper_right_link",
+                "gripper_left_link",
+                "gripper_base_link"
+              ],
+              "joints": [
+                "gripper_left_joint"
+              ],
+              "kind": "parallel",
+              "open_gap_m": 0.08467114754960926,
+              "open_position": -0.005,
+              "tip_mesh": null
+            },
+            "hardware": {
+              "encoder_counts_per_turn": 4096,
+              "joint_ids": {
+                "gripper_left_joint": "8",
+                "joint1": "1",
+                "joint2": "2",
+                "joint3": "3",
+                "joint4": "4",
+                "joint5": "5",
+                "joint6": "6",
+                "joint7": "7"
+              },
+              "motor": "unconfigured",
+              "zero_count": 2048.0
+            },
+            "ik": {
+              "joint_limit_avoidance_gain": 0.05,
+              "joint_limit_avoidance_margin": 0.3,
+              "method": "dls",
+              "orientation_axes": [
+                "x",
+                "y",
+                "z"
+              ],
+              "position_offset_m": [
+                -0.00042498307461547155,
+                0.04973298352529152,
+                0.00014139085433376657
+              ]
+            },
+            "initial_state": {
+              "position": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_euler_degrees": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation_relative_to_anchor": true
+            },
+            "joints": [
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint1",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint1"
+              },
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint2",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint2"
+              },
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint3",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint3"
+              },
+              {
+                "initial": -1.0471975,
+                "limits": [
+                  -180.00001984784282,
+                  60.00002571454079
+                ],
+                "mimic": null,
+                "name": "joint4",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint4"
+              },
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint5",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint5"
+              },
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint6",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint6"
+              },
+              {
+                "initial": 0.0,
+                "limits": [
+                  -89.99998127603166,
+                  89.99998127603166
+                ],
+                "mimic": null,
+                "name": "joint7",
+                "role": "arm",
+                "type": "revolute",
+                "usd": "joint7"
+              },
+              {
+                "initial": 0.01625,
+                "limits": [
+                  -0.005,
+                  0.0375
+                ],
+                "mimic": null,
+                "name": "gripper_left_joint",
+                "role": "gripper",
+                "type": "prismatic",
+                "usd": "gripper_left_joint"
+              },
+              {
+                "initial": 0.01625,
+                "limits": [
+                  -0.005,
+                  0.0375
+                ],
+                "mimic": {
+                  "joint": "gripper_left_joint",
+                  "multiplier": 1.0,
+                  "offset": 0.0
+                },
+                "name": "gripper_right_joint",
+                "role": "gripper",
+                "type": "prismatic",
+                "usd": "gripper_right_joint"
+              }
+            ],
+            "lerobot": {
+              "calibration": "simulation",
+              "follower_calibration_dir": "",
+              "follower_type": "unconfigured",
+              "leader_calibration_dir": "",
+              "leader_type": "unconfigured",
+              "modules": [],
+              "use_degrees": false
+            },
+            "links": {
+              "base": "base_link",
+              "ee": "gripper_base_link"
+            },
+            "name": "sp7",
+            "provenance": {
+              "command_line": [
+                "repair_sp7_setup.py"
+              ],
+              "conversion_path": "isaaclab.sim.converters.UrdfConverter (3.0 URDFImporterConfig)",
+              "importer_version": "1",
+              "mimic_runtime": "constraint",
+              "report_path": "import-report.json",
+              "source_hashes": {
+                "urdf/0_sp7/CMakeLists.txt": "e32317f32e0c360aebc0b946eac869ed0e2a6e8ba30b1df76b7f72d67b6de070",
+                "urdf/0_sp7/package.xml": "9979bee2dd915ef2f695c095799140dc6ce6180f03433d0b9d4b078166d401bf",
+                "urdf/1_sp7_bringup/CMakeLists.txt": "8c1b9c77c0fbb19b72576002df2d6472114d55fce3d1f58ecd799ad8a8f17484",
+                "urdf/1_sp7_bringup/config/sp7_controllers.yaml": "5d24361c902f6d8254150b3c5efe7b8e8bf127fa8ce1debbd059a55d0ace6e3d",
+                "urdf/1_sp7_bringup/launch/bringup.launch.py": "e0c3860639f124bcb4bc4cdf84c2db92096d942ac273427e8ca8a7f0f6256191",
+                "urdf/1_sp7_bringup/package.xml": "3be9e1f103240d7cbeac69ac0f088b4581ba9d3b54688c1e66e3a6f020b3a31f",
+                "urdf/2_sp7_description/CMakeLists.txt": "52f9a6a833415024a828a0f79ab0df77d143d1676371cd1974d5e29ebb7f632c",
+                "urdf/2_sp7_description/launch/display.launch.py": "ae900ad9f01c3d66976d5c692c71f3a3daa77afd5118b0cf5e1d9f086b448288",
+                "urdf/2_sp7_description/meshes/Base_motor_holder_SO101.stl": "0838a777a047297b99a91b882bfb2e6823114d1eb15a8e408700801099e62c0f",
+                "urdf/2_sp7_description/meshes/Servo_3.stl": "2c7022852c1ccab217d77d521aaa16b8beb4e4ca93073f7c0f2b864422f97bf9",
+                "urdf/2_sp7_description/meshes/base_link.stl": "8be421055e49b29225c664411946b91d3b0050ad362484364a94407a04dca12a",
+                "urdf/2_sp7_description/meshes/camera_link.stl": "abd5b652b8d05a0e502311e3939c00c215e852822932ca2a0beed1ccf235fdd1",
+                "urdf/2_sp7_description/meshes/gripper_base_link.stl": "19e6ca0e43d4d3eb2ce8dbc62b80c945dd75f1bc376e94ba0319ac50d1dd4cc2",
+                "urdf/2_sp7_description/meshes/gripper_left_link.stl": "fb91ca1b0262ff13c27b504cfa7b234c3635d5780d340b42c1babe35dcf9f328",
+                "urdf/2_sp7_description/meshes/gripper_right_link.stl": "47f738691425ea78805fa587e385586c2a307b8490fd6a257c3bd7724d6cfaad",
+                "urdf/2_sp7_description/meshes/link.stl": "11f93334b7dbdca1c70a306dab8391d087693c36cbfcc035825ef8be9b2f8834",
+                "urdf/2_sp7_description/meshes/link2.stl": "59574cadd00d8cf3fea2abc0c6bf5949e4951370c20d12f6f994511a6e76109d",
+                "urdf/2_sp7_description/meshes/link3.stl": "5a205cea6b0c01608a0e475aed4cc0a1d84bd00afaf60a299c16039491a3227c",
+                "urdf/2_sp7_description/meshes/link4.stl": "3943a6a367fcc07d1539b8c9d2961cdf69fcebba365b646eed087931fea880f1",
+                "urdf/2_sp7_description/meshes/link5.stl": "f0ec6ad57b85534969feb9a9727eb546dbec353578f4711cc359d9b50998c48a",
+                "urdf/2_sp7_description/meshes/link6.stl": "ebdf96f6281c0bc92cffd63196b5bd5e408c7dce8553cd27e3bd53a0ba171847",
+                "urdf/2_sp7_description/meshes/link7.stl": "f250150d7c5324e5b6a7b18d1bd16d88192b5eea8688fc7b92eff7807b62d256",
+                "urdf/2_sp7_description/meshes/servo.stl": "ef7a2b69965770fdb744028927c401a87da85081b8404c927750c2fe783220c3",
+                "urdf/2_sp7_description/meshes/servo_2.stl": "0ca938f656691a0e8b526c6569549ebc38a708f0707ebcb25dab4c92d78392c3",
+                "urdf/2_sp7_description/package.xml": "429ef83957b4888432277badcc7acd0e618b5c890885d537e9a0c901fdc6c154",
+                "urdf/2_sp7_description/rviz/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "urdf/2_sp7_description/urdf/sp7.ros2_control.xacro": "85bdba04d76ce0101240d72416ea6be7674bc2993594c1e56e046aeb642b83c2",
+                "urdf/2_sp7_description/urdf/sp7.urdf.xacro": "bacb65845e41eede7c2991b720f49a8e22b9571a541bd3c97eecf13cdaf2f6e5",
+                "urdf/2_sp7_description/urdf/sp7_arm.urdf.xacro": "e8c99ae3c0a311abc543dc169baf88ad64df56b90a5d7d1629071354ee90e4bd",
+                "urdf/2_sp7_description/urdf/sp7_gripper.urdf.xacro": "2941fee7b2459551da36bcc489f8e0f4e9b0694b5dc8152815a586b2bb1616bf",
+                "urdf/3_sp7_hardware/CMakeLists.txt": "df77aa32dc39544af1152b656d79ad8fdddaa0af83ba6a5ffb7c4083137d53d9",
+                "urdf/3_sp7_hardware/include/sp7_hardware/sp7_hardware.hpp": "363375271bf7e1cc76b65c272d0a95ff8e4177ab43c2f4d7e126ac9387605574",
+                "urdf/3_sp7_hardware/package.xml": "9d88bd635de4171784f5de508a84b98c1f6d948e6b4aa9752bb096e68eb0b6ad",
+                "urdf/3_sp7_hardware/sp7_hardware.xml": "f4a0e7d69c74b51452ade470bde4f256965284f2629fb4133c629fc353643a34",
+                "urdf/3_sp7_hardware/src/sp7_hardware.cpp": "5e34f4a459fa4b7fda861a901fb5c830f04d97ade3c1ac633d9ea5d99095db9c"
+              }
+            },
+            "spawn": {
+              "activate_contact_sensors": false,
+              "articulation_props": {
+                "self_collision_enabled": true
+              }
+            },
+            "usd_path": "/workspace/s2r/workspace/arms/sp7/usd/sp7.usd",
+            "utils": "/workspace/s2r/workspace/arms/sp7/utils.py",
+            "wrist_roll": null
+          },
+          "articulation_props": {
+            "_usd_applied_schema": "NewtonArticulationRootAPI",
+            "_usd_field_exceptions": {
+              "PhysxArticulationAPI": [
+                "physxArticulation",
+                [
+                  "articulation_enabled"
+                ]
+              ]
+            },
+            "_usd_namespace": "newton",
+            "articulation_enabled": null,
+            "fix_root_link": null,
+            "self_collision_enabled": true
+          },
+          "articulation_props_create_if_missing": false,
+          "collision_props": null,
+          "copy_from_source": true,
+          "deformable_props": null,
+          "ensure_drives_exist": false,
+          "fix_root_link": null,
+          "fixed_tendons_props": null,
+          "func": "sim.workspace.scene.arm:_spawn_arm",
+          "joint_drive_props": null,
+          "joint_drive_props_create_if_missing": false,
+          "make_uninstanceable": false,
+          "mass_props": null,
+          "mass_props_create_if_missing": false,
+          "physics_material": null,
+          "physics_material_path": "material",
+          "rigid_props": {
+            "_usd_applied_schema": null,
+            "_usd_field_exceptions": {
+              "PhysxRigidBodyAPI": [
+                "physxRigidBody",
+                [
+                  "disable_gravity"
+                ]
+              ]
+            },
+            "_usd_namespace": "mjc",
+            "disable_gravity": null,
+            "gravcomp": null,
+            "kinematic_enabled": null,
+            "rigid_body_enabled": null
+          },
+          "scale": null,
+          "semantic_tags": null,
+          "spatial_tendons_props": null,
+          "spawn_path": null,
+          "surface_deformable_props": null,
+          "usd_path": "/workspace/s2r/workspace/arms/sp7/usd/sp7.usd",
+          "variants": null,
+          "visible": true,
+          "visual_material": null,
+          "visual_material_bindings": {},
+          "visual_material_path": "material",
+          "volume_deformable_props": null
+        }
+      },
+      "room": {
+        "class_type": "isaaclab.assets.asset:Asset",
+        "cloning_contexts": null,
+        "collision_group": 0,
+        "debug_vis": false,
+        "disable_shape_checks": null,
+        "init_state": {
+          "pos": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rot": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "prim_path": "{ENV_REGEX_NS}/Room",
+        "spawn": {
+          "activate_contact_sensors": false,
+          "articulation_props": null,
+          "articulation_props_create_if_missing": false,
+          "collision_props": null,
+          "copy_from_source": true,
+          "deformable_props": null,
+          "ensure_drives_exist": false,
+          "fix_root_link": null,
+          "fixed_tendons_props": null,
+          "func": "_s2r_scene_hook_a14569d14b349f72d8dffda3bab985d3c1d6b1532683abbb633a6b71976afe93:spawn_room",
+          "joint_drive_props": null,
+          "joint_drive_props_create_if_missing": false,
+          "make_uninstanceable": false,
+          "mass_props": null,
+          "mass_props_create_if_missing": false,
+          "physics_material": null,
+          "physics_material_path": "material",
+          "rigid_props": null,
+          "scale": null,
+          "scene_spec": {
+            "anchors": {
+              "mount": {
+                "contact_material": false,
+                "contact_prim_pattern": null,
+                "metadata": {},
+                "position": [
+                  0.697253387506893,
+                  -0.6076356057211214,
+                  0.7635429149057084
+                ],
+                "prim_name": null,
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              },
+              "table": {
+                "contact_material": true,
+                "contact_prim_pattern": "C_Tabletop_.*",
+                "metadata": {
+                  "front_edge_coordinate": -0.6953624951871441,
+                  "reference_point": [
+                    0.65,
+                    -0.4,
+                    0.797413
+                  ],
+                  "source": "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates.",
+                  "survey_right": [
+                    0.996801706,
+                    0.079914694,
+                    0.00263459
+                  ]
+                },
+                "position": [
+                  0.7010595470832047,
+                  -0.6560733750851641,
+                  0.7927327158972449
+                ],
+                "prim_name": "Tabletop",
+                "right": null,
+                "up": [
+                  -0.001159014,
+                  -0.01850508,
+                  0.9998281
+                ],
+                "xy_max": null,
+                "xy_min": null,
+                "yaw_degrees": 184.583662
+              }
+            },
+            "appearance": {
+              "appearance": {
+                "ambient_intensity": 0.3875,
+                "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights.",
+                "backdrop_texture_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "backdrop_texture_scale": [
+                  2.0,
+                  2.0,
+                  2.0,
+                  1
+                ],
+                "hide_room_prims": [
+                  "/Visual/Furniture/Observed_primary_Furniture"
+                ],
+                "motor_charcoal": [
+                  0.028,
+                  0.03,
+                  0.032
+                ],
+                "motor_roughness": 0.72,
+                "robot_beige": [
+                  0.63,
+                  0.72,
+                  0.58
+                ],
+                "robot_plastic_roughness": 0.68,
+                "table_albedo_bias": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "table_albedo_scale": [
+                  0.597,
+                  0.532,
+                  0.54,
+                  1.0
+                ],
+                "table_clearcoat": 0.02,
+                "table_roughness": 0.65,
+                "table_texture": "textures/table_albedo_v4.png",
+                "table_texture_bias": [
+                  0.022,
+                  0.026,
+                  0.022,
+                  0.0
+                ],
+                "table_texture_scale": [
+                  0.74,
+                  0.84,
+                  0.94,
+                  1.0
+                ],
+                "table_texture_wrap": "mirror",
+                "table_uv_frame": {
+                  "origin": [
+                    0.04949999999999999,
+                    -0.09450000000000001,
+                    0.80225
+                  ],
+                  "size_u": 2.4388157,
+                  "size_v": 1.2241358,
+                  "u_axis": [
+                    0.996794766632841,
+                    0.07995679946252736,
+                    0.0026652266487508913
+                  ],
+                  "v_axis": [
+                    -0.07999240724504292,
+                    0.9966259945244995,
+                    0.018380473911063334
+                  ]
+                },
+                "table_uv_scale": [
+                  1.0,
+                  1.0
+                ],
+                "wall_st_faceVarying": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    0,
+                    1
+                  ]
+                ],
+                "wall_texture": "textures/wall_albedo_v2.png",
+                "wall_texture_bias": [
+                  0.045,
+                  0.041,
+                  0.033,
+                  0.0
+                ],
+                "wall_texture_scale": [
+                  0.8,
+                  0.82,
+                  0.84,
+                  1.0
+                ],
+                "wrist_mount_roughness": 0.6,
+                "wrist_mount_yellow": [
+                  0.95,
+                  0.64,
+                  0.018
+                ]
+              },
+              "camera_response": {
+                "realsense_rgb": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    1.3576,
+                    1.2715,
+                    1.3222
+                  ],
+                  "lut": {
+                    "knots": null,
+                    "per_channel": [
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9654,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9942,
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      [
+                        0.0,
+                        0.0625,
+                        0.125,
+                        0.1875,
+                        0.25,
+                        0.3125,
+                        0.375,
+                        0.4375,
+                        0.5,
+                        0.5625,
+                        0.625,
+                        0.6875,
+                        0.75,
+                        0.9395,
+                        1.0,
+                        1.0,
+                        1.0
+                      ]
+                    ]
+                  },
+                  "noise": {
+                    "a": 0.0,
+                    "b": 0.0,
+                    "seed": 101
+                  },
+                  "offset": [
+                    0.006,
+                    0.0126,
+                    0.0039
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": 0.0,
+                    "k2": 0.0
+                  }
+                },
+                "wrist_cam": {
+                  "blur_sigma_px": 0.0,
+                  "gain": [
+                    0.8883,
+                    1.0643,
+                    1.2356
+                  ],
+                  "noise": {
+                    "a": 0.005,
+                    "b": 0.02,
+                    "seed": 202
+                  },
+                  "offset": [
+                    0.0117,
+                    -0.001,
+                    0.0054
+                  ],
+                  "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+                  "vignette": {
+                    "cx": null,
+                    "cy": null,
+                    "k1": -0.3804,
+                    "k2": 0.0
+                  }
+                }
+              },
+              "object_materials": {
+                "blue_cube": {
+                  "color": [
+                    0.005,
+                    0.07,
+                    0.26
+                  ],
+                  "metallic": 0.0,
+                  "roughness": 0.62
+                },
+                "white_box": {
+                  "color": [
+                    0.95,
+                    0.95,
+                    0.95
+                  ],
+                  "metallic": 0.0,
+                  "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only.",
+                  "roughness": 0.7
+                }
+              },
+              "provenance": {
+                "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+                "lighting": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+                  "diffuser_width": 0.06,
+                  "extra_lights": [
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 4389.3,
+                      "name": "OverheadPanel",
+                      "normalize": false,
+                      "position": [
+                        0.7,
+                        -1.0,
+                        3.15
+                      ],
+                      "target": [
+                        0.7,
+                        -1.0,
+                        0.8
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        1,
+                        0
+                      ],
+                      "width": 2.0
+                    },
+                    {
+                      "color": [
+                        1.0,
+                        1.0,
+                        1.0
+                      ],
+                      "enableColorTemperature": false,
+                      "height": 1.2,
+                      "intensity": 448.25,
+                      "name": "SideFillNegX",
+                      "normalize": false,
+                      "position": [
+                        -0.4,
+                        -0.4,
+                        1.4
+                      ],
+                      "target": [
+                        0.8,
+                        -0.5,
+                        0.85
+                      ],
+                      "type": "RectLight",
+                      "up": [
+                        0,
+                        0,
+                        1
+                      ],
+                      "width": 1.2
+                    }
+                  ],
+                  "intensity": 197160.0,
+                  "length": 1.2,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ]
+                },
+                "source_file": "real_setup.json",
+                "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+              }
+            },
+            "appearance_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+            "cameras": {
+              "realsense_rgb": {
+                "calibration": {
+                  "coeffs": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "cx": 330.6416015625,
+                  "cy": 253.326904296875,
+                  "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+                  "fx": 606.0668334960938,
+                  "fy": 605.6687622070312,
+                  "model": "distortion.inverse_brown_conrady",
+                  "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+                  "source": "Connected RealSense color stream, 640x480, 2026-09-24"
+                },
+                "data_types": [
+                  "rgb",
+                  "instance_id_segmentation_fast"
+                ],
+                "depth_prim_name": "realsense_camera_depth",
+                "depth_sensor": true,
+                "depth_sensor_name": "realsense_depth",
+                "euler_degrees": [
+                  37.72557881289408,
+                  0.9648100131508459,
+                  -173.47930132524786
+                ],
+                "focal_length": 20.0,
+                "height": 480,
+                "horizontal_aperture": 21.126721118736548,
+                "metadata": {
+                  "depth_display_name": "realsense_camera-depth",
+                  "display_name": "realsense_camera-rgb",
+                  "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+                },
+                "position": [
+                  0.6156803347125415,
+                  -0.024198410322280026,
+                  1.2906966171026641
+                ],
+                "prim_name": "realsense_camera_rgb",
+                "target": [
+                  0.6689514305836436,
+                  -0.4147286793179186,
+                  0.7813933675426784
+                ],
+                "up": null,
+                "vertical_aperture": 15.84504083905241,
+                "width": 640
+              }
+            },
+            "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+            "directory": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+            "hook": "utils.py:customize",
+            "lighting": {
+              "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+              "lights": {
+                "OverheadPanel": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 4389.3,
+                  "normalize": false,
+                  "position": [
+                    0.7,
+                    -1.0,
+                    3.15
+                  ],
+                  "target": [
+                    0.7,
+                    -1.0,
+                    0.8
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    1,
+                    0
+                  ],
+                  "width": 2.0
+                },
+                "SideFillNegX": {
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "height": 1.2,
+                  "intensity": 448.25,
+                  "normalize": false,
+                  "position": [
+                    -0.4,
+                    -0.4,
+                    1.4
+                  ],
+                  "target": [
+                    0.8,
+                    -0.5,
+                    0.85
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                },
+                "Tubelight": {
+                  "color": [
+                    0.82,
+                    0.93,
+                    1.0
+                  ],
+                  "enable_color_temperature": false,
+                  "exposure_dr": true,
+                  "height": 0.06,
+                  "intensity": 197160.0,
+                  "normalize": false,
+                  "position": [
+                    0.44,
+                    1.85,
+                    2.915
+                  ],
+                  "target": [
+                    0.7,
+                    -0.3,
+                    0.77
+                  ],
+                  "type": "rect",
+                  "up": [
+                    0,
+                    0,
+                    1
+                  ],
+                  "width": 1.2
+                }
+              },
+              "replace": true,
+              "root": "Lighting"
+            },
+            "metadata": {
+              "source_file": "real_setup.json",
+              "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+            },
+            "name": "rpd_meeting_room",
+            "physics": {
+              "collision_decimation": 1,
+              "cone": "elliptic",
+              "impratio": 1000.0,
+              "num_substeps": 4,
+              "tolerance": 1e-08,
+              "use_mujoco_contacts": false
+            },
+            "renderer": {
+              "ambient_light_intensity": 0.3875,
+              "antialiasing_mode": "DLAA",
+              "carb_settings": {
+                "/rtx/post/histogram/enabled": false
+              },
+              "enable_ambient_occlusion": true,
+              "enable_dlssg": false,
+              "enable_global_illumination": true
+            },
+            "room_root": "Room",
+            "room_usd": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+            "viewer": {
+              "camera": "realsense_rgb",
+              "eye": [
+                1.8,
+                -1.8,
+                1.85
+              ],
+              "lookat": [
+                0.48,
+                -0.27,
+                1.02
+              ]
+            }
+          },
+          "semantic_tags": null,
+          "spatial_tendons_props": null,
+          "spawn_path": null,
+          "surface_deformable_props": null,
+          "usd_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+          "variants": null,
+          "visible": true,
+          "visual_material": null,
+          "visual_material_bindings": {},
+          "visual_material_path": "material",
+          "volume_deformable_props": null
+        }
+      },
+      "white_box": {
+        "class_type": "isaaclab.assets.rigid_object.rigid_object:RigidObject",
+        "cloning_contexts": null,
+        "collision_group": 0,
+        "debug_vis": false,
+        "disable_shape_checks": null,
+        "init_state": {
+          "ang_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "lin_vel": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "pos": [
+            0.9440419640831723,
+            -0.5939824362907724,
+            0.7951637516104304
+          ],
+          "rot": [
+            -0.0009490871253246191,
+            -0.009222361160757035,
+            0.9991571638848087,
+            -0.039987612405775474
+          ]
+        },
+        "prim_path": "{ENV_REGEX_NS}/WhiteBox",
+        "spawn": {
+          "activate_contact_sensors": false,
+          "articulation_props": null,
+          "articulation_props_create_if_missing": false,
+          "collision_props": null,
+          "copy_from_source": true,
+          "deformable_props": null,
+          "ensure_drives_exist": false,
+          "fix_root_link": null,
+          "fixed_tendons_props": null,
+          "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
+          "joint_drive_props": null,
+          "joint_drive_props_create_if_missing": false,
+          "make_uninstanceable": false,
+          "mass_props": null,
+          "mass_props_create_if_missing": false,
+          "physics_material": null,
+          "physics_material_path": "material",
+          "rigid_props": null,
+          "scale": null,
+          "semantic_tags": null,
+          "spatial_tendons_props": null,
+          "spawn_path": null,
+          "surface_deformable_props": null,
+          "usd_path": "/workspace/s2r/workspace/tasks/pick_place_cube/usd/White-Box-Physics.usda",
+          "variants": null,
+          "visible": true,
+          "visual_material": {
+            "copy_from_source": true,
+            "diffuse_color": [
+              0.95,
+              0.95,
+              0.95
+            ],
+            "emissive_color": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "func": "isaaclab.sim.spawners.materials.visual_materials:spawn_preview_surface",
+            "metallic": 0.0,
+            "opacity": 1.0,
+            "roughness": 0.7,
+            "semantic_tags": null,
+            "spawn_path": null,
+            "visible": true
+          },
+          "visual_material_bindings": {},
+          "visual_material_path": "material",
+          "volume_deformable_props": null
+        }
+      }
+    },
+    "scene_spec": {
+      "anchors": {
+        "mount": {
+          "contact_material": false,
+          "contact_prim_pattern": null,
+          "metadata": {},
+          "position": [
+            0.697253387506893,
+            -0.6076356057211214,
+            0.7635429149057084
+          ],
+          "prim_name": null,
+          "right": null,
+          "up": [
+            -0.001159014,
+            -0.01850508,
+            0.9998281
+          ],
+          "xy_max": null,
+          "xy_min": null,
+          "yaw_degrees": 184.583662
+        },
+        "table": {
+          "contact_material": true,
+          "contact_prim_pattern": "C_Tabletop_.*",
+          "metadata": {
+            "front_edge_coordinate": -0.6953624951871441,
+            "reference_point": [
+              0.65,
+              -0.4,
+              0.797413
+            ],
+            "source": "Surveyed table axes and front edge; original box placement retained through authored rigid table-frame coordinates.",
+            "survey_right": [
+              0.996801706,
+              0.079914694,
+              0.00263459
+            ]
+          },
+          "position": [
+            0.7010595470832047,
+            -0.6560733750851641,
+            0.7927327158972449
+          ],
+          "prim_name": "Tabletop",
+          "right": null,
+          "up": [
+            -0.001159014,
+            -0.01850508,
+            0.9998281
+          ],
+          "xy_max": null,
+          "xy_min": null,
+          "yaw_degrees": 184.583662
+        }
+      },
+      "appearance": {
+        "appearance": {
+          "ambient_intensity": 0.3875,
+          "appearance_note": "2026-10-02 stage 2: de-lit, physical-scale table albedo built from real external frames (visual_matching/work/texture), planar UVs (replaces the photo projection); wall/skirting albedo rectified from real frames; scan clutter Observed_primary_Furniture hidden (left-corner artifact). Albedo scale values calibrate render brightness to the real external camera under the stage-2 lights.",
+          "backdrop_texture_bias": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "backdrop_texture_scale": [
+            2.0,
+            2.0,
+            2.0,
+            1
+          ],
+          "hide_room_prims": [
+            "/Visual/Furniture/Observed_primary_Furniture"
+          ],
+          "motor_charcoal": [
+            0.028,
+            0.03,
+            0.032
+          ],
+          "motor_roughness": 0.72,
+          "robot_beige": [
+            0.63,
+            0.72,
+            0.58
+          ],
+          "robot_plastic_roughness": 0.68,
+          "table_albedo_bias": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "table_albedo_scale": [
+            0.597,
+            0.532,
+            0.54,
+            1.0
+          ],
+          "table_clearcoat": 0.02,
+          "table_roughness": 0.65,
+          "table_texture": "textures/table_albedo_v4.png",
+          "table_texture_bias": [
+            0.022,
+            0.026,
+            0.022,
+            0.0
+          ],
+          "table_texture_scale": [
+            0.74,
+            0.84,
+            0.94,
+            1.0
+          ],
+          "table_texture_wrap": "mirror",
+          "table_uv_frame": {
+            "origin": [
+              0.04949999999999999,
+              -0.09450000000000001,
+              0.80225
+            ],
+            "size_u": 2.4388157,
+            "size_v": 1.2241358,
+            "u_axis": [
+              0.996794766632841,
+              0.07995679946252736,
+              0.0026652266487508913
+            ],
+            "v_axis": [
+              -0.07999240724504292,
+              0.9966259945244995,
+              0.018380473911063334
+            ]
+          },
+          "table_uv_scale": [
+            1.0,
+            1.0
+          ],
+          "wall_st_faceVarying": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ]
+          ],
+          "wall_texture": "textures/wall_albedo_v2.png",
+          "wall_texture_bias": [
+            0.045,
+            0.041,
+            0.033,
+            0.0
+          ],
+          "wall_texture_scale": [
+            0.8,
+            0.82,
+            0.84,
+            1.0
+          ],
+          "wrist_mount_roughness": 0.6,
+          "wrist_mount_yellow": [
+            0.95,
+            0.64,
+            0.018
+          ]
+        },
+        "camera_response": {
+          "realsense_rgb": {
+            "blur_sigma_px": 0.0,
+            "gain": [
+              1.3576,
+              1.2715,
+              1.3222
+            ],
+            "lut": {
+              "knots": null,
+              "per_channel": [
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9654,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9942,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                [
+                  0.0,
+                  0.0625,
+                  0.125,
+                  0.1875,
+                  0.25,
+                  0.3125,
+                  0.375,
+                  0.4375,
+                  0.5,
+                  0.5625,
+                  0.625,
+                  0.6875,
+                  0.75,
+                  0.9395,
+                  1.0,
+                  1.0,
+                  1.0
+                ]
+              ]
+            },
+            "noise": {
+              "a": 0.0,
+              "b": 0.0,
+              "seed": 101
+            },
+            "offset": [
+              0.006,
+              0.0126,
+              0.0039
+            ],
+            "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+            "vignette": {
+              "cx": null,
+              "cy": null,
+              "k1": 0.0,
+              "k2": 0.0
+            }
+          },
+          "wrist_cam": {
+            "blur_sigma_px": 0.0,
+            "gain": [
+              0.8883,
+              1.0643,
+              1.2356
+            ],
+            "noise": {
+              "a": 0.005,
+              "b": 0.02,
+              "seed": 202
+            },
+            "offset": [
+              0.0117,
+              -0.001,
+              0.0054
+            ],
+            "source": "visual_matching/work/cam_response (data-fitted per-camera residual response)",
+            "vignette": {
+              "cx": null,
+              "cy": null,
+              "k1": -0.3804,
+              "k2": 0.0
+            }
+          }
+        },
+        "object_materials": {
+          "blue_cube": {
+            "color": [
+              0.005,
+              0.07,
+              0.26
+            ],
+            "metallic": 0.0,
+            "roughness": 0.62
+          },
+          "white_box": {
+            "color": [
+              0.95,
+              0.95,
+              0.95
+            ],
+            "metallic": 0.0,
+            "note": "2026-10-02 stage 2: real box is white and partly clipped; data asked for linear gain ~2.4-2.8 (albedo > 1), clamped to neutral 0.95. Visual material only.",
+            "roughness": 0.7
+          }
+        },
+        "provenance": {
+          "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+          "lighting": {
+            "color": [
+              0.82,
+              0.93,
+              1.0
+            ],
+            "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+            "diffuser_width": 0.06,
+            "extra_lights": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "enableColorTemperature": false,
+                "height": 1.2,
+                "intensity": 4389.3,
+                "name": "OverheadPanel",
+                "normalize": false,
+                "position": [
+                  0.7,
+                  -1.0,
+                  3.15
+                ],
+                "target": [
+                  0.7,
+                  -1.0,
+                  0.8
+                ],
+                "type": "RectLight",
+                "up": [
+                  0,
+                  1,
+                  0
+                ],
+                "width": 2.0
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "enableColorTemperature": false,
+                "height": 1.2,
+                "intensity": 448.25,
+                "name": "SideFillNegX",
+                "normalize": false,
+                "position": [
+                  -0.4,
+                  -0.4,
+                  1.4
+                ],
+                "target": [
+                  0.8,
+                  -0.5,
+                  0.85
+                ],
+                "type": "RectLight",
+                "up": [
+                  0,
+                  0,
+                  1
+                ],
+                "width": 1.2
+              }
+            ],
+            "intensity": 197160.0,
+            "length": 1.2,
+            "position": [
+              0.44,
+              1.85,
+              2.915
+            ],
+            "target": [
+              0.7,
+              -0.3,
+              0.77
+            ]
+          },
+          "source_file": "real_setup.json",
+          "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+        }
+      },
+      "appearance_path": "/workspace/s2r/workspace/scenes/rpd_meeting_room/appearance.json",
+      "cameras": {
+        "realsense_rgb": {
+          "calibration": {
+            "coeffs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cx": 330.6416015625,
+            "cy": 253.326904296875,
+            "extrinsics_source": "2026-11-11: camera-only pose refinement against the connected RealSense RGB feed and read-only follower joint snapshot. Matched box and gripper landmarks with factory intrinsics locked; mean reprojection error 18.62 to 3.68 pixels. Robot mount, joint mapping, objects, and lens unchanged. Evidence: outputs/camera-alignment/fit.json and comparison.png. This is a visual alignment fit, not an independent depth calibration. Previous pose: 2026-10-02 visual_matching/work/ext_cam2/native/r1a.",
+            "fx": 606.0668334960938,
+            "fy": 605.6687622070312,
+            "model": "distortion.inverse_brown_conrady",
+            "note": "RTX OpenCV pinhole lens model preserves measured fx, fy, cx and cy. Extrinsics estimated from aligned metric depth and box rim correspondences.",
+            "source": "Connected RealSense color stream, 640x480, 2026-09-24"
+          },
+          "data_types": [
+            "rgb",
+            "instance_id_segmentation_fast"
+          ],
+          "depth_prim_name": "realsense_camera_depth",
+          "depth_sensor": true,
+          "depth_sensor_name": "realsense_depth",
+          "euler_degrees": [
+            37.72557881289408,
+            0.9648100131508459,
+            -173.47930132524786
+          ],
+          "focal_length": 20.0,
+          "height": 480,
+          "horizontal_aperture": 21.126721118736548,
+          "metadata": {
+            "depth_display_name": "realsense_camera-depth",
+            "display_name": "realsense_camera-rgb",
+            "orientation_convention": "USD/OpenGL: -Z forward, +Y up; XYZ Euler degrees"
+          },
+          "position": [
+            0.6156803347125415,
+            -0.024198410322280026,
+            1.2906966171026641
+          ],
+          "prim_name": "realsense_camera_rgb",
+          "target": [
+            0.6689514305836436,
+            -0.4147286793179186,
+            0.7813933675426784
+          ],
+          "up": null,
+          "vertical_aperture": 15.84504083905241,
+          "width": 640
+        }
+      },
+      "description": "RealSense D435I camera calibrated from its factory intrinsics, aligned metric table depth, and confirmed box placement; appearance fitted to the September 24 reference. Metres, Z-up.",
+      "directory": "/workspace/s2r/workspace/scenes/rpd_meeting_room",
+      "hook": "utils.py:customize",
+      "lighting": {
+        "description": "Fitted to real external RealSense shading (eps!=0,6): front key tube behind the camera (unchanged geometry), soft overhead panel above the far half of the table, soft fill from -x (image right), plus RTX ambient. Intensities are renderer appearance estimates, not photometry.",
+        "lights": {
+          "OverheadPanel": {
+            "color": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "enable_color_temperature": false,
+            "height": 1.2,
+            "intensity": 4389.3,
+            "normalize": false,
+            "position": [
+              0.7,
+              -1.0,
+              3.15
+            ],
+            "target": [
+              0.7,
+              -1.0,
+              0.8
+            ],
+            "type": "rect",
+            "up": [
+              0,
+              1,
+              0
+            ],
+            "width": 2.0
+          },
+          "SideFillNegX": {
+            "color": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "enable_color_temperature": false,
+            "height": 1.2,
+            "intensity": 448.25,
+            "normalize": false,
+            "position": [
+              -0.4,
+              -0.4,
+              1.4
+            ],
+            "target": [
+              0.8,
+              -0.5,
+              0.85
+            ],
+            "type": "rect",
+            "up": [
+              0,
+              0,
+              1
+            ],
+            "width": 1.2
+          },
+          "Tubelight": {
+            "color": [
+              0.82,
+              0.93,
+              1.0
+            ],
+            "enable_color_temperature": false,
+            "exposure_dr": true,
+            "height": 0.06,
+            "intensity": 197160.0,
+            "normalize": false,
+            "position": [
+              0.44,
+              1.85,
+              2.915
+            ],
+            "target": [
+              0.7,
+              -0.3,
+              0.77
+            ],
+            "type": "rect",
+            "up": [
+              0,
+              0,
+              1
+            ],
+            "width": 1.2
+          }
+        },
+        "replace": true,
+        "root": "Lighting"
+      },
+      "metadata": {
+        "source_file": "real_setup.json",
+        "source_sha256": "cfdf53ee57cdff4ac0f04862c4463b22f47be6d2f15649417f017b2a9c7041b7"
+      },
+      "name": "rpd_meeting_room",
+      "physics": {
+        "collision_decimation": 1,
+        "cone": "elliptic",
+        "impratio": 1000.0,
+        "num_substeps": 4,
+        "tolerance": 1e-08,
+        "use_mujoco_contacts": false
+      },
+      "renderer": {
+        "ambient_light_intensity": 0.3875,
+        "antialiasing_mode": "DLAA",
+        "carb_settings": {
+          "/rtx/post/histogram/enabled": false
+        },
+        "enable_ambient_occlusion": true,
+        "enable_dlssg": false,
+        "enable_global_illumination": true
+      },
+      "room_root": "Room",
+      "room_usd": "/workspace/s2r/workspace/scenes/rpd_meeting_room/usd/digital_twin_room.usda",
+      "viewer": {
+        "camera": "realsense_rgb",
+        "eye": [
+          1.8,
+          -1.8,
+          1.85
+        ],
+        "lookat": [
+          0.48,
+          -0.27,
+          1.02
+        ]
+      }
+    },
+    "seed": null,
+    "sim": {
+      "create_stage_in_memory": false,
+      "default_visualizer_cfg": {
+        "background_color": [
+          0.3,
+          0.55,
+          0.82
+        ],
+        "camera_prim_path": "/World/envs/env_0/realsense_camera_rgb",
+        "class_type": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+        "cloning_contexts": [],
+        "create_viewport": false,
+        "dock_position": "SAME",
+        "enable_live_plots": true,
+        "enable_markers": true,
+        "eye": [
+          1.8,
+          -1.8,
+          1.85
+        ],
+        "focal_length": 12.0,
+        "headless": false,
+        "live_plots_update_interval": 5,
+        "lookat": [
+          0.48,
+          -0.27,
+          1.02
+        ],
+        "max_visible_envs": null,
+        "origin_env_index": 0,
+        "origin_track_path": null,
+        "origin_type": "world",
+        "randomly_sample_visible_envs": true,
+        "streaming_cam_eye": [
+          4.0,
+          -4.0,
+          3.0
+        ],
+        "streaming_cam_renderer_cfg": {
+          "class_type": "isaaclab_physx.renderers.isaac_rtx_renderer:IsaacRtxRenderer",
+          "cloning_contexts": [],
+          "colorize_instance_id_segmentation": true,
+          "colorize_instance_segmentation": true,
+          "colorize_semantic_segmentation": true,
+          "depth_clipping_behavior": "none",
+          "enable_scene_partitioning": true,
+          "global_settings": {
+            "ambient_light_intensity": null,
+            "ambient_occlusion_denoiser_mode": null,
+            "antialiasing_mode": null,
+            "carb_settings": null,
+            "dlss_mode": null,
+            "dome_light_upper_lower_strategy": null,
+            "enable_ambient_occlusion": null,
+            "enable_cached_raytracing": null,
+            "enable_direct_lighting": null,
+            "enable_dl_denoiser": null,
+            "enable_dlssg": null,
+            "enable_global_illumination": null,
+            "enable_reflections": null,
+            "enable_shadows": null,
+            "enable_translucency": null,
+            "max_bounces": null,
+            "max_samples_per_launch": null,
+            "samples_per_pixel": null,
+            "show_all_partitions_by_default": null,
+            "split_clearcoat": null,
+            "split_glass": null,
+            "split_rough_reflection": null,
+            "subpixel_mode": null,
+            "view_tile_limit": null
+          },
+          "launcher_type": null,
+          "renderer_type": "isaac_rtx",
+          "semantic_filter": "*:*",
+          "semantic_segmentation_mapping": {}
+        },
+        "streaming_cam_target_prim_path": null,
+        "streaming_depth_max": 10.0,
+        "streaming_depth_min": 0.1,
+        "streaming_envs": 32,
+        "streaming_gt_types": [
+          "rgb"
+        ],
+        "streaming_sensor_prim_path": null,
+        "streaming_view": false,
+        "tiled_cam_env_indices": null,
+        "tiled_cam_eye": null,
+        "tiled_cam_num": null,
+        "tiled_cam_prim_path": null,
+        "tiled_cam_target_prim_path": null,
+        "tiled_cam_view": null,
+        "viewport_name": null,
+        "visible_env_indices": null,
+        "visualizer_type": "kit",
+        "window_height": 480,
+        "window_width": 640
+      },
+      "device": "cuda:0",
+      "dt": 0.008333333333333333,
+      "enable_scene_query_support": false,
+      "gravity": [
+        0.0,
+        0.0,
+        -9.81
+      ],
+      "log_dir": null,
+      "logging_level": "WARNING",
+      "physics": {
+        "bvh_constructor_gaussian": "cubql",
+        "bvh_constructor_geometry": "cubql",
+        "bvh_constructor_scene": "sah",
+        "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+        "collision_cfg": null,
+        "collision_decimation": 1,
+        "debug_mode": false,
+        "default_shape_cfg": {
+          "gap": 0.01,
+          "kd": 100.0,
+          "ke": 2500.0,
+          "margin": 0.0,
+          "mu": 1.0
+        },
+        "deterministic": false,
+        "deterministic_mode": "not_guaranteed",
+        "launcher_type": null,
+        "load_visual_shapes": null,
+        "num_substeps": 4,
+        "soft_contact_cfg": null,
+        "solver_cfg": {
+          "actuator_gears": null,
+          "ccd_iterations": 35,
+          "class_type": "isaaclab_newton.physics.mjwarp_manager:NewtonMJWarpManager",
+          "cone": "elliptic",
+          "default_actuator_gear": null,
+          "disable_contacts": false,
+          "disable_sensors": false,
+          "enable_multiccd": false,
+          "impratio": 1000.0,
+          "integrator": "implicitfast",
+          "iterations": 100,
+          "ls_iterations": 50,
+          "ls_parallel": false,
+          "nconmax": null,
+          "njmax": 300,
+          "save_to_mjcf": null,
+          "solver": "newton",
+          "solver_type": "mujoco_warp",
+          "tolerance": 1e-08,
+          "update_data_interval": 1,
+          "use_mujoco_contacts": false,
+          "use_mujoco_cpu": false
+        },
+        "use_cuda_graph": true
+      },
+      "physics_material": {
+        "_usd_applied_schema": null,
+        "_usd_field_exceptions": {},
+        "_usd_namespace": "physics",
+        "density": null,
+        "dynamic_friction": 0.5,
+        "func": "isaaclab.sim.spawners.materials.physics_materials:spawn_rigid_body_material",
+        "restitution": 0.0,
+        "static_friction": 0.5
+      },
+      "physics_prim_path": "/physicsScene",
+      "render_interval": 4,
+      "save_logs_to_file": true,
+      "use_fabric": true,
+      "use_newton_actuators": true,
+      "visualizer_cfgs": [
+        {
+          "background_color": [
+            0.3,
+            0.55,
+            0.82
+          ],
+          "camera_prim_path": "/World/envs/env_0/realsense_camera_rgb",
+          "class_type": "sim.workspace.scene.viewport:CalibratedKitVisualizer",
+          "cloning_contexts": [],
+          "create_viewport": false,
+          "dock_position": "SAME",
+          "enable_live_plots": true,
+          "enable_markers": true,
+          "eye": [
+            1.8,
+            -1.8,
+            1.85
+          ],
+          "focal_length": 12.0,
+          "headless": false,
+          "live_plots_update_interval": 5,
+          "lookat": [
+            0.48,
+            -0.27,
+            1.02
+          ],
+          "max_visible_envs": null,
+          "origin_env_index": 0,
+          "origin_track_path": null,
+          "origin_type": "world",
+          "randomly_sample_visible_envs": true,
+          "streaming_cam_eye": [
+            4.0,
+            -4.0,
+            3.0
+          ],
+          "streaming_cam_renderer_cfg": {
+            "class_type": "isaaclab_physx.renderers.isaac_rtx_renderer:IsaacRtxRenderer",
+            "cloning_contexts": [],
+            "colorize_instance_id_segmentation": true,
+            "colorize_instance_segmentation": true,
+            "colorize_semantic_segmentation": true,
+            "depth_clipping_behavior": "none",
+            "enable_scene_partitioning": true,
+            "global_settings": {
+              "ambient_light_intensity": null,
+              "ambient_occlusion_denoiser_mode": null,
+              "antialiasing_mode": null,
+              "carb_settings": null,
+              "dlss_mode": null,
+              "dome_light_upper_lower_strategy": null,
+              "enable_ambient_occlusion": null,
+              "enable_cached_raytracing": null,
+              "enable_direct_lighting": null,
+              "enable_dl_denoiser": null,
+              "enable_dlssg": null,
+              "enable_global_illumination": null,
+              "enable_reflections": null,
+              "enable_shadows": null,
+              "enable_translucency": null,
+              "max_bounces": null,
+              "max_samples_per_launch": null,
+              "samples_per_pixel": null,
+              "show_all_partitions_by_default": null,
+              "split_clearcoat": null,
+              "split_glass": null,
+              "split_rough_reflection": null,
+              "subpixel_mode": null,
+              "view_tile_limit": null
+            },
+            "launcher_type": null,
+            "renderer_type": "isaac_rtx",
+            "semantic_filter": "*:*",
+            "semantic_segmentation_mapping": {}
+          },
+          "streaming_cam_target_prim_path": null,
+          "streaming_depth_max": 10.0,
+          "streaming_depth_min": 0.1,
+          "streaming_envs": 32,
+          "streaming_gt_types": [
+            "rgb"
+          ],
+          "streaming_sensor_prim_path": null,
+          "streaming_view": false,
+          "tiled_cam_env_indices": null,
+          "tiled_cam_eye": null,
+          "tiled_cam_num": null,
+          "tiled_cam_prim_path": null,
+          "tiled_cam_target_prim_path": null,
+          "tiled_cam_view": null,
+          "viewport_name": null,
+          "visible_env_indices": null,
+          "visualizer_type": "kit",
+          "window_height": 480,
+          "window_width": 640
+        }
+      ]
+    },
+    "task_name": "pick_place_cube",
+    "teleop_devices": {
+      "devices": {}
+    },
+    "terminations": null,
+    "ui_window_class_type": "isaaclab.envs.ui.manager_based_rl_env_window:ManagerBasedRLEnvWindow",
+    "video_recorders": [],
+    "viewer": {
+      "asset_name": null,
+      "body_name": null,
+      "cam_prim_path": "/OmniverseKit_Persp",
+      "env_index": 0,
+      "eye": [
+        7.5,
+        7.5,
+        7.5
+      ],
+      "lookat": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "origin_type": "world",
+      "resolution": [
+        1280,
+        720
+      ]
+    },
+    "wait_for_textures": true,
+    "xr": null
+  },
+  "gym_id": "S2R-pick_place_cube-teleop",
+  "reset_completed": true,
+  "scene": "rpd_meeting_room",
+  "status": "PASS",
+  "steps_completed": 20,
+  "task": "pick_place_cube",
+  "utils_origin_after_kit": "/workspace/s2r/src/utils/__init__.py",
+  "variant": "teleop"
+}

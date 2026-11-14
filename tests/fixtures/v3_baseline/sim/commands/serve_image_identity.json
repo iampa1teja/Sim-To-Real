@@ -1,0 +1,7 @@
+{
+  "label": "serve_image_identity",
+  "command": "docker image inspect s2r-serve:latest --format \"{{.Id}}\"",
+  "started_utc": "2026-11-14T14:30:02.240647+00:00",
+  "exit_code": 0,
+  "output": "sha256:39b295c24e22e9ae4f054bdc26e2bf268c65306e8392280c95e0f35b34d4563c\n"
+}

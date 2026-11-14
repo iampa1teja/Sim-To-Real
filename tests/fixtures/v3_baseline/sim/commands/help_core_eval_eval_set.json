@@ -1,0 +1,7 @@
+{
+  "label": "help_core_eval_eval_set",
+  "command": "docker exec s2r-sim s2r-entrypoint python -m core.eval.eval_set --help",
+  "started_utc": "2026-11-14T14:29:48.116183+00:00",
+  "exit_code": 0,
+  "output": "usage: eval_set.py [-h] --dataset DATASET --out OUT [--task TASK] [--arm ARM]\n                   [--seed SEED] [--n_id N_ID] [--n_ood N_OOD] [--n_yaw N_YAW]\n                   [--min_dist_m MIN_DIST_M]\n                   [--ood_margin_m OOD_MARGIN_M OOD_MARGIN_M]\n                   [--yaw_mode {matched,radial,random}] [--reach_envelope]\n                   --scene_json SCENE_JSON [--git-commit GIT_COMMIT]\n\nBuild a task benchmark from recorded first-frame starts\n\noptions:\n  -h, --help            show this help message and exit\n  --dataset DATASET\n  --out OUT\n  --task TASK\n  --arm ARM\n  --seed SEED\n  --n_id N_ID\n  --n_ood N_OOD\n  --n_yaw N_YAW\n  --min_dist_m MIN_DIST_M\n  --ood_margin_m OOD_MARGIN_M OOD_MARGIN_M\n  --yaw_mode {matched,radial,random}\n  --reach_envelope\n  --scene_json SCENE_JSON\n                        Live named-object scene snapshot\n  --git-commit GIT_COMMIT\n                        Explicit source revision when git is unavailable in\n                        the container\n"
+}

@@ -1,0 +1,7 @@
+{
+  "label": "baseline_failure_detail",
+  "command": "docker exec -e S2R_GIT_COMMIT=45b07310ee8f18e6c6f85a2d36e1993082e8a1a1 s2r-sim s2r-entrypoint env PYTHONPATH=src python -m pytest tests/core/test_provenance.py::test_missing_repository_has_fallback_or_explicitly_required_commit -q -p no:cacheprovider -rA",
+  "started_utc": "2026-11-14T14:12:06.958826+00:00",
+  "exit_code": 1,
+  "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n______ test_missing_repository_has_fallback_or_explicitly_required_commit ______\n\ntmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_missing_repository_has_fa0')\n\n    def test_missing_repository_has_fallback_or_explicitly_required_commit(tmp_path):\n>       assert git_commit(tmp_path) == \"unknown\"\nE       AssertionError: assert '45b07310ee8f...1993082e8a1a1' == 'unknown'\nE         \nE         - unknown\nE         + 45b07310ee8f18e6c6f85a2d36e1993082e8a1a1\n\ntests/core/test_provenance.py:36: AssertionError\n=========================== short test summary info ============================\nFAILED tests/core/test_provenance.py::test_missing_repository_has_fallback_or_explicitly_required_commit\n1 failed in 0.04s\n"
+}

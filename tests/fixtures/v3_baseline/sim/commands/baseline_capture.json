@@ -1,0 +1,7 @@
+{
+  "label": "baseline_capture",
+  "command": "docker exec -e S2R_GIT_COMMIT=45b07310ee8f18e6c6f85a2d36e1993082e8a1a1 s2r-sim s2r-entrypoint python tests/fixtures/v3_baseline/capture_sim_baseline.py --out /workspace/s2r/_sim_baseline",
+  "started_utc": "2026-11-14T14:10:19.370775+00:00",
+  "exit_code": 0,
+  "output": "[baseline] environment.json written\n[baseline] pytest_outcomes.json written\n[baseline] env_cfg pick_place_cube/teleop: ok\n[baseline] env_cfg pick_place_cube/eval: ok\n[baseline] env_cfg pick_place_cube/eval_dr: ok\n[baseline] env_cfg stack_bowls/teleop: ok\n[baseline] env_cfg stack_bowls/eval: ok\n[baseline] env_cfg stack_two_cubes/teleop: ok\n[baseline] env_cfg stack_two_cubes/eval: ok\n[baseline] env_cfg written\n"
+}

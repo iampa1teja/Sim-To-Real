@@ -1,0 +1,7 @@
+{
+  "label": "install_summary_hasher",
+  "command": "docker cp /tmp/v3-sim-checks/hash_arrays.py s2r-sim:/tmp/v3_hash_arrays.py",
+  "started_utc": "2026-11-14T14:49:54.716668+00:00",
+  "exit_code": 0,
+  "output": ""
+}
