@@ -43,6 +43,7 @@ def _dataset_root(path):
 def reset_from_starts(
     env, env_ids, *, task=None, starts_dir=None, mode="cycle", random_fraction=0.0, seed=None,
     reset_robot=True, eval_set=None, splits=None, repeats=1, start_offset=0, benchmark_selection="all",
+    start_sampler=None,
 ):
     from isaaclab.utils.math import quat_mul
     from utils.arms.mapping import dataset_state_to_radians
@@ -56,12 +57,18 @@ def reset_from_starts(
     ids = env_indices(env, env_ids)
     if not len(ids):
         return
-    starts_dir = starts_dir or os.environ.get("S2R_EVAL_STARTS")
+    if start_sampler is not None and (eval_set or starts_dir or reset_robot):
+        raise ValueError("A scripted start sampler cannot use eval sets, recorded starts or reset robot states")
+    starts_dir = starts_dir or (os.environ.get("S2R_EVAL_STARTS") if start_sampler is None else None)
     seed = seed if seed is not None else env.cfg.seed
     key = (task.name, arm.name, str(starts_dir), mode, random_fraction, seed, bool(reset_robot),
            str(eval_set), str(splits), repeats, start_offset, benchmark_selection)
+    if start_sampler is not None:
+        key += (id(start_sampler),)
     if getattr(env, "_task_starts_key", None) != key:
-        if eval_set:
+        if start_sampler is not None:
+            sampler = start_sampler
+        elif eval_set:
             sampler = EvalSetStarts(eval_set, splits, repeats, seed, start_offset=start_offset,
                                    selection=benchmark_selection, arm=arm, task=task)
         elif starts_dir:

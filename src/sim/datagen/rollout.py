@@ -429,6 +429,13 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None, us
         "task": task, "starts_dir": str(args.starts_dir) if args.starts_dir else None,
         "mode": "random", "seed": None, "reset_robot": False,
     }) if sample_starts else None)
+    if (sample_starts and (source or getattr(args, "source", "scripted")) == "scripted" and
+            getattr(args, "start_mode", "random") == "grid" and not args.starts_dir):
+        from sim.datagen.starts import GridStarts
+
+        cfg.events.reset_from_starts.params["start_sampler"] = GridStarts(
+            task, cells_per_axis=args.cells_per_axis, yaw_steps=args.yaw_steps,
+            max_starts=args.max_starts, seed=args.seed)
     drop_unused_camera_outputs(cfg)
     env = env_factory(cfg) if env_factory is not None else gym.make(task.gym_id(args.variant), cfg=cfg)
     raw = getattr(env, "unwrapped", env)
@@ -489,6 +496,11 @@ def make_report(context, *, source_provenance=None):
 
 
 def publish_report(context, report):
+    from sim.datagen.starts import GridStarts
+
+    sampler = getattr(context.raw, "_task_starts", None)
+    if isinstance(sampler, GridStarts):
+        report["start_sampling"].update(mode="grid", coverage=sampler.coverage())
     report["accepted_episodes"] = sum(row["accepted"] for row in report["episodes"])
     report["attempts_completed"] = len(report["episodes"])
     destination = context.args.report or Path(str(context.args.destination) + ".report.json")

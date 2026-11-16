@@ -42,12 +42,12 @@ def test_scripted_imported_arm_controls_are_explicit_and_validated(tmp_path, mon
                  '--solver_njmax', '4096', '--solver_nconmax', '1024']
     args = scripted.parse_args(arguments)
     assert (args.solver_njmax, args.solver_nconmax) == (4096, 1024)
-    assert args.start_mode == "random" and not args.debug
+    assert args.start_mode == "grid" and not args.debug
     assert scripted.parse_args(arguments + ["--debug"]).debug
     for invalid in (['--solver_njmax', '0'], ['--ik_damping', 'nan'],
                     ['--ik_orientation_weight', '.2'], ['--ik_orientation_tolerance_rad', '.1'],
                     ['--ik_backend', 'bounded'], ['--control_offset', '[0,0,0]'],
-                    ['--start_mode', 'grid'], ['--diagnostic_images']):
+                    ['--cells_per_axis', '0'], ['--yaw_steps', '0'], ['--max_starts', '0'], ['--diagnostic_images']):
         with pytest.raises(SystemExit):
             scripted.parse_args(arguments + invalid)
 

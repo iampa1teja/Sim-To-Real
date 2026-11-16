@@ -35,6 +35,6 @@ def sample_start(task, rng, sample):
     first = sample()
     for _ in range(1000):
         second = sample()
-        if np.linalg.norm(np.asarray(first.position[:2]) - second.position[:2]) >= .06:
+        if np.linalg.norm(np.asarray(first.position[:2]) - second.position[:2]) >= task.spec.start["minimum_separation_m"]:
             return {"cube_a": first, "cube_b": second}
     raise ValueError("Task start region cannot fit two separated cubes")

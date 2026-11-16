@@ -12,6 +12,7 @@ frame = "arm_base"
 xy_min = [0.08, -0.22]
 xy_max = [0.24, -0.06]
 yaw_deg = [0.0, 90.0]
+minimum_separation_m = 0.06
 
 [task.objects.cube_a]
 spawnable = true

@@ -64,7 +64,9 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   execute physical actions, then observe task signals. Commit only confirmed successes still valid at the final
   frame. Generated actions are absolute simulator targets encoded through the selected device mapping; they
   do not use teleop wrist rezeroing. Shared generation setup and execution live in `sim.datagen.rollout`;
-  `--debug` enables optional rollout traces and waypoint images. Scripted reference YAML explicitly selects random starts.
+  `--debug` enables optional rollout traces and waypoint images. Scripted defaults to a seeded grid over task
+  start ranges (`cells_per_axis`, `yaw_steps`, `max_starts`) and reports per-object coverage; explicit `starts_dir`
+  selects recorded starts. The reference YAML explicitly selects random starts. Mimic and eval never use grid.
   Mimic annotations record FK of the executed target, the same TCP offset,
   named object poses and latched task stages. Nominal requested waypoints are separate from executed targets.
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call

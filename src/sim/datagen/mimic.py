@@ -221,6 +221,8 @@ def parse_args(argv=None):
     parser = scripted.build_parser()
     parser.description = __doc__
     for action in parser._actions:
+        if action.dest == 'start_mode':
+            action.choices, action.default = ('random',), 'random'
         if action.dest == 'source':
             action.choices = ('mimic',)
             action.default = 'mimic'

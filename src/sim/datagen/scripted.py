@@ -56,7 +56,10 @@ def build_parser():
     parser.add_argument("--solver_nconmax", type=int,
                         help="Contact capacity for complex imported collision geometry")
     parser.add_argument("--debug", action="store_true", help="Save rollout diagnostics and waypoint RGB beside the report")
-    parser.add_argument("--start_mode", choices=("random",), default="random")
+    parser.add_argument("--start_mode", choices=("random", "grid"), default="grid")
+    parser.add_argument("--cells_per_axis", type=int, default=5)
+    parser.add_argument("--yaw_steps", type=int, default=4)
+    parser.add_argument("--max_starts", type=int, default=256)
     parser.add_argument("--disable_fabric", action="store_true")
     add_generation_launch_arguments(parser)
     return parser
@@ -74,6 +77,8 @@ def parse_args(argv=None, *, parser=None):
     args = parse_yaml_args(parser, words, json_fields=("expert_options", "start_options"))
     if min(args.attempts, args.max_steps, args.fps) < 1 or args.episodes < 0 or args.warmup_steps < 0:
         parser.error("attempts/max_steps/fps must be positive; episodes/warmup_steps must be nonnegative")
+    if min(args.cells_per_axis, args.yaw_steps, args.max_starts) < 1:
+        parser.error("cells_per_axis/yaw_steps/max_starts must be positive")
     args.expert_options = json.loads(args.expert_options) if isinstance(args.expert_options, str) else args.expert_options
     if not isinstance(args.expert_options, dict):
         parser.error("expert_options must be a JSON object")
