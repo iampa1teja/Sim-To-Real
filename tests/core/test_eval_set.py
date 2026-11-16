@@ -9,7 +9,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from utils.arms.arms import load_arm_spec
-from core.eval.compare import compare
+from core.eval.report import compare
 from core.eval.eval_set import (EvalSetStarts, convert_eval_set, eval_set_digest,
                                      generate_eval_set, load_eval_set, main, validate_eval_set)
 from core.eval.starts import RecordedStarts

@@ -5,9 +5,8 @@ import json
 from pathlib import Path
 from statistics import mean
 
-from .report import summarize, results_report
+from .report import summarize, results_report, eval_set_identities
 from .eval_set import validate_eval_set
-from .compare import eval_set_identities
 
 
 def report_axes(report):
@@ -52,7 +51,7 @@ def complete_report(report, expected, eval_set_id=None, horizon=None, settings=N
 
 def paired(first, second):
     # Same comparison helper as scripts/compare_eval_results.py; only horizon varies.
-    from .compare import compare
+    from .report import compare
     return compare([first, second], varying_action_horizon=True)
 
 

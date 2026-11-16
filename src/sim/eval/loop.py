@@ -9,9 +9,46 @@ import traceback
 import torch
 from tqdm import tqdm
 from core.eval.resume import load_episodes, next_video_attempt, write_report
-from sim.eval.report import build_report, episode_metadata, progress_summary, finish_report
+from core.eval.report import build_report, finish_report
 from sim.eval.scene import capture_scene, validate_scene_geometry
 from sim.workspace.envs.task_env import reset_stage_traces
+
+
+def episode_metadata(context):
+    raw = context.env.unwrapped
+    index = getattr(raw, "_task_start_index", [None])[0]
+    task_metadata = context.task.episode_metadata(raw)
+    color = task_metadata.get("color", "unknown")
+    instruction = task_metadata.get("instruction", context.args_cli.lang_instruction)
+    if context.args_cli.lang_instruction_by_color is not None:
+        instruction = context.args_cli.lang_instruction_by_color.get(color)
+        if not isinstance(instruction, str) or not instruction.strip():
+            raise ValueError(f"Colour instructions need a nonempty instruction for {color!r}")
+    context.policy.lang_instruction = instruction
+    extra = {}
+    if context.benchmark:
+        start = raw._benchmark_start
+        extra = dict(
+            start_id=start["id"], split=start["split"], repeat=start["repeat"], policy_seed=start["policy_seed"]
+        )
+        extra.update({key: start[key] for key in ("x", "y", "yaw", "objects") if key in start})
+    return {
+        **extra,
+        **task_metadata,
+        "start_index": index,
+        "start_kind": "random" if index == -1 else "recorded" if index is not None else "unknown",
+        "zone": getattr(raw, "_task_start_zone", ["unknown"])[0],
+        "color": color,
+        "instruction": instruction,
+    }
+
+
+def progress_summary(context, state, stage_label=None):
+    completed = len(state.episodes)
+    rate = f"{state.successes / completed:.1%}" if completed else "N/A"
+    if stage_label is None:
+        stage_label = context.env.unwrapped._benchmark_trace.progress_label()
+    return (f"{stage_label}, " if stage_label else "") + f"success={rate} ({state.successes}/{completed})"
 
 
 @dataclass

@@ -76,6 +76,8 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
 - Scene-specific visual treatments belong in the optional scene-folder `utils.py` hook. A contact anchor may declare
   `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
   static materials before Newton imports the stage; visual-only lighting retains startup event order.
+- Evaluation statistics, paired comparisons and report assembly live in `core.eval.report`; live episode metadata
+  and progress reads stay in `sim.eval.loop`.
 - Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.
 - Policy clients receive ordered joint names, roles, joint types and the saved device codec through
   `configure(ArmInfo)`. Generic clients derive their dimension from that contract; a fixed embodiment declares
