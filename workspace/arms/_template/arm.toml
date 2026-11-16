@@ -15,6 +15,7 @@ ee = "tool"
 # onto declared arm-base axes; select constraints the arm can control.
 # Five arm joints: constrain position and tilt, leaving yaw free.
 # [arm.ik]
+# solver = "dls"                         # or "bounded"
 # position_offset_m = [0.0, 0.0, 0.0]
 # orientation_axes = ["x", "y"]
 # method = "dls"                         # or "adaptive_dls"
@@ -23,11 +24,13 @@ ee = "tool"
 #
 # Six arm joints: constrain the full pose.
 # [arm.ik]
+# solver = "dls"                         # or "bounded"
 # orientation_axes = ["x", "y", "z"]
 # method = "dls"
 #
 # Seven arm joints: the spare joint permits null-space limit avoidance.
 # [arm.ik]
+# solver = "dls"                         # or "bounded"
 # orientation_axes = ["x", "y", "z"]
 # method = "adaptive_dls"
 # joint_limit_avoidance_gain = 0.1

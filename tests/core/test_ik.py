@@ -49,7 +49,7 @@ def test_arm_bounds_require_an_arm_joint(synthetic_arm):
         _arm_bounds(arm, IKOptions())
 
 
-@pytest.mark.parametrize('hook_name', ['make_ik', 'make_kinematics'])
+@pytest.mark.parametrize('hook_name', ['make_kinematics'])
 def test_factories_choose_arm_hook_and_forward_arguments(synthetic_arm, monkeypatch, hook_name):
     import utils.arms.arms as arms_module
     import sim.actions.ik as ik_module
@@ -100,3 +100,18 @@ def test_factories_choose_defaults_without_an_arm_hook(synthetic_arm, monkeypatc
     assert make_kinematics(synthetic_arm, **kwargs) is offline
     assert calls == [('live', (robot, synthetic_arm), kwargs),
                      ('offline', (synthetic_arm,), kwargs)]
+
+
+def test_live_factory_uses_manifest_solver_instead_of_legacy_arm_hook(synthetic_arm, monkeypatch):
+    import utils.arms.arms as arms_module
+    import sim.actions.ik as ik_module
+
+    def obsolete(*args, **kwargs):
+        pytest.fail('The old make_ik hook must not select a solver')
+
+    monkeypatch.setattr(arms_module, 'load_arm_utils', lambda arm: SimpleNamespace(make_ik=obsolete))
+    sentinel, robot = object(), object()
+    calls = []
+    monkeypatch.setattr(ik_module, 'ArticulationIK', lambda *a, **k: calls.append((a, k)) or sentinel)
+    assert make_ik(robot, synthetic_arm, solver='bounded') is sentinel
+    assert calls == [((robot, synthetic_arm), {'solver': 'bounded'})]

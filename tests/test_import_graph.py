@@ -17,7 +17,7 @@ SHARED_PACKAGE = "utils"          # top-level shared package; the plan's fallbac
 SHARED = SRC / SHARED_PACKAGE
 SIM_ACTIONS = SRC / "sim" / "actions"
 # The IK solver needs torch and scipy at import; task.py files never import it (checks and moves do not).
-ACTIONS_HEAVY_OK = {"ik.py", "bounded_ik.py"}
+ACTIONS_HEAVY_OK = {"ik.py"}
 STANDALONE_PACKAGES = ("policy_client", "policy_server")   # shipped alone in docker/policy/Dockerfile
 # ----------------------------------------------------------------------------------------------------------
 

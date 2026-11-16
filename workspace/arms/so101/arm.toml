@@ -69,6 +69,7 @@ joint = "wrist_roll"
 relative_in_teleop = true
 
 [arm.ik]
+solver = "dls"
 # A five-axis arm controls position and base-frame x/y rotation error, leaving yaw unconstrained.
 orientation_axes = ["x", "y"]
 # Measured fixed fingertip plus 10 mm along the closing axis: centre of a 20 mm reference grasp pocket.

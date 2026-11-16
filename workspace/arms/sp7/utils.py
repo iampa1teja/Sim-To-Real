@@ -156,18 +156,6 @@ def make_kinematics(arm, *, position_offset_m=None):
     return _KINEMATICS[key]
 
 
-def make_ik(robot, arm, **kwargs):
-    from sim.actions.bounded_ik import BoundedPoseStep
-    from sim.actions.ik import ArticulationIK
-    controller = ArticulationIK(robot, arm, **kwargs)
-    controller._step = BoundedPoseStep(arm, controller.options,
-        make_kinematics(arm, position_offset_m=controller.position_offset_m))
-    controller.library_name = 'SciPy bounded least_squares; Newton FK and analytic Jacobians'
-    controller.method_name = 'bounded_nonlinear_pose'
-    controller.mode_name = 'measured_pose_feedback'
-    return controller
-
-
 def apply_appearance(stage, robot_root, look):
     from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 

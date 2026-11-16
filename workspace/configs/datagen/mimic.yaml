@@ -16,7 +16,7 @@ warmup_steps: 30
 fps: 30
 seed: 1984
 headless: true
-# Must match source meta/datagen.json control_offset_m. With no override,
-# both producers use the selected arm's declared TCP offset.
+# Both producers read task.expert.control_offset, falling back to the arm TCP.
+# This must match source meta/datagen.json control_offset_m.
 mimic_options:
   select_source_per_subtask: true

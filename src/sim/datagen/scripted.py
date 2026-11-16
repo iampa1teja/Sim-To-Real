@@ -51,15 +51,9 @@ def build_parser():
     parser.add_argument("--start_joint_jitter_rad", type=float, default=0.,
                         help="Seeded initial revolute-arm joint variation; the robot base stays fixed")
     parser.add_argument("--expert_options", default="{}", help="Task-specific expert options as a JSON object")
-    parser.add_argument("--control_offset", default=None, help="Optional EE-local TCP offset in metres, JSON vector")
-    parser.add_argument("--ik_backend", choices=("arm", "bounded"), default="arm")
     parser.add_argument("--ik_integral_gain", type=float, default=1.0, help="Bounded servo-error correction per second; zero disables")
     parser.add_argument("--ik_max_integral_bias_rad", type=float, default=.08)
     parser.add_argument("--ik_max_integral_bias_m", type=float, default=.005)
-    parser.add_argument("--ik_orientation_weight", type=float, default=.05,
-                        help="Relative weight of each controlled orientation axis in library IK")
-    parser.add_argument("--ik_orientation_tolerance_rad", type=float, default=.03,
-                        help="Allowed tool orientation error at a waypoint; task success remains task-owned")
     parser.add_argument("--ik_damping", type=float, default=.0125,
                         help="Damped least-squares regularization in library IK")
     parser.add_argument("--solver_njmax", type=int,
@@ -103,16 +97,11 @@ def parse_args(argv=None, *, parser=None):
         parser.error("start_joint_jitter_rad must be nonnegative and finite")
     if args.starts_dir and args.start_options:
         parser.error("Choose starts_dir or start_options")
-    if isinstance(args.control_offset, str):
-        args.control_offset = json.loads(args.control_offset)
-    if args.control_offset is not None and (np.shape(args.control_offset) != (3,) or not np.isfinite(args.control_offset).all()):
-        parser.error("control_offset must contain three finite metres")
     correction = (args.ik_integral_gain, args.ik_max_integral_bias_rad, args.ik_max_integral_bias_m)
     if not np.isfinite(correction).all() or correction[0] < 0 or min(correction[1:]) <= 0:
         parser.error("IK correction gain must be nonnegative and its radian/metre caps positive and finite")
-    if not np.isfinite((args.ik_orientation_weight, args.ik_orientation_tolerance_rad, args.ik_damping)).all() or min(
-            args.ik_orientation_weight, args.ik_orientation_tolerance_rad, args.ik_damping) <= 0:
-        parser.error("IK orientation weight, tolerance and damping must be positive and finite")
+    if not math.isfinite(args.ik_damping) or args.ik_damping <= 0:
+        parser.error("IK damping must be positive and finite")
     if any(value is not None and value < 1 for value in (args.solver_njmax, args.solver_nconmax)):
         parser.error("Physics solver capacities must be positive")
     return args
@@ -275,7 +264,20 @@ class GenerationContext:
             self.env.close()
 
 
-def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
+def generation_ik_options(task, args, *, use_expert=True):
+    """Shared scripted/Mimic options: task-owned tolerances, weight and unchanged servo tuning."""
+    from sim.actions.ik import IKOptions
+
+    expert = task.spec.raw.get("expert", {}) if use_expert else {}
+    return IKOptions(integral_gain=getattr(args, "ik_integral_gain", 1.0),
+                     orientation_weight=expert.get("orientation_weight", .05),
+                     orientation_tolerance_rad=expert.get("orientation_tolerance_rad", .03),
+                     damping=getattr(args, "ik_damping", .0125),
+                     max_integral_bias_rad=getattr(args, "ik_max_integral_bias_rad", .08),
+                     max_integral_bias_m=getattr(args, "ik_max_integral_bias_m", .005))
+
+
+def setup_context(args, *, env_factory=None, sample_starts=True, source=None, use_expert_ik=True):
     """Build a task environment after Kit launch; Mimic can supply its real env class."""
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
@@ -288,7 +290,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
     from sim.workspace.envs.mdp.starts import reset_from_starts
     from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
     from sim.datagen.dr_replay import discover_sim_cameras
-    from sim.actions.ik import IKOptions, make_ik, make_kinematics
+    from sim.actions.ik import make_ik, make_kinematics
     from sim.recording.recorder import LeRobotRecorder
 
     if Path(args.destination).exists():
@@ -338,22 +340,11 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None):
                         recorded_action="absolute_sim_target_in_device_units",
                         note="Generated actions and observations use the selected device codec; no relative teleop wrist shift.")
         mark_recording_root(args.destination, contract)
-        offset = getattr(args, "control_offset", None)
-        options = IKOptions(integral_gain=getattr(args, "ik_integral_gain", 1.0),
-                            orientation_weight=getattr(args, "ik_orientation_weight", .05),
-                            orientation_tolerance_rad=getattr(args, "ik_orientation_tolerance_rad", .03),
-                            damping=getattr(args, "ik_damping", .0125),
-                            max_integral_bias_rad=getattr(args, "ik_max_integral_bias_rad", .08),
-                            max_integral_bias_m=getattr(args, "ik_max_integral_bias_m", .005))
-        ik = make_ik(raw.scene["robot"], arm, position_offset_m=offset,
-                            control_dt=cfg.decimation * cfg.sim.dt, options=options)
+        expert = task.spec.raw.get("expert", {}) if use_expert_ik else {}
+        options = generation_ik_options(task, args, use_expert=use_expert_ik)
+        ik = make_ik(raw.scene["robot"], arm, position_offset_m=expert.get("control_offset"),
+                     solver=expert.get("ik_solver"), control_dt=cfg.decimation * cfg.sim.dt, options=options)
         kinematics = make_kinematics(arm, position_offset_m=ik.position_offset_m)
-        if getattr(args, 'ik_backend', 'arm') == 'bounded':
-            from sim.actions.bounded_ik import BoundedPoseStep
-            ik._step = BoundedPoseStep(arm, ik.options, kinematics)
-            ik.library_name = 'SciPy bounded least_squares; Newton FK and analytic Jacobians'
-            ik.method_name = 'bounded_nonlinear_pose'
-            ik.mode_name = 'measured_pose_feedback'
         return GenerationContext(args, env, task, arm, mapping, calibration, cameras, writer, ik, kinematics, producer)
     except BaseException:
         try:

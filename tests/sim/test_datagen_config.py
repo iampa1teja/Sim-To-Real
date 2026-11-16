@@ -38,12 +38,13 @@ def test_scripted_imported_arm_controls_are_explicit_and_validated(tmp_path, mon
     from sim.datagen import scripted
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
-    arguments = ['--destination', str(tmp_path / 'episodes'), '--ik_orientation_weight', '.2',
+    arguments = ['--destination', str(tmp_path / 'episodes'),
                  '--solver_njmax', '4096', '--solver_nconmax', '1024']
     args = scripted.parse_args(arguments)
-    assert (args.ik_orientation_weight, args.solver_njmax, args.solver_nconmax) == (.2, 4096, 1024)
-    for invalid in (['--solver_njmax', '0'], ['--ik_orientation_weight', 'nan'],
-                    ['--ik_orientation_tolerance_rad', '-.1'], ['--ik_orientation_tolerance_rad', 'nan']):
+    assert (args.solver_njmax, args.solver_nconmax) == (4096, 1024)
+    for invalid in (['--solver_njmax', '0'], ['--ik_damping', 'nan'],
+                    ['--ik_orientation_weight', '.2'], ['--ik_orientation_tolerance_rad', '.1'],
+                    ['--ik_backend', 'bounded'], ['--control_offset', '[0,0,0]']):
         with pytest.raises(SystemExit):
             scripted.parse_args(arguments + invalid)
 
@@ -94,3 +95,26 @@ def test_carried_object_feedback_corrects_slip_and_freezes_after_release():
     state.objects['cube'] = Pose(tuple(goal))
     retreat = Pose((.406, .198, .15))
     np.testing.assert_allclose(carried_object_offset(state, retreat, 'cube', corrected), corrected)
+
+
+@pytest.mark.parametrize('producer', ['scripted', 'mimic'])
+def test_generation_uses_task_expert_ik_settings(tmp_path, monkeypatch, producer):
+    from core.tasks.loader import load_task
+    from sim.datagen import mimic, scripted
+
+    monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
+    arguments = ['--destination', str(tmp_path / 'output'), '--task', 'stack_bowls']
+    if producer == 'mimic':
+        source = tmp_path / 'source'
+        (source / 'datagen_meta').mkdir(parents=True)
+        arguments += ['--source_dataset', str(source)]
+    args = (scripted if producer == 'scripted' else mimic).parse_args(arguments)
+    task = load_task(args.task)
+    options = scripted.generation_ik_options(task, args)
+    assert (options.orientation_weight, options.orientation_tolerance_rad) == (.1, .25)
+    assert task.spec.raw['expert']['ik_solver'] == 'bounded'
+    assert task.spec.raw['expert']['control_offset'] == [-.0059, -.0002249, -.0994253]
+    defaults = scripted.generation_ik_options(load_task('pick_place_cube'), args)
+    assert (defaults.orientation_weight, defaults.orientation_tolerance_rad) == (.05, .03)
+    replay = scripted.generation_ik_options(task, args, use_expert=False)
+    assert replay == defaults  # Command replay retains its arm TCP and old IK defaults.

@@ -75,6 +75,7 @@ def test_optional_utils_loads_by_explicit_path(synthetic_arm):
     ({'joint_limit_avoidance_margin': 0.0}, 'margin must be positive'),
     ({'joint_limit_avoidance_margin': float('inf')}, 'margin must be a finite number'),
     ({'joint_limit_avoidance_gain': 0.1}, 'no spare joint for limit avoidance'),
+    ({'solver': 'unknown'}, 'ik.solver must be dls or bounded'),
 ])
 def test_invalid_ik_contract(synthetic_arm, ik, error):
     raw = tomllib.loads((synthetic_arm.directory / 'arm.toml').read_text())['arm']
@@ -85,6 +86,7 @@ def test_invalid_ik_contract(synthetic_arm, ik, error):
 
 def test_optional_ik_defaults(synthetic_arm):
     assert synthetic_arm.ik.method == 'dls'
+    assert synthetic_arm.ik.solver == 'dls'
     assert synthetic_arm.ik.joint_limit_avoidance_gain == 0.0
     assert synthetic_arm.ik.joint_limit_avoidance_margin == 0.3
 

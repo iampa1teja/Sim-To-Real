@@ -46,7 +46,7 @@ def main(argv=None):
         raise ValueError("Episode limits/counts must be nonnegative; FPS must be positive")
     args.repo_id = args.repo_id or f"local/{args.destination.name}"
     args.source_repo_id = args.source_repo_id or f"local/{args.source.name}"
-    args.starts_dir, args.control_offset, args.expert_options = None, None, {}
+    args.starts_dir, args.expert_options = None, {}
     args.warmup_steps = 0
     apply_selection(args)
     app = launch(args, enable_cameras=True)
@@ -81,7 +81,7 @@ def main(argv=None):
             raise ValueError("Source FPS differs from the replay control FPS")
         source = source[:args.limit] if args.limit else source
         args.max_steps = max(episode.length for episode in source)
-        context = setup_context(args, sample_starts=False, source="calibration_replay")
+        context = setup_context(args, sample_starts=False, source="calibration_replay", use_expert_ik=False)
         replayer = SceneReplayer(context.raw, context.mapping, None, context.cameras, task=task.name, arm=arm)
         report = make_report(context, source_provenance={
             "method": "original device commands, selected mapping, physical action replay",

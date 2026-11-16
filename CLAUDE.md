@@ -51,6 +51,9 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac. Tasks not yet ported
   keep the legacy `__init__/env_cfg/mdp/expert.py` layout until their phase.
 - Data generation uses the task's expert waypoints and arm-declared `ik` TCP/orientation constraints.
+  `[arm.ik].solver` selects `dls` or `bounded`; `[task.expert].ik_solver` can override it. Scripted and
+  Mimic both read task expert `orientation_weight`, `orientation_tolerance_rad` and `control_offset`,
+  falling back to the library defaults and arm TCP. These settings are not datagen CLI/YAML flags.
   IK and FK math come from Isaac Lab and Newton; `ik.py` only handles frames, caps and limits.
   The pick-place expert must not add a deliberate wrist roll after pickup. Preserve its pickup orientation
   through transport; earlier rolled diagnostic datasets are not approved final training sources.

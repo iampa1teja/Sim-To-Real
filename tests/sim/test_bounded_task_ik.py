@@ -7,7 +7,7 @@ pytest.importorskip('newton')
 pytest.importorskip('isaaclab')
 from utils.arms.arms import load_arm_spec
 from sim.actions.ik import ArmKinematics, IKOptions
-from sim.actions.bounded_ik import BoundedPoseStep
+from sim.actions.ik import BoundedPoseStep
 
 
 @pytest.mark.parametrize('name,delta', [

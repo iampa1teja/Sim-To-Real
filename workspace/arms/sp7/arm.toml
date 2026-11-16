@@ -165,6 +165,7 @@
 "approach_axis" = [8.410510197590617e-09, 0.9999797937256627, 0.006357054379289826]
 
 [arm.ik]
+solver = "bounded"
 # confirm: Joint-count structural proposal; confirm controllable orientation axes
 "orientation_axes" = ["x", "y", "z"]
 # derived: Isaac Lab library IK

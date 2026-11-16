@@ -135,6 +135,7 @@ class IKSpec:
     method: str = "dls"
     joint_limit_avoidance_gain: float = 0.0
     joint_limit_avoidance_margin: float = 0.3
+    solver: str = "dls"
 
 
 @dataclass(frozen=True, slots=True)
@@ -343,6 +344,9 @@ def parse_arm_spec(name, directory, raw):
     method = ik_raw.get("method", "dls")
     if method not in ("dls", "adaptive_dls"):
         raise ValueError("ik.method must be dls or adaptive_dls")
+    solver = ik_raw.get("solver", "dls")
+    if solver not in ("dls", "bounded"):
+        raise ValueError("ik.solver must be dls or bounded")
     gain = number(ik_raw.get("joint_limit_avoidance_gain", 0.0), "ik.joint_limit_avoidance_gain")
     margin = number(ik_raw.get("joint_limit_avoidance_margin", 0.3), "ik.joint_limit_avoidance_margin")
     if gain < 0:
@@ -352,7 +356,7 @@ def parse_arm_spec(name, directory, raw):
     if gain > 0 and sum(joint.role == "arm" for joint in joints) <= 3 + len(axes):
         raise ValueError("arm has no spare joint for limit avoidance")
     ik = IKSpec(axes, vector(ik_raw.get("position_offset_m", [0, 0, 0]), 3, "ik.position_offset_m"),
-                method, gain, margin)
+                method, gain, margin, solver)
     return ArmSpec(name, directory, relative_file(directory, raw["usd_path"], "usd_path", "relative to the arm folder"),
                    relative_file(directory, raw["utils"], "utils", "relative to the arm folder") if raw.get("utils") else None,
                    links, tuple(joints), gripper, wrist_roll, cameras,
