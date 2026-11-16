@@ -69,6 +69,8 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   named object poses and latched task stages. Nominal requested waypoints are separate from executed targets.
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
   `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.
+- Recording calibration/root preparation, environment configuration, camera discovery and trajectory validation
+  live in `sim.recording.setup`, shared by teleop and paired recording.
 - Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `workspace/scenes/<scene>/mounts/<arm>.toml`
   owns the arm/scene combination; missing mounts use the anchor and arm initial joints. Mount translation
   corrections are world-space metres. Anchor positions and rotations use the same rigid frame transform;

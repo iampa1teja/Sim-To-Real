@@ -1,101 +1,12 @@
 """Recording setup/teardown; the tick and request state machine live in teleop.loop."""
 import os
 from functools import partial
-from copy import deepcopy
 
-from sim.recording.setup import (
-    cleanup,
-    derived_real_repo_id,
-    derived_real_root,
-    disconnect,
-    exit_cleanly_on_termination,
-    make_recorders,
-    prepare_recording_roots,
-    real_camera_specs,
-    validate_serial_ports
-)
+from sim.recording import setup
+
 from sim import apply_selection, launch, close_app
 from sim.teleop.config import AgentConfig, parse_config
 from sim.teleop.loop import LoopResources, gui_panes, run_loop
-
-def _prepare(cfg: AgentConfig):
-    from utils.arms.calibration import resolve_calibration
-    from utils.datasets.alignment import recording_contract
-
-    selection = resolve_calibration(
-        follower_id=cfg.follower.id if cfg.follower.enabled else None,
-        leader_id=cfg.leader.id,
-        unit=cfg.follower.unit,
-    )
-    selection.print_paths()
-    contract = recording_contract(follower_id=cfg.follower.id, leader_id=cfg.leader.id, calibration_selection=selection)
-
-    roots = []
-    if cfg.recording:
-        roots.append(cfg.dataset.root)
-        if cfg.follower.enabled:
-            roots.append(cfg.dataset.real_root or derived_real_root(cfg.dataset.root))
-        roots, suffix = prepare_recording_roots(
-            roots, contract, on_mismatch=cfg.dataset.on_alignment_mismatch)
-        if suffix:
-            if cfg.follower.enabled:
-                cfg.dataset.real_root = roots[1]
-                cfg.dataset.real_repo_id = (cfg.dataset.real_repo_id or
-                                            derived_real_repo_id(cfg.dataset.repo_id)) + suffix
-            cfg.dataset.root = roots[0]
-            cfg.dataset.repo_id += suffix
-            print("[recording] Calibration differs from the configured dataset; "
-                  "using separate folders and preserving existing recordings.", flush=True)
-        for role, root in zip(("sim", "real"), roots):
-            print(f"[recording] {role} dataset: {root}", flush=True)
-    ports = {"leader": cfg.leader.port}
-    if cfg.follower.enabled:
-        ports["follower"] = cfg.follower.port
-    validate_serial_ports(ports)
-    return selection, contract, roots
-
-def _env_id(cfg: AgentConfig):
-    import sim.workspace.envs
-
-    task = sim.workspace.envs.register(cfg.scene, cfg.task)
-    if task is None:
-        return sim.workspace.envs.scene_gym_id(cfg.scene)
-    return task.gym_id(cfg.variant)
-
-def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
-    from isaaclab_tasks.utils import parse_env_cfg
-
-    env_cfg = parse_env_cfg(env_id, device=device, num_envs=1, use_fabric=cfg.use_fabric)
-    env_cfg.seed = cfg.seed
-
-    env_cfg.sim_joint_mapping = deepcopy(selection.mapping)
-    if env_cfg.terminations is not None and any(
-        value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
-    ):
-        raise ValueError(f"{env_id} has terminations; manual teleop needs a variant without them (e.g. teleop).")
-
-    physics_steps = 1.0 / (cfg.fps * env_cfg.sim.dt)
-    if abs(physics_steps - round(physics_steps)) > 1e-6 or physics_steps < 1:
-        raise ValueError("fps must divide the physics rate exactly")
-    env_cfg.decimation = round(physics_steps)
-    env_cfg.sim.render_interval = env_cfg.decimation
-
-    from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
-
-    drop_unused_camera_outputs(env_cfg, depth=cfg.dataset.depth, instance_id_seg=cfg.dataset.instance_id_seg)
-    return env_cfg
-
-def _sim_cameras(env):
-    cameras = {}
-    for key in env.unwrapped.scene.keys():
-        if key.startswith("camera_"):
-            camera_cfg = getattr(env.unwrapped.scene.cfg, key)
-            name = key[len("camera_"):]
-            cameras[name] = {"height": camera_cfg.height, "width": camera_cfg.width}
-            print(f"[INFO]: Found simulation camera: {name}")
-    if not cameras:
-        print("[WARNING]: No simulation cameras found.")
-    return cameras
 
 # Episode controls: terminal Enter-commands or the Isaac keyboard listener. With spawnable objects, S spawns
 # (v1 layout: keyboard S = spawn, Right = start/save; terminal s/spawn = spawn, right = start/save).
@@ -137,7 +48,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         from sim.recording.rerecording import RerecordingSession
         from sim.teleop.devices import connect_device
 
-        exit_cleanly_on_termination()
+        setup.exit_cleanly_on_termination()
         if cfg.telemetry.joint_angle_log:
             from utils.calibration.telemetry import JointAngleTelemetry
 
@@ -146,8 +57,8 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
 
         from core.tasks.task import load_task
         task = load_task(cfg.task) if cfg.task else None
-        env_id = _env_id(cfg)
-        env_cfg = _make_env_cfg(cfg, env_id, sim_device, selection)
+        env_id = setup.environment_id(cfg)
+        env_cfg = setup.make_env_cfg(cfg, env_id, sim_device, selection)
         env = gym.make(env_id, cfg=env_cfg)
         device = env.unwrapped.device
         print(f"[INFO]: {env_id}  obs: {env.observation_space}  action: {env.action_space}")
@@ -155,7 +66,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         # Spawnable task objects start parked; `spawn --object <name>` puts one at the sim jaw (Newton-safe teleport).
         spawner = ObjectSpawner(env, task=task, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
 
-        sim_cameras = _sim_cameras(env)
+        sim_cameras = setup.simulation_cameras(env)
         arm, _ = load_arm_spec(cfg.arm)
         mapping = JointMapping.from_arm(arm, selection, device=device)
 
@@ -164,7 +75,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
 
         # Physical cameras open only when a real dataset will consume them (follower-only teleop stays light).
         f = cfg.follower
-        real_cameras = real_camera_specs(f.cameras, fps=cfg.fps, width=f.camera_width, height=f.camera_height,
+        real_cameras = setup.real_camera_specs(f.cameras, fps=cfg.fps, width=f.camera_width, height=f.camera_height,
                                          fourcc=f.camera_fourcc) if cfg.recording else {}
         if f.enabled:
             follower = connect_device("follower", f.port, f.id, cameras=real_cameras, fps=cfg.fps,
@@ -172,7 +83,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
 
         ds = cfg.dataset
         if cfg.recording:
-            recorders, real_pipeline = make_recorders(
+            recorders, real_pipeline = setup.make_recorders(
                 task_name=ds.task_name, repo_id=ds.repo_id, repo_root=ds.root, fps=cfg.fps, device=device,
                 sim_cameras=sim_cameras, follower=follower, real_repo_id=ds.real_repo_id,
                 real_repo_root=ds.real_root, real_cameras=real_cameras, save_mp4=ds.save_mp4, depth=ds.depth,
@@ -188,28 +99,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         else:
             print("[INFO]: Recording disabled; set dataset.repo_id, dataset.root and dataset.task_name to enable it.")
 
-        # Track every declared object, including fixed objects and tasks with multiple spawnables.
-        tracked = None
-        base_id = None
-        if task is not None:
-            from sim.teleop.spawner import _half_extents
-
-            tracked = {}
-            for name in task.spec.tracked_objects:
-                half = _half_extents(task, name)
-                size = (getattr(env.unwrapped.scene[name].cfg.spawn, "size", None)
-                        or (tuple(2 * value for value in half) if half is not None else None))
-                if size is None:
-                    raise ValueError(f"{name}: declare size or size_outer in task.toml for its trajectory sidecar.")
-                tracked[name] = tuple(float(value) for value in size)
-            base_id = env.unwrapped.scene["robot"].find_bodies(arm.links.base)[0][0]
-        if recorders is not None and tracked is not None:
-            from utils.datasets.task_meta import validate_task_trajectories
-
-            validate_task_trajectories(recorders.recorders["sim"].dataset_root,
-                                       recorders.recorders["sim"].episode_lengths(), cfg.fps,
-                                       task=task, arm=arm, tracked_objects=tracked,
-                                       reference_frame=f"robot base link ({arm.links.base})")
+        tracked, base_id = setup.prepare_task_tracking(env, task, arm, recorders, cfg.fps)
 
         if cfg.sim_reset_object_name and cfg.sim_reset_object_name not in env.unwrapped.scene.keys():
             raise ValueError(f"sim_reset_object_name={cfg.sim_reset_object_name!r} is not in {env_id}: "
@@ -239,25 +129,25 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         raise
     finally:
         if telemetry is not None:
-            cleanup("Joint telemetry close", telemetry.close)
+            setup.cleanup("Joint telemetry close", telemetry.close)
         if controls is not None:
-            cleanup("Controls cleanup", controls.cleanup)
+            setup.cleanup("Controls cleanup", controls.cleanup)
         if gui is not None:
-            cleanup("Recorder GUI shutdown", gui.destroy)
-        cleanup("Follower disconnect", lambda: disconnect(follower, "physical follower"))
-        cleanup("Leader disconnect", lambda: disconnect(leader, "physical leader"))
+            setup.cleanup("Recorder GUI shutdown", gui.destroy)
+        setup.cleanup("Follower disconnect", lambda: setup.disconnect(follower, "physical follower"))
+        setup.cleanup("Leader disconnect", lambda: setup.disconnect(leader, "physical leader"))
         if spawner is not None:
-            cleanup("Spawn listener shutdown", spawner.close)
+            setup.cleanup("Spawn listener shutdown", spawner.close)
         if recorders is not None:
-            cleanup("Dataset finalization", recorders.finalize)
+            setup.cleanup("Dataset finalization", recorders.finalize)
         if env is not None:
-            cleanup("Environment close", env.close)
-        cleanup("Simulation app close", partial(close_app, simulation_app, success=exit_code == 0))
+            setup.cleanup("Environment close", env.close)
+        setup.cleanup("Simulation app close", partial(close_app, simulation_app, success=exit_code == 0))
 
 def main(argv=None):
     cfg, isaac_args = parse_config(argv)
     apply_selection(cfg)
-    selection, contract, roots = _prepare(cfg)
+    selection, contract, roots = setup.prepare_recording(cfg)
 
     simulation_app = launch(isaac_args, enable_cameras=True)
     run(cfg, simulation_app, isaac_args.device, selection, contract, roots)

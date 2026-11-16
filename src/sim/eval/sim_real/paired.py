@@ -31,7 +31,7 @@ def run(args, app):
     from core.policy_client.contract import ArmInfo
     from core.rollout.paired_gui import PairedEvaluationGui, trial_arguments
     from core.rollout.real_rollout import connect_follower, joint_ranges, make_policy, camera_specs
-    from sim.teleop.agent import _env_id, _make_env_cfg, _sim_cameras
+    from sim.recording.setup import environment_id, make_env_cfg, simulation_cameras
     from sim.teleop.config import AgentConfig
     from sim.teleop.loop import gui_frames, gui_panes, object_pose_in_base
     from sim.teleop.spawner import ObjectSpawner
@@ -125,8 +125,8 @@ def run(args, app):
     try:
         task = sim.workspace.envs.register(args.scene, args.task)
         cfg = AgentConfig(arm=args.arm, scene=args.scene, task=args.task, variant=args.variant, fps=args.fps)
-        env_id = _env_id(cfg)
-        env = gym.make(env_id, cfg=_make_env_cfg(cfg, env_id, args.device, args.calibration_selection))
+        env_id = environment_id(cfg)
+        env = gym.make(env_id, cfg=make_env_cfg(cfg, env_id, args.device, args.calibration_selection))
         obs, _ = env.reset()
         arm = args.arm_spec
         mapping = JointMapping.from_arm(arm, args.calibration_selection, device=env.unwrapped.device)
@@ -135,7 +135,7 @@ def run(args, app):
         base_id = robot.find_bodies(arm.links.base)[0][0]
         ids = torch.tensor([0], device=env.unwrapped.device)
         spawner = ObjectSpawner(env, task=task)
-        sim_cameras, real_cameras = _sim_cameras(env), camera_specs(args)
+        sim_cameras, real_cameras = simulation_cameras(env), camera_specs(args)
         keys = list(arm.feature_names)
         ranges = joint_ranges(arm, args.calibration_selection.mapping)
         real_names = json.loads(args.rename_map)

@@ -1,18 +1,22 @@
-"""Shared setup for the recording agents: signals, serial ports, real cameras, recorders, cleanup.
+"""Shared calibration, environment, camera, dataset setup and cleanup.
 
-Takes plain values so the same code serves CLI and
-YAML configs. Device connection lives in ``sim.teleop.devices``. LeRobot imports are
-delayed until a recorder is built (after the Isaac app has launched).
+Device connection lives in ``sim.teleop.devices``. Isaac and LeRobot imports
+remain delayed until the app has launched and their resources are needed.
 """
 
 from __future__ import annotations
 
+from copy import deepcopy
 import os
 import signal
 import stat
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from utils.hashing import legacy_json_sha256
+
+if TYPE_CHECKING:
+    from sim.teleop.config import AgentConfig
 
 
 def exit_cleanly_on_termination() -> None:
@@ -201,3 +205,110 @@ def make_recorders(
             **common,
         )
     return SynchronizedLeRobotRecorders(recorders), real_pipeline
+
+
+def prepare_recording(cfg: AgentConfig):
+    from utils.arms.calibration import resolve_calibration
+    from utils.datasets.alignment import recording_contract
+
+    selection = resolve_calibration(
+        follower_id=cfg.follower.id if cfg.follower.enabled else None,
+        leader_id=cfg.leader.id,
+        unit=cfg.follower.unit,
+    )
+    selection.print_paths()
+    contract = recording_contract(follower_id=cfg.follower.id, leader_id=cfg.leader.id, calibration_selection=selection)
+
+    roots = []
+    if cfg.recording:
+        roots.append(cfg.dataset.root)
+        if cfg.follower.enabled:
+            roots.append(cfg.dataset.real_root or derived_real_root(cfg.dataset.root))
+        roots, suffix = prepare_recording_roots(
+            roots, contract, on_mismatch=cfg.dataset.on_alignment_mismatch)
+        if suffix:
+            if cfg.follower.enabled:
+                cfg.dataset.real_root = roots[1]
+                cfg.dataset.real_repo_id = (cfg.dataset.real_repo_id or
+                                            derived_real_repo_id(cfg.dataset.repo_id)) + suffix
+            cfg.dataset.root = roots[0]
+            cfg.dataset.repo_id += suffix
+            print("[recording] Calibration differs from the configured dataset; "
+                  "using separate folders and preserving existing recordings.", flush=True)
+        for role, root in zip(("sim", "real"), roots):
+            print(f"[recording] {role} dataset: {root}", flush=True)
+    ports = {"leader": cfg.leader.port}
+    if cfg.follower.enabled:
+        ports["follower"] = cfg.follower.port
+    validate_serial_ports(ports)
+    return selection, contract, roots
+
+def environment_id(cfg: AgentConfig):
+    import sim.workspace.envs
+
+    task = sim.workspace.envs.register(cfg.scene, cfg.task)
+    if task is None:
+        return sim.workspace.envs.scene_gym_id(cfg.scene)
+    return task.gym_id(cfg.variant)
+
+def make_env_cfg(cfg: AgentConfig, env_id, device, selection):
+    from isaaclab_tasks.utils import parse_env_cfg
+
+    env_cfg = parse_env_cfg(env_id, device=device, num_envs=1, use_fabric=cfg.use_fabric)
+    env_cfg.seed = cfg.seed
+
+    env_cfg.sim_joint_mapping = deepcopy(selection.mapping)
+    if env_cfg.terminations is not None and any(
+        value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
+    ):
+        raise ValueError(f"{env_id} has terminations; manual teleop needs a variant without them (e.g. teleop).")
+
+    physics_steps = 1.0 / (cfg.fps * env_cfg.sim.dt)
+    if abs(physics_steps - round(physics_steps)) > 1e-6 or physics_steps < 1:
+        raise ValueError("fps must divide the physics rate exactly")
+    env_cfg.decimation = round(physics_steps)
+    env_cfg.sim.render_interval = env_cfg.decimation
+
+    from sim.workspace.envs.scene_builder import drop_unused_camera_outputs
+
+    drop_unused_camera_outputs(env_cfg, depth=cfg.dataset.depth, instance_id_seg=cfg.dataset.instance_id_seg)
+    return env_cfg
+
+def simulation_cameras(env):
+    cameras = {}
+    for key in env.unwrapped.scene.keys():
+        if key.startswith("camera_"):
+            camera_cfg = getattr(env.unwrapped.scene.cfg, key)
+            name = key[len("camera_"):]
+            cameras[name] = {"height": camera_cfg.height, "width": camera_cfg.width}
+            print(f"[INFO]: Found simulation camera: {name}")
+    if not cameras:
+        print("[WARNING]: No simulation cameras found.")
+    return cameras
+
+
+def prepare_task_tracking(env, task, arm, recorders, fps):
+    """Prepare and validate every declared trajectory before recording begins."""
+    tracked = None
+    base_id = None
+    if task is not None:
+        from sim.teleop.spawner import _half_extents
+
+        tracked = {}
+        for name in task.spec.tracked_objects:
+            half = _half_extents(task, name)
+            size = (getattr(env.unwrapped.scene[name].cfg.spawn, "size", None)
+                    or (tuple(2 * value for value in half) if half is not None else None))
+            if size is None:
+                raise ValueError(f"{name}: declare size or size_outer in task.toml for its trajectory sidecar.")
+            tracked[name] = tuple(float(value) for value in size)
+        base_id = env.unwrapped.scene["robot"].find_bodies(arm.links.base)[0][0]
+    if recorders is not None and tracked is not None:
+        from utils.datasets.task_meta import validate_task_trajectories
+
+        validate_task_trajectories(recorders.recorders["sim"].dataset_root,
+                                   recorders.recorders["sim"].episode_lengths(), fps,
+                                   task=task, arm=arm, tracked_objects=tracked,
+                                   reference_frame=f"robot base link ({arm.links.base})")
+
+    return tracked, base_id

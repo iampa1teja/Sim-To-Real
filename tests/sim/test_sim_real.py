@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from sim.recording import setup as recording_setup
 from sim.eval.sim_real.trials import limited_target
 
 
@@ -230,9 +231,9 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs', fake_envs)
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
     monkeypatch.setattr(sim, 'workspace', SimpleNamespace(envs=fake_envs), raising=False)
-    monkeypatch.setattr(agent, '_env_id', lambda _: 'fake')
-    monkeypatch.setattr(agent, '_make_env_cfg', lambda *a: None)
-    monkeypatch.setattr(agent, '_sim_cameras', lambda _: [])
+    monkeypatch.setattr(recording_setup, 'environment_id', lambda _: 'fake')
+    monkeypatch.setattr(recording_setup, 'make_env_cfg', lambda *a: None)
+    monkeypatch.setattr(recording_setup, 'simulation_cameras', lambda _: [])
     monkeypatch.setattr(real_rollout, 'camera_specs', lambda _: {})
     monkeypatch.setattr(real_rollout, 'connect_follower', lambda _: SimpleNamespace(
         get_observation=lambda: dict(zip(arm.feature_names, raw)), disconnect=noop))
@@ -292,9 +293,9 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
     fake=SimpleNamespace(register=lambda *a, **k: SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
     monkeypatch.setitem(sys.modules,'sim.workspace.envs',fake);monkeypatch.setattr(sim,'workspace',SimpleNamespace(envs=fake),raising=False)
     monkeypatch.setitem(sys.modules,'sim.workspace.envs.mdp._common',SimpleNamespace(as_torch=torch.as_tensor))
-    monkeypatch.setattr(agent,'_env_id',lambda _:'fake')
-    monkeypatch.setattr(agent,'_make_env_cfg',lambda *a:None)
-    monkeypatch.setattr(agent,'_sim_cameras',lambda _:[])
+    monkeypatch.setattr(recording_setup,'environment_id',lambda _:'fake')
+    monkeypatch.setattr(recording_setup,'make_env_cfg',lambda *a:None)
+    monkeypatch.setattr(recording_setup,'simulation_cameras',lambda _:[])
     monkeypatch.setattr(real_rollout,'camera_specs',lambda _: {})
     writes=[]
     monkeypatch.setattr(real_rollout,'connect_follower',lambda _:SimpleNamespace(

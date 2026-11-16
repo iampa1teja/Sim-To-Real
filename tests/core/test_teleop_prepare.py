@@ -4,7 +4,7 @@ import pytest
 
 from utils.arms.calibration import resolve_calibration
 from utils.datasets.alignment import RecordingAlignmentError
-from sim.teleop import agent
+from sim.recording import setup
 from sim.teleop.config import AgentConfig, DatasetConfig
 
 
@@ -13,12 +13,12 @@ def test_factory_recording_prepares_alignment_even_without_device_calibration_pa
     assert selection.follower_path is None and selection.leader_path is None
     monkeypatch.setattr("utils.arms.calibration.resolve_calibration", lambda **_: selection)
     ports = []
-    monkeypatch.setattr(agent, "validate_serial_ports", lambda values: ports.append(values))
+    monkeypatch.setattr(setup, "validate_serial_ports", lambda values: ports.append(values))
     root = tmp_path / "recording"
     cfg = AgentConfig(arm=synthetic_arm.name,
                       dataset=DatasetConfig(repo_id="local/factory", root=str(root), task_name="test"))
 
-    chosen, contract, roots = agent._prepare(cfg)
+    chosen, contract, roots = setup.prepare_recording(cfg)
 
     assert chosen is selection
     assert roots == [str(root)]
@@ -35,10 +35,10 @@ def test_factory_alignment_mismatch_is_rejected_before_device_port_validation(sy
     (root / "meta").mkdir(parents=True)
     marker = root / "meta/recording_alignment.json"
     marker.write_text('{"arm":"different"}\n')
-    monkeypatch.setattr(agent, "validate_serial_ports", lambda _: pytest.fail("Devices must not be validated yet"))
+    monkeypatch.setattr(setup, "validate_serial_ports", lambda _: pytest.fail("Devices must not be validated yet"))
     cfg = AgentConfig(arm=synthetic_arm.name,
                       dataset=DatasetConfig(repo_id="local/factory", root=str(root), task_name="test"))
 
     with pytest.raises(RecordingAlignmentError):
-        agent._prepare(cfg)
+        setup.prepare_recording(cfg)
     assert marker.read_text() == '{"arm":"different"}\n'
