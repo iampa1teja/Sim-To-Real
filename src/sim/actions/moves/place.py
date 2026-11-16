@@ -235,7 +235,13 @@ class Place(Move):
 
 def place(obj, target, relation="inside", *, transport="arc", lift=.09, retreat=.06, clearance=.003,
           release_height=0., arc_margin=.01, release_seconds=.8, settle_seconds=1.5,
-          precise=None, yaw_precise=None, settle_steps=0, feedback="option"):
+          precise=None, yaw_precise=None, settle_steps=0, feedback="option",
+          rim=None, level=None, pitch=None, carry_height=None):
+    if relation == "nested":
+        from sim.actions.moves.rim import NestedPlace
+        return NestedPlace(obj, target, level=level, pitch=pitch, clearance=clearance,
+                           carry_height=carry_height, retreat=retreat, release_seconds=release_seconds,
+                           settle_seconds=settle_seconds, rim=rim)
     return Place(obj, target, relation, transport=transport, lift=lift, retreat=retreat, clearance=clearance,
                  release_height=release_height, arc_margin=arc_margin, release_seconds=release_seconds,
                  settle_seconds=settle_seconds, precise=precise, yaw_precise=yaw_precise,

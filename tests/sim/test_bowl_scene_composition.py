@@ -21,6 +21,31 @@ def test_three_bowls_are_declared_before_physics_import(variant):
     assert cfg.sim.physics.solver_cfg.nconmax >= 32768
     assert cfg.sim.physics.solver_cfg.njmax >= 131072
     assert 1/(cfg.decimation*cfg.sim.dt) == pytest.approx(30.)
-    assert cfg.events.reset_tracking.func.__module__.endswith('stack_bowls.mdp')
+    from sim.workspace.envs.task_env import reset_task_tracking, task_success
+    assert cfg.events.reset_tracking.func is reset_task_tracking
+    assert cfg.events.reset_tracking.params == {'task': task.name}
     if variant=='eval':
-        assert cfg.terminations.success.func.__module__.endswith('stack_bowls.mdp')
+        assert cfg.terminations.success.func is task_success
+        assert cfg.terminations.success.params == {'task': task.name}
+
+
+@pytest.mark.parametrize('flagged', [False, True])
+def test_usd_grasp_material_is_selected_only_by_the_object_flag(flagged):
+    from dataclasses import replace
+    from types import SimpleNamespace
+    from isaaclab.sim.spawners.from_files import spawn_from_usd
+    from sim.workspace.envs.task_env import apply_variant, spawn_grasp_usd
+
+    task = load_task('stack_bowls')
+    name = task.spec.tracked_objects[0]
+    original = task.spec.objects[name]
+    obj = replace(original, params={**original.params, 'grasp_material': flagged})
+    spec = replace(task.spec, objects={**task.spec.objects, name: obj})
+    cfg = scene_builder.build_scene_cfg('blank_table', load_arm_spec('so101')[0])
+    apply_variant(cfg, SimpleNamespace(spec=spec, name=task.name), 'teleop')
+    spawn = getattr(cfg.scene, name).spawn.func
+    spawn = resolve(spawn) if isinstance(spawn, str) else spawn
+    assert spawn is (spawn_grasp_usd if flagged else spawn_from_usd)
+    # The flag selects material binding; imported geometry and declared solver capacity stay intact.
+    assert getattr(cfg.scene, name).spawn.usd_path == str(original.usd)
+    assert cfg.sim.physics.solver_cfg.njmax >= 131072

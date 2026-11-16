@@ -13,5 +13,8 @@ class Approach(Move):
         return (self.waypoint(ctx, "approach", self.position(ctx) + self.normal(ctx) * height, opened),)
 
 
-def approach(obj, height=.06):
+def approach(obj, height=.06, *, rim=None):
+    if rim is not None:
+        from sim.actions.moves.rim import RimApproach
+        return RimApproach(obj, height, rim)
     return Approach(obj, height)

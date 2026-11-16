@@ -163,6 +163,7 @@ class Tracker(Check):
 
     _owner = None
     _state = None
+    reset_all = False  # legacy batch-cached checks invalidate every row after a partial reset
 
     def initial(self, frame) -> dict[str, Any]:
         raise NotImplementedError
@@ -187,17 +188,18 @@ class Tracker(Check):
     def reset(self, ids, frame):
         state = self.state(frame)
         self.clear(state, ids, frame)
-        state["step"][ids] = -1
+        state["step"][slice(None) if self.reset_all else ids] = -1
 
 
 class Hold(Tracker):
     """True once ``check`` has held for ``steps`` consecutive updates (a bounce does not count)."""
 
-    def __init__(self, check, steps):
+    def __init__(self, check, steps, *, reset_all=False):
         if steps < 1:
             raise ValueError("confirm_steps must be positive.")
         self.check = _require_sim(check, "hold")
         self.steps = int(steps)
+        self.reset_all = reset_all
 
     def children(self):
         return (self.check,)
@@ -223,8 +225,8 @@ class Hold(Tracker):
         return state["count"] >= self.steps
 
 
-def hold(check, steps):
-    return Hold(check, steps)
+def hold(check, steps, *, reset_all=False):
+    return Hold(check, steps, reset_all=reset_all)
 
 
 # ---------------------------------------------------------------------------
@@ -391,14 +393,34 @@ class Expert:
     """
 
     def __init__(self, moves, objects, defaults=None):
-        self.moves = tuple(moves)
+        self.moves = moves if callable(moves) else tuple(moves)
         self.objects = objects
         self.defaults = dict(defaults or {})
 
     def plan(self, context):
+        self._waypoint_overrides, self._orientation_cache = {}, {}
+        return self._plan(context)
+
+    def _plan(self, context):
         values = {item.name: getattr(context, item.name) for item in fields(ExpertContext)}
         values["options"] = {**self.defaults, **context.options}
         ctx = MoveContext(**values, objects=self.objects)
-        for move in self.moves:
+        moves = self.moves(ctx) if callable(self.moves) else self.moves
+        for move in moves:
             move.validate(ctx)
-        return tuple(point for move in self.moves for point in move.plan(ctx))
+        result = tuple((point, move) for move in moves for point in move.plan(ctx))
+        self._waypoint_moves = {point.name: move for point, move in result}
+        return tuple(point for point, move in result)
+
+    def adapt_waypoint(self, waypoint, context):
+        move = self._waypoint_moves[waypoint.name]
+        if getattr(move, "replan", False):
+            fresh = self._plan(context)
+            self._waypoint_overrides.update({point.name: point for point in fresh
+                if getattr(self._waypoint_moves[point.name], "group", None) == move.group})
+        return self._waypoint_overrides.get(waypoint.name, waypoint)
+
+    def control_orientation(self, waypoint, state, control_pose, nominal, context, fraction):
+        callback = getattr(self._waypoint_moves[waypoint.name], "control_orientation", None)
+        return nominal if callback is None else callback(
+            waypoint, state, control_pose, nominal, context, fraction, self._orientation_cache)

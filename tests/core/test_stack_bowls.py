@@ -4,25 +4,25 @@ import json
 import numpy as np
 import pytest
 import torch
-from core.tasks.loader import load_task, load_task_module
+from core.tasks.loader import load_task
 
 
 def test_all_six_color_orders_are_accepted_geometrically():
     task = load_task('stack_bowls')
-    geometry = load_task_module('geometry', task.name)
+    geometry = task.module
     p = torch.tensor([[[.15,-.1,.1], [.15,-.1,.122], [.15,-.1,.144]]])
     q = torch.tensor([[[0.,0.,0.,1.]]*3])
     v = torch.zeros((1,3,6))
     for permutation in itertools.permutations(range(3)):
-        paired, upright, stable = geometry.nesting_metrics(p[:,permutation], q, v, task.spec.raw['success'])
+        paired, upright, stable = geometry.nesting_metrics(p[:,permutation], q, v, task.module.SETTINGS)
         assert paired.all() and upright.all() and stable.all()
-    assert task.spec.raw['success']['color_order'] == 'any'
+    assert task.module.SETTINGS['color_order'] == 'any'
 
 
 @pytest.mark.parametrize('case', ['separate', 'overlap', 'upside_down', 'moving'])
 def test_invalid_stacks_are_rejected(case):
     task = load_task('stack_bowls')
-    geometry = load_task_module('geometry', task.name)
+    geometry = task.module
     p = torch.tensor([[[.15,-.1,.1], [.15,-.1,.122], [.15,-.1,.144]]])
     q = torch.tensor([[[0.,0.,0.,1.]]*3])
     v = torch.zeros((1,3,6))
@@ -30,7 +30,7 @@ def test_invalid_stacks_are_rejected(case):
     if case == 'overlap': p[0,2,2] = .122
     if case == 'upside_down': q[0,1] = torch.tensor([1.,0.,0.,0.])
     if case == 'moving': v[0,2,0] = .2
-    paired, upright, stable = geometry.nesting_metrics(p,q,v,task.spec.raw['success'])
+    paired, upright, stable = geometry.nesting_metrics(p,q,v,task.module.SETTINGS)
     assert not (paired.all() and upright.all() and stable.all())
 
 
@@ -69,10 +69,10 @@ def test_bowl_colliders_preserve_open_interior():
 
 def test_first_placement_ignores_unstacked_third_bowl_height():
     task = load_task('stack_bowls')
-    geometry = load_task_module('geometry', task.name)
+    geometry = task.module
     # A sloping table can put the third bowl between the first two in Z.
     p = torch.tensor([[[.1,-.1,.100], [.1,-.1,.117], [.3,-.2,.103]]])
-    assert geometry.any_nested_pair(p,task.spec.raw['success']).item()
+    assert geometry.any_nested_pair(p,task.module.SETTINGS).item()
 
 
 def test_rim_grasps_follow_pan_instead_of_a_fixed_world_direction():
@@ -183,12 +183,12 @@ def test_active_bowl_preserves_the_supplied_usd_mesh_and_normals():
 def test_nested_stack_allows_cumulative_lean_but_requires_adjacent_alignment():
     from scipy.spatial.transform import Rotation
     task = load_task('stack_bowls')
-    geometry = load_task_module('geometry',task.name)
+    geometry = task.module
     p = torch.tensor([[[.15,-.1,.1],[.15,-.1,.118],[.15,-.1,.136]]])
     q = torch.tensor(Rotation.from_euler('x',[[0.],[10.],[20.]],degrees=True).as_quat()[None])
     velocity = torch.zeros((1,3,6))
-    paired,upright,stable = geometry.nesting_metrics(p,q,velocity,task.spec.raw['success'])
+    paired,upright,stable = geometry.nesting_metrics(p,q,velocity,task.module.SETTINGS)
     assert paired.all() and upright.all() and stable.all()
     q[0,1] = torch.tensor(Rotation.from_euler('x',28.,degrees=True).as_quat())
-    paired,upright,stable = geometry.nesting_metrics(p,q,velocity,task.spec.raw['success'])
+    paired,upright,stable = geometry.nesting_metrics(p,q,velocity,task.module.SETTINGS)
     assert not paired.all()

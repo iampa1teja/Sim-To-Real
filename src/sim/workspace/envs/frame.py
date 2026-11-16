@@ -25,8 +25,8 @@ CONTACT_SENSOR = "contact_grasp"
 
 
 def contact_objects(spec):
-    """Objects filtered by the jaw contact sensor, in filter order: the task's start object."""
-    return (spec.start.get("object", spec.tracked_objects[0]),)
+    """Objects filtered by the jaw contact sensor, in manifest order (default: the start object)."""
+    return tuple(spec.raw.get("contact", {}).get("objects", (spec.start.get("object", spec.tracked_objects[0]),)))
 
 
 def _tensor(value):
@@ -42,7 +42,7 @@ def _grasp_offset(env, spec, ee_position, ee_path):
         gripper = arm.gripper
         if gripper is None:
             offset = None
-        elif gripper.kind == "parallel" or not gripper.tip_mesh:
+        elif spec.raw.get("contact", {}).get("grasp_point") == "arm_tcp" or gripper.kind == "parallel" or not gripper.tip_mesh:
             offset = arm.ik.position_offset_m
         else:
             from isaaclab.sim import get_current_stage

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from functools import cache
+import re
 from typing import Any
 
 from core.tasks.loader import load_task, resolve
@@ -39,6 +40,7 @@ class ObjectPlan:
     position: tuple
     rotation_euler_degrees: tuple
     frame: str
+    material: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -66,12 +68,13 @@ class TaskCfgPlan:
     decimation: int
     episode_steps: int | None
     drop_unused_cameras: bool
+    physics: dict = field(default_factory=dict)
 
 
-def _material(name, spec, scene):
+def _material(name, spec, scene, appearance=None):
     values = scene.appearance.get("object_materials", {}).get(name, {})
     params = spec.params
-    fallback = params.get("material", {})
+    fallback = {**(appearance or {}), **params.get("material", {})}
     color = values.get("color", fallback.get("color", params.get("color", (1, 1, 1))))
     roughness = values.get("roughness", fallback.get("roughness", params.get("roughness", 0.5)))
     return tuple(float(value) for value in color), float(roughness)
@@ -96,21 +99,27 @@ def plan_task_cfg(spec, variant, arm, scene) -> TaskCfgPlan:
     if arm.gripper is None or not arm.gripper.contact_bodies:
         raise ValueError(f"Task {spec.name!r} needs arm gripper contact_bodies")
     episode = spec.raw.get("episode", {})
-    bodies = arm.gripper.contact_bodies
-    pattern = bodies[0] if len(bodies) == 1 else "(" + "|".join(bodies) + ")"
+    contact = spec.raw.get("contact", {})
+    bodies = getattr(arm.gripper, contact.get("body_source", "contact_bodies")) or arm.gripper.contact_bodies
+    names = tuple(map(re.escape, bodies)) if contact.get("literal_bodies") else bodies
+    pattern = names[0] if len(names) == 1 and not contact.get("parenthesize") else "(" + "|".join(names) + ")"
     items = [SensorPlan(CONTACT_SENSOR, ENV_NS + "Robot/" + pattern,
                         tuple(_prim(spec, name) for name in contact_objects(spec)))]
     for name, item in spec.objects.items():
-        color, roughness = _material(name, item, scene)
+        appearance = spec.raw.get("appearance", {})
+        color, roughness = _material(name, item, scene, appearance)
+        material = {key: value for key, value in {**appearance, **item.params.get("material", {})}.items()
+                    if key not in ("color", "roughness")}
         items.append(ObjectPlan(
             name=name, prim_path=_prim(spec, name), usd=item.usd, size=item.size,
             mass=item.params.get("mass") if item.usd is None else None, color=color, roughness=roughness,
-            grasp_material=item.usd is None, position=item.position,
-            rotation_euler_degrees=item.rotation_euler_degrees, frame=item.params.get("frame", "world")))
+            grasp_material=item.usd is None or item.params.get("grasp_material", False), position=item.position,
+            rotation_euler_degrees=item.rotation_euler_degrees, frame=item.params.get("frame", "world"), material=material))
 
     start_object = spec.start.get("object", spec.tracked_objects[0])
     tracking = TermPlan("reset_tracking", f"{__name__}:reset_task_tracking", {"task": spec.name}, mode="reset")
-    if variant == "teleop":
+    resets = spec.raw.get("resets", {})
+    if variant == "teleop" and resets.get("teleop", "park") == "park":
         # Objects declared with reset_to_default = true go back to their declared pose on every reset.
         restore = tuple(name for name, item in spec.objects.items() if item.params.get("reset_to_default", False))
         events = [TermPlan("reset_target", f"{__name__}:reset_to_default", {"names": restore}, mode="reset")] if restore else []
@@ -118,11 +127,14 @@ def plan_task_cfg(spec, variant, arm, scene) -> TaskCfgPlan:
         events += [TermPlan("reset_from_starts", "sim.workspace.envs.mdp:park_object",
                             {"asset_cfg": Entity(start_object)}, mode="reset"), tracking]
     else:
+        params = resets.get("params", {"starts_dir": None, "mode": "cycle", "random_fraction": 0.0,
+                                        "seed": None, "reset_robot": True})
         events = [TermPlan("reset_from_starts", "sim.workspace.envs.mdp.starts:reset_from_starts",
-                           {"task": spec.name, "starts_dir": None, "mode": "cycle", "random_fraction": 0.0,
-                            "seed": None, "reset_robot": True}, mode="reset"),
+                           {"task": spec.name, **params}, mode="reset"),
                   tracking,
                   TermPlan("check_eval_order", "sim.workspace.envs.mdp.starts:assert_reset_event_order", mode="startup")]
+        if resets.get("teleop") == "starts":
+            events = [events[-1], *events[:-1]]
     if variant == "eval_dr":
         dr = spec.raw["dr"]
         events.append(TermPlan("eval_room_light", "sim.workspace.scene.appearance:randomize_scene_light_exposure",
@@ -143,6 +155,7 @@ def plan_task_cfg(spec, variant, arm, scene) -> TaskCfgPlan:
         decimation=episode.get("decimation", 4),
         episode_steps=None if variant == "teleop" else episode.get("eval_steps", 450),
         drop_unused_cameras=variant != "teleop",
+        physics=dict(spec.raw.get("physics", {})),
     )
 
 
@@ -176,6 +189,43 @@ def _params(params):
     return {key: SceneEntityCfg(value.name) if isinstance(value, Entity) else value for key, value in params.items()}
 
 
+def spawn_grasp_usd(prim_path, cfg, translation=None, orientation=None, **kwargs):
+    """Bind the existing grasp contact material only on USD objects that opt in."""
+    from isaaclab.sim.spawners.from_files import spawn_from_usd
+    from sim.workspace.scene.contact_materials import bind_contact_material, GRASP_FRICTION, GRASP_ROLLING_FRICTION
+
+    root = spawn_from_usd(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
+    bind_contact_material(root, lambda prim: True, friction=GRASP_FRICTION,
+                          rolling_friction=GRASP_ROLLING_FRICTION)
+    return root
+
+
+@cache
+def _grasp_usd_cfg():
+    from isaaclab.sim import UsdFileCfg
+    from isaaclab.utils import configclass
+
+    @configclass
+    class GraspUsdCfg(UsdFileCfg):
+        func = spawn_grasp_usd
+
+    return GraspUsdCfg
+
+
+@cache
+def _surface_cfg():
+    from isaaclab.sim import PreviewSurfaceCfg
+    from isaaclab.utils import configclass
+
+    @configclass
+    class SpecularSurfaceCfg(PreviewSurfaceCfg):
+        use_specular_workflow: int = 1
+        specular_color: tuple[float, float, float] = (0., 0., 0.)
+        clearcoat: float = 0.
+
+    return SpecularSurfaceCfg
+
+
 def _object_cfg(item, scene, arm_pose):
     import isaaclab.sim as sim_utils
     from isaaclab.assets import RigidObjectCfg
@@ -184,9 +234,12 @@ def _object_cfg(item, scene, arm_pose):
     from sim.workspace.scene.contact_materials import (
         GRASP_FRICTION, GRASP_ROLLING_FRICTION, contact_material, contact_properties)
 
-    material = sim_utils.PreviewSurfaceCfg(diffuse_color=item.color, roughness=item.roughness, metallic=0.0)
+    surface = _surface_cfg() if item.material else sim_utils.PreviewSurfaceCfg
+    material = surface(diffuse_color=item.color, roughness=item.roughness, metallic=0.0,
+                       **{key: tuple(value) if isinstance(value, list) else value for key, value in item.material.items()})
     if item.usd is not None:
-        spawn = sim_utils.UsdFileCfg(usd_path=str(item.usd), visual_material=material)
+        usd_cfg = _grasp_usd_cfg() if item.grasp_material else sim_utils.UsdFileCfg
+        spawn = usd_cfg(usd_path=str(item.usd), visual_material=material)
     else:
         spawn = sim_utils.CuboidCfg(
             size=item.size,
@@ -238,6 +291,9 @@ def apply_variant(cfg, task, variant):
         cfg.observations.subtask_terms = group
     cfg.decimation = plan.decimation
     cfg.sim.render_interval = cfg.decimation
+    for name, capacity in plan.physics.items():
+        current = getattr(cfg.sim.physics.solver_cfg, name)
+        setattr(cfg.sim.physics.solver_cfg, name, max(current or 0, capacity))
     cfg.scene.robot.spawn.activate_contact_sensors = True
     if plan.terminations:
         cfg.terminations = terminations_cfg(**{term.name: DoneTerm(

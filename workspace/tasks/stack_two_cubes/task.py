@@ -30,7 +30,7 @@ expert = [
 expert_options = {"move_seconds": 1.5, "transport_seconds": .5, "waypoint_timeout_seconds": 8.0}
 
 
-def sample_start(sample):
+def sample_start(task, rng, sample):
     """Both cubes from the start region, the second redrawn until they are 6 cm apart."""
     first = sample()
     for _ in range(1000):

@@ -70,3 +70,43 @@ class Grasped(Tracker):
 
 def grasped(obj, force=2.0, *, lift, warmup_steps=30):
     return Grasped(obj, force, lift=lift, warmup_steps=warmup_steps)
+
+
+class Carried(Tracker):
+    """Track distinct objects lifted under firm contact, without holding hysteresis.
+
+    ``reset_all`` preserves batch-cached legacy tracking: resetting some rows invalidates
+    the measurement step for every row, while clearing history only for the reset rows.
+    """
+    def __init__(self, objects, *, min_lift, force, reset_all=False):
+        self.objects, self.min_lift, self.force = tuple(objects), min_lift, force
+        self.reset_all = reset_all
+
+    def positions(self, frame):
+        import torch
+        return torch.stack([frame.position[name] for name in self.objects], 1)
+
+    def initial(self, frame):
+        import torch
+        positions = self.positions(frame)
+        ever = torch.zeros(positions.shape[:2], dtype=torch.bool, device=positions.device)
+        return {"rest_z": positions[:, :, 2].clone(), "grasped": ever, "lifted": ever.clone()}
+
+    def clear(self, state, ids, frame):
+        state["rest_z"][ids] = self.positions(frame)[ids, :, 2]
+        state["grasped"][ids] = False
+        state["lifted"][ids] = False
+
+    def update(self, frame):
+        import torch
+        state = self.state(frame)
+        update = self.due(frame, state)
+        z = self.positions(frame)[:, :, 2]
+        state["rest_z"][update] = torch.minimum(state["rest_z"][update], z[update])
+        lifted = z - state["rest_z"] >= self.min_lift
+        contact = torch.stack([frame.contact[name] for name in self.objects], 1)
+        held = (contact > self.force) & lifted
+        state["grasped"][update] |= held[update]
+        state["lifted"][update] |= (lifted & state["grasped"])[update]
+        state["step"][update] = frame.step
+        return held, state["grasped"], state["lifted"]

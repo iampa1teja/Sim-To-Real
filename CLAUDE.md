@@ -50,6 +50,9 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   `sim.actions` checks, success hold, expert built from `sim.actions` moves). Low-level check and move code lives
   once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac. Tasks not yet ported
   keep the legacy `__init__/env_cfg/mdp/expert.py` layout until their phase.
+  All three production tasks use the two-file layout. Custom nesting geometry stays in its task.py;
+  composed rim moves live in `sim/actions/moves/rim.py`. Task contact filters/TCP choice, reset policy,
+  USD grasp-material flags and minimum solver capacities are declared in the task manifest.
 - Data generation uses the task's expert waypoints and arm-declared `ik` TCP/orientation constraints.
   `[arm.ik].solver` selects `dls` or `bounded`; `[task.expert].ik_solver` can override it. Scripted and
   Mimic both read task expert `orientation_weight`, `orientation_tolerance_rad` and `control_offset`,

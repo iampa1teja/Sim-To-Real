@@ -3,10 +3,10 @@
 ``task.py`` exposes plain module-level names:
 
 - ``stages``: dict of stage name -> check, in ``task.toml`` stage order; the last one is success.
-- ``expert`` (optional): list of moves, planned in order by the scripted expert;
+- ``expert`` (optional): list of moves, or a builder ``expert(context)`` returning that list;
   ``expert_options`` (optional) changes the moves' option defaults (the runner's options still win).
 - optional hooks for genuinely task-specific rules:
-  ``sample_start(sample)`` the start poses, given ``sample()`` that draws one start-object pose;
+  ``sample_start(task, rng, sample)`` the start poses, given the RNG and a primary-object pose sampler;
   ``start_is_valid(task, start, scene)`` an extra start rule, applied after the generic one;
   ``failure_mode(flags, state)`` the failure name of an unsuccessful episode (default ``"timeout"``);
   ``progress_label(label, flags, state)`` extends the generic progress label;
@@ -98,7 +98,7 @@ class Task(BaseTask):
         if rule is None:
             return super().sample_start(rng)
         name = self.spec.start.get("object", self.spec.tracked_objects[0])
-        return rule(lambda: super(Task, self).sample_start(rng)[name])
+        return rule(self, rng, lambda: super(Task, self).sample_start(rng)[name])
 
     def start_is_valid(self, start, scene) -> bool:
         if not super().start_is_valid(start, scene):

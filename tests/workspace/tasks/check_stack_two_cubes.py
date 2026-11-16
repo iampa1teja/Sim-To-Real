@@ -9,7 +9,7 @@ import sys
 import types
 
 
-def main():
+def main(task_name="stack_two_cubes", class_name="StackTwoCubesTask"):
     from sim import launch, close_app
     # Select the repository's utils package before Kit adds its own search paths,
     # just as the production entry points' prelaunch task imports do.
@@ -22,8 +22,8 @@ def main():
         from utils.arms.arms import load_arm_spec
         from task_oracle import legacy_task, LEGACY_TASKS
 
-        old_task = legacy_task("stack_two_cubes", "StackTwoCubesTask")
-        task = load_task("stack_two_cubes")
+        old_task = legacy_task(task_name, class_name)
+        task = load_task(task_name)
         package_name = "legacy_stack_cfg"
         package = types.ModuleType(package_name)
         package.__path__ = [str(LEGACY_TASKS / task.name)]
@@ -45,9 +45,16 @@ def main():
                             a["events"][event]["func"] = b["events"][event]["func"]
                             a["events"][event]["params"] = b["events"][event]["params"]
                     if variant == "eval":
-                        assert a["events"].pop("reset_target") is None
+                        if "reset_target" in a["events"] and "reset_target" not in b["events"]:
+                            assert a["events"].pop("reset_target") is None
                         a["terminations"]["success"]["func"] = b["terminations"]["success"]["func"]
                         a["terminations"]["success"]["params"] = b["terminations"]["success"]["params"]
+                    for name in task.spec.objects:
+                        old_spawn, new_spawn = a['scene'][name]['spawn'], b['scene'][name]['spawn']
+                        if old_spawn['func'] != new_spawn['func']:
+                            assert old_spawn['func'].endswith(':spawn_bowl')
+                            assert new_spawn['func'].endswith(':spawn_grasp_usd')
+                            old_spawn['func'] = new_spawn['func']
                     differences = list(diff(a, b))
                     assert not differences, (arm_name, scene, variant, differences)
                     print(f"MATCH {arm_name}/{scene}/{variant}", flush=True)

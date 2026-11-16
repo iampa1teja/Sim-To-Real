@@ -19,5 +19,8 @@ class Pick(Move):
         )
 
 
-def pick(obj, lift=.09, grasp_seconds=.8):
+def pick(obj, lift=.09, grasp_seconds=.8, *, rim=None):
+    if rim is not None:
+        from sim.actions.moves.rim import RimPick
+        return RimPick(obj, lift, grasp_seconds, rim)
     return Pick(obj, lift, grasp_seconds)
