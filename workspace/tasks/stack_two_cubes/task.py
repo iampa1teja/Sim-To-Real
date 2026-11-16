@@ -38,15 +38,3 @@ def sample_start(task, rng, sample):
         if np.linalg.norm(np.asarray(first.position[:2]) - second.position[:2]) >= .06:
             return {"cube_a": first, "cube_b": second}
     raise ValueError("Task start region cannot fit two separated cubes")
-
-
-def failure_mode(flags, state):
-    if flags.get("stacked"):
-        return "stacked_not_confirmed"
-    if not flags.get("reached"):
-        return "never_reached"
-    if not flags.get("grasped"):
-        return "missed_grasp"
-    if state is not None and state.signals.get("holding", False):
-        return "timeout_holding"
-    return "dropped_outside" if flags.get("over_target") else "dropped_before_target"

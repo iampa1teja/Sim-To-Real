@@ -1,5 +1,20 @@
-"""Task-defined milestones latched once per live episode."""
+"""Task-defined milestones and failure reporting from the furthest latched stage."""
 from core.tasks.task import StepState, Task
+
+
+def failure_mode(stages, latched, holding=False):
+    """Report the next stage, even when earlier stages were never observed.
+
+    Holding is a separate timeout flag, independent of which stage failed.
+    A successful trace has no failure and is never a holding timeout.
+    """
+    stages = tuple(stages)
+    if not stages:
+        raise ValueError("Failure reporting requires at least one stage")
+    success = bool(latched.get(stages[-1], False))
+    furthest = max((i for i, name in enumerate(stages) if latched.get(name, False)), default=-1)
+    return {"failure_mode": None if success else "failed_at_" + stages[furthest + 1],
+            "timeout_holding": bool(holding) and not success}
 
 
 class StageTrace:
@@ -26,4 +41,4 @@ class StageTrace:
         stages = dict(self.stages)
         if success is not None:
             stages[self.task.stages[-1]] = bool(success)
-        return {"stages": stages, "failure_mode": self.task.failure_mode(stages, self.last_state)}
+        return {"stages": stages, **failure_mode(self.task.stages, stages, self.holding)}

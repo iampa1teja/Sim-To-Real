@@ -82,7 +82,8 @@ class SuccessRecorder:
         accepted = latched and final_success and frames > 0
         if latched and not final_success:
             reason = "success_lost_before_episode_end"
-            result["failure_mode"] = reason
+            result["failure_mode"] = "failed_at_" + self.task.stages[-1]
+            result["timeout_holding"] = self.trace.holding
         index, metadata_path = None, None
         if accepted:
             payload = {"schema_version": 2, "task": self.task.name, "arm": self.arm.name,

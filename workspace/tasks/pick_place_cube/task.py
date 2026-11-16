@@ -21,19 +21,6 @@ expert = [
 ]
 
 
-def failure_mode(flags, state):
-    if flags.get("placed"):
-        return "placed_not_confirmed"
-    if not flags.get("reached"):
-        return "never_reached"
-    if not flags.get("grasped"):
-        return "missed_grasp"
-    if state is not None and state.signals.get("holding", False):
-        return "timeout_holding"
-    if not flags.get("over_box"):
-        return "dropped_before_box"
-    return "dropped_outside"
-
 
 def progress_label(label, flags, state):
     if flags.get("grasped") and not flags.get("placed"):

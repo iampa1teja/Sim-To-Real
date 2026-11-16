@@ -5,7 +5,7 @@ Oracles are the verbatim legacy files in tests/fixtures/legacy_tasks/pick_place_
 - signals: the legacy mdp.py (with Isaac stubbed by a torch XYZW math module) against the new checks,
   driven through the env entry points in Isaac Lab step order on synthetic float32 multi-env histories;
 - expert: legacy PickPlaceExpert against the composed moves, across seeds and option overrides;
-- core: observe, failure_mode, progress_label, sample_start, start_is_valid (stored eval sets) and
+- core: observe, progress_label, sample_start, start_is_valid (stored eval sets) and
   episode_metadata of the legacy PickPlaceTask against the generic Task.
 """
 from dataclasses import replace
@@ -377,7 +377,7 @@ def test_core_rules_match_the_legacy_task(legacy_task):
     for state, flags in _states(rng, 3000):
         assert task.observe(state) == legacy_task.observe(state)
         for current in (state, None):
-            assert task.failure_mode(flags, current) == legacy_task.failure_mode(flags, current)
+            # Phase 15 intentionally replaces legacy failure names; flag/progress oracles remain.
             assert task.progress_label(flags, current) == legacy_task.progress_label(flags, current)
     assert task.stages == legacy_task.stages
 

@@ -117,7 +117,8 @@ def test_late_loss_is_rejected_even_when_success_was_previously_latched(attempt)
     row = recorder.finish()
     assert row["latched_success"] and not row["final_success"]
     assert not row["accepted"] and not row["success"] and not writer.saved
-    assert row["reason"] == row["failure_mode"] == "success_lost_before_episode_end"
+    assert row["reason"] == "success_lost_before_episode_end"
+    assert row["failure_mode"] == "failed_at_" + recorder.task.stages[-1]
 
 
 def test_unobserved_or_invalid_pose_frame_cannot_publish_an_episode(attempt):

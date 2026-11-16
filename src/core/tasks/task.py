@@ -321,10 +321,10 @@ class Task:
         return True if rule is None else bool(rule(self, start, scene))
 
     def failure_mode(self, flags, state):
-        if self.is_success(flags):
-            return None
-        rule = self._hook("failure_mode")
-        return "timeout" if rule is None else rule(flags, state)
+        from .stages import failure_mode
+
+        holding = bool(state is not None and state.signals.get("holding", False))
+        return failure_mode(self.stages, flags, holding)["failure_mode"]
 
     def progress_label(self, flags, state):
         stage = self.furthest_stage(flags) or "approaching"

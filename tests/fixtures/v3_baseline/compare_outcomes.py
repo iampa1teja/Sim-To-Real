@@ -17,6 +17,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 # Baseline tests deleted on purpose during the restructure (file-name prefixes), with the phase that removed them.
 REMOVED = (
+    "test_task_stages.py::test_pick_place_failure_results_preserve_the_previous_trace",  # Phase 15: task-specific labels replaced by furthest-stage names, covered by test_pick_place_failure_names_follow_the_furthest_stage.
+    "test_task_stages.py::test_stage_latching_and_live_holding_preserve_dropped_outside_result",  # Phase 15: replaces the dropped_outside label with failed_at_placed and a holding flag.
     "test_task_stages.py::test_incomplete_task_plugins_fail_instead_of_reporting_all_false",  # Phase 11: abstract legacy plugins removed; replaced by test_task_stage_declarations_must_match_the_manifest.
     "test_ik.py::test_factories_choose_arm_hook_and_forward_arguments[make_ik]",  # Phase 9: manifest solver replaces the arm hook; covered by test_live_factory_uses_manifest_solver_instead_of_legacy_arm_hook.
     "test_plan.py", "test_extensions.py", "test_urdf_planning.py", "test_check.py",       # Phase 1: CLI

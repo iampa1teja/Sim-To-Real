@@ -188,7 +188,7 @@ def test_core_flags_sampling_and_geometry_match(legacy, legacy_task):
         flags = {name: bool(rng.integers(2)) for name in task.stages if rng.random() < .8}
         assert task.observe(state) == legacy_task.observe(state)
         for current in (state, None):
-            assert task.failure_mode(flags, current) == legacy_task.failure_mode(flags, current)
+            # Phase 15 intentionally replaces legacy failure names; flag/progress oracles remain.
             assert task.progress_label(flags, current) == legacy_task.progress_label(flags, current)
     for seed in range(100):
         assert task.sample_start(np.random.default_rng(seed)) == legacy_task.sample_start(np.random.default_rng(seed))

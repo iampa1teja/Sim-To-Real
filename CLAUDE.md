@@ -84,7 +84,8 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
 - Policy clients receive ordered joint names, roles, joint types and the saved device codec through
   `configure(ArmInfo)`. Generic clients derive their dimension from that contract; a fixed embodiment declares
   `[action].dim`. Keep model-specific coordinate conventions inside its policy folder.
-- Task plugins own signals, per-step stage flags and failure rules. The generic stage engine latches the declared
+- Task plugins own signals and per-step stage flags. Failure labels are generated as `failed_at_<stage after
+  the furthest latched stage>`, with a separate `timeout_holding` boolean. The generic stage engine latches the declared
   stages and treats the last as success. Reset order is robot pose, object starts, then task tracking state.
   Use the generic reset-order assertion; engine code must not dispatch on task names, reset function names or
   task-specific environment attributes. Object placement/start frames are declared in the task manifest.

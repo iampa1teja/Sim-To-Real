@@ -161,13 +161,3 @@ def sample_start(task, rng, sample):
         if len(positions) == 3:
             return positions
     raise ValueError('Cannot fit three separated bowls in the start region')
-
-
-def failure_mode(flags, state):
-    if flags.get('all_bowls_stacked'):
-        return 'stack_not_confirmed'
-    if not flags.get('grasped'):
-        return 'never_grasped'
-    if not flags.get('second_bowl_lifted'):
-        return 'one_bowl_only'
-    return 'incomplete_stack'
