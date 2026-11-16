@@ -52,6 +52,27 @@ assert not any(name in sys.modules for name in ('torch', 'isaaclab', 'pxr', 'omn
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_new_task_template_copies_to_a_loadable_two_file_task(tmp_path):
+    import shutil
+
+    shutil.copytree(ROOT / 'workspace/tasks/_template', tmp_path / 'new_task')
+    script = '''
+import sys
+from core.tasks.task import load_task
+task = load_task('new_task')
+assert task.stages == tuple(task.module.stages)
+assert task.spec.tracked_objects == ('object',)
+assert set(task.spec.objects) == {'object', 'target'}
+assert task.gym_id('eval') == 'S2R-new_task-eval'
+task.expert()
+assert not any(name in sys.modules for name in ('torch', 'isaaclab', 'pxr', 'omni'))
+'''
+    result = subprocess.run([sys.executable, '-c', script], cwd=ROOT,
+                            env={**os.environ, 'PYTHONPATH': str(ROOT / 'src'), 'S2R_TASKS_DIR': str(tmp_path)},
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_registration_uses_the_selected_task_without_global_state(monkeypatch):
     from sim.workspace import envs
 

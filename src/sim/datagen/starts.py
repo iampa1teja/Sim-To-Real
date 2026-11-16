@@ -5,6 +5,7 @@ import random
 
 import numpy as np
 
+from core.tasks.task import Task
 from utils.geometry import Pose, xyzw_to_wxyz
 
 
@@ -20,7 +21,8 @@ class GridStarts:
         for name, value in (("cells_per_axis", cells_per_axis), ("yaw_steps", yaw_steps), ("max_starts", max_starts)):
             if type(value) is not int or value < 1:
                 raise ValueError(f"{name} must be a positive integer")
-        self.task, self.scene = task, None
+        # Keep SDK configuration traversal confined to data; modules may contain cycles.
+        self.spec, self.scene = task.spec, None
         self.cells_per_axis, self.yaw_steps, self.max_starts = cells_per_axis, yaw_steps, max_starts
         self.names = tuple(task.spec.tracked_objects)
         if not self.names:
@@ -63,16 +65,17 @@ class GridStarts:
         return tuple(reversed(rows))
 
     def _valid(self, rows):
-        minimum = self.task.spec.start.get("minimum_separation_m", 0.)
-        radius = self.task.spec.start.get("minimum_base_radius_m", 0.)
+        minimum = self.spec.start.get("minimum_separation_m", 0.)
+        radius = self.spec.start.get("minimum_base_radius_m", 0.)
         xy = [np.asarray(pose.position[:2]) for pose, _ in rows]
         return (all(np.linalg.norm(p) >= radius for p in xy) and
                 all(np.linalg.norm(a - b) >= minimum for i, a in enumerate(xy) for b in xy[:i]))
 
     def _objects(self, rows):
+        task = Task(self.spec)
         result = {}
         for name, (pose, _) in zip(self.names, rows):
-            pose = self.task.start_pose_to_base(pose, self.scene)
+            pose = task.start_pose_to_base(pose, self.scene)
             result[name] = {"position": np.asarray(pose.position),
                             "orientation_wxyz": xyzw_to_wxyz(pose.quat_xyzw)}
         return result
@@ -95,7 +98,7 @@ class GridStarts:
             objects = self._objects(rows)
             if accepts_random is None or accepts_random(objects):
                 return self._visit(rows, objects)
-        raise ValueError(f"No valid grid starts for task {self.task.name!r}")
+        raise ValueError(f"No valid grid starts for task {self.spec.name!r}")
 
     def _visit(self, rows, objects):
         for name, (_, cell) in zip(self.names, rows):

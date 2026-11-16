@@ -1,255 +1,192 @@
-# sim-to-real (s2r)
+# Sim-to-Real · v3
 
-A sim-to-real platform for tabletop manipulation arms: Isaac Lab 3.0 (Newton / MJWarp) for simulation,
-LeRobot v0.6.1 for teleop and datasets, and pluggable policy servers (GR00T N1.7, MolmoAct2).
-Arms, scenes, tasks and policies are folders: `s2r new` scaffolds one and `s2r check` validates it.
-The included arms are **SO101** and **SP7**. The `_template` folder is scaffolding
-for the importer, not a selectable robot.
-The previous code, with its full history, is on branch [`v1`](../../tree/v1).
+Tabletop manipulation with Isaac Lab 3.0 / Newton, LeRobot datasets, and pluggable policy servers.
+The included arms are SO-101 and SP7; the tasks are pick-and-place, stacking two cubes, and stacking bowls.
 
-Copy `.env.example` to `.env` for local device settings. [Repository conventions](CLAUDE.md) covers units,
-quaternion order and import boundaries.
-
-What has been verified, and what has not:
-
-- The SO-101 in the meeting-room and blank-table scenes on the pick-place and stacking tasks: recording,
-  paired real/sim motion and cameras, named-object benchmarks and evaluation.
-- Scripted generation produced a physically successful pick-place episode that passes dataset validation and
-  GR00T preparation/verification. Mimic episodes pass at the source start and a nearby changed start. These
-  show physical success and valid datasets, not a measured success rate over every start.
-- GR00T and MolmoAct2 serve and evaluate with real inference and finite joint commands, and a two-step GR00T
-  run verifies a real optimizer update. That establishes integration, not learned-policy success.
-- The GR00T and MolmoAct2 training recipes and the visual DR replay recipe still assume the SO-101 and
-  pick-place.
-- No second arm has been validated on hardware. The template arm establishes composition only.
-- SP7 retains its URDF, meshes, calibration mapping and self-contained simulation USD.
-  Its real hardware driver remains unconfigured.
-- The three-bowl task uses the supplied bowl USD with separate yellow, red and blue
-  instances. Its [generation and replay recipe](tasks/stack_bowls/README.md) produces
-  a simulation demonstration; Cosmos augmentation has not passed visual validation.
-
-The [verification record](docs/restructure-status.md) holds the evidence and the renderer limitations.
-
-## Guides
-
-| Workflow | Guide |
-| --- | --- |
-| Install, launch, create a first dataset | [Getting started](docs/01-getting-started.md) |
-| Arm manifest, USD, mapping and calibration | [Add an arm](docs/02-add-an-arm.md) |
-| Room, anchors, cameras and mounts | [Add a scene](docs/03-add-a-scene.md) |
-| Objects, starts, stages and success | [Add a task](docs/04-add-a-task.md) |
-| Prepare, verify and train a policy | [Training](docs/05-training.md) |
-| Capture geometry, freeze starts and compare results | [Evaluation](docs/06-evaluation.md) |
-| Implement a client/server plugin | [Policy plugins](docs/07-policy-plugins.md) |
-| Scripted experts, Mimic and replay | [Data generation](docs/08-data-generation.md) |
+On `v3`, run programs as Python modules. The `s2r` wrapper and `src/cli` are removed until the CLI is rebuilt.
+The previous layouts remain in Git history. [CLAUDE.md](CLAUDE.md) defines the repository's units,
+import boundaries, physics and benchmark invariants.
 
 ## Layout
 
-```
-s2r                     CLI launcher (PYTHONPATH=src python3 -m cli)
-pyproject.toml          packages cli, core, sim (src/) and the single `s2r` console entrypoint
-arms/<arm>/             typed arm.toml, optional <arm>_utils.py, usd/, calibration/units/<id>.json
-scenes/<scene>/         declarative scene.toml, optional appearance.json, mounts/<arm>.toml, scene.py, usd/
-tasks/<task>/           task.toml, __init__.py (TASK), env_cfg.py (variants), mdp.py, eval_sets/*.json
-configs/record/         recording YAMLs (sim_only, paired_real)
-configs/eval/           evaluation YAMLs (one per benchmark run)
-configs/rollout/        real-rollout YAMLs (shadow mode by default)
-configs/datagen/        source-specific generation YAMLs
-policies/<name>/        policy.toml, client.py, server.py, train/   (see policies/README.md)
-docker/sim/             s2r-sim image: Isaac Lab 3.0 + LeRobot (teleop, record, eval, replay)
-docker/policy/          s2r-serve / s2r-train images: one uv venv per policy
-src/core/               no Isaac: arms, scenes, calibration, tasks (spec + stages), benchmark, datasets,
-                        policy_client, policy_server, rollout, utils
-src/sim/                Isaac only: envs (+ mdp), scene, teleop, recording, datagen, eval
-src/cli/                the s2r CLI (plans docker commands)
-tests/                  CPU-only tests
-```
-
-Arm, scene and task are data. `S2R_ARM`, `S2R_SCENE` and `S2R_TASK` (or `--arm/--scene/--task`) select them;
-`sim.envs` registers `S2R-<scene>` and one `S2R-<task>-<variant>` gym id per `[task.variants]` entry
-(`teleop`, `eval`, `eval_dr` for pick_place_cube).
-
-## Arm and calibration selection
-
-`utils.arms.arms.load_arm_spec()` returns `(ArmSpec, arm_directory)`. The arm's ordered `[[arm.joints]]` tables
-own LeRobot names, USD names, joint types and roles, initial values, and runtime limits. Optional gripper,
-wrist-roll, and wrist-camera settings live in the arm folder. CAD-specific collision and appearance hooks live
-in `<arm>_utils.py`. The SO101 camera variants share one CAD asset through a small USD override layer.
-
-An arm with `lerobot.calibration = "per_unit"` selects an explicit file under
-`arms/<arm>/calibration/units/<unit_id>.json`. For recording, set the unit in the existing teleop YAML:
-
-```yaml
-follower:
-  unit: rpd_robot       # sim-only example; the paired SO101 example uses rpd_follower
+```text
+workspace/
+  arms/<arm>/         arm.toml, utils.py, calibration/, usd/, urdf/
+  scenes/<scene>/     scene.toml, utils.py, mounts/<arm>.toml, usd/, textures/
+  tasks/<task>/       task.toml, task.py, assets/ or usd/, starts/, eval_sets/
+  policies/<policy>/  policy.toml, client.py, server.py, optional train/
+  configs/            record/, eval/, rollout/, datagen/
+src/
+  utils/              manifests, geometry, calibration, codecs, datasets, atomic I/O
+  core/tasks/         explicit task loading, stage latching and failure reporting
+  core/eval/          fixed starts, eval sets, reports/comparisons, resume and sweeps
+  core/policy_client/ self-contained policy clients
+  core/policy_server/ self-contained policy servers
+  core/rollout/       real-arm rollout and HTTP/GUI bridges
+  sim/actions/        checks, expert moves and unified IK
+  sim/workspace/      arm/scene composition and generic task environments
+  sim/teleop/         devices, command queue, recording loop and object spawner
+  sim/recording/      shared setup, dataset writers, replay and recorder GUI backend
+  sim/datagen/        scripted generation, grid starts, Mimic and replay
+  sim/eval/           simulator evaluation, scene capture, video and paired trials
+gui/                  recorder and real/simulation consoles
+tests/                utils/, core/, sim/, workspace/, policies/, frozen oracles
 ```
 
-Evaluation, rollout, and replay accept `--unit <unit_id>`; the eval examples also set `unit:` in YAML.
-A unit identifies measured physical spans and anchors; a follower `id` identifies its LeRobot device calibration
-file. These are separate settings. `s2r calibrate` writes the raw LeRobot calibration into the folders declared
-by `arm.lerobot` under `$HF_LEROBOT_CALIBRATION` (default `~/.cache/huggingface/lerobot/calibration`). Unit files
-also retain the mapping source and anchor evidence. The selected unit and loaded device file are checked for
-agreement before a paired session proceeds.
+Arm, scene and task loaders resolve selection at call time. `load_task(name)` requires an explicit name.
+After selecting and launching the simulator, entry points call `sim.workspace.envs.register(scene, task)`.
+Gym IDs retain `S2R-<task>-<variant>`; the scene-only ID is `S2R-<scene>`.
 
-Factory-calibrated arms need no unit file. Their revolute mapping uses the hardware's full encoder range;
-prismatic joints use their declared full stroke in metres. Joint count, gripper positions in the action vector,
-and the presence of a wrist-roll joint are derived from the manifest.
+## Environment and commands
 
-Raw normalized body joints use `-100..100`; gripper joints use `0..100`. Driver degree mode is an encoded motor
-coordinate: LeRobot centres it on the measured encoder-range midpoint, which can differ from the arm's physical
-zero. Grippers retain their normalized mode. Selected mappings preserve optional `raw_min`/`raw_max` endpoints,
-including reversed directions, alongside physical spans. When deriving reversed normalized encoders from raw
-calibration, the unit source declares the bus's `apply_drive_mode` capability. Explicit raw endpoints can describe
-other driver conventions. Calibration spans and runtime limits are physical degrees for revolute joints and metres
-for prismatic joints. `JointMapping.to_sim()` applies calibration, clamps
-to runtime limits, and converts revolute joints to radians; `to_raw()` reverses the unit conversion without a
-runtime clamp. Recorded actions and policy requests retain device units in manifest joint order.
+Copy `.env.example` to `.env` if needed, then set local serial ports, cameras, calibration IDs and dataset paths.
+Keep hardware-specific values out of committed files. The simulator requires Docker, NVIDIA GPU support,
+and the Isaac image's dependencies.
 
-## Scene selection
+Build images from the repository root:
 
-`core.scenes.load_scene_spec()` reads the selected scene at call time. A scene manifest declares its room USD,
-anchors, fixed cameras, lighting, renderer settings and physics overrides. Arm-mounted cameras remain in
-`arm.toml`. Fitted room materials and camera response live in the scene's optional `appearance.json`.
-The meeting room uses an optional `scene.py:customize` hook for its measured material and table-photo treatment.
+```bash
+docker build -f docker/sim/Dockerfile -t s2r-sim:latest .
+docker build -f docker/policy/Dockerfile --target serve -t s2r-serve:latest .
+```
 
-An optional `mounts/<arm>.toml` selects the mount anchor, a world-space translation correction, and initial
-joint positions in radians/metres. Without that file, the builder uses the scene's mount anchor and the arm's
-declared initial joints. `scenes/blank_table/` exercises this path with a flat table and one fixed camera.
-Choose it with `S2R_SCENE=blank_table` or `scene: blank_table` in a recording YAML. Explicit YAML values take
-precedence over environment defaults. The production recorder has been exercised on this scene without a mount
-file; see the status file for the reference-image comparison and recording evidence.
+For example, generate with the retained random-start reference recipe:
 
-## Tasks and object metadata
+```bash
+S2R_GIT_COMMIT=$(git rev-parse HEAD) docker compose run --rm sim \
+  s2r-entrypoint python -m sim.datagen.scripted \
+  --config_path workspace/configs/datagen/scripted.yaml
+```
 
-`tasks/<task>/task.toml` declares ordered stages, tracked objects, object placements and the start distribution.
-The task's `signals()` reads simulator signals and `observe()` turns a step's poses/signals into stage flags.
-The shared engine latches those flags and derives success from the last declared stage. Task-specific grasp,
-placement and failure rules stay in the task folder. `stack_two_cubes` provides a second task with two tracked
-objects; select it through `task:` in a recording/evaluation YAML or `--task stack_two_cubes`.
+Pass `S2R_GIT_COMMIT` so container outputs retain source provenance. Paths in YAML files are container paths.
+Choose a fresh generation destination when repeating a run. Existing datasets are preserved. Compose exports
+`S2R_ARM`, `S2R_SCENE` and `S2R_TASK`; pass explicit `--arm/--scene/--task` flags when switching to another
+recipe selection (for example `--task stack_bowls`).
 
-New recordings write schema-2 `task_meta/episode_<index>.json` sidecars with task/arm identity, metre positions,
-WXYZ orientations and a size/trajectory entry for every `task.tracked_objects` name. Each trajectory has exactly
-one pose per dataset frame. Dataset sources and alignment live in `utils.datasets`; benchmark geometry, starts,
-statistics and comparison live in `core.eval`. Existing single-object `pick_place_meta/` datasets remain
-readable through the same production source/start readers. Use `s2r migrate <dataset> --task <task> --arm <arm>` to write schema-2 sidecars explicitly.
-
-## Commands
-
-Install the CPU dependencies for host validation with `uv sync --group host`. The `./s2r` launcher uses that environment; `uv run s2r` also works.
-
-`s2r new arm|scene|task|policy <name>` creates a folder from its template. `s2r check --static` validates every
-extension without Isaac imports. Static checking needs NumPy; it does not import Torch or the simulator.
-`s2r check` then runs a small set of headless compositions covering every available arm, scene and task;
-explicit selectors check one composition. `--policy` checks the selected policy's action dimension against
-the selected arm, without requiring every fixed-embodiment policy to support every arm.
-
-Sim commands run inside the `s2r-sim` container (`S2R_SIM_CONTAINER` overrides the name):
-
-| Command | Program | What it does |
+| Workflow | Module | Configuration or input |
 | --- | --- | --- |
-| `s2r record --config_path configs/record/paired_real.yaml` | `python -m sim.teleop.agent` | Leader-driven teleop, sim-only or paired sim+real recording |
-| `s2r spawn --object blue_cube` | `python -m cli.spawn` | Put a parked task object beside the sim jaw while recording |
-| `s2r eval --config_path configs/eval/pick_place.yaml` | `python -m sim.eval.run` | Evaluate a served policy on the fixed benchmark |
-| `s2r test-gui --config_path configs/rollout/gui.yaml` | `python -m core.rollout.testing_gui` | Open the real-arm prompt and policy testing GUI |
-| `s2r rollout ...` | `python -m core.rollout.real_rollout` | Run a served policy on the real follower |
-| `s2r eval-set --dataset <root> --out <json> --task <task> --arm <arm> --scene_json <geometry.json>` | `python -m core.eval.eval_set` | Build a fixed benchmark from recorded starts and captured live geometry |
-| `s2r datagen --source dr_replay ...` | `python -m sim.datagen.dr_replay` | Re-render recorded episodes with colour / light / robot-colour DR |
-| `s2r datagen --config_path configs/datagen/scripted.yaml` | `cli.datagen` selects `sim.datagen.scripted` | Task-owned waypoints, bounded IK and successful episodes only |
-| `s2r datagen --config_path configs/datagen/mimic.yaml` | `cli.datagen` selects `sim.datagen.mimic` | Isaac Lab Mimic retargets annotated source demonstrations; successful episodes only |
-| `s2r calibration-replay ...` | `python -m sim.datagen.calibration_replay` | Method B calibration replay (physics, keeps successes) |
-| `s2r calibration-report --gap ...` | `python -m utils.calibration.report` | Tracking-gap report |
-| `s2r calibrate leader\|follower --port ...` | `python -m utils.calibration.calibrate` | LeRobot calibration saved where `arm.toml` expects it |
-| `s2r calibration-check --id follower_arm_1` | `python -m utils.calibration.check` | Follower calibration vs `arms/so101/calibration/stats.json`, then live encoders (read only) |
-| `s2r calibration-stats` | `python -m utils.calibration.stats` | Rebuild stats from `arms/so101/calibration/samples/` |
-| `s2r envs` | `python -m cli.list_envs` | List arms, scenes, tasks and gym ids |
+| Teleop and recording | `sim.teleop.agent` | `workspace/configs/record/sim_only.yaml` or `paired_real.yaml` |
+| Simulator evaluation | `sim.eval.run` | `workspace/configs/eval/pick_place.yaml` |
+| Scripted generation | `sim.datagen.scripted` | `workspace/configs/datagen/scripted.yaml`, `stack_two_cubes.yaml`, `stack_bowls.yaml` |
+| Mimic generation | `sim.datagen.mimic` | `workspace/configs/datagen/mimic.yaml` |
+| Visual DR replay | `sim.datagen.dr_replay` | `workspace/configs/datagen/dr_replay.yaml` |
+| Calibration replay | `sim.datagen.calibration_replay` | Use the module's `--help` for source and mapping options |
+| Real-arm testing GUI | `core.rollout.testing_gui` | `workspace/configs/rollout/gui.yaml` |
+| Matched real/sim trials | `sim.eval.sim_real.trials` | `workspace/configs/eval/sim_real.yaml` |
+| Real follower rollout | `core.rollout.real_rollout` | `workspace/configs/rollout/` |
+| Generate/convert eval sets | `core.eval.eval_set` | Recorded dataset and captured scene geometry |
+| Compare result JSONs | `core.eval.report` | Two or more complete benchmark reports |
+| Summarize horizon sweeps | `core.eval.sweep` | Use the module's `--help` |
+| Calibration | `utils.calibration.calibrate`, `.check`, `.stats`, `.report` | Selected arm/unit and explicit hardware settings |
 
-Policy commands run on the host (or a remote GPU with `--host user@box --remote-root /abs/path`):
-
-```
-s2r build [sim|serve|train|all]          build the images from this checkout
-s2r serve --policy groot_n17 --checkpoint <dir> --models-dir <root> [--option k=v ...]
-s2r prepare|train|verify --policy <name> --dataset <dir> --output <dir>
-s2r policies                             list policies and their train commands
-s2r tunnel --host user@box --port N      reach a remote policy server from the local sim
-```
-
-Use `s2r compare` for paired results, `s2r sweep` for sweep summaries, and `s2r new policy <name>` for a policy scaffold.
-
-## Recording
-
-`s2r record` drives the sim (and, with `follower.enabled`, the real follower) from the leader arm.
-Newton builds its model once, so spawnable task objects are declared up front and parked off the table;
-`spawn --object <name>` (or `sim_reset_object_name` in the config, at each episode start) teleports one beside
-the fixed-jaw tip. Every object declared in `task.tracked_objects` is written per frame to
-`<sim root>/task_meta/episode_<index>.json` with task/arm identity and WXYZ orientations. Recorded starts,
-eval-set generation and replay also read legacy single-object `pick_place_meta/` sidecars.
-New recording-alignment markers save the arm, joint order and units, selected physical mapping, and
-relative-roll behavior. Resuming with different or legacy alignment metadata uses a new root when
-`dataset.on_alignment_mismatch: new` is configured. Legacy recordings remain readable for replay; a per-unit
-recording without a saved mapping needs an explicit `--unit` to establish its action units.
-
-## Evaluation
-
-`s2r eval` reads a `configs/eval` YAML (flags override it). Keep the same eval set, and its hash, across
-the checkpoints you compare; `compare_eval_results` runs paired McNemar tests on the results JSONs.
-Schema-2 eval sets declare the task, arm, joint order and named object poses for each start. Saved robot states
-remain raw LeRobot values interpreted with the set's saved joint mapping. The three approved frozen-set
-conversions retain their former hashes in `legacy_eval_set_id`; comparison accepts the shared identity.
-That conversion preserves geometry. The frozen pick-place sets still predate the existing mount correction,
-so their geometry guard rejects the corrected live mount until an explicit geometry decision is made.
-
-Compare the same policy on matched physical/simulation starts with `./s2r eval-sim-real`.
-The console at http://localhost:8765 has a prompt, policy dropdown, duration per side,
-Spawn, Run real → sim and two independently selectable real/simulation camera views.
-See [the comparison guide](docs/09-sim-real-comparison.md).
-
-
-## Real-arm testing GUI
+Use `python -m <module> --help` for arguments. YAML/CLI entry points let explicit flags override YAML.
+For recording with USB devices, add the hardware override:
 
 ```bash
-./s2r test-gui --config_path configs/rollout/gui.yaml
+S2R_GIT_COMMIT=$(git rev-parse HEAD) \
+  docker compose -f compose.yaml -f compose.hardware.yaml run --rm sim \
+  s2r-entrypoint python -m sim.teleop.agent \
+  --config_path workspace/configs/record/sim_only.yaml
 ```
 
-Open **http://localhost:8766**. Click **Connect real arm** to see its cameras, select a policy,
-enter a task prompt, then click **Run on real arm**. **Stop** or **Esc** cancels the run;
-a late policy reply cannot issue another command. Closing the controlling browser stops the run
-when its heartbeat expires. Disconnect retains motor torque and never starts calibration.
-The GUI starts no simulator and opens no device until Connect is clicked.
+The sim-only recording example starts with dataset recording disabled. Set `dataset.repo_id`, `dataset.root`
+and `dataset.task_name` together to enable it. `follower.enabled` separately enables the physical follower.
 
-Hardware and camera defaults come from the current local `.env`; explicit CLI flags override them.
-Select another calibrated arm with `--arm` and, when needed, `--unit`. The policy dropdown checks
-joint counts and required camera inputs against that arm. The `example` policy holds the current
-position and is only a wiring test.
-
-The selected policy must already be served using `s2r serve`, locally or remotely. Changing the dropdown
-selects its client protocol; the server owns the loaded checkpoint. Set **Policy server** and **Port**
-under **Connection settings** to match it. For example:
+Policy servers use the Compose `serve` profile, with a separate environment per policy:
 
 ```bash
-./s2r serve --policy molmoact2 --checkpoint <checkpoint-relative-to-models-dir> --models-dir <models-dir> --port 5556
+S2R_POLICY=groot_n17 S2R_CHECKPOINT=checkpoint S2R_MODELS_DIR=/path/to/models \
+  docker compose --profile serve up -d serve
 ```
 
-For the wider pan deployment, append `--option action_extrapolation_joints=shoulder_pan`
-and `--option action_range_diagnostics=true` to that serve command. This experimental option
-decodes pan predictions beyond the checkpoint's 1st/99th-percentile envelope, preserving the
-original in-range values, other joints, state normalization and saved model statistics.
-The real client still clamps targets to the calibrated range and limits each motor command.
-Allowing a wider range does not establish learned task performance in that wider workspace.
+Match the policy client, server endpoint, checkpoint options and camera rename map. See
+[policy contracts and training commands](workspace/policies/README.md) and the selected policy's manifest.
+The `example` policy repeats current joint positions and tests transport only.
 
-The current GUI profile also enables experimental pan workspace retargeting:
-`pan_model_scale: 0.5` and `pan_model_offset: 0.0`. Observed pan angles are halved
-for the policy, and returned pan targets use the exact inverse, so the model's
-usual pan envelope covers approximately -71 to +82 driver units instead of
--36 to +41. Other joints retain their original conversion. This is a deployment
-adaptation, not a calibration correction or evidence of successful box placement.
-Set the scale to `1.0` to restore the original pan workspace. Action horizon is unchanged.
+## Recording and generation
 
-The GUI config pins the `rpd_follower` unit and its requested `7705cc34…` file hash;
-Connect refuses a different file. Run reports include the loaded server options and joint
-transform, and action traces retain the requested target alongside the bounded/sent targets.
+Recording uses one command queue for GUI buttons and typed terminal commands: `start`, `save`, `discard`,
+`reset`, `quit`; `spawn <object>` selects a named object. `control_input: gui` disables terminal input and
+requires `gui.enabled: true`. Keyboard listeners are removed. Both GUIs obtain spawnable choices from the
+selected task; choose an object in the dropdown before spawning it beside the open jaw. Newton bodies are
+created before simulation and repositioned when spawned.
 
-Per-policy client options are in `configs/rollout/gui.yaml`. Physical commands use the selected
-calibration, per-joint runtime bounds, the existing first-target distance check and the follower's
-relative-target limit. A run ends at its configured duration or when Stop is pressed; a finished
-execution does not automatically label the physical task as successful. Action traces and downloadable
-run reports are saved under `outputs/real_testing/`.
+`sim.recording.setup` owns calibration/root preparation, environment configuration, cameras and trajectory
+validation. Alignment markers retain the selected device codec and wrist-roll behavior. A mismatching or
+legacy alignment requires a separate root; `dataset.on_alignment_mismatch: new` selects that flow.
+
+Scripted generation uses the task's expert moves and the arm's IK settings. `[arm.ik].solver` selects `dls`
+or `bounded`; `[task.expert]` may override the solver, control offset and orientation constraints. Mimic uses
+the same task expert settings. Calibration command replay retains its arm settings.
+
+Scripted defaults to a seeded grid over task start ranges. `--cells_per_axis`, `--yaw_steps` and `--max_starts`
+control its size; reports include per-object coverage maps. It skips invalid combinations, then cycles its
+selected starts. An explicit `--starts_dir` selects recorded starts. The retained `scripted.yaml` explicitly
+sets `start_mode: random`; use it to reproduce that recipe. Mimic and fixed eval sets never use grid starts.
+`--debug` writes optional rollout diagnostics and boundary images.
+
+Generated frames capture observations before their action, then execute that action and observe task signals.
+Only success that remains valid at the final frame is committed. Actions are absolute simulator targets encoded
+through the device mapping. Annotations retain FK of the executed target separately from requested waypoints.
+
+Schema-2 `task_meta/episode_<index>.json` sidecars contain one metre/WXYZ pose per tracked object per dataset
+frame. Legacy `pick_place_meta/` remains readable. The shared readers and alignment utilities are in
+`utils.datasets`.
+
+## Adding an arm, scene or task
+
+Anything specific to an arm, scene or task belongs in its `workspace/` folder. Optional arm/scene hooks are
+named `utils.py`. Scenes own anchors, lighting, cameras and physics; `mounts/<arm>.toml` owns the arm/scene
+combination. Arm joint tables define action order, names, roles and units. No generic code assumes a motor
+index or joint count.
+
+Copy [the task template](workspace/tasks/_template/) to `workspace/tasks/<name>/`, set `[task].name` to the
+folder name, and edit both files. `task.toml` declares objects, starts, variants and episode settings.
+`task.py` composes stages from `sim.actions` checks and an expert from moves; it must import without Torch
+or Isaac. Its stage order must match the manifest. Templates are starting points for validation, not validated
+hardware/task demonstrations.
+
+The stage engine latches progress and uses the final declared stage as success. Failures are
+`failed_at_<stage after the furthest latched stage>`; `timeout_holding` is a separate boolean. Stage, waypoint,
+object, sensor and event names are part of the stored-data contract.
+
+Live quaternions use **XYZW**; sidecars and benchmark JSON use **WXYZ**. Simulator joint values are radians
+or metres. Calibration spans are physical degrees/metres; raw device values may use normalized or driver
+encoder-degree coordinates. Unit files live under `workspace/arms/<arm>/calibration/units/`; recording selects
+`follower.unit`, and evaluation/replay/rollout select `--unit`. `JointMapping` owns these conversions.
+
+## Evaluation and verification
+
+Keep eval-set content IDs, seeds and schedules fixed when comparing checkpoints. Schema conversion retains
+`legacy_eval_set_id`; saved robot states use the set's mapping. Live geometry validation remains mandatory.
+A geometry mismatch requires an explicit new geometry/set decision. The pinned rejection of `train-059`
+is retained. Use `--smoke-test --smoke-selection one_per_zone` with a fixed set for a short wiring check;
+the example policy's outcomes are not a learned-policy success measurement.
+
+Run the local baseline comparator and required regressions:
+
+```bash
+PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py
+PYTHONPATH=src python -m pytest tests/test_import_graph.py tests/core/test_eval_set_regression.py tests/workspace -q
+python -B -m compileall -q src workspace tests
+```
+
+`uv sync --group host` provides host tools; it is not a full Isaac/LeRobot environment. Run the complete suite
+in the simulator image:
+
+```bash
+S2R_GIT_COMMIT=$(git rev-parse HEAD) docker compose run --rm sim \
+  s2r-entrypoint python -m pytest tests -q
+```
+
+The restructure retains old-vs-new task/IK oracles and report byte-equality tests. The approved Phase 12
+hash-gate exception and fresh control results are recorded in
+[phase12_gate.json](tests/fixtures/v3_baseline/phase12_gate.json): unchanged Phase 11 repeats differed, so exact
+simulator frame-hash equivalence remains unproven. Intermittent native test crashes are recorded with their
+runtime versions; production physics and installed SDK files were not changed to obtain a pass.
+
+Training and visual DR recipes retain their documented SO-101/pick-place scope. Integration tests, finite
+commands or a scripted success do not establish learned task performance. SP7 simulation/manifest support
+does not establish hardware support; its real driver remains unconfigured.
+
+Branch `feat/async-policy-worker`, which touches only `core/policy_client`, **must be rebased onto `v3`**.

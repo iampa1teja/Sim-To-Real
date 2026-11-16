@@ -7,7 +7,7 @@ import torch
 
 from utils.arms.arms import load_arm_spec
 from core.tasks.task import Pose
-from core.tasks.task import load_task
+from core.tasks.task import Task, TaskSpec, load_task
 from utils.geometry import wxyz_to_xyzw, xyzw_to_wxyz
 from sim.workspace.envs.mdp._common import as_torch, env_indices
 
@@ -52,7 +52,11 @@ def reset_from_starts(
     from core.eval.starts import RecordedStarts
     from sim.eval.scene import capture_scene
 
-    task = load_task(task or getattr(env.cfg, "task_name", None)) if isinstance(task, (str, type(None))) else task
+    if isinstance(task, TaskSpec):
+        # Config validators must see data, not a task module's Python import graph.
+        task = Task(task)
+    elif isinstance(task, (str, type(None))):
+        task = load_task(task or getattr(env.cfg, "task_name", None))
     arm = getattr(env.cfg, "arm_spec", None) or load_arm_spec()[0]
     ids = env_indices(env, env_ids)
     if not len(ids):

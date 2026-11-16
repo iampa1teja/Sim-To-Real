@@ -1,118 +1,109 @@
 # Repository conventions
 
-Branch `v3` is restructuring `v2` for readability. `RESTRUCTURE.md` holds the approved plan, the phase order
-and the decision log; follow it. Do not start the next phase until the current phase's checks pass:
-locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, and the full suite in `s2r-sim`.
+This is the `v3` layout. Programs run as `python -m ...`; the `s2r` wrapper and `src/cli` are absent.
+Keep changes within the requested scope, preserve user datasets/local tools, and keep existing license headers
+attached to their code. Never rewrite pushed history or add local hardware settings from ignored `.env`.
 
-- `src/core/` must not import Isaac Sim, Isaac Lab, Kit, or `pxr`. Simulator-specific code belongs in `src/sim/`.
-- There is no CLI on `v3` yet (`s2r`, `src/cli` and `sim.check` return after the restructure). Run programs as
-  modules inside the container, for example `s2r-entrypoint python -m sim.eval.run --config_path ...`. Start the
-  containers with `docker compose` (`sim` service; `serve` profile for a policy server) and pass
-  `S2R_GIT_COMMIT=$(git rev-parse HEAD)`, because the container cannot resolve the worktree pointer itself.
-- The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
-  for their lifetime. Scene loaders also resolve selectors at call time. `core.tasks.task.load_task(name)`
-  requires an explicit task name; entry points call `sim.workspace.envs.register(scene, task)` after selection.
-  Importing tasks or the registry selects no task. Shared selection and Kit
-  argument helpers live in `sim` and are safe before Kit startup.
-- Launch simulator programs through `sim.launch` after choosing arm/scene/task. Recording lives in
-  `sim.teleop.agent`, evaluation in `sim.eval.run`, generation in `sim.datagen`, and real rollout in
-  `core.rollout.real_rollout`. Shared argparse/YAML handling lives in `utils.cli`; flags override YAML.
-- `load_arm_spec()` returns `(ArmSpec, Path)`. Use `.joint_names`, `.usd_joint_names`, `.feature_names`, joint roles,
-  optional `.gripper`/`.wrist_roll`, and the declared wrist cameras. No arm-specific names or motor indices belong
-  in generic source. Optional spawn/appearance hooks are loaded by path from the arm folder's `utils.py`.
-- Isaac Lab 3.0 / Newton live tensors use XYZW quaternions. Dataset sidecars and benchmark JSON use WXYZ.
-  Convert explicitly at those boundaries. Positions and translations are metres; articulation angles are radians.
-- Arms can be imported from URDF; mimic joints are not action dimensions; gripper commands may be physical gaps.
-- Non-mimic `[[arm.joints]]` order is action/dataset order. Joint `limits` and calibrated physical spans use degrees for
-  revolute joints and metres for prismatic joints; `initial` and simulator state use radians/metres. Raw normalized
-  body joints use -100..100 and gripper joints 0..100. LeRobot `use_degrees = true` changes body joints to a
-  driver encoder-degree coordinate, centred on the calibration midpoint and scaled by resolution-1; this is not
-  the arm's physical degree zero. Grippers remain normalized. Selected mapping entries preserve calibrated
-  `raw_min`/`raw_max` endpoints; reverse directions are explicit. Deriving nonzero drive_mode requires an explicit
-  unit-source `apply_drive_mode` capability or stored endpoints; never guess the bus family from a motor name.
-- Calibration spans and runtime clamps are distinct. Use `JointMapping.from_arm(arm, selection)` and its
-  `to_sim`/`to_sim_np`/`to_raw` methods. Pure interpolation lives in `units_to_physical`/`physical_to_units`;
-  these pure functions interpret stored raw endpoints (or conventional normalized defaults) and do not apply runtime clamps.
-  `mapping_for_arm` validates required degree-mode codecs and canonicalizes redundant normalized defaults.
-  Use `raw_joint_limits(arm, mapping)` for action limits; physical runtime limits are not raw driver bounds. `to_physical` and
-  `sim_to_physical` are the calibrated device/simulator boundaries for telemetry. Never apply degree conversion
-  to prismatic axes or infer gripper roles from motor names.
-- Per-unit calibration is in `workspace/arms/<arm>/calibration/units/<id>.json`, selected by recording `follower.unit` or
-  command `--unit`. It is independent of scene JSON. Raw LeRobot device files live in the arm-declared
-  calibration folders under `$HF_LEROBOT_CALIBRATION`; preserve their hashes and the unit's source evidence.
-  Factory revolute mappings use full encoder range; factory prismatic mappings use the declared full stroke.
-- New alignment markers retain arm, joint order/units/roles, device-unit mode, mapping, and relative-roll behavior.
-  A legacy marker cannot prove equivalent action units for resuming, so use the existing separate-root flow.
-  Mixed-axis telemetry uses physical-value fields with per-joint unit metadata and separate metre/degree gates;
-  degree-labelled fields are reserved for revolute-only logs. Never pool degree and metre errors.
-- Newton imports scene topology once. Declare objects before model construction, then park/reposition them;
-  do not add rigid bodies during a running episode.
-- A task is `workspace/tasks/<task>/task.toml` (objects, starts, DR, episode) plus `task.py` (stages built from
-  `sim.actions` checks, success hold, expert built from `sim.actions` moves). Low-level check and move code lives
-  once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac.
-  All three production tasks use the two-file layout. Custom nesting geometry stays in its task.py;
-  composed rim moves live in `sim/actions/moves/rim.py`. Task contact filters/TCP choice, reset policy,
-  USD grasp-material flags and minimum solver capacities are declared in the task manifest.
-- Data generation uses the task's expert waypoints and arm-declared `ik` TCP/orientation constraints.
-  `[arm.ik].solver` selects `dls` or `bounded`; `[task.expert].ik_solver` can override it. Scripted and
-  Mimic both read task expert `orientation_weight`, `orientation_tolerance_rad` and `control_offset`,
-  falling back to the library defaults and arm TCP. These settings are not datagen CLI/YAML flags.
-  IK and FK math come from Isaac Lab and Newton; `ik.py` only handles frames, caps and limits.
-  The pick-place expert must not add a deliberate wrist roll after pickup. Preserve its pickup orientation
-  through transport; earlier rolled diagnostic datasets are not approved final training sources.
-  Scripted generation, Mimic and calibration replay share `sim.datagen.rollout`: capture pre-action frames,
-  execute physical actions, then observe task signals. Commit only confirmed successes still valid at the final
-  frame. Generated actions are absolute simulator targets encoded through the selected device mapping; they
-  do not use teleop wrist rezeroing. Shared generation setup and execution live in `sim.datagen.rollout`;
-  `--debug` enables optional rollout traces and waypoint images. Scripted defaults to a seeded grid over task
-  start ranges (`cells_per_axis`, `yaw_steps`, `max_starts`) and reports per-object coverage; explicit `starts_dir`
-  selects recorded starts. The reference YAML explicitly selects random starts. Mimic and eval never use grid.
-  Mimic annotations record FK of the executed target, the same TCP offset,
-  named object poses and latched task stages. Nominal requested waypoints are separate from executed targets.
-- Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
-  `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.
-- `sim.teleop.controls.CommandQueue` accepts GUI requests and typed terminal commands, one transition per tick.
-  Teleop and eval share it; keyboard listeners are removed. Both recorder and paired GUIs list the selected
-  task's spawnable objects and send the selected name to `spawner.spawn(name)`. GUI-only recording selects `control_input: gui`.
-- Recording calibration/root preparation, environment configuration, camera discovery and trajectory validation
-  live in `sim.recording.setup`, shared by teleop and paired recording.
-- Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `workspace/scenes/<scene>/mounts/<arm>.toml`
-  owns the arm/scene combination; missing mounts use the anchor and arm initial joints. Mount translation
-  corrections are world-space metres. Anchor positions and rotations use the same rigid frame transform;
-  surveyed vectors kept as metadata must not silently replace that frame's basis.
-- Scene-specific visual treatments belong in the optional scene-folder `utils.py` hook. A contact anchor may declare
-  `contact_prim_pattern` when its collision meshes are separate from its measured visual mesh. Bind those
-  static materials before Newton imports the stage; visual-only lighting retains startup event order.
-- Evaluation statistics, paired comparisons and report assembly live in `core.eval.report`; live episode metadata
-  and progress reads stay in `sim.eval.loop`.
-- Preserve fixed evaluation schedules, seeds and content hashes. Schema conversion must retain the legacy hash.
-- Policy clients receive ordered joint names, roles, joint types and the saved device codec through
-  `configure(ArmInfo)`. Generic clients derive their dimension from that contract; a fixed embodiment declares
-  `[action].dim`. Keep model-specific coordinate conventions inside its policy folder.
-- Task plugins own signals and per-step stage flags. Failure labels are generated as `failed_at_<stage after
-  the furthest latched stage>`, with a separate `timeout_holding` boolean. The generic stage engine latches the declared
-  stages and treats the last as success. Reset order is robot pose, object starts, then task tracking state.
-  Use the generic reset-order assertion; engine code must not dispatch on task names, reset function names or
-  task-specific environment attributes. Object placement/start frames are declared in the task manifest.
-- Schema-2 sidecars store every declared tracked object in `task_meta/`; readers accept legacy `pick_place_meta/`.
-  Write task/arm identity, reference frame and metre units, with one WXYZ object pose per committed dataset frame.
-  Pure readers, validation, migration and source handling belong in `utils.datasets`.
-  Saved eval-set arm states are raw units interpreted through that set's mapping, not the active unit's mapping.
-  Approved schema-2 eval-set conversions retain `legacy_eval_set_id` for comparison; preserve every scheduled
-  start/seed. Schema migration does not change or bypass the live geometry guard.
-- `gui/` and `src/sim/recording/web_gui.py` are outside this restructure. The local untracked code explorer is also
-  outside the repository; its files are preserved.
-- Run CPU checks with `PYTHONPATH=src python -m pytest tests -q`. The existing `s2r-sim` container includes the
-  required Python/Isaac dependencies; run simulator scripts through `s2r-entrypoint python` there.
-- `uv sync --group host` installs host tools only; it is not a complete test environment, and tests that need
-  Isaac Lab, USD, LeRobot or MJWarp fail or skip there. Run the full suite inside `s2r-sim`.
-- Keep local hardware settings in ignored `.env`; `.env.example` contains portable example values.
-- Do not change production physics to make a diagnostic pass. Diagnostic spawn fixtures must start with enough
-  jaw clearance for their object. Closed-jaw object overlap is a known placement issue, not a safe simulator input.
+## Architecture and selection
 
-Training recipes and the retained visual DR recipe have their documented SO-101/pick-place scope; do not claim
-arbitrary-model training or learned task performance.
+- `src/utils` contains shared geometry, manifest loaders, codecs, calibration, dataset readers and atomic I/O.
+  It imports neither `core` nor `sim`.
+- `src/core` must never import Isaac Sim, Isaac Lab, Kit or `pxr`. Simulator integration belongs in `src/sim`.
+  Existing task runtime hooks into `sim` remain lazy. `core/policy_client` and `core/policy_server` are
+  self-contained packages; change them only for explicitly requested work, not shared-code consolidation.
+- `workspace/{arms,scenes,tasks,policies}` contains item-specific data/code. Anything that differs per arm,
+  scene or task belongs there. Optional arm/scene hooks are `utils.py`.
+- Arm/scene loaders resolve selectors at call time. `load_arm_spec()` returns `(ArmSpec, Path)`.
+  `core.tasks.task.load_task(name)` requires an explicit name and caches it; imports select no task.
+  Pass an explicit spec to components that keep one selection for their lifetime.
+- Entry points apply selection, launch through `sim.launch`, then call
+  `sim.workspace.envs.register(scene, task)`. Gym IDs are `S2R-<task>-<variant>` and `S2R-<scene>`.
+  Shared launch/YAML helpers are in `sim` and `utils.cli`; explicit flags override YAML.
+- Tasks are `task.toml` plus `task.py`. The manifest owns objects, starts, reset/contact policy, DR, minimum
+  solver capacities and episode settings. The module composes stages/checks and expert moves from
+  `sim.actions`; descriptors/checks/moves must import without Torch/Isaac. Runtime imports stay lazy;
+  `ik.py` is the explicit heavy-import exception checked by `tests/test_import_graph.py`.
+- `core.tasks.stages` latches stages; the last stage means success. Failure names are
+  `failed_at_<stage after the furthest latched stage>`, plus a separate `timeout_holding` boolean.
+  Task modules own signal semantics and optional geometry/progress hooks, not failure-name maps.
+- `core.eval.report` owns statistics, paired comparisons and pure report assembly; live metadata/progress
+  reads stay in `sim.eval.loop`. Shared manual recording setup is `sim.recording.setup`; generation setup
+  and execution are in `sim.datagen.rollout`. Event parameters carry `TaskSpec` data, not code-bearing
+  `Task` instances; reconstruct the sampling task at reset. Grid samplers also keep only the spec so SDK
+  configuration validation cannot traverse imported module graphs.
 
-`sim.workspace.solver_numerics` repairs only failed Newton search directions of the MJWarp contact solve: double-precision
-factorization, then positive-diagonal descent if needed. The contact objective, line search and every physical
-parameter stay unchanged. Install it before CUDA graph capture; do not edit installed SDK files.
+## Physics, frames and units
+
+- Never change production physics to make a diagnostic pass. Never edit installed SDK files. Newton imports
+  scene topology once: create bodies before simulation, then park/reposition them instead of adding bodies.
+- Preserve production gym IDs, object/stage/waypoint names, `/CUBE`, `/WhiteBox`, `contact_grasp`, the
+  `success` termination, event names and ordering (`reset_robot_position`, `reset_from_starts`,
+  `reset_tracking`), contact-filter ordering and DR draw/event ordering.
+- Live Isaac Lab 3.0 / Newton quaternions are XYZW. Sidecars and benchmark JSON use WXYZ. Convert explicitly
+  at boundaries using `utils.geometry`. Keep the existing Gf and float32 Euler paths numerically unchanged.
+- Non-mimic `[[arm.joints]]` order defines action/dataset order. Mimic joints are not action dimensions.
+  Derive roles, names, units, gripper indices and wrist cameras from the arm; never guess by motor name.
+- Simulator positions are radians/metres. Calibration spans/runtime limits are physical degrees/metres.
+  Raw normalized body joints use -100..100 and grippers 0..100. Driver degree mode is an encoder coordinate
+  centred/scaled by the measured calibration; it is not physical degree zero. Grippers remain normalized.
+- `JointMapping.from_arm(arm, selection)` and `to_sim`/`to_sim_np`/`to_raw` own the device/sim boundary.
+  `to_physical`/`sim_to_physical` own physical telemetry. Preserve raw endpoints and reversed directions;
+  deriving drive mode requires the unit source's declared `apply_drive_mode` capability or stored endpoints.
+  Pure `units_to_physical`/`physical_to_units` interpolate without runtime clamps. Use `raw_joint_limits` for
+  raw action limits. Never convert prismatic axes to degrees or pool degree/metre errors in diagnostics.
+- Per-unit files are `workspace/arms/<arm>/calibration/units/<id>.json`, selected with recording
+  `follower.unit` or `--unit`. Device IDs/raw LeRobot files under `$HF_LEROBOT_CALIBRATION` are separate;
+  preserve their hashes, source evidence and arm-declared folders. Factory mappings use full encoder range
+  for revolute joints and declared full stroke for prismatic joints.
+- Scenes own room anchors, cameras, lighting, renderer and physics. `mounts/<arm>.toml` owns mount corrections
+  and initial joints; absent mounts use the anchor/arm defaults. Translation corrections are world-space metres.
+  Anchor positions and orientations use the same rigid transform; surveyed metadata must not replace it.
+- Scene visual/contact hooks bind materials before Newton imports topology and retain startup ordering.
+  Grasp materials apply to cuboids or explicitly flagged USDs only. Table/jaw geometry caches are per stage;
+  call `clear_geometry_cache(stage)` after explicitly editing those meshes/transforms.
+- `sim.workspace.solver_numerics` repairs only failed MJWarp search directions with the existing double
+  factorization/positive-diagonal fallback. Preserve the objective, line search, parameters and installation
+  before CUDA graph capture. Diagnostic object spawns need sufficient physical jaw clearance.
+
+## Recording, generation and evaluation
+
+- `sim.teleop.controls.CommandQueue` accepts GUI and typed terminal commands, one transition per tick.
+  Teleop/eval share it; keyboard listeners are removed. GUI-only recording requires `control_input: gui`
+  and `gui.enabled: true`. Both GUIs expose task spawnables and carry the chosen name to `spawn(name)`.
+  Keep GUI changes within the requested scope.
+- Alignment markers preserve arm, joint order/units/roles, device mode, mapping and relative-roll behavior.
+  Legacy markers cannot prove equivalent resume units: retain the separate-root mismatch flow.
+- Generated frames capture pre-action observations, execute the physical action, then observe task signals.
+  Commit only latched success still valid at the final frame; discard failed buffers. Actions are absolute
+  simulator targets encoded through the device mapping, without teleop wrist rezeroing. Mimic annotations
+  use FK of executed targets and the same TCP offset; nominal requested waypoints remain separate.
+- `[arm.ik].solver` selects `dls` or `bounded`; `[task.expert]` may override solver, orientation tolerance/weight
+  and control offset for scripted/Mimic generation. Calibration command replay keeps arm defaults.
+  Do not add deliberate pickup wrist roll to the pick-place expert; preserve pickup orientation in transport.
+- Scripted defaults to `GridStarts`; `cells_per_axis`, `yaw_steps`, `max_starts` control it and reports retain
+  per-object coverage. Explicit `starts_dir` selects recorded starts. Reference `scripted.yaml` stays random.
+  Mimic/eval never use grid. `--debug` enables optional generation diagnostics/boundary images.
+- Schema-2 `task_meta/` stores task/arm identity, reference frame, metre units and one WXYZ object pose per
+  declared tracked object per dataset frame. Readers accept legacy `pick_place_meta/`. Pure readers,
+  validation, migration and source handling stay in `utils.datasets`.
+- Preserve fixed eval-set content IDs, seeds and every scheduled start. Schema conversion preserves
+  `legacy_eval_set_id`; saved robot states use the set's mapping, not the active unit's mapping. Never bypass
+  the live geometry guard. `train-059` remains the pinned pre-existing rejection among the 500 stored starts.
+- Policy clients receive ordered names, roles, joint types and the device codec through `configure(ArmInfo)`.
+  Fixed embodiments declare action dimensions; model-specific coordinates stay in their policy folders.
+  Training/visual-DR recipes retain their SO-101/pick-place scope; do not claim arbitrary-model training or
+  learned task performance from wiring tests.
+- Known issues outside this restructure remain: paired evaluation's MolmoAct2 hardcode, the pinned eval-start
+  rejection, and `sim.apply_selection` ignoring the `S2R_*_DIR` overrides. Do not silently fix them.
+
+## Verification
+
+Run the CPU baseline comparator, import/eval-set/workspace tests, compileall and stale-import scans after
+structural changes; run the full suite in `s2r-sim`. The host dependency group is not a complete SDK environment.
+Pass `S2R_GIT_COMMIT=$(git rev-parse HEAD)` through Compose to record provenance. See README for commands.
+
+Retain frozen task/IK and report-byte oracles. Phase 15 intentionally replaces legacy failure-label assertions;
+those replacements are named in the baseline comparator. Phase 12 has a user-approved exact frame-hash gate
+exception in `tests/fixtures/v3_baseline/phase12_gate.json`: unchanged controls were nondeterministic.
+Record native crashes, retries and dependency versions honestly when using an isolated test overlay;
+never alter SDK installations or production physics to hide them. Preserve the local untracked code explorer.

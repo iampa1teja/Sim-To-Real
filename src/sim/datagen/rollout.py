@@ -426,7 +426,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None, us
         if value is not None:
             setattr(cfg.sim.physics.solver_cfg, name, value)
     cfg.events.reset_from_starts = (EventTermCfg(func=reset_from_starts, mode="reset", params={
-        "task": task, "starts_dir": str(args.starts_dir) if args.starts_dir else None,
+        "task": task.spec, "starts_dir": str(args.starts_dir) if args.starts_dir else None,
         "mode": "random", "seed": None, "reset_robot": False,
     }) if sample_starts else None)
     if (sample_starts and (source or getattr(args, "source", "scripted")) == "scripted" and

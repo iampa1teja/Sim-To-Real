@@ -1,45 +1,44 @@
+# Copy to workspace/tasks/<name>/ and make [task].name match the folder.
+# This is a composition template; validate starts, geometry and physical success for your task.
 [task]
 name = "new_task"
-instruction = "Stack the blue cube on top of the red cube"
+instruction = "Place the object on the target"
+variants = ["teleop", "eval"]
 default_variant = "teleop"
-stages = ["reached", "grasped", "lifted", "over_target", "stacked", "success"]
-tracked_objects = ["cube_a", "cube_b"]
-
-[task.variants]
-teleop = "env_cfg:apply_teleop"
-eval = "env_cfg:apply_eval"
+stages = ["reached", "grasped", "lifted", "over_target", "placed", "success"]
+tracked_objects = ["object"]
 
 [task.start]
-object = "cube_a"
+object = "object"
 frame = "arm_base"
 xy_min = [0.08, -0.22]
-xy_max = [0.24, -0.06]
+xy_max = [0.16, -0.10]
 yaw_deg = [0.0, 90.0]
 
-[task.objects.cube_a]
+[task.objects.object]
 spawnable = true
 size = [0.02, 0.02, 0.02]
 mass = 0.008
 frame = "arm_base"
-position = [0.14, -0.12, 0.05]
+position = [0.12, -0.14, 0.05]
 color = [0.02, 0.06, 0.9]
 
-[task.objects.cube_b]
-size = [0.02, 0.02, 0.02]
-mass = 0.008
+[task.objects.target]
+size = [0.06, 0.06, 0.02]
+mass = 0.04
 frame = "arm_base"
 position = [0.20, -0.08, 0.05]
 color = [0.8, 0.04, 0.03]
-
-[task.success]
-min_lift = 0.01
-force_threshold = 2.0
-warmup_steps = 30
-confirm_steps = 25
-xy_tolerance = 0.004
-z_tolerance = 0.004
-max_speed = 0.05
+reset_to_default = true
 
 [task.episode]
 decimation = 4
 eval_steps = 450
+
+# Optional [task.expert] settings are shared by scripted and Mimic generation:
+# [task.expert]
+# ik_solver = "bounded"
+# orientation_tolerance_rad = 0.03
+# orientation_weight = 0.05
+# control_offset = [0.0, 0.0, 0.0]
+# Optional USD/contact/physics settings should follow a validated production task.
