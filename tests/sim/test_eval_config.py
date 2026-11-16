@@ -2,6 +2,24 @@
 from sim.eval import run
 
 
+def test_setup_registers_the_explicit_local_selection(monkeypatch):
+    import pytest
+    pytest.importorskip('isaaclab')
+    from types import SimpleNamespace
+    import sim.workspace.envs
+
+    class Selected(Exception):
+        pass
+
+    def register(scene, task):
+        assert (scene, task) == ('selected_scene', 'selected_task')
+        raise Selected
+
+    monkeypatch.setattr(sim.workspace.envs, 'register', register)
+    with pytest.raises(Selected):
+        run.setup(SimpleNamespace(scene='selected_scene', task='selected_task'), None, None)
+
+
 def test_gui_yaml_without_sdk_headless_flag(tmp_path, monkeypatch):
     def launcher_flags(parser):
         parser.add_argument("--device", default="cpu")

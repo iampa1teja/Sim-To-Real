@@ -44,10 +44,6 @@ def save_episode(recorders, trajectory, tracked, fps, *, task, arm):
     return index
 
 
-GUI_REQUESTS = {'start': 'start', 'stop': 'end', 'save': 'end', 'exit': 'stop', 'discard': 'rerecord',
-                'spawn': 'spawn'}
-
-
 def gui_panes(sim_cameras, real_cameras):
     return [f'Sim: {name}' for name in sim_cameras] + [f'Real: {name}' for name in real_cameras]
 
@@ -110,20 +106,18 @@ class RecordingController:
 
     def consume_requests(self):
         ctx = self.resources
-        requests = dict(ctx.controls.consume_requests())
         if ctx.gui is not None:
-            gui_requests = ctx.gui.consume_requests()
-            for button, request in GUI_REQUESTS.items():
-                if gui_requests.get(button):
-                    requests[request] = True
-            if gui_requests.get('rerecord') and ctx.recorders is not None and not self.recording:
+            ctx.controls.submit_gui(ctx.gui.consume_requests())
+        requests = ctx.controls.consume_requests()
+        if requests.get('prepare_rerecord') and ctx.recorders is not None and not self.recording:
+            if ctx.gui is not None:
                 ctx.gui.set_state(active=False, can_start=False, busy=True,
                                   status='Preparing a safe copy for re-recording...')
-                try:
-                    ctx.recorders.begin(gui_requests['rerecord_episode'])
-                    self.note = f'Re-recording episode {ctx.recorders.target}. Discard keeps the original.'
-                except (ValueError, OSError) as exc:
-                    self.note = f'Cannot re-record: {exc}'
+            try:
+                ctx.recorders.begin(requests['rerecord_episode'])
+                self.note = f'Re-recording episode {ctx.recorders.target}. Discard keeps the original.'
+            except (ValueError, OSError) as exc:
+                self.note = f'Cannot re-record: {exc}'
         return requests
 
     def _save(self):

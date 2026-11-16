@@ -72,7 +72,7 @@ class EvaluationContext:
     episode_length_s: Any
     step_dt: Any
     replan_interval_s: Any
-    keyboard_control: Any
+    controls: Any
     policy: Any
     grasp_config: Any
     grasp_kwargs: Any
@@ -180,7 +180,28 @@ def run_loop(context):
         state.step = 0
         episode_wall_start = monotonic()
         render_every = context.env.unwrapped.cfg.sim.render_interval if context.render_warmup else None
+        operator_stopped = False
         while context.simulation_app.is_running() and len(state.episodes) < context.args_cli.num_episodes:
+            requests = context.controls.consume_requests()
+            if requests.get("stop"):
+                operator_stopped = True
+                break
+            if requests.get("reset"):
+                if context.benchmark:
+                    raise RuntimeError("Manual reset interrupted fixed benchmark; saving incomplete report")
+                if state.pbar is not None:
+                    state.pbar.close()
+                state.pbar = None
+                print(f"[MANUAL RESET] Episode interrupted at step {state.step}; excluded from results")
+                if state.video_recorder is not None and state.step:
+                    state.video_recorder.finish_episode()
+                obs, _ = context.env.reset()
+                context.policy.reset()
+                metadata = episode_metadata(context)
+                settling_action = settling_pose(obs)
+                state.step = 0
+                episode_wall_start = monotonic()
+                continue
             with torch.inference_mode():
                 if state.step == 0:
                     if state.video_recorder is not None:
@@ -268,27 +289,12 @@ def run_loop(context):
                     settling_action = settling_pose(obs)
                     state.step = 0
                     episode_wall_start = monotonic()
-                elif context.keyboard_control.reset_world:
-                    if context.benchmark:
-                        raise RuntimeError("Manual reset interrupted fixed benchmark; saving incomplete report")
-                    context.keyboard_control.reset_world = False
-                    state.pbar.close()
-                    state.pbar = None
-                    print(f"[MANUAL RESET] Episode interrupted at step {state.step}; excluded from results")
-                    if state.video_recorder is not None:
-                        state.video_recorder.finish_episode()
-                    obs, _ = context.env.reset()
-                    context.policy.reset()
-                    metadata = episode_metadata(context)
-                    settling_action = settling_pose(obs)
-                    state.step = 0
-                    episode_wall_start = monotonic()
                 else:
                     latest_progress = progress_summary(context, state)
                     if latest_progress != progress_text:
                         state.pbar.set_postfix_str(latest_progress, refresh=False)
                         progress_text = latest_progress
-        if len(state.episodes) != context.args_cli.num_episodes:
+        if not operator_stopped and len(state.episodes) != context.args_cli.num_episodes:
             raise RuntimeError(
                 f"Evaluation stopped after {len(state.episodes)}/{context.args_cli.num_episodes} episodes"
             )

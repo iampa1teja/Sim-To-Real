@@ -346,9 +346,9 @@ def setup(args_cli, simulation_app, resources):
     from core.eval.eval_set import EvalSetStarts
     from sim.workspace.envs.task_env import install_stage_tracking
     from sim.eval.sim_remote_policy import SimRemotePolicy
-    from sim.teleop.controls.keyboard import KeyboardControl
+    from sim.teleop.controls import CommandQueue
 
-    task = sim.workspace.envs.register(args.scene, args.task)
+    task = sim.workspace.envs.register(args_cli.scene, args_cli.task)
     env_id = task.gym_id(args_cli.variant)
     if args_cli.lang_instruction is None:
         args_cli.lang_instruction = task.instruction
@@ -411,7 +411,9 @@ def setup(args_cli, simulation_app, resources):
         args_cli.video_dir = Path(saved_report["video_dir"])
     if not resume and args_cli.results_json and args_cli.results_json.exists():
         raise ValueError("Results JSON already exists; use --resume or select a new results path")
-    keyboard_control = KeyboardControl()
+    controls = CommandQueue()
+    controls.start_terminal()
+    resources.callback(controls.cleanup)
     env_cfg = parse_env_cfg(
         env_id, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
@@ -493,7 +495,7 @@ def setup(args_cli, simulation_app, resources):
         )
     print(f"[INFO]: Gym observation space: {env.observation_space}")
     print(f"[INFO]: Gym action space: {env.action_space}")
-    print("[INFO]: Click 'R' to reset the world")
+    print("[INFO]: Type reset or quit and press Enter to control evaluation.")
     cameras = []
     for key in env.unwrapped.scene.keys():
         if key.startswith("camera_"):
@@ -580,7 +582,7 @@ def setup(args_cli, simulation_app, resources):
         episode_length_s=episode_length_s,
         step_dt=step_dt,
         replan_interval_s=replan_interval_s,
-        keyboard_control=keyboard_control,
+        controls=controls,
         policy=policy,
         grasp_config=grasp_config,
         grasp_kwargs=grasp_kwargs,

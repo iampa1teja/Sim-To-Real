@@ -93,7 +93,7 @@ class AgentConfig:
     fps: int = field(default_factory=lambda: int(os.getenv("CONTROL_FPS", "30")))
     # False connects both arms with calibration refused (v1 --no_calibration).
     calibrate: bool = True
-    control_input: Literal["terminal", "keyboard"] = "terminal"
+    control_input: Literal["terminal", "gui"] = "terminal"
     # Local spawn.py listener; 0 disables it.
     spawn_port: int = 6001
     spawn_authkey: str = "so101-spawn"
@@ -110,6 +110,10 @@ class AgentConfig:
     def __post_init__(self):
         """Cross-field checks (v1 lerobot_agent 142-157)."""
         ds = self.dataset
+        if self.control_input not in ("terminal", "gui"):
+            raise ValueError("control_input must be terminal or gui")
+        if self.control_input == "gui" and not self.gui.enabled:
+            raise ValueError("GUI controls require gui.enabled")
         if any((ds.repo_id, ds.root, ds.task_name)) and not ds.enabled:
             raise ValueError("dataset.repo_id, dataset.root and dataset.task_name must be set together.")
         if (ds.real_repo_id or ds.real_root) and not ds.enabled:

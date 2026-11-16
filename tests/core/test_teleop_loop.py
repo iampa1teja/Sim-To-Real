@@ -68,6 +68,23 @@ def test_buffer_reset_cancels_staged_replacement_without_saving(session):
     assert controller.note == 'Re-record cancelled; original episode kept.'
 
 
+def test_recording_smoke_uses_one_queue_for_terminal_start_and_gui_save(session):
+    from dataclasses import replace
+    from sim.teleop.controls import CommandQueue
+
+    controller, events = session
+    controls = CommandQueue()
+    batches = iter([{'save': True}, {}])
+    controller.resources = replace(controller.resources, controls=controls,
+                                   gui=SimpleNamespace(consume_requests=lambda: next(batches)))
+    controls.submit_text('start')
+    controller.handle(controller.consume_requests())
+    assert controller.recording and events == []
+    controller.handle(controller.consume_requests())
+    assert events == ['save', 'reset_env', 'reset_spawner']
+    assert not controller.recording and controller.resources.recorders.episode_index == 3
+
+
 def test_spawn_then_start_uses_declared_object_and_offset(session):
     controller, events = session
     controller.cfg.sim_reset_object_name = 'cube_a'

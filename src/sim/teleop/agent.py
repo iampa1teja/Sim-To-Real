@@ -8,21 +8,6 @@ from sim import apply_selection, launch, close_app
 from sim.teleop.config import AgentConfig, parse_config
 from sim.teleop.loop import LoopResources, gui_panes, run_loop
 
-# Episode controls: terminal Enter-commands or the Isaac keyboard listener. With spawnable objects, S spawns
-# (v1 layout: keyboard S = spawn, Right = start/save; terminal s/spawn = spawn, right = start/save).
-def _make_controls(kind, enable_spawn=False):
-    if kind == "keyboard":
-        from sim.teleop.controls.keyboard import KeyboardControl
-
-        if enable_spawn:
-            print("[controls] S: spawn object at the jaw; Right: start/save; Left/C: discard; R: reset; Escape: quit.")
-        else:
-            print("[controls] S: start/save; Right: save; Left/C: discard; R: reset; Escape: quit.")
-        return KeyboardControl(enable_spawn=enable_spawn)
-    from sim.teleop.controls.terminal import TerminalInputControl
-
-    return TerminalInputControl(enable_spawn=enable_spawn)
-
 def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots):  # noqa: C901
     controls = None
     env = None
@@ -106,14 +91,18 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
                              f"{list(env.unwrapped.scene.keys())}")
 
         # Controls start only after connection / calibration prompts are finished.
-        controls = _make_controls(cfg.control_input, enable_spawn=bool(spawner.offsets))
+        from sim.teleop.controls import CommandQueue
+
+        controls = CommandQueue(enable_spawn=bool(spawner.offsets))
+        if cfg.control_input == "terminal":
+            controls.start_terminal(stop_on_eof=not cfg.gui.enabled)
         if cfg.gui.enabled:
             from sim.recording.web_gui import RecordingWebGui
 
             gui = RecordingWebGui(gui_panes(sim_cameras, real_cameras), host=cfg.gui.host, port=cfg.gui.port,
                                   max_fps=cfg.gui.fps)
             print(f"[INFO]: Recorder GUI running; open {gui.url} in a browser.")
-        print("[INFO]: RESET/BUFFER phase. Start the episode when ready (keys above).")
+        print("[INFO]: RESET/BUFFER phase. Start the episode when ready.")
         resources = LoopResources(
             env=env, env_id=env_id, leader=leader, follower=follower, mapping=mapping, arm=arm, task=task,
             controls=controls, spawner=spawner, sim_cameras=sim_cameras, real_cameras=real_cameras,

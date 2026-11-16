@@ -65,7 +65,7 @@ def context(tmp_path):
                   task=task, env_id='S2R-test-eval', env_cfg=NS(scene=NS(robot=NS(spawn=NS(usd_path='test.usd')))),
                   resume=False, smoke_test=False, smoke_selection='first_five', render_warmup=0,
                   episode_length_s=1.2, step_dt=.1, replan_interval_s=.2,
-                  keyboard_control=NS(reset_world=False), policy=policy, grasp_config=GraspConfig(),
+                  controls=NS(consume_requests=lambda: {}), policy=policy, grasp_config=GraspConfig(),
                   grasp_kwargs={}, smoothing_defaults={}, smoothing_kwargs={}, policy_options={})
     return loop.EvaluationContext(**values), calls
 
@@ -92,3 +92,17 @@ def test_stopped_app_writes_incomplete_report(monkeypatch, tmp_path):
         loop.run_loop(ctx)
     report = json.loads(ctx.args_cli.results_json.read_text())
     assert not report['complete'] and report['episodes'] == []
+
+
+def test_terminal_reset_then_quit_writes_incomplete_report_without_physics(tmp_path):
+    from sim.teleop.controls import CommandQueue
+
+    ctx, calls = context(tmp_path)
+    ctx.controls = CommandQueue()
+    ctx.controls.submit_text('reset')
+    ctx.controls.submit_text('quit')
+    loop.run_loop(ctx)
+    assert not ctx.env.actions
+    report = json.loads(ctx.args_cli.results_json.read_text())
+    assert not report['complete'] and report['episodes'] == []
+    assert calls == [{}, {}]
