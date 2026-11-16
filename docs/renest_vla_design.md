@@ -2,6 +2,8 @@
 
 This document is a research design for ReNest-VLA ("Retry + Nested"), a Vision-Language-Action (VLA) model that stores its own failed attempts in a memory that persists across environment resets and is trained to use them. The one-line framing is: in-context identification of physical sim-to-real factors (simulated, injected on the real robot, and one uninjected real condition) from failed attempts, inside a real-time VLA. This is a meta-reinforcement-learning problem, because the hidden parameter stays fixed across the episodes of a trial. The status is design only: no experiment has been run and no result is reported. The design comes in two tiers that share all code: ReNest-VLA-L (the headline tier, built on the MolmoAct2 vision-language tower, with two variants, L/own and L/adapt, defined in Section 2.2) and ReNest-VLA-S (an ablation and low-VRAM tier, built on InternVL3-1B). Section 2.0 lists go/no-go milestones that precede any model training. Section 1 frames the paper, Section 2 specifies the core architecture, training and platform requirements, Section 3 lists proven add-ons, Section 4 gives the experimental plan, and Section 5 lists research ideas that are not part of the core claim.
 
+What changes in one paragraph. The policy no longer only reacts to failures (Thompson-like). It is trained to gather information deliberately when that raises expected task success: (a) probe segments, which are short, low-risk motions inside an attempt, before the committed manipulation; and (b) attempt selection by value of information across the remaining attempts. The name of this component is "active identification" (Section 2.5.1). The training target is a finite-horizon Bayes-adaptive lookahead teacher built from an outcome table; the posterior-sampling teacher is kept as a baseline.
+
 Markers used in the text. "Own reasoning:" marks a design choice or argument made by the authors, not taken from a source. "Estimate (to be measured):" marks a number the authors computed or guessed and that must be measured before it is relied on. `[GAP: ...]` marks information the design needs and does not have. "(secondary source, unverified)" marks a number taken from a secondary summary or a search snippet and not checked against the paper. Square-bracket keys such as [RECAP] refer to the References list at the end.
 
 ## Section 1 — Paper framing
@@ -27,9 +29,18 @@ Fourth, failure data is used in training, but not as retry context: RECAP condit
 
 Fifth, in-context sim-to-real identification exists outside VLAs and outside failure-driven retries. CAPTURE adjusts simulator parameters in context from interaction history and reaches at least 70% sim-to-real scooping success [CAPTURE]; cross-controller in-context adaptation is a second example [XController]. Nested Learning and its Continuum Memory System (CMS) have no application to robotics, VLAs or reinforcement learning that we found; the closest in spirit is LifelongVLA, with dual-timescale short-term and long-term adapters and partial replay [LifelongVLA]. PEAR shows that attempt and round history in context plus success-reward reinforcement learning works, but with a 27B model, about 1.1-4.3 s per round and about 50,000 H100-equivalent GPU-hours of reinforcement learning [PEAR]; that is three orders of magnitude outside the budget of this design.
 
+Related work on active exploration (not part of the evidence for the gap): exploration to identify physical parameters exists, but outside a single VLA that also performs the task.
+
+- ASID (Memmel et al., arXiv:2404.12308) designs exploration policies in simulation that collect informative real data; the refined simulator is then used to plan control. Exploration is a separate phase; it is not a VLA; the parameters include articulation and mass [ASID].
+- Liang, Saxena and Kroemer (RSS 2020, arXiv:2006.01952) learn task-oriented exploration policies to identify task-relevant parameters, then run trajectory optimisation. The exploration policy is separate; the real tasks are pouring and dragging [Liang2020].
+- Dutta et al. (arXiv:2411.09020) use N-step information gain to select pushing and pulling actions for inferring mass, centre of mass, friction and stiffness. It is a perception framework, not a task policy [Dutta2024].
+- Phys2Real (Wang et al., ICRA 2026, arXiv:2510.11689) conditions a policy on physical parameters estimated online with VLM priors: T-block 100% vs 79% and 57% vs 23% against domain randomisation. It is not a VLA, and the probes are not stated as chosen by an information objective [Phys2Real].
+- SCALE (arXiv:2602.04208) and CoMe-VLA (arXiv:2602.04600) are VLAs with uncertainty-driven or information-seeking behaviour within an episode; no hidden physical parameters are stated [SCALE][CoMe-VLA].
+- Snippet-level, unverified: ASTEROID (NeurIPS 2026; asymmetric on-policy distillation that learns in-context exploration, sim-to-real manipulation) [ASTEROID]; In-Context World Modeling (task-agnostic probing before a task for viewpoint and morphology) [ICWM]; Environment Probing Interaction Policies (ICLR 2019) [EPI]; Value of Assistance for Grasping (value-of-information sensing before a grasp) [VoA-Grasp].
+
 There is also no standard multi-attempt metric. HyperSim reports SR1 and SR3 (success within three attempts) [HyperSim], FAR caps attempts at 5 [FAR], and no paper was found that defines a repeated-failure rate.
 
-Own reasoning: the gap in one sentence is that nobody has trained a compact, real-time VLA to use its own failed attempts, across resets, to infer the physical discrepancy that made them fail, which is exactly the situation of a sim-trained policy on a real robot.
+Own reasoning: the gap in one sentence is that nobody has trained a compact, real-time VLA to use its own failed attempts, across resets, to infer the physical discrepancy that made them fail, which is exactly the situation of a sim-trained policy on a real robot. Own reasoning: our search found no work that puts value-of-information probing for hidden physical parameters inside a single VLA that also performs the task and carries the result across resets; the separate-exploration-phase line (ASID, Liang et al.) is the closest, and asymmetric teacher distillation (ASTEROID, snippet-level) is the closest training recipe.
 
 **Relation to meta-RL and system identification.** The problem is meta-reinforcement learning with a hidden parameter that is fixed across the episodes of a trial. RL^2 keeps recurrent state "across episodes in a given MDP" (arXiv:1611.02779) [RL2]. Algorithm Distillation models learning histories with a causal transformer (arXiv:2210.14215) [AD]. The Decision-Pretrained Transformer predicts optimal actions from an in-context dataset of interactions (arXiv:2306.14892) [DPT]. Meta-World reports ML10 test success of 31.6% (MAML), 35.8% (RL^2) and 13% (PEARL) (arXiv:1910.10897) [MetaWorld]; manipulation meta-RL across trials is hard even in state space. PEARL, VariBAD, AdA (adaptive agents), RMA (rapid motor adaptation) and UP-OSI are also relevant (named by the reviewer; not retrieved in our search, to be verified). Own reasoning: the method family is not new. What is new is doing it inside a pretrained real-time VLA, with stage-level failure outcomes as the feedback signal, for physical sim-to-real factors, with an identifiability analysis and a controlled real study.
 
@@ -48,27 +59,31 @@ The table below compares the closest prior work with this design. A cell contain
 | Watch-Try-Learn [WTL] | one failed trial in context | yes: one failed trial with reward | yes | not stated | not stated | no: simulated |
 | CAPTURE [CAPTURE] | interaction history in context | not failure-driven | not stated | not stated | tunes simulator parameters | yes: at least 70% scooping success; not a VLA |
 | T2Mem, RoboTTT [T2Mem][RoboTTT] | no: reset at each episode boundary | not stated | not stated | yes: fast weights within one episode | not stated | not stated |
-| ReNest-VLA (this design) | yes: memory persists across `reset()` within a retry group | yes: stage-attempt records with outcome and failure name | yes: failure, retry, success series | no policy weight changes; only the two ~2M-parameter outcome memories M_group and M_robot are updated | yes: series-constant hidden factors in simulation | yes: the target setting |
+| ReNest-VLA (this design) | yes: memory persists across `reset()` within a retry group | yes: stage-attempt records with outcome and failure name, and probe records | yes: failure, retry, success series, with probe segments | no policy weight changes; only the two ~2M-parameter outcome memories M_group and M_robot are updated | yes: series-constant hidden factors in simulation | yes: the target setting |
 
 ### 1.2 Central claim
 
-A VLA that runs in real time on one RTX 4090 (budget estimated, to be measured), stores its failed attempts in a memory that persists across resets, and is trained on policy-generated failure -> retry -> success series with series-constant hidden physical factors, will (i) reach higher success within K_att attempts than the same checkpoint with its memory cleared, in simulation and in a controlled real-robot study with injected physical perturbations and one uninjected real condition, which together test identification of physical sim-to-real factors (simulated, injected on the real robot, and one uninjected real condition); (ii) beat baselines given the same attempt information in simulation; and (iii) retain earlier skills across self-improvement rounds at least as well as replay plus LoRA.
+A VLA that runs in real time on one RTX 4090 (budget estimated, to be measured), stores its failed attempts in a memory that persists across resets, and is trained on policy-generated failure -> retry -> success series with series-constant hidden physical factors, will (i) reach higher success within K_att attempts than the same checkpoint with its memory cleared, in simulation and in a controlled real-robot study with injected physical perturbations and one uninjected real condition, which together test identification of physical sim-to-real factors (simulated, injected on the real robot, and one uninjected real condition); (ii) beat baselines given the same attempt information in simulation; (iii) retain earlier skills across self-improvement rounds at least as well as replay plus LoRA; and (iv) with active identification, needs fewer attempts and less time to succeed than the same model trained with the posterior-sampling teacher and no probes.
 
 ### 1.3 Contributions
 
 Terms used below, defined at first use. A **retry group** is a set of consecutive attempts at the same start, identified by a `retry_group` id; memory persists across resets within one retry group. A **stage-attempt record** is the unit of memory: one segment of execution that ends when a stage latches, when the judge or platform declares failure, or at episode end. A **hidden-factor series** is a sequence of attempts in simulation in which hidden physical factors (friction, mass, joint offset, camera jitter (not teacher-supervised; Section 2.5), actuation delay, object size) are sampled once and held fixed across the attempts. The **outcome memory M** is a small fast-weight network (about 2M parameters) updated between attempts by a learned rule; there are two instances, M_group (per retry group) and M_robot (per physical robot), defined in Section 2.5. **C-tokens** are 64 learned summary tokens produced from the language-model hidden states by the context bridge. The **set codec** is the embodiment-agnostic encoding of states and actions as sets of per-dimension tokens built from the robot's `ArmInfo`. The **Continuum Memory System (CMS)** is the Nested Learning chain of MLP blocks updated at different frequencies.
 
-C1 (method). Hidden-factor attempt series with an identifiability analysis and a posterior-sampling (Thompson) teacher (Section 2.5), turning retries into in-context identification of physical sim-to-real factors (simulated, injected on the real robot, and one uninjected real condition).
+What changes with active identification. The policy no longer only reacts to failures (Thompson-like). It is trained to gather information deliberately when that raises expected task success: (a) probe segments, which are short, low-risk motions inside an attempt, before the committed manipulation; and (b) attempt selection by value of information across the remaining attempts. The name of the component is "active identification" (Section 2.5.1). The **outcome table** O(theta, h) is the stored distribution over outcomes for every strategy or probe candidate and every hidden-factor grid cell (Section 2.5.1).
+
+C1 (method). Hidden-factor attempt series with an identifiability analysis and a Bayes-adaptive lookahead teacher built from an outcome table (Section 2.5.1), giving active in-context identification of physical sim-to-real factors (probe segments and value-of-information attempt selection), for factors that are simulated, injected on the real robot, or present in one uninjected real condition.
 
 C2 (method). Attempt Memory: explicit stage-attempt records, a fast-weight outcome memory per retry group (M_group) and a soft repeat penalty, trained on policy-generated retry series. M_robot, a second fast-weight memory per physical robot (Section 2.5), is a secondary design choice and not a method component of C2.
 
 C3 (design and empirical study, not claimed as a new mechanism). The nested multi-timescale organisation. The training-time part is parallel adapters with a frequency schedule and distillation-with-replay consolidation, which is standard (Progress & Compress, Learning without Forgetting; named by the reviewer; not retrieved in our search, to be verified). The paper reports whether it beats matched baselines.
 
-C4 (protocol, not method). Judge label-regime handling and the multi-attempt protocol and metrics (success@k, attempts-to-success, repeated-failure rate), with an empirical memory-cleared null, on fixed pinned-seed sets, in simulation and in paired real trials.
+C4 (protocol, not method). Judge label-regime handling and the multi-attempt protocol and metrics (success@k, attempts-to-success, time-to-success, repeated-failure rate), with an empirical memory-cleared null, on fixed pinned-seed sets, in simulation and in paired real trials.
 
 ### 1.4 Why each contribution is novel
 
 **C1.** The closest work is VLRLA, which does cross-episode in-context reinforcement learning in a VLA; its hidden variable is a semantic goal ambiguity resolved from scalar reward, and it has no sim-to-real study [VLRLA]. CAPTURE is in-context sim-to-real, but it tunes simulator parameters, is not a VLA and is not failure-driven [CAPTURE]. Watch-Try-Learn is trial-conditioned but small scale and uses one trial [WTL]. RL^2, Algorithm Distillation and the Decision-Pretrained Transformer are the meta-RL family this belongs to (Section 1.1) [RL2][AD][DPT]. The difference is physical and calibration factors, stage-level failure outcomes as feedback, a pretrained real-time VLA, an identifiability analysis, and sim-to-real as the target.
+
+For the active part of C1, the closest work is the separate-exploration-phase line. ASID designs exploration policies in simulation that collect informative real data and then plans control with the refined simulator; it is not a VLA [ASID]. Liang, Saxena and Kroemer learn task-oriented exploration policies to identify task-relevant parameters and then run trajectory optimisation; the exploration policy is separate [Liang2020]. Dutta et al. select pushing and pulling actions by N-step information gain, in a perception framework and not a task policy [Dutta2024]. Phys2Real conditions a policy on physical parameters estimated online; it is not a VLA and does not state that its probes are chosen by an information objective [Phys2Real]. SCALE and CoMe-VLA are VLAs with uncertainty-driven or information-seeking behaviour within an episode, with no hidden physical parameters stated [SCALE][CoMe-VLA]. Snippet-level, unverified: ASTEROID (asymmetric on-policy distillation that learns in-context exploration, sim-to-real manipulation) [ASTEROID], In-Context World Modeling [ICWM], Environment Probing Interaction Policies [EPI], and Value of Assistance for Grasping [VoA-Grasp]. Own reasoning: our search found no work that puts value-of-information probing for hidden physical parameters inside a single VLA that also performs the task and carries the result across resets; the separate-exploration-phase line (ASID, Liang et al.) is the closest, and asymmetric teacher distillation (ASTEROID, snippet-level) is the closest training recipe.
 
 **C2.** The closest work is TraceFlow (training-free guidance from success and failure traces, outcome bit only) [TraceFlow], BGR (non-learned avoidance set) [BGR], FAR (test-time gradient steps on the policy) [FAR], and T2Mem and RoboTTT (fast weights within one episode, reset at the episode boundary) [T2Mem][RoboTTT]. The difference is that the policy is trained to read the memory, the fast weights hold outcomes across resets (per retry group; a per-robot memory is a secondary design choice) and are updated by a learned rule between attempts, and no policy weights change at test time.
 
@@ -82,6 +97,7 @@ C4 (protocol, not method). Judge label-regime handling and the multi-attempt pro
 - The self-improving loop as such. HELP runs multi-round post-training with rollout segments [HELP]; EmbodiRSI uses failure-guided simulation data over rounds, 50.4% to 83.5% (secondary source, unverified; snippet-level) [EmbodiRSI]; PLD distils residual-RL specialists (snippet-level) [PLD]; SOP is a fleet system [SOP].
 - Asynchronous action chunking.
 - The backbone.
+- Information-gain action selection and Bayes-adaptive control as such.
 
 ## Section 2 — Core architecture
 
@@ -90,7 +106,7 @@ C4 (protocol, not method). Judge label-regime handling and the multi-attempt pro
 These milestones come before any model training.
 
 - **M0 Measure on the RTX 4090.** Image tokens per frame and prefill latency of the VLM for 2 cameras (the platform's MolmoAct2 policy uses the cameras room and wrist), full MolmoAct2 latency, and VRAM. M0 also measures L/adapt latency and VRAM on the RTX 4090.
-- **M1 Identifiability study (no learning).** For each hidden factor compute the exact Bayes posterior over h by enumeration over the binned grid (at most 500 cells), given the attempt records (failure name, furthest stage, latch times, end-effector and object traces); the likelihood model is in Section 2.5(a). Report posterior shrinkage after 1, 2 and 3 attempts per factor. Keep only the factors that are identifiable within 3 attempts; bin continuous factors into the resolution the posterior supports; drop the rest from the series generator. M1 is run twice: with scripted-expert attempts (before training) and again with policy-generated attempts after Stage 1, because identifiability depends on the actions taken. If the second run drops a factor that Stage 1 already trained on, the factor is removed from the series generator and from the teacher-supervised set for all later training; the Stage 1 checkpoint is not retrained, and the change is reported. Deliverable: the posterior-sampling (Thompson) teacher, which acts optimally for an h sampled from the posterior (Section 2.5). It is a reference policy and the teacher, not an upper bound.
+- **M1 Identifiability study (no learning).** For each hidden factor compute the exact Bayes posterior over h by enumeration over the binned grid (at most 500 cells), given the attempt records (failure name, furthest stage, latch times, end-effector and object traces); the likelihood model is in Section 2.5(a). Report posterior shrinkage after 1, 2 and 3 attempts per factor. Keep only the factors that are identifiable within 3 attempts; bin continuous factors into the resolution the posterior supports; drop the rest from the series generator. M1 is run twice: with scripted-expert attempts (before training) and again with policy-generated attempts after Stage 1, because identifiability depends on the actions taken. If the second run drops a factor that Stage 1 already trained on, the factor is removed from the series generator and from the teacher-supervised set for all later training; the Stage 1 checkpoint is not retrained, and the change is reported. M1 also fixes the bin resolution of the outcome table. Deliverables: the outcome table O(theta, h) including the probe strategies (PR20), and the lookahead teacher built on it, which is the training target (Section 2.5.1). The posterior-sampling (Thompson) teacher, which acts optimally for an h sampled from the posterior, is kept as a baseline and reference policy. Neither teacher is an upper bound; the only upper bound is the true-h oracle.
 - **M2 Perception probe.** Linear probes on frozen C-tokens for camera-extrinsic jitter and joint offset (visible only as camera-to-gripper misalignment, never in proprioception). A factor counts as visible if a linear probe on C-tokens reaches R^2 >= 0.5 on held-out data [own threshold]; otherwise it is dropped from the teacher-supervised set. A factor that cannot be probed is either dropped or triggers the perception refresh (Section 2.7).
 - **M3 Collection throughput.** Measured env-steps/s of parallel-env rendering on RTX hardware (Section 2.11). Pass criterion: aggregate throughput of at least 8x real time on the RTX GPU, for example 16 parallel environments at half real-time (Section 4.7).
 
@@ -98,7 +114,7 @@ Rule: if M1 shows fewer than two identifiable factors, the scope of the paper na
 
 ### 2.1 Overview and block diagram
 
-ReNest-VLA consists of a vision-language tower, a context bridge that compresses the tower's hidden states into 64 C-tokens, an embodiment-agnostic set codec for state and action, a flow-matching action expert whose MLPs are CMS blocks, a judge, an attempt encoder, an explicit attempt memory, and two small fast-weight outcome memories, M_group and M_robot. In the L/own and S variants, every module downstream of the bridge reads only C-tokens, state tokens, memory tokens and condition tokens, and does not depend on the backbone; L/adapt (Section 2.2) is the exception, because its pretrained expert is kept. Figure 2.1a shows the inference data flow. Figure 2.1b shows the training and self-improving loop.
+ReNest-VLA consists of a vision-language tower, a context bridge that compresses the tower's hidden states into 64 C-tokens, an embodiment-agnostic set codec for state and action, a flow-matching action expert whose MLPs are CMS blocks, a judge (with a value-of-information head and a posterior head for active identification, Section 2.5.1), an attempt encoder, an explicit attempt memory, and two small fast-weight outcome memories, M_group and M_robot. In the L/own and S variants, every module downstream of the bridge reads only C-tokens, state tokens, memory tokens and condition tokens, and does not depend on the backbone; L/adapt (Section 2.2) is the exception, because its pretrained expert is kept. Figure 2.1a shows the inference data flow. Figure 2.1b shows the training and self-improving loop.
 
 **Figure 2.1a — Inference data flow**
 
@@ -112,12 +128,12 @@ flowchart LR
     ST --> EXP
     MEMT[Memory tokens + M read-out tokens] --> EXP
     COND[Condition tokens] --> EXP
-    BR --> JDG[Judge: stage, outcome, value, chunk-critic, abort]
+    BR --> JDG[Judge: stage, outcome, value, chunk-critic, VoI, posterior, abort]
     ST --> JDG
     MEMT --> JDG
     AM[Attempt memory: explicit records] --> MEMT
-    EXP -->|candidates| SEL[Candidate scorer with soft repeat penalty and selector]
-    JDG -->|chunk-critic| SEL
+    EXP -->|candidates| SEL[Candidate scorer with soft repeat penalty, VoI term and selector]
+    JDG -->|chunk-critic, VoI| SEL
     OM[Outcome memories M_group and M_robot] --> SEL
     OM -->|read-out tokens| MEMT
     AM --> SEL
@@ -158,7 +174,7 @@ Module sizes are given below. Estimate (to be measured): all parameter counts ar
 | 2 | Context bridge | Perceiver-style resampler, 4 layers, 64 learned queries, d=768; reads LLM hidden states at two depths (L tier: layers 16 and 24); outputs 64 C-tokens | ~35M |
 | 3 | Set codec | Per-dimension descriptor MLP; no per-embodiment parameters | not stated |
 | 4 | Action expert | Flow-matching transformer, 12 layers, d=768, 12 heads; self-attention over the H action tokens plus cross-attention to the context; MLPs are CMS blocks | ~140M |
-| 5 | Judge | 4-layer transformer, d=512, over C-tokens, state tokens, memory tokens and S_max=8 stage-query tokens; plus a chunk-critic head | ~15M |
+| 5 | Judge | 4-layer transformer, d=512, over C-tokens, state tokens, memory tokens and S_max=8 stage-query tokens; plus a chunk-critic head, a VoI head and a posterior head | ~15M |
 | 6 | Attempt encoder | 4-layer transformer, d=512; turns one stage-attempt segment into 4 summary tokens | ~15M |
 | 7 | Outcome memory M | Titans-style residual MLP body M(x) = x + W1 sigma(W2 x), 512-d in and out, two blocks, plus a linear read head to residual logits over the value bins; fast weights in fp32; two instances, M_group and M_robot, with the same architecture | ~2M each |
 
@@ -230,12 +246,15 @@ The judge produces the following outputs at every inference from the shared C-to
 3. Value head: a distributional value with 101 bins, trained by cross-entropy to the discretised return. This follows pi*0.6, where a distributional value is trained by cross-entropy on empirical returns with 201 bins and failures receive a large negative terminal reward [RECAP]. Bellman-Guided Retrials used 50 progress bins [BGR].
 4. Chunk-critic Q(s, chunk), with the same bins. It takes the judge state embedding and a chunk embedding (set codec plus a 1-D temporal convolution).
 5. Abort flag: the outcome head's failure mass above a conformally calibrated threshold for N = 3 consecutive inferences, using functional conformal thresholds as in SAFE and FAIL-Detect [SAFE][FAIL-Detect].
+6. Value-of-information (VoI) head: for a candidate chunk c it predicts VoI(s, c, memory), the expected increase in success probability over the remaining attempts if the chunk is executed and its result observed. Its training target comes from the outcome table and the exact grid posterior in simulation (Section 2.5.1). It is a task-value quantity, not parameter information gain.
+7. Posterior head: a categorical distribution per hidden factor over the M1 bins, trained with cross-entropy to the exact grid posterior (Section 2.5). It replaces the earlier hidden-factor regression head.
 
 Label regimes are all handled by loss masks (Own reasoning):
 
 - Per-step latched stages and failure name (platform simulation data): all heads are supervised.
 - Only the final failure name (mapped to a stage index): the outcome head is supervised; the value target gets partial credit for the furthest stage; the stage head is masked.
 - Only success or failure: the value head (Monte-Carlo return) and a binary collapse of the outcome head are supervised; the rest is masked.
+- VoI head and posterior head: supervised only on simulated series, where the outcome table and the exact grid posterior exist; masked everywhere else.
 - No label (real rollouts without operator input): the judge's own outcome estimate is written with `label_source = judge` and is used for memory writes at deployment. It is never used as a training label in headline results; the option of using it with weight 0.3 moves to an ablation. Judge accuracy on real data is reported against operator labels. In the real controlled study (Section 4.7) the outcomes written to memory come from the judge (self-judged mode); operator labels are logged separately and used for scoring.
 
 Values and advantages are trained only on platform- or operator-labelled outcomes, which removes the self-confirming loop. The judge is used for advantage labels in Stage 2 (on platform- or operator-labelled data), for the outcome of memory writes in the real world, as an in-episode recovery trigger, for early abort, and for curriculum statistics.
@@ -246,7 +265,7 @@ Prior work cited for the judge: SARM stage and progress reward models (60M model
 
 **Unit of memory.** Own reasoning: the unit is the stage-attempt record, defined in Section 1.3. Episode-level attempts are sequences of these records. In-episode recovery (for example a re-grasp after a drop) and cross-reset retries are therefore the same mechanism.
 
-**Record fields.** Each record holds: the retry_group key; attempt_index; segment index; target stage; outcome in {latched, failed, timeout, unknown}; failure_name if known; 4 summary tokens from the attempt encoder; an "action sketch", which is the executed chunks of the segment resampled to 16 waypoints in the model's own normalized action space; the end-effector path of the segment from forward kinematics (relative to the target object when its pose is available), which is what the repeat penalty and the PR16 signature compare; a situation key, which is the mean-pooled C-tokens at segment start (d=768, projected to 512); and the source of the outcome label, in {platform, judge, operator}.
+**Record fields.** Each record holds: the retry_group key; attempt_index; segment index; target stage; outcome in {latched, failed, timeout, unknown, probe}; failure_name if known; for a probe segment, the binned `probe_observation` summary; 4 summary tokens from the attempt encoder; an "action sketch", which is the executed chunks of the segment resampled to 16 waypoints in the model's own normalized action space; the end-effector path of the segment from forward kinematics (relative to the target object when its pose is available), which is what the repeat penalty and the PR16 signature compare; a situation key, which is the mean-pooled C-tokens at segment start (d=768, projected to 512); and the source of the outcome label, in {platform, judge, operator}.
 
 **Store.** The store is an explicit, inspectable ring buffer per retry group with a capacity of 16 records (equal to 64 memory tokens, 4 summary tokens per record). At attempt end the latched segments of that attempt are merged into one record; failed segments stay separate. Eviction order: merged success records, oldest first, but the most recent success per stage is always kept. The 64 memory tokens exclude the outcome and attempt-index embeddings, which are added to each record's tokens (not extra tokens), and exclude the 2 read-out tokens from M_group and M_robot, which are appended.
 
@@ -259,7 +278,7 @@ Prior work cited for the judge: SARM stage and progress reward models (60M model
 **Detection of "already tried and failed".** Own reasoning: there are two layers.
 
 1. Learned: the expert is trained on failure -> retry -> success series, so its conditional distribution moves away from what the memory tokens show failed.
-2. Explicit scoring of the N_c = 4 candidates: score(c) = Q_slow(s,c) + DeltaQ_group(s,c) + DeltaQ_robot(s,c) - lambda_rep * rep(c). Here Q_slow(s,c) is the expectation of the judge's chunk-critic distribution, M outputs residual logits over the same value bins, and DeltaQ_M(s,c) is the change in expected value that M produces. rep(c) is a soft penalty only; there is no hard veto. Its purpose is to penalise re-executing the same trajectory, not small corrections of it. rep(c) is the maximum, over failed records j whose situation key has cosine similarity above tau_s with the current one, of a dead-zone kernel of d = d(c, sketch_j): the kernel is 1 if d <= delta_rep, decreases linearly to 0 at 2 * delta_rep, and is 0 beyond. delta_rep is the 95th percentile of the distance between policy rollouts of the same intent (same start, same h, same memory); it is calibrated on policy rollouts, not scripted ones. A correction larger than 2 * delta_rep is therefore not penalised at all. The distance d is computed in the following space: the end-effector path relative to the target object when available (forward kinematics from `ArmInfo` and `arm.toml`; the platform already computes the end-effector pose; the object pose comes from `task_meta` in simulation); else the end-effector path in the base frame (real); else joint space. Real-world mode has no object pose, so matching there uses the end-effector path in the base frame and loses the object-relative property. Matching: both the candidate and the stored sketch are indexed by (target stage, normalised progress within the stage as estimated by the judge), and the candidate's 30 steps are compared with the sketch waypoints covering the same progress interval. The diversity of the N_c candidates (mean pairwise distance) is reported, and so are results with and without the penalty per hidden-factor type. The penalty's behaviour is also reported with oracle stage progress (from the platform) against judge-estimated progress.
+2. Explicit scoring of the N_c = 4 candidates: score(c) = Q_slow(s,c) + DeltaQ_group(s,c) + DeltaQ_robot(s,c) - lambda_rep * rep(c) + beta_info * VoI(c). Here Q_slow(s,c) is the expectation of the judge's chunk-critic distribution, M outputs residual logits over the same value bins, DeltaQ_M(s,c) is the change in expected value that M produces, and VoI(c) and the gate beta_info are defined in Section 2.5.1. rep(c) is a soft penalty only; there is no hard veto. Its purpose is to penalise re-executing the same trajectory, not small corrections of it. rep(c) is the maximum, over failed records j whose situation key has cosine similarity above tau_s with the current one, of a dead-zone kernel of d = d(c, sketch_j): the kernel is 1 if d <= delta_rep, decreases linearly to 0 at 2 * delta_rep, and is 0 beyond. delta_rep is the 95th percentile of the distance between policy rollouts of the same intent (same start, same h, same memory); it is calibrated on policy rollouts, not scripted ones. A correction larger than 2 * delta_rep is therefore not penalised at all. The distance d is computed in the following space: the end-effector path relative to the target object when available (forward kinematics from `ArmInfo` and `arm.toml`; the platform already computes the end-effector pose; the object pose comes from `task_meta` in simulation); else the end-effector path in the base frame (real); else joint space. Real-world mode has no object pose, so matching there uses the end-effector path in the base frame and loses the object-relative property. Matching: both the candidate and the stored sketch are indexed by (target stage, normalised progress within the stage as estimated by the judge), and the candidate's 30 steps are compared with the sketch waypoints covering the same progress interval. The diversity of the N_c candidates (mean pairwise distance) is reported, and so are results with and without the penalty per hidden-factor type. The penalty's behaviour is also reported with oracle stage progress (from the platform) against judge-estimated progress.
 
 Relation to prior work: Bellman-Guided Retrials keeps an avoidance set of proprioceptive states and picks the sampled chunk farthest from it, with a demonstrations-only policy that is not conditioned on the failures [BGR]. This design adds learned conditioning, outcome labels, a learned critic term and training on retry series.
 
@@ -282,10 +301,10 @@ The text below describes the common architecture and the M_group update.
 
 (a) *Hidden-factor series in simulation* (Own reasoning; central). For each series, hidden factors h are sampled once and held fixed across the attempts: gripper and object friction scale [0.5, 1.5], object mass scale [0.5, 3], per-joint zero-offset bias up to +-2 raw units (miscalibration), camera extrinsic jitter +-1 cm / +-2 deg, actuation delay 0-3 control steps, and object size +-10%. Only the factors that M1 finds identifiable stay in the generator (Section 2.0, including the rule for factors dropped by the second run). The scripted expert takes a strategy vector theta of 9 dimensions: the approach azimuth bin, grasp yaw, grasp height offset, lateral grasp offset x, lateral grasp offset y, pre-grasp standoff, gripper gap target, lift speed and place approach. The nominal expert does not know h, so some (h, theta) combinations fail.
 
-The target for attempt i+1 is not the true-h expert. It is the posterior-sampling (Thompson) teacher from M1: sample h' from the posterior given the attempts in memory, then act optimally for h'. Targets are therefore consistent with the information the memory holds. The teacher is not Bayes-optimal, because it does not take deliberate information-gathering actions. It is a reference policy, not an upper bound; Stage 2 RL with memory may exceed it. The only upper bound is the true-h oracle.
+The target is not the true-h expert. It is the finite-horizon Bayes-adaptive lookahead teacher of Section 2.5.1, built on the outcome table and the exact grid posterior given the attempts and probe segments in memory. Targets are therefore consistent with the information the memory holds. The posterior-sampling (Thompson) teacher from M1 (sample h' from the posterior given the attempts in memory, then act optimally for h') is kept as a baseline; it takes no deliberate information-gathering actions. Neither teacher is an upper bound; Stage 2 RL with memory may exceed them. The only upper bound is the true-h oracle.
 
 - *Likelihood model.* For each grid cell h, re-simulate the executed actions of the attempt in state-only (non-rendered) physics and compare the furthest stage, the stage latch times and the final object pose with the recorded ones. The observation noise is Gaussian on pose and latch time, with scales set from the simulator's own run-to-run variation `[GAP: measured in M1]`. The posterior is computed exactly by Bayes enumeration over the binned factor grid from M1 (at most 500 cells), with one state-only re-simulation per grid cell per attempt.
-- *Strategy table.* theta*(h) is precomputed once as a lookup table over the binned grid (at most 500 cells), by search over the 9-dimensional strategy vector with the scripted expert in state-only simulation. Cost [own estimate, to be measured]: up to 500 cells x 200 strategy candidates x 5 repeats = 500,000 short state-only episodes, on the order of 20-40 GPU-hours of non-rendered parallel simulation; the two added strategy dimensions leave this estimate unchanged in order of magnitude. DAgger relabelling then costs one exact grid-posterior update (one state-only re-simulation per grid cell, at most 500) per attempt plus a table lookup.
+- *Strategy table and outcome table.* The search for theta*(h) over the binned grid (at most 500 cells), over the 9-dimensional strategy vector with the scripted expert in state-only simulation, is stored in full as the outcome table O(theta, h) (Section 2.5.1); theta*(h) is read from it. Cost [own estimate, to be measured]: up to 500 cells x 200 strategy candidates x 5 repeats = 500,000 short state-only episodes, on the order of 20-40 GPU-hours of non-rendered parallel simulation; the two added strategy dimensions leave this estimate unchanged in order of magnitude. With about 20 probe strategies added (about 10% more) it is 22-44 GPU-hours. DAgger relabelling then costs one exact grid-posterior update (one state-only re-simulation per grid cell, at most 500) per attempt plus a depth-2 expectimax over the outcome table.
 - *Which factors give a teacher signal.* The teacher's action depends on a factor only if theta*(h) changes with it:
 
 **Table 2.5 — Does the teacher's action depend on the factor?**
@@ -301,7 +320,7 @@ The target for attempt i+1 is not the true-h expert. It is the posterior-samplin
 
 Consequence: camera-extrinsic jitter is removed from the teacher-supervised factors of C1. It is trained only through Stage 2 RL and visual domain randomisation and is reported separately.
 
-Series are policy-generated from Stage 1 onward (DAgger over series): the attempts already in memory are rolled out by the current policy in simulation, so memory contents are the policy's own failures, and the teacher relabels the next attempt. Scripted-expert failures are used only to warm-start (Stage 0 and the first Stage-1 epochs). Stage 2 is RL with memory on policy rollouts (RL^2-style). Results are reported with policy-generated memories and with scripted memories (new ablation). The series is [failed attempts..., success]. Because h is not observable from one frame but is constrained by how earlier attempts failed, the memory carries real information, and retries become in-context identification of the hidden factor. At real deployment the sim-to-real gap (calibration, friction, latency) plays the role of h.
+Series are policy-generated from Stage 1 onward (DAgger over series): the attempts already in memory are rolled out by the current policy in simulation, so memory contents are the policy's own failures and probe segments, and the lookahead teacher relabels the next choice. Scripted-expert failures are used only to warm-start (Stage 0 and the first Stage-1 epochs). Stage 2 is RL with memory on policy rollouts (RL^2-style). Results are reported with policy-generated memories and with scripted memories (new ablation). The series is [failed attempts..., success], with probe segments as records inside an attempt (Section 2.5.1). Because h is not observable from one frame but is constrained by how earlier attempts failed, the memory carries real information, and retries become in-context identification of the hidden factor. At real deployment the sim-to-real gap (calibration, friction, latency) plays the role of h.
 
 (b) *Policy rollouts in the self-improving loop.* K_att-attempt series are collected with memory enabled. Every series that ends in success after at least one failure is a training series.
 
@@ -309,7 +328,31 @@ Series are policy-generated from Stage 1 onward (DAgger over series): the attemp
 
 **Memory dropout.** 25% of series samples are trained with the memory emptied, so attempt-1 behaviour is preserved.
 
-**Auxiliary probe (simulation only).** A small head predicts h from the memory tokens (regression). It is used as a training signal (weight 0.05) and as a diagnostic. The hidden factors are never a model input.
+**Auxiliary posterior head (simulation only).** A small head predicts, per hidden factor, a categorical distribution over the M1 bins from the memory tokens, trained with cross-entropy to the exact grid posterior. It is used as a training signal (weight 0.05) and as a diagnostic; the posterior-agreement metric reads it (Section 4.5). The hidden factors are never a model input.
+
+### 2.5.1 Active identification
+
+Own design [own design]. Active identification makes the policy gather information deliberately when that raises expected task success. It has four parts: an outcome table, probe strategies, a lookahead teacher, and a value-of-information head with a gated score term.
+
+**1. Outcome table.** The strategy search already planned for theta*(h) (Section 2.5) is stored in full as an outcome table O(theta, h): for every strategy candidate (200) and every grid cell (at most 500), the distribution over outcomes (success, or a failure name with the furthest stage) from 5 repeats. Probe strategies are added to the candidate set (about 20, so about 10% more table cost). Each probe has a time cost, a near-zero task-failure risk and an observable result (binned). The bin resolution is decided by M1.
+
+**2. Probe strategies.** They are scripted in simulation and embodiment-agnostic through `ArmInfo`.
+
+- P-nudge: push the object a short distance and observe displacement and settle time. Informative about friction and mass.
+- P-test-reach: move the fingertip to a point next to the object and observe the tip-to-object offset in the wrist camera. Informative about joint offset.
+- P-lift-test: close on the object and lift 1 cm, and observe slip. Informative about friction, mass and size; higher risk.
+
+A probe is recorded as an ordinary stage-attempt record with outcome "probe" and its observation summary, so it enters memory, M_group and the posterior exactly like a failed or successful segment.
+
+**3. Lookahead teacher.** The training target is no longer the Thompson teacher. It is a finite-horizon Bayes-adaptive teacher over the discretised model. With belief b over grid cells, it chooses the strategy or probe that maximises expected success over the remaining attempts, by depth-2 expectimax on the outcome table (current choice, its outcome, best next choice), with the per-step time cost of the reward (Section 2.7). The work is about 220 x 7 x 220 (strategies and probes, at most 7 outcome classes: success plus the six failure names, strategies and probes again) table evaluations per decision [own arithmetic], negligible next to simulation. Deeper lookahead is unnecessary for K_att <= 4 [own judgement, to be checked by comparing depth 2 and depth 3 on B2]. The Thompson teacher is kept as a baseline; the true-h oracle stays the only upper bound.
+
+**4. Value-of-information head (in the judge).** For a candidate chunk it predicts VoI(s, c, memory), the expected increase in success probability over the remaining attempts if the chunk is executed and its result observed. Training target: computed from the outcome table and the exact grid posterior in simulation. It is a task-value quantity, not parameter information gain. Reason: a NeurIPS 2026 abstract ("Evaluating Physical Probes for Task Decisions under Hidden Dynamics", https://neurips.cc/virtual/2026/165877, snippet-level, unverified) reports that choosing probes by parameter information gain spent the first contact on friction, while task-risk selection reached near-oracle lifting regret with about one contact [NeurIPS-Probes].
+
+**5. Scoring and posterior head.** score(c) = Q_slow + DeltaQ_group + DeltaQ_robot - lambda_rep * rep(c) + beta_info * VoI(c). beta_info = 0 when the posterior head's entropy is below a threshold or the judge's predicted irrecoverable-failure probability for c is above a threshold; otherwise beta_info = 1 [own]. The two threshold values are 0.5 nats of posterior-head entropy per factor and a predicted irrecoverable-failure probability of 0.2 (Own reasoning: starting values, tuned on the dev set). The hidden-factor probe head becomes a posterior head: a categorical distribution per factor over the M1 bins (cross-entropy to the exact grid posterior). It replaces the regression head everywhere, and it is what the posterior-agreement metric reads.
+
+**6. Learning.** Stages 0-1: DAgger over series with the lookahead teacher, with probe segments included in the targets. Stage 2: RL with memory can refine or exceed the teacher; the per-step time cost makes probing pay only when it helps.
+
+**7. Real world.** Probes need no extra hardware; P-test-reach uses the wrist camera; outcome summaries come from the same records. Probes are bounded motions inside the contract clipping. P-lift-test is disabled by default on the real robot until validated.
 
 ### 2.6 Nested Learning implementation
 
@@ -355,7 +398,9 @@ Series are policy-generated from Stage 1 onward (DAgger over series): the attemp
 
 **Retry-aware.** V, Q and the indicator are all conditioned on the memory tokens, so "repeat what failed" receives low advantage.
 
-**Data in Stage 2.** Scripted successes; scripted failures (perturbed expert); recovery segments (state perturbed mid-episode, expert resumes); hidden-factor series; and on-policy K_att-attempt rollouts from R = 3 rounds. Values and advantages use only platform- or operator-labelled outcomes (Section 2.4).
+**Active identification in Stage 2.** RL with memory can refine or exceed the lookahead teacher (Section 2.5.1). The per-step time cost of the reward (-1/T_max per step) makes probing pay only when it helps, which also guards against a policy that probes always or never. The probe rate against posterior entropy is monitored as a diagnostic (Section 4.5).
+
+**Data in Stage 2.** Scripted successes; scripted failures (perturbed expert); recovery segments (state perturbed mid-episode, expert resumes); hidden-factor series with probe segments; and on-policy K_att-attempt rollouts from R = 3 rounds. Values and advantages use only platform- or operator-labelled outcomes (Section 2.4).
 
 **Efficiency.** The VLM, LoRA and bridge are frozen within a Stage 2 round. C-tokens for offline data are precomputed once; for on-policy rollouts the policy server logs the C-tokens it has already computed. The expert, judge and critic updates therefore run on cached features. The meta-learning of M is not head-only cost (Section 2.5). A consequence is that there is no image augmentation within a round, so visual diversity must come from `eval_dr` and dr-replay rendering.
 
@@ -367,9 +412,9 @@ Series are policy-generated from Stage 1 onward (DAgger over series): the attemp
 
 | Stage | Frozen | Trained | Losses |
 |---|---|---|---|
-| Stage 0 (primitive grounding, short) | backbone base weights | LoRA rank 32 on LLM attention of the kept layers; LoRA rank 16 on the last 4 vision blocks; bridge; set codec; expert slow+mid (fast held at zero); judge; attempt encoder; M init + gates | L_flow (weight 1) on primitive successes and recovery segments; L_judge = stage BCE + outcome CE + value CE (0.5); L_fk (0.1): from C-tokens + state predict end-effector position in the arm base frame and the gripper-tip pixel in each camera; L_idm (0.1): predict the executed chunk from C-tokens at t and t+H; series losses (prequential M loss 0.2, hidden-factor probe 0.05) on primitive retry series |
-| Stage 1 (imitation on target tasks) | backbone base weights | same set as Stage 0; LoRA lr reduced 5x | L_flow with I = 1 on successes and on the successful suffix of recovery episodes; judge losses on all episodes including failures; series losses on series whose memory contents are policy-generated (scripted-expert failures only in the first epochs), with the posterior-sampling (Thompson) teacher as target (Section 2.5) |
-| Stage 2 (RL on failures + successes, R = 3 rounds) | VLM, LoRA, bridge (C-tokens cached), except during the perception refresh (LoRA + bridge trained with Stage-1 losses, 5k steps, after rounds 1 and 2) | CMS-fast every step; CMS-mid every 8 steps; judge + critics; attempt encoder; M init + gates (every step); slow only in consolidation | advantage-conditioned flow loss; value CE; chunk-critic TD(lambda)/MC mix; prequential M loss (first-order meta-gradient); probe |
+| Stage 0 (primitive grounding, short) | backbone base weights | LoRA rank 32 on LLM attention of the kept layers; LoRA rank 16 on the last 4 vision blocks; bridge; set codec; expert slow+mid (fast held at zero); judge; attempt encoder; M init + gates | L_flow (weight 1) on primitive successes and recovery segments; L_judge = stage BCE + outcome CE + value CE (0.5); L_fk (0.1): from C-tokens + state predict end-effector position in the arm base frame and the gripper-tip pixel in each camera; L_idm (0.1): predict the executed chunk from C-tokens at t and t+H; series losses (prequential M loss 0.2, posterior head 0.05) on primitive retry series, including the probe primitives (Section 2.12) |
+| Stage 1 (imitation on target tasks) | backbone base weights | same set as Stage 0; LoRA lr reduced 5x | L_flow with I = 1 on successes and on the successful suffix of recovery episodes; judge losses on all episodes including failures; series losses on series whose memory contents are policy-generated (scripted-expert failures only in the first epochs), with the lookahead teacher as target (DAgger over series, probe segments included in the targets; Section 2.5.1); L_voi on the VoI head (target from the outcome table and the exact grid posterior; loss form and weight a Huber regression of the value-of-information head to the table-derived target, weight 0.2 (Own reasoning)) |
+| Stage 2 (RL on failures + successes, R = 3 rounds) | VLM, LoRA, bridge (C-tokens cached), except during the perception refresh (LoRA + bridge trained with Stage-1 losses, 5k steps, after rounds 1 and 2) | CMS-fast every step; CMS-mid every 8 steps; judge + critics; attempt encoder; M init + gates (every step); slow only in consolidation | advantage-conditioned flow loss; value CE; chunk-critic TD(lambda)/MC mix; prequential M loss (first-order meta-gradient); posterior head; L_voi |
 
 ### 2.9 Data format: failed and retry episodes as sidecar extensions
 
@@ -380,9 +425,11 @@ Per-episode fields (new):
 - `outcome.success`: bool; `outcome.failure_name`: str or null (the task's failure name, mapped to a stage index by the `task.py` table; the target vocabulary is `failed_at_<stage>`); `outcome.timeout_holding`: bool; `outcome.furthest_stage`: str or null; `outcome.stage_latch_step`: int[S] (-1 = never); `outcome.label_source`: enum {platform, judge, operator, none}.
 - `retry.group_id`: str (uuid or start hash); `retry.attempt_index`: int (1-based); `retry.prev_episode`: int or null; `retry.start_state_hash`: str.
 - `source.kind`: enum {teleop, scripted, mimic, dr_replay, policy_rollout, perturbed_expert}; `source.policy_checkpoint`: str or null; `source.expert_strategy`: dict or null; `source.perturbation`: {type, t_start, magnitude} or null.
-- `hidden_factors`: dict or null (simulation only; never a model input; used for the probe loss and analysis).
+- `hidden_factors`: dict or null (simulation only; never a model input; used for the posterior-head loss and analysis).
 - `subtasks`: list of {name, start_frame, end_frame} (from task stages or Mimic annotations).
 - `failure_reason_text`: str or null (optional free text or templated).
+
+Per-segment fields (new): the record `outcome` enum gains "probe"; `probe_observation` (binned values of the probe's observation summary).
 
 Per-frame fields (new): `stage_latched` (uint8 bitmask); `ee_pose` (xyz + WXYZ, metres, arm base frame); `gripper_tip_px` per camera (u, v, visible flag).
 
@@ -415,7 +462,7 @@ Per-frame fields (new): `stage_latched` (uint8 bitmask); `ee_pose` (xyz + WXYZ, 
 
 ### 2.12 Stage 0 primitive-skill curriculum
 
-Stage 0 grounds the model in each arm with ten short primitive tasks. Each primitive is defined through `ArmInfo` roles, so the same `task.toml` and `task.py` work for SO-101 and SP7. Own reasoning on volume: about 2,000 short episodes (2-8 s) per primitive per arm, about 20k episodes per arm. In Phase A, Stage 0 runs on SO-101 only; running it on a second arm is Phase B (Section 2.18). In the table, "NEW check" means a check that the platform does not yet have (see PR10 in Section 2.18).
+Stage 0 grounds the model in each arm with thirteen short primitive tasks, including three probe primitives (P4, P8, P10) that teach the probe moves of active identification (Section 2.5.1). Each primitive is defined through `ArmInfo` roles, so the same `task.toml` and `task.py` work for SO-101 and SP7. Own reasoning on volume: about 2,000 short episodes (2-8 s) per primitive per arm, about 26k episodes per arm (13 x 2,000). In Phase A, Stage 0 runs on SO-101 only; running it on a second arm is Phase B (Section 2.18). In the table, "NEW check" means a check that the platform does not yet have (see PR10 in Section 2.18).
 
 **Table 2.12 — Primitive curriculum**
 
@@ -424,13 +471,16 @@ Stage 0 grounds the model in each arm with ten short primitive tasks. Each primi
 | P1 | joint-sweep | move one named joint to a target value, others still; joint identity, sign, limits, appearance in each camera | NEW `joint_at_target(joint, tol)` + hold | scripted joint-space interpolation (no IK); DR replay | few; with a hidden joint-offset bias it gives the simplest retry series |
 | P2 | gripper-gap | open/close the gripper to a target physical gap; gripper codec, gap units | NEW `gripper_at_gap(gap, tol)` + hold | scripted | few |
 | P3 | reach-point | move the gripper tip to a visible 3-D marker; reachable workspace, joint command to end-effector motion (with L_fk) | existing `reached` (on a marker object) + hold | scripted IK expert; DR replay | yes: targets near the boundary and hidden calibration bias miss |
-| P4 | calibration-probe reach | reach-point under a hidden per-series joint offset; attempt 1 misses, later attempts must compensate; retry memory at its cheapest | `reached` + hold, K_att-attempt series | hidden-factor series with scripted IK expert (nominal first, then the posterior-sampling (Thompson) teacher) | yes, by construction (the memory-grounding primitive) |
-| P5 | waypoint-path | visit 3-5 markers in order; sequencing, multi-stage latches | NEW `path_tracked` (ordered reached latches) | scripted IK | yes: skipped waypoint under actuation delay |
-| P6 | touch-object | touch a cube with the fingertip without moving it more than 1 cm; contact onset | NEW `touched` (contact force > threshold, displacement < 1 cm) | scripted IK | yes: miss or shove |
-| P7 | push-to-region | push a cube into a marked region; contact dynamics, friction | NEW `in_region(object, region)` + hold | scripted push; hidden friction/mass per series | yes, rich (overshoot/undershoot depends on friction) |
-| P8 | grasp-and-lift | grasp a cube and lift it; gripper-object interaction | existing `reached`, `grasped`, `lifted`, hold | scripted pick; Mimic; DR replay | yes: slips, misses |
-| P9 | place-at-location | place a held cube at a target; release dynamics | existing `placed` + hold | scripted place; Mimic | yes: early release, off-target |
-| P10 | re-grasp after drop | lift, forced drop mid-lift, re-grasp and lift again; in-episode recovery | `grasped`, `lifted`, NEW `released` (forced), NEW `regrasped`, `lifted`, hold | perturbed scripted expert: gripper forced open mid-lift, expert resumes | yes, inherently (every episode contains failure then recovery) |
+| P4 | test-reach probe | move the fingertip to a point beside the object, observed in the wrist camera; detecting a calibration offset before committing | existing `reached` on an offset marker + hold | scripted IK under a hidden joint offset | yes, by construction |
+| P5 | calibration-probe reach | "probe, then reach": P4 followed by reach-point under a hidden per-series joint offset; attempt 1 misses, later attempts must compensate; retry memory at its cheapest | `reached` + hold, K_att-attempt series | hidden-factor series with scripted IK expert (nominal first, then the lookahead teacher) | yes, by construction (the memory-grounding primitive) |
+| P6 | waypoint-path | visit 3-5 markers in order; sequencing, multi-stage latches | NEW `path_tracked` (ordered reached latches) | scripted IK | yes: skipped waypoint under actuation delay |
+| P7 | touch-object | touch a cube with the fingertip without moving it more than 1 cm; contact onset | NEW `touched` (contact force > threshold, displacement < 1 cm) | scripted IK | yes: miss or shove |
+| P8 | nudge-probe | push an object a short distance and stop; reading friction and mass from a small interaction; probe segments in memory | NEW `nudged(object, min_disp_m, max_disp_m)` + hold | scripted push move with hidden friction/mass per series | yes (over- or under-push) |
+| P9 | push-to-region | push a cube into a marked region; contact dynamics, friction | NEW `in_region(object, region)` + hold | scripted push; hidden friction/mass per series | yes, rich (overshoot/undershoot depends on friction) |
+| P10 | lift-test | close on a cube and lift it 1 cm, then set it down; slip detection before a full lift | `grasped`, NEW `lifted_by(height_m)`, `placed` | scripted pick with hidden friction/mass/size per series | yes (slip) |
+| P11 | grasp-and-lift | grasp a cube and lift it; gripper-object interaction | existing `reached`, `grasped`, `lifted`, hold | scripted pick; Mimic; DR replay | yes: slips, misses |
+| P12 | place-at-location | place a held cube at a target; release dynamics | existing `placed` + hold | scripted place; Mimic | yes: early release, off-target |
+| P13 | re-grasp after drop | lift, forced drop mid-lift, re-grasp and lift again; in-episode recovery | `grasped`, `lifted`, NEW `released` (forced), NEW `regrasped`, `lifted`, hold | perturbed scripted expert: gripper forced open mid-lift, expert resumes | yes, inherently (every episode contains failure then recovery) |
 
 **Evidence that this kind of stage helps.** None of the following tests exactly a primitive curriculum, so a with/without-Stage-0 ablation is needed (Section 4). GraspVLA pretraining on synthetic grasping: scratch 10/30 versus pretrained 90/100 (overall/grasp success, Task 1) [GraspVLA]. Sim-and-real co-training improves real performance by 38% on average [SimRealCoTrain]. Play-LMP reaches 85.5% on 18 tasks against 70.3% for 18 task-specific behaviour-cloning policies [Play-LMP]. RoboTwin 2.0 synthetic data plus 10 real demonstrations gives a 367% relative improvement over 10 real demonstrations alone [RoboTwin2]. Neural Jacobian Fields learns a robot self-model from random motor commands and vision alone [NJF]. Align-Then-Steer reports up to 9.8% multi-task gain in simulation and 32% in a real cross-embodiment setting [ATE].
 
@@ -492,6 +542,7 @@ References for the L-tier latency: pi0's 3B VLM KV prefill takes 46 ms on a 4090
 Estimate (to be measured): the uncertainty is about 2x either way.
 
 - Per-model training cost, all [own] estimates: L/own about 80 H200-h (Stage 0 12 + Stage 1 36 + Stage 2 24 + refreshes 8); L/adapt about 120 H200-h (Section 2.2); S about 20 H200-h. Stage 2 is not purely head-only: series unrolls and M meta-learning add cost, included in these figures as an allowance, to be measured. Simulation and rendering do not run on the H200s (Section 2.11): rendering runs on RTX hardware and collection inference on an H200.
+- Outcome table with probes, [own] estimate: 22-44 GPU-hours of non-rendered simulation (Section 2.5.1). The compute blocks, including the larger family F1 (8 ablations x 3 seeds = 24 runs), are in Section 4.7.
 - Per-run environment time (15 s episodes), all [own] estimates: on-policy collection 3 rounds x 1,000 episodes x about 2 attempts = about 25 env-h (upper bound 50 at 4 attempts); full final evaluation about 30 env-h; reduced evaluation about 4 env-h; per-round dev evaluations about 5 env-h in total. The run table, wall-clock and cut list are in Section 4.7.
 - The assumed throughput is about 60 samples/s for LoRA training of the L tower across both GPUs and about 2,000 samples/s for head-only Stage 2. Both are `[GAP: measure]`.
 
@@ -505,7 +556,7 @@ Reference points: an OpenVLA LoRA fine-tune takes 10-15 h on one A100 [OpenVLA];
 |---|---|---|
 | 1 | Weight licence of MolmoAct2/Molmo2-ER unknown | confirm; S tier (Apache-licensed InternVL family) and pi0.5 as fallbacks |
 | 2 | LLM truncation to 24 layers and discarding MolmoAct2's jointly post-trained expert lose quality (not covered by the SmolVLA precedent) | pre-registered parity gate against LoRA-fine-tuned MolmoAct2 (lower bound of the 95% confidence interval of the attempt-1 difference above -6 points, on the dev set after Stage 1); L/adapt is the fallback and headline if the gate fails; ablate 18/24/36 at attempt 1; full depth costs about +2.7 GB and about +20 ms (Estimate, to be measured) |
-| 3 | Policy ignores memory | hidden-factor series make memory necessary; memory dropout; probe loss; counterfactual-memory test (correct vs conflicting vs empty memory; T2Mem is cited only as the test design we copy, not as evidence about this design [T2Mem]) |
+| 3 | Policy ignores memory | hidden-factor series make memory necessary; memory dropout; posterior-head loss; counterfactual-memory test (correct vs conflicting vs empty memory; T2Mem is cited only as the test design we copy, not as evidence about this design [T2Mem]) |
 | 4 | Over-avoidance (a failed attempt was bad luck, not a bad strategy) | soft repeat penalty only (no hard veto), situation-similarity gate, dead-zone kernel with delta_rep at the 95th percentile of the spread between policy rollouts of the same intent, M's forgetting gate, outcome counts per record; report success rate on attempt 2 after a "noise" failure, and results with and without the penalty per hidden-factor type |
 | 5 | Judge errors write wrong outcomes in the real world | conformal thresholds, "unknown" outcome, operator override; judge-only labels are used for memory writes but never as training labels in headline results; judge accuracy on real data is reported against operator labels |
 | 6 | CMS consolidation not better than replay + LoRA | report honestly; fall back to ER |
@@ -518,6 +569,9 @@ Reference points: an OpenVLA LoRA fine-tune takes 10-15 h on one A100 [OpenVLA];
 | 13 | Reward shaping bias from stage bonuses | bonuses are small (0.5 total), ablate binary-only reward |
 | 14 | Hidden factors are not identifiable from a few attempts | milestone M1 (identifiability study); keep only identifiable factors; if fewer than two remain, the scope narrows |
 | 15 | Rendering cannot run on the H200s; single-environment evaluation | rendering on RTX hardware (`[GAP: number and type of RTX GPUs available for simulation]`), inference for collection on an H200, PR14 as a hard prerequisite, M3 measures env-steps/s |
+| 16 | Probes disturb the scene and cause failures | probes are bounded, low-force and gated by the predicted irrecoverable-failure probability; P-lift-test is off by default on the real robot |
+| 17 | The discretised outcome table misrepresents the continuous problem (teacher bias) | compare depth-2 against depth-3 lookahead and against Stage 2 RL; M1 decides the bin resolution |
+| 18 | The policy probes always or never (collapse) | time cost in the reward, probe-rate-versus-entropy diagnostic, beta_info gate |
 
 ### 2.18 Platform requirements
 
@@ -528,15 +582,15 @@ The requirements below are what the platform must provide. "Blocks" states wheth
 | ID | Requirement | Interface (fields, types, units, frequency) | Why | Blocks core or add-on |
 |---|---|---|---|---|
 | PR1 | Failure-allowed recording | recorder flag `commit_failures=true`; failed, timed-out and aborted episodes are committed with full frames | training on failures; judge negatives | blocks core; Phase A |
-| PR2 | Sidecar schema-3 | fields of Section 2.9, per episode and per frame; quaternions WXYZ on disk, metres, radians | labels, retry linkage | blocks core; Phase A |
+| PR2 | Sidecar schema-3 | fields of Section 2.9, per episode and per frame; record outcome enum gains "probe"; per-segment `probe_observation` (binned values); quaternions WXYZ on disk, metres, radians | labels, retry linkage | blocks core; Phase A |
 | PR3 | Per-step stage latches in datasets | `stage_latched` uint8 bitmask per committed frame + stage name list in episode meta | judge supervision, reward; does not exist today (the repository's benchmark OR-latches stages per episode at evaluation) | blocks core; Phase A |
 | PR4 | Series-scoped domain randomization | DR scope = "series": hidden factors sampled once per retry group and held across resets; logged in `hidden_factors` | hidden-factor retry series | blocks core; Phase A |
-| PR5 | Parameterised and perturbed scripted expert | strategy vector theta as arguments to approach/pick/place moves; perturbation hooks (action noise, forced gripper open, state teleport at t) with expert resume by IK | cheap failure, recovery and retry data | blocks core; Phase A |
+| PR5 | Parameterised and perturbed scripted expert | strategy vector theta as arguments to approach/pick/place moves; probe moves (P-nudge, P-test-reach, P-lift-test) as scripted moves that return an observation summary; perturbation hooks (action noise, forced gripper open, state teleport at t) with expert resume by IK | cheap failure, recovery and retry data | blocks core; Phase A |
 | PR6 | K-attempt eval hook | eval config `attempts_per_start: int` (K_att); same start re-instantiated per attempt; passes `retry_group_id` and `attempt_index`; calls `end_episode` | retry evaluation | blocks core; Phase A |
 | PR7 | Eval report extensions | per start: `attempts[]` each with success, failure_name, timeout_holding, latched stages, signature; aggregates `success_at_k[k]`, `attempts_to_success`, `repeated_failure_rate`, `stage_rates` per attempt index; latency p50/p95 and peak VRAM; each `task.py` declares a mapping table from its failure names to stage indices | metrics and loop | blocks core; Phase A |
 | PR8 | Policy server extensions | `end_episode(outcome: dict)`, `clear_memory()`, `reset(seed, retry_group_id: str, attempt_index: int)`, `infer_batch`, extra infer response fields; `configure(ArmInfo)` with joint limits (rad or m), joint type, role, joint axis and parent-link offset (from `arm.toml` or the URDF), codec | memory, judge, robot-agnostic codec | blocks core; Phase A |
 | PR9 | Async worker extension | reports measured inference delay (control steps) and number of committed actions to `infer` | consistent chunk boundaries | blocks core (real-time); Phase A (needed for real-time execution) |
-| PR10 | Primitive task definitions + new checks | `task.toml`/`task.py` for P1-P10; checks `joint_at_target(joint, tol_rad)`, `gripper_at_gap(gap_m, tol_m)`, `path_tracked(ordered markers, tol_m)`, `touched(force_N, max_disp_m)`, `in_region(object, region)`, `released`, `regrasped`; failure-name to stage-index mapping per task | Stage 0 | blocks core (Stage 0); Phase A for SO-101 (Stage 0); Phase B for the second arm |
+| PR10 | Primitive task definitions + new checks | `task.toml`/`task.py` for P1-P13; checks `joint_at_target(joint, tol_rad)`, `gripper_at_gap(gap_m, tol_m)`, `path_tracked(ordered markers, tol_m)`, `touched(force_N, max_disp_m)`, `in_region(object, region)`, `released`, `regrasped`, `nudged(object, min_disp_m, max_disp_m)`, `lifted_by(height_m)`; failure-name to stage-index mapping per task | Stage 0 | blocks core (Stage 0); Phase A for SO-101 (Stage 0); Phase B for the second arm |
 | PR11 | Kinematic/camera ground truth in sidecar | per frame `ee_pose` (m, WXYZ, arm base frame), `gripper_tip_px` per camera (pixels), camera intrinsics/extrinsics per episode | `ee_pose`: attempt records, repeat penalty, L_fk; `gripper_tip_px` and camera parameters: L_fk auxiliary loss only | `ee_pose` per frame: blocks core (records, penalty, L_fk); Phase A. `gripper_tip_px` and camera intrinsics/extrinsics: add-on |
 | PR12 | Collect-set generator and sealed set | `make_eval_set` option to produce a collect set and a dev set with seeds disjoint from all eval sets; one sealed set with content hash | uncontaminated self-improvement claims | blocks core (claims); Phase A |
 | PR13 | Real rollout outcome input | `real_rollout`: operator success/fail/stage key at episode end, retry_group and attempt index, calls `end_episode` | real-world retries and labels; operator labels are logged separately (`label_source = operator`), while memory writes in the controlled study use the judge outcome | blocks core (real path); Phase A for the real study |
@@ -546,6 +600,7 @@ The requirements below are what the platform must provide. "Blocks" states wheth
 | PR17 | LeRobot >= 0.7 | only if the LeRobot Lance backend is adopted later | storage option | add-on; Phase B |
 | PR18 | stack_two_cubes task package | `task.toml`; `task.py` with stages; failure-name mapping table; scripted expert taking the strategy vector; eval sets | second Phase A task | blocks core; Phase A |
 | PR19 | Fixed eval sets and hidden-factor suite | fixed eval sets of 150, 200 and 150 starts with pinned seeds and content hashes for each Phase A task; a dev set of 500 starts; the sealed set; the hidden-factor suite B2 = 200 starts, each with one pre-drawn in-range hidden-factor sample, plus an out-of-range copy with factor values up to 1.25 times beyond the training range bounds [own]; the noise-failure control = 200 starts | pre-registered evaluation | blocks core; Phase A |
+| PR20 | Outcome-table generation mode | state-only (non-rendered) batch simulation that runs a given strategy or probe under a given hidden-factor cell and returns outcome, furthest stage, latch times, final object pose and the probe observation; interface: (task, theta, h, seed) -> record | M1, the lookahead teacher and DAgger relabelling | blocks core; Phase A |
 
 The user-specified design target (SO-101 and SP7 arms; pick_place_cube, stack_two_cubes and stack_bowls; `failed_at_<stage>` failure names) is kept as the target. The table below compares it with the current repository.
 
@@ -561,7 +616,7 @@ The user-specified design target (SO-101 and SP7 arms; pick_place_cube, stack_tw
 | Policy server reset | `reset(seed)` | adds the retry fields (`retry_group_id`, `attempt_index`) |
 | Control rate | 30 Hz | 30 Hz |
 
-**Phasing.** Phase A (paper core) is SO-101 with pick_place_cube and stack_two_cubes. Its minimal requirement set is PR1-PR10, PR12, PR14, PR16, PR18 and PR19, plus PR13 for the real study; PR11 is split, and `ee_pose` per frame is Phase A while `gripper_tip_px` and the camera parameters remain an add-on. Pre-registered fallback scope: if stack_two_cubes is not ready, the paper is pick_place_cube only and the hidden-factor suite B2 carries C1. Stage 0 in Phase A runs on SO-101; its largest expected benefit (a new arm) is a Phase B claim. Phase B (extension) is stack_bowls, SP7, Stage 0 on a second arm, and the cross-embodiment and subtask-composition experiments. Each PR row above is marked with its phase.
+**Phasing.** Phase A (paper core) is SO-101 with pick_place_cube and stack_two_cubes. Its minimal requirement set is PR1-PR10, PR12, PR14, PR16, PR18, PR19 and PR20, plus PR13 for the real study; PR11 is split, and `ee_pose` per frame is Phase A while `gripper_tip_px` and the camera parameters remain an add-on. Pre-registered fallback scope: if stack_two_cubes is not ready, the paper is pick_place_cube only and the hidden-factor suite B2 carries C1. Stage 0 in Phase A runs on SO-101; its largest expected benefit (a new arm) is a Phase B claim. Phase B (extension) is stack_bowls, SP7, Stage 0 on a second arm, and the cross-embodiment and subtask-composition experiments. Each PR row above is marked with its phase.
 
 ## Section 3 — Proven add-ons
 
@@ -611,6 +666,7 @@ The add-ons below are published methods that attach to the core design. None is 
 - The K_att-attempt protocol uses K_att = 4 in simulation and K_att = 3 in real, in oracle-outcome and self-judged modes.
 - Memory conditions. "Memory cleared" means that the records, M_group and M_robot are all cleared at every reset. Three conditions are reported: (1) full memory within the retry group, M_robot reset per start (primary); (2) fully cleared (the null); (3) M_robot warm (secondary; learning curve over consecutive groups, Section 2.5).
 - **Primary endpoint (pre-registered, superiority).** success@K_att on the hidden-factor suite B2: ours (condition 1) versus fully cleared (condition 2), on the same starts, paired per start. This empirical null replaces the analytic one. The noise-failure control (200 starts, the same number as B2) is a non-inferiority endpoint with a 6-point margin: memory must not hurt when failures are not persistent. Secondary endpoints are corrected with Holm within their family. The analytic retry gain stays as a secondary descriptive number, with the caveat that pooling over heterogeneous starts biases it (Jensen).
+- **Key secondary endpoint (Holm family F1).** Attempts-to-success and time-to-success on B2, active (lookahead teacher + probes + VoI) versus passive (posterior-sampling teacher, no probes, beta_info = 0), same backbone, 3 seeds. success@1 is also reported: probes can raise first-attempt success, which the passive model cannot.
 - Statistics: the 3 training seeds are combined with a mixed-effects logistic regression with random effects for start and seed; per-seed paired McNemar on pinned seeds (the platform's `compare_eval_results`) is reported as a sensitivity analysis; 95% Wilson or Clopper-Pearson intervals; Holm correction within each ablation family; 3 training seeds for every claim-bearing row (family F1 in Section 4.4; the single-seed families are exploratory). For real trials, sequential testing limits the trial count (STEP reduces trials by up to 32%) [STEP]. Conditions and failure modes are reported following [EmpiricalScience].
 - Power (Own reasoning; approximate): B2 with 200 starts detects about a 10-point paired difference at 80% power per seed; pooling 3 seeds in the mixed model improves this, and the exact value is to be computed in the pre-registration. This applies once PR19 is built. 5-point differences are not detectable on one set.
 
@@ -629,12 +685,12 @@ The add-ons below are published methods that attach to the core design. None is 
 - Our model without memory and without failure training (IL only).
 - Our model plus RECAP-style RL but no memory, which separates memory from RL.
 - L/adapt, which is "MolmoAct2 + our memory" and the cleanest isolation of the memory contribution (Section 2.2).
-- Retry baselines on the same information (to answer the objection that B2 builds in the win): the same checkpoint with memory cleared at every reset (the primary null); an RL^2 / Algorithm-Distillation-style baseline, in which the same expert is given the raw attempt history through a causal transformer context and trained on the same series [RL2][AD]; VLRLA-style recurrent cross-episode memory with scalar reward feedback only [VLRLA]; TraceFlow-style training-free trace guidance [TraceFlow]; FAR-style test-time preference adaptation with 10 gradient steps [FAR]; BGR-style avoidance set [BGR]; and the kernel-regression memory reader (Section 2.5). Reference policy: the posterior-sampling (Thompson) teacher, which is not an upper bound (Stage 2 RL with memory may exceed it). The only upper bound is the true-h oracle.
+- Retry baselines on the same information (to answer the objection that B2 builds in the win): the same checkpoint with memory cleared at every reset (the primary null); an RL^2 / Algorithm-Distillation-style baseline, in which the same expert is given the raw attempt history through a causal transformer context and trained on the same series [RL2][AD]; VLRLA-style recurrent cross-episode memory with scalar reward feedback only [VLRLA]; TraceFlow-style training-free trace guidance [TraceFlow]; FAR-style test-time preference adaptation with 10 gradient steps [FAR]; BGR-style avoidance set [BGR]; and the kernel-regression memory reader (Section 2.5). Reference policies: the lookahead teacher itself and the Thompson (posterior-sampling) teacher; neither is an upper bound (Stage 2 RL with memory may exceed them). The only upper bound is the true-h oracle. A further baseline is a parameter-information-gain variant of the VoI head, to test task-value against information-gain selection.
 - Continual-learning baselines: sequential LoRA [Simple-Recipe]; experience replay [VLA-ER]; per-task adapters (TAIL) [TAIL]; dual-timescale adapters in the style of LifelongVLA [LifelongVLA]; parallel adapters with matched learning-rate ratios; Progress & Compress; LoRA plus replay at equal replay budget (named by the reviewer; not retrieved in our search, to be verified); joint training (upper bound).
 
 ### 4.4 Ablations
 
-All ablations run on the S tier unless noted. The ablation numbers A1-A19 below are distinct from the add-on IDs of Section 3; this section refers to them as "ablation A#". Evaluation levels: "full" = all fixed sets and variants + B2, K_att attempts, both memory conditions; "reduced" = B2 (one variant) with K_att attempts plus dev-set attempt-1; "attempt-1 and latency" = attempt-1 success and latency only.
+All ablations run on the S tier unless noted. The ablation numbers A1-A22 below are distinct from the add-on IDs of Section 3; this section refers to them as "ablation A#". Evaluation levels: "full" = all fixed sets and variants + B2, K_att attempts, both memory conditions; "reduced" = B2 (one variant) with K_att attempts plus dev-set attempt-1; "attempt-1 and latency" = attempt-1 success and latency only.
 
 **Table 4.4 — Ablations**
 
@@ -659,6 +715,9 @@ All ablations run on the S tier unless noted. The ablation numbers A1-A19 below 
 | A17 | CMS levels 1/2/3, with and without consolidation, against the continual baselines | C3 | S | 1 | reduced, plus the continual-learning metrics (NBT, FWT, AUC) on the task sequence | F3 |
 | A18 | LLM depth 18/24/36; flow steps 2/4/10; N_c 1/2/4/8 | efficiency (latency-success trade-off) | L | 1 | attempt-1 and latency | F4 |
 | A19 | subtask composition on held-out subtask orders; Stage 0 on the second arm (Phase B) | supporting (Section 3, Section 2.12) | S | 1 | reduced | exploratory, outside the Holm families |
+| A20 | probes on/off | C1 | S | 3 | full | F1 |
+| A21 | VoI term on/off | C1 | S | 3 | full | F1 |
+| A22 | teacher: posterior-sampling vs depth-2 lookahead (vs depth-3 as a single-seed check) | C1 | S | 3 (depth-3: 1) | full | F1 |
 
 F2 is reported as exploratory. Under the compute plan (Section 4.7), the F2 and F3 runs are capped at 12 single-seed runs, so A8 is run at levels 0 and 3 only, A13 with 4 cells, and A14-A16 only if budget remains.
 
@@ -666,20 +725,23 @@ F2 is reported as exploratory. Under the compute plan (Section 4.7), the F2 and 
 
 - **success@k**: the fraction of starts solved within k attempts, k = 1..K_att. The primary endpoint is success@K_att on B2 against the fully cleared null (Section 4.1).
 - **attempts-to-success**: the mean number of attempts, with unsolved starts counted as K_att+1.
+- **time-to-success**: seconds, including probe time; unsolved starts are counted as K_att x the episode limit.
+- **probe rate against posterior entropy**: probing should concentrate where uncertainty is high.
+- **regret** against the lookahead teacher and against the true-h oracle.
 - **retry gain** (Own definition; secondary and descriptive): success@K_att - [1 - (1 - success@1)^K_att], the improvement over independent retries with the same first-attempt rate; pooling over heterogeneous starts biases it (Jensen). It is reported together with P(success at attempt 2 | attempt 1 failed).
 - **repeated-failure rate** (Own definition): among attempts that follow a failure in the same series, the fraction that fail at the same stage with an object-centric signature distance (PR16) below delta to an earlier failed attempt. One delta serves both the metric and the penalty (delta_rep, Section 2.5): it is calibrated on policy rollouts. The rate is always reported jointly with success@k and against a distance-matched random-perturbation null, which is a policy that perturbs its previous attempt by the same average distance without using outcome information.
-- **posterior agreement** (simulation): after each attempt, the hidden-factor probe's estimate is compared with the exact grid posterior from M1, as calibration and as KL divergence per factor, so that in-context identification is measured, not inferred.
+- **posterior agreement** (simulation): after each attempt, the posterior head's distribution is compared with the exact grid posterior from M1, as calibration and as KL divergence per factor, so that in-context identification is measured, not inferred.
 - **per-stage rates**: the platform `stage_rates`, per attempt index, and the failure-name histogram.
 - **forgetting**: NBT, FWT and AUC as defined in LIBERO [LIBERO], plus per-round stage rates of earlier tasks.
 - **sim-to-real gap** (descriptive): success(sim) - success(real) on paired starts, at attempt 1 and at attempt K_att. Rank agreement is measured by MMRV and Pearson r as in SIMPLER [SIMPLER]. A gap that shrinks with k is confounded by ceiling and selection effects, so it is not by itself the evidence for the sim-to-real claim (Section 4.6).
 - **judge quality**: stage-latch F1, failure-stage accuracy, AUROC of failure prediction, calibration, and accuracy on real data against operator labels.
-- **other**: hidden-factor probe error; latency p50/p95 per inference, control Hz and peak VRAM on the RTX 4090; training GPU-hours.
+- **other**: posterior-head error (cross-entropy to the exact grid posterior); latency p50/p95 per inference, control Hz and peak VRAM on the RTX 4090; training GPU-hours.
 
 ### 4.6 Which result supports which claim
 
 Own reasoning:
 
-- **C1**: ablation A3, the M1 identifiability study, posterior agreement between the hidden-factor probe and the exact grid posterior, and the primary endpoint on B2 against the fully cleared null. The sim-to-real claim is supported by the controlled real hidden-factor study and the descriptive uninjected real condition (Section 4.7), not by "the gap shrinks with k" alone; gap-versus-k is descriptive.
+- **C1**: ablation A3 and ablations A20-A22, the M1 identifiability study, posterior agreement between the posterior head and the exact grid posterior, the active-versus-passive endpoint, and the primary endpoint on B2 against the fully cleared null. The sim-to-real claim is supported by the controlled real hidden-factor study and the descriptive uninjected real condition (Section 4.7), not by "the gap shrinks with k" alone; gap-versus-k is descriptive.
 - **C2**: this design against the retry baselines on the same information (including the RL^2 / Algorithm-Distillation-style baseline and the kernel-regression reader) on success@K_att and on the repeated-failure rate reported jointly with success@k, plus the counterfactual-memory test.
 - **C3**: NBT and AUC against experience replay and sequential LoRA at equal replay, and round-over-round success@k on pinned seeds.
 - **C4**: judge metrics under the three label regimes, and agreement between self-judged and oracle modes.
@@ -694,15 +756,15 @@ Estimate (to be measured): all numbers below are [own] estimates derived from th
 |---|---|---|---|
 | L/own headline | 3 seeds | 240 | 3 x ~60 = ~180 |
 | L/adapt | 3 seeds | 360 | ~180 |
-| S ablations, family F1: 5 ablations (A1-A4, A6) x 3 seeds = 15 runs at ~60 env-h each (collection ~25, full evaluation ~30, dev ~5) | 15 | 300 | ~900 |
+| S ablations, family F1: 8 ablations (A1-A4, A6, A20-A22) x 3 seeds = 24 runs at ~60 env-h each (collection ~25, full evaluation ~30, dev ~5) | 24 | 480 | ~1,440 |
 | S ablations, families F2/F3: capped at 12 single-seed runs at ~30 env-h each, filled in this order: A5, A7, A8 (levels 0 and 3 only), A9, A10, A11, A12, A17; A13 reduced to 4 cells; A14-A16 only if budget remains | 12 | 240 | ~360 |
-| S block total | 27 | 540 | ~1,260 |
+| S block total | 36 | 720 | ~1,800 |
 | Baselines: MolmoAct2 LoRA x 3 seeds (90), GR00T N1.7 (40), pi0.5 (60), SmolVLA (10), RL^2/AD-style and VLRLA-style on S x 3 seeds (120), continual baselines (125); training-free retry baselines cost no training | ~14 | 445 | ~360 |
 | Evaluation and collection inference on an H200 | - | ~300 | - |
-| Posterior teacher table and grid-posterior relabelling | - | 20-40 (non-rendered) | - |
-| Total (the S block rows are counted once, via the S block total) | | ~1,900-1,950 H200-h | ~1,980 env-h |
+| Outcome table with probes and grid-posterior relabelling | - | 22-44 (non-rendered) | - |
+| Total (the S block rows are counted once, via the S block total) | | ~2,100 H200-h | ~2,500 env-h |
 
-Wall-clock: with serial collect/train/eval per round, about 11-12 weeks. Rendering: the M3 pass criterion (Section 2.0) is an aggregate throughput of at least 8x real time on the RTX GPU, for example 16 parallel environments at half real-time, which turns about 1,980 env-h into about 250 RTX-hours (about 10 days). Cut list if M3 misses the criterion, in order: (1) continual baselines reduced to replay + LoRA and sequential LoRA; (2) supporting single-seed ablations (F2/F3, cut from the end of the fill order above); (3) pi0.5 and GR00T N1.7 evaluated at attempt 1 only; (4) L/own reduced to 2 seeds.
+Wall-clock: with serial collect/train/eval per round, about 13 weeks. Rendering: the M3 pass criterion (Section 2.0) is an aggregate throughput of at least 8x real time on the RTX GPU, for example 16 parallel environments at half real-time, which turns about 2,500 env-h into about 315 RTX-hours (about 13 days). Cut list if M3 misses the criterion, in order: (1) continual baselines reduced to replay + LoRA and sequential LoRA; (2) supporting single-seed ablations (F2/F3, cut from the end of the fill order above); (3) pi0.5 and GR00T N1.7 evaluated at attempt 1 only; (4) L/own reduced to 2 seeds.
 
 **Real-robot plan (Estimate, to be measured).**
 
@@ -710,40 +772,41 @@ Wall-clock: with serial collect/train/eval per round, about 11-12 weeks. Renderi
 - (ii) Controlled real hidden-factor study: inject known perturbations, namely a deliberate calibration offset of +-2 raw units on a named joint, friction tape on the cube, added cube mass, and added command delay. The design is 4 perturbations x 30 starts (120 starts) x 2 conditions x up to 3 attempts. M_robot is disabled in the primary comparison.
   - Primary analysis: one pooled comparison over the 4 perturbations, with a mixed-effects model with perturbation as a fixed effect; it detects roughly a 15-point difference [own approximate]. Per-perturbation results are descriptive only.
   - Design: condition order is randomised and counterbalanced per physical start; each injected factor is measured (scale for added mass, calibration-file value for the joint offset, commanded delay value; friction tape is categorical only); the operator is blinded to the condition (conditions are switched by script); the study runs in self-judged mode, with operator labels logged separately and used for scoring.
-  - Probe check, pass criterion [own]: for joint offset and delay, the probe's sign and bin match the injected value in at least 70% of groups after two failed attempts; there is no probe check for friction or mass.
+  - Posterior check, pass criterion [own]: for joint offset and delay, the posterior head's most likely bin matches the injected value (sign and bin) in at least 70% of groups after two failed attempts; there is no such check for friction or mass.
+  - Secondary endpoint: active versus passive (Section 4.1) on the same starts; about 240 more attempts [own estimate]. P-lift-test stays disabled unless validated (Section 2.5.1).
   - Secondary warm condition (M_robot warm): M_robot is snapshotted and restored between perturbation blocks and between conditions; rollback is triggered by operator labels, not by the judge. Drift test: success on nominal starts after N = 20 groups under a perturbation, and again after the perturbation is removed (Section 2.5). Estimate (to be measured): the warm condition and the drift test add about 200 attempts.
-- (iii) Uninjected real gap (third real condition): a second SO-101 follower unit or a different calibration session whose calibration differs from the one used to tune the simulator, with the gap measured afterwards from the calibration files; 60 starts, K_att = 3, ours versus fully cleared; descriptive secondary endpoint. Adds about 360 attempts: about 1,650 real attempts in total [own estimate].
+- (iii) Uninjected real gap (third real condition): a second SO-101 follower unit or a different calibration session whose calibration differs from the one used to tune the simulator, with the gap measured afterwards from the calibration files; 60 starts, K_att = 3, ours versus fully cleared; descriptive secondary endpoint. Adds about 360 attempts; with the active-versus-passive comparison of (ii), about 1,900 real attempts in total [own estimate].
 - Total about 1,100 attempts for (i) and (ii) without the warm condition and without (iii), roughly 12 h of robot time at about 40 s per attempt.
 - Start reproduction: printed start template plus recorded object pose tolerance `[GAP: achievable start-pose precision]`.
 - Other VLAs and retry baselines are compared in simulation only.
 
 ### 4.8 Scope note
 
-The platform's existing training recipes cover SO-101 pick-place only. Every claim beyond that (stacking tasks, SP7, real retries, continual learning) needs the planned experiments and the platform requirements PR1-PR19; Phase A needs the minimal set listed in Section 2.18, and SP7, stack_bowls and cross-embodiment claims are Phase B. Pre-registered fallback scope: if stack_two_cubes is not ready, the paper is pick_place_cube only and the hidden-factor suite B2 carries C1. Every number marked secondary-source or snippet-level must be verified against the primary source before submission.
+The platform's existing training recipes cover SO-101 pick-place only. Every claim beyond that (stacking tasks, SP7, real retries, continual learning) needs the planned experiments and the platform requirements PR1-PR20; Phase A needs the minimal set listed in Section 2.18, and SP7, stack_bowls and cross-embodiment claims are Phase B. Pre-registered fallback scope: if stack_two_cubes is not ready, the paper is pick_place_cube only and the hidden-factor suite B2 carries C1. Every number marked secondary-source or snippet-level must be verified against the primary source before submission.
 
 ## Section 5 — Novel research ideas
 
 These are ideas only. None is part of the core design, and none has been evaluated.
 
-**I1 Gap fingerprint.** Persist the probe's hidden-factor estimate per physical robot across tasks and days, as a learned calibration (the per-robot persistence of the outcome memory itself is already core, as M_robot in Section 2.5). It might work because the gap belongs to the robot more than to the task.
+**I1 Gap fingerprint.** Persist the posterior head's hidden-factor estimate per physical robot across tasks and days, as a learned calibration (the per-robot persistence of the outcome memory itself is already core, as M_robot in Section 2.5). It might work because the gap belongs to the robot more than to the task.
 
-**I2 Active first attempt.** When the memory is empty and the judge is uncertain, choose the candidate that maximises expected information about the hidden factor, measured as the disagreement of M-conditioned critics, as a cheap probing motion before the committed attempt. The reviewer ranked this as the change that would most raise the idea-alone score, because it would make the policy Bayes-adaptive rather than Thompson-like; it is the first candidate for promotion into the method.
+**I2 Counterfactual attempt replay in simulation.** After a real failure, search the simulator's hidden factors for those that reproduce the same failure stage and signature, then generate retry series under that posterior for the next round. It might work because the platform already reports failure names and signatures.
 
-**I3 Counterfactual attempt replay in simulation.** After a real failure, search the simulator's hidden factors for those that reproduce the same failure stage and signature, then generate retry series under that posterior for the next round. It might work because the platform already reports failure names and signatures.
+**I3 Failure atlas.** Cluster attempt records across the fleet into a graph of failure modes per stage; the loop allocates data generation per node, and the atlas doubles as an interpretable report.
 
-**I4 Failure atlas.** Cluster attempt records across the fleet into a graph of failure modes per stage; the loop allocates data generation per node, and the atlas doubles as an interpretable report.
+**I4 Memory distillation.** Periodically distil what M learned during deployment into CMS-fast via the prequential loss, so that recurring fixes stop needing a failed first attempt (a promotion from L2 to L3 without new data collection).
 
-**I5 Memory distillation.** Periodically distil what M learned during deployment into CMS-fast via the prequential loss, so that recurring fixes stop needing a failed first attempt (a promotion from L2 to L3 without new data collection).
+**I5 Retry budget as a decision.** The judge predicts P(success at next attempt | memory); below a threshold the robot asks for help or switches to the reason-before-retry mode instead of burning attempts.
 
-**I6 Retry budget as a decision.** The judge predicts P(success at next attempt | memory); below a threshold the robot asks for help or switches to the reason-before-retry mode instead of burning attempts.
+**I6 Anti-goal conditioning.** Use the I = 0 branch as a generator of plausible failures, to pre-populate the memory with "imagined" failed attempts before attempt 1, giving zero-shot avoidance.
 
-**I7 Anti-goal conditioning.** Use the I = 0 branch as a generator of plausible failures, to pre-populate the memory with "imagined" failed attempts before attempt 1, giving zero-shot avoidance.
+**I7 Cross-embodiment memory transfer.** Test whether a failure recorded on SO-101 changes behaviour on SP7 for the same scene. It might work because the set codec has no per-embodiment parameters. Any such claim needs the Phase B held-out-arm experiment.
 
-**I8 Cross-embodiment memory transfer.** Test whether a failure recorded on SO-101 changes behaviour on SP7 for the same scene. It might work because the set codec has no per-embodiment parameters. Any such claim needs the Phase B held-out-arm experiment.
+**I8 Stage-conditional hidden factors.** Let the simulator learn which hidden factors matter per stage from the sensitivity of `stage_rates`, and sample series from that distribution, giving an automatic curriculum over the gap.
 
-**I9 Stage-conditional hidden factors.** Let the simulator learn which hidden factors matter per stage from the sensitivity of `stage_rates`, and sample series from that distribution, giving an automatic curriculum over the gap.
+**I9 Subtask-level memory for composition.** Key records by subtask rather than by task, so that a failure of subtask c in task A informs c in an unseen sequence (subtask spans come from PR15).
 
-**I10 Subtask-level memory for composition.** Key records by subtask rather than by task, so that a failure of subtask c in task A informs c in an unseen sequence (subtask spans come from PR15).
+**I10 Learned probes.** Replace the three scripted probe primitives by probes discovered by RL under the value-of-information objective, so new embodiments and tasks get their own probing motions.
 
 ## Section 6 — Review log and self-score
 
@@ -801,13 +864,25 @@ Remaining items the reviewer listed under R2-R5, R8, R10, R14 and R15 were accep
 2. Own action head. Reviewer: make L/adapt (MolmoAct2 plus memory) the primary model. Orchestrator: L/own stays the default because the project requirements ask for an own action head; the pre-registered parity gate decides, and L/adapt is always reported.
 3. Scope of the sim-to-real headline. Reviewer: injected perturbations test identification of chosen factors, not the sim-to-real gap itself. Orchestrator: agreed in substance; the framing is now qualified and an uninjected real condition is added, but it is a secondary, descriptive endpoint, so the disagreement is only partly closed.
 
+**Change after delivery (project owner's decisions)**
+
+- The own action head is kept as the default (L/own; the pre-registered parity gate still decides).
+- The active first attempt is promoted into the method as "active identification" (Section 2.5.1).
+- A targeted prior-work search was run. It found no work with value-of-information probing for hidden physical parameters inside a single VLA that also performs the task; the closest are ASID and Liang et al., with separate exploration phases.
+
+_Round 4 to be added._
+
 ### 6.2 Self-score (orchestrator)
+
+Before the active-identification change:
 
 Idea without results: 7/10. This matches the reviewer's final score and is below the 8/10 target set for this design. Reasons: the problem setting (using failed attempts across resets to identify physical sim-to-real factors inside a real-time VLA) is timely and falsifiable, and the evaluation design is strong; but the method is an integration of known parts — meta-RL over attempt series, a Titans-style fast-weight memory, advantage-conditioned RL, adapters with a frequency schedule — and two papers from September-October 2026 (VLRLA, TraceFlow) already occupy the neighbouring ground. Several numbers that carry argument come from secondary sources and must be verified, and the latency, VRAM and compute figures are estimates.
 
 What would raise it: (1) promote active first attempts (I2) into the method so the policy gathers information deliberately, and show it beats the Thompson teacher; (2) show that the memory's implied posterior tracks the exact posterior (the posterior-agreement measurement); (3) make the uninjected real condition a powered primary endpoint, ideally across two physical robots; (4) pass the parity gate with the own head; (5) Phase B results on a second arm, which would support the embodiment-agnostic interface and the Stage 0 curriculum; (6) verify every secondary-source number and measure milestones M0-M3.
 
 With the planned results as hypothesised, the reviewer expects 8/10 (about 8.5 with the parity gate passed and a significant real primary), which is below the 10/10 target for idea plus results; reaching that would need items (1), (3) and (5) as well.
+
+_Updated score to be added after round 4._
 
 ## References
 
@@ -925,6 +1000,17 @@ With the planned results as hypothesised, the reviewer expects 8/10 (about 8.5 w
 - [RACER] RACER: language-guided failure recovery. arXiv:2409.14674.
 - [Sirius] Sirius: human-in-the-loop intervention data weighting. arXiv:2211.08416.
 - [SuccessVQA] SuccessVQA: VLM success detection. arXiv:2303.07280.
+- [ASID] Memmel et al. ASID. arXiv:2404.12308.
+- [Liang2020] Liang, Saxena, Kroemer. RSS 2020. arXiv:2006.01952.
+- [Dutta2024] Dutta et al. arXiv:2411.09020.
+- [Phys2Real] Wang et al. Phys2Real. ICRA 2026. arXiv:2510.11689.
+- [SCALE] SCALE. arXiv:2602.04208.
+- [CoMe-VLA] CoMe-VLA. arXiv:2602.04600.
+- [ASTEROID] ASTEROID. NeurIPS 2026 (snippet-level, unverified; ID not retrieved).
+- [ICWM] In-Context World Modeling (snippet-level, unverified; ID not retrieved).
+- [EPI] Environment Probing Interaction Policies. ICLR 2019 (snippet-level, unverified; ID not retrieved).
+- [VoA-Grasp] Value of Assistance for Grasping (snippet-level, unverified; ID not retrieved).
+- [NeurIPS-Probes] Evaluating Physical Probes for Task Decisions under Hidden Dynamics. NeurIPS 2026 abstract. https://neurips.cc/virtual/2026/165877 (snippet-level, unverified).
 
 **Named by the reviewer, to be verified** (not retrieved in our search; years and identifiers to be added from the primary sources):
 
