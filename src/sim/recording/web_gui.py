@@ -54,7 +54,7 @@ class RecordingWebGui:
         self._state = {"active": False, "can_start": False, "busy": False, "pending": False, "status": "",
                        "recording": False, "pending_videos": 0, "encoding": False,
                        "encode_progress": "All saved episodes are encoded", "closed": False,
-                       "saved_episodes": 0, "rerecord_episode": None}
+                       "saved_episodes": 0, "rerecord_episode": None, "spawnable": []}
         self._frames: dict[str, str | None] = dict.fromkeys(self._camera_names)
         self._payload = ""
         self._seq = 0
@@ -78,9 +78,10 @@ class RecordingWebGui:
     def set_state(self, active: bool, can_start: bool, status: str, busy: bool = False,
                   *, recording: bool = False, pending_videos: int = 0,
                   encoding: bool = False, encode_progress: str = "",
-                  saved_episodes: int = 0, rerecord_episode: int | None = None, positioning: bool = False) -> None:
+                  saved_episodes: int = 0, rerecord_episode: int | None = None, positioning: bool = False,
+                  spawnable=None) -> None:
         """``active``: an episode is running (countdown or recording).
-        ``can_start``: Start is allowed (e.g. a cube has been spawned)."""
+        ``can_start``: Start is allowed (e.g. an object has been spawned)."""
         with self._cond:
             transition = (active, can_start, busy) != tuple(
                 self._state[key] for key in ("active", "can_start", "busy")
@@ -94,7 +95,8 @@ class RecordingWebGui:
                            "pending_videos": pending_videos, "encoding": encoding,
                            "encode_progress": encode_progress, "closed": False,
                            "saved_episodes": saved_episodes, "rerecord_episode": rerecord_episode,
-                           "positioning": positioning}
+                           "positioning": positioning,
+                           "spawnable": list(spawnable) if spawnable is not None else previous["spawnable"]}
             if self._state != previous:
                 self.flush()
 
@@ -154,14 +156,15 @@ class RecordingWebGui:
                 return last_seq, None
             return self._seq, self._payload
 
-    def _command(self, name: str, encode: bool | None = None, episode: int | None = None) -> bool:
+    def _command(self, name: str, encode: bool | None = None, episode: int | None = None,
+                 object_name: str | None = None) -> bool:
         if name not in COMMANDS:
             return False
         with self._cond:
             state = self._state
             allowed = {
                 "start": state["can_start"] and not state["active"],
-                "spawn": not state["active"],
+                "spawn": not state["active"] and isinstance(object_name, str) and object_name in state["spawnable"],
                 "stop": state["active"] or state.get("positioning", False),
                 "discard": state["active"] or state["rerecord_episode"] is not None,
                 "save": state["recording"],
@@ -173,7 +176,7 @@ class RecordingWebGui:
             }
             if self._closed or state["busy"] or state["pending"] or not allowed[name]:
                 return False
-            self._requests[name] = True
+            self._requests[name] = object_name if name == "spawn" else True
             if name == "exit":
                 self._requests["exit_encode"] = encode
             if name == "rerecord":
@@ -219,10 +222,12 @@ class RecordingWebGui:
                         raise ValueError("exit requires boolean encode")
                     if command == "rerecord" and type(body.get("episode")) is not int:
                         raise ValueError("rerecord requires integer episode")
+                    if command == "spawn" and not isinstance(body.get("object"), str):
+                        raise ValueError("spawn requires an object name")
                 except (ValueError, AttributeError):
                     self.send_error(400, "Expected JSON body {\"cmd\": ...}")
                     return
-                if not gui._command(command, body.get("encode"), body.get("episode")):
+                if not gui._command(command, body.get("encode"), body.get("episode"), body.get("object")):
                     self.send_error(409, "Command is unavailable in the current recorder state")
                     return
                 self.send_response(204)

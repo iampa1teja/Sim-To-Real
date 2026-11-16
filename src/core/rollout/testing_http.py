@@ -104,7 +104,7 @@ class TestingHttpServer(ThreadingHTTPServer):
                     elif path == '/api/heartbeat':
                         session.heartbeat(body.get('client_id'))
                     elif path == '/api/spawn' and hasattr(session, 'request_spawn'):
-                        session.request_spawn()
+                        session.request_spawn(body.get('object'))
                     elif path == '/api/end-trial' and hasattr(session, 'request_end_trial'):
                         session.request_end_trial(body)
                     else:

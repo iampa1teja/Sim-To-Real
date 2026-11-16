@@ -3,6 +3,7 @@ const clientId = sessionStorage.getItem('s2r-real-client') || crypto.randomUUID(
 sessionStorage.setItem('s2r-real-client', clientId);
 let config, state, live = false, pending = '', localError = '', historyKey = '', lastFrame = -1;
 let stageSide = null;
+let spawnOptionsKey = '';
 const cameraElements = new Map();
 const isEvaluation = () => config?.mode === 'eval-sim-real';
 const labels = {disconnected:'Disconnected', connecting_robot:'Connecting arm', ready:'Ready', queued:'Preparing',
@@ -98,7 +99,22 @@ function render() {
   const policy = config?.policies.find(p => p.name === $('policy').value);
   $('run').disabled = !connected || busy || !!pending || !policy?.compatible || !$('prompt').value.trim() ||
     (isEvaluation() && !state?.can_start);
-  $('spawn').disabled = !connected || busy || !!pending;
+  const spawnable = state?.spawnable ?? config?.spawnable ?? [];
+  const nextSpawnKey = JSON.stringify(spawnable);
+  if (nextSpawnKey !== spawnOptionsKey) {
+    const previous = $('spawn-object').value;
+    $('spawn-object').replaceChildren(...spawnable.map(name => {
+      const option = document.createElement('option'); option.value = name; option.textContent = name; return option;
+    }));
+    $('spawn-object').value = spawnable.includes(previous) ? previous : spawnable[0] ?? '';
+    spawnOptionsKey = nextSpawnKey;
+  }
+  $('spawn-object').disabled = !connected || busy || !!pending || !spawnable.length;
+  $('spawn').disabled = $('spawn-object').disabled || !$('spawn-object').value;
+  $('spawn').textContent = $('spawn-object').value ? `Spawn ${$('spawn-object').value}` : 'Spawn object';
+  $('spawn-help').textContent = $('spawn-object').value ?
+    `Place the real ${$('spawn-object').value} beside the open gripper, then spawn its simulation counterpart.` :
+    'This task has no spawnable objects.';
   $('stop').disabled = !live || !(active || state?.positioning || pending === 'run');
   const side = state?.phase === 'real' ? 'real' : state?.phase === 'sim' ? 'sim' : null;
   if (side !== stageSide) { $('end-stage').value = ''; stageSide = side; }
@@ -147,7 +163,8 @@ $('run-form').addEventListener('submit', (event) => {
 });
 $('connect').addEventListener('click', () => command(state?.connected ? 'disconnect' : 'connect'));
 $('stop').addEventListener('click', () => command('stop'));
-$('spawn').addEventListener('click', () => command('spawn'));
+$('spawn').addEventListener('click', () => command('spawn', {object:$('spawn-object').value}));
+$('spawn-object').addEventListener('change', render);
 $('end-stage').addEventListener('change', render);
 $('end-trial').addEventListener('click', () => {
   if (!$('end-trial').disabled) command('end-trial', {side:stageSide, stage:$('end-stage').value});
@@ -170,6 +187,7 @@ async function initialize() {
       document.title = 'S2R · Sim–real evaluation'; $('console-title').textContent = 'Sim–real evaluation';
       $('run').textContent = 'Run real → sim'; $('duration-label').textContent = 'Duration per side';
       $('spawn').hidden = !config.requires_spawn; $('spawn-help').hidden = !config.requires_spawn;
+      $('spawn-object').hidden = $('spawn-object-label').hidden = !config.requires_spawn;
       $('trial-end-controls').hidden = false;
       $('real-stage-heading').hidden = $('sim-stage-heading').hidden = false;
       for (const stage of config.stages || []) {

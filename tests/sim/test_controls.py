@@ -55,3 +55,11 @@ def test_gui_only_requires_gui_and_keyboard_mode_is_removed():
     with pytest.raises(ValueError, match="gui.enabled"):
         AgentConfig(control_input="gui")
     assert AgentConfig(control_input="gui", gui=GuiConfig(enabled=True)).control_input == "gui"
+
+
+def test_named_gui_and_terminal_spawns_preserve_the_object_identifier():
+    controls = CommandQueue(enable_spawn=True)
+    controls.submit_gui({"spawn": "second_object"})
+    controls.submit_text("spawn MixedCase_object")
+    assert controls.consume_requests() == {"spawn": True, "object": "second_object"}
+    assert controls.consume_requests() == {"spawn": True, "object": "MixedCase_object"}

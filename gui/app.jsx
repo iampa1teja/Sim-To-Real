@@ -144,6 +144,9 @@ function App() {
   const [pending, setPending] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [rerecordOpen, setRerecordOpen] = useState(false);
+  const [chosenObject, setChosenObject] = useState("");
+  const spawnable = state?.spawnable ?? [];
+  const spawnObject = spawnable.includes(chosenObject) ? chosenObject : spawnable[0] ?? "";
   const live = connected && state !== null && !state.closed;
   const disabled = !live || pending || state?.busy || state?.pending;
   const cameras = [...(state?.cameras ?? [])].sort(
@@ -172,15 +175,23 @@ function App() {
       </header>
 
       <section className="toolbar">
+        <label className="spawn-select" htmlFor="spawn-object">Object
+          <select id="spawn-object" value={spawnObject} disabled={disabled || state?.active || !spawnable.length}
+            onChange={(event) => setChosenObject(event.target.value)}>
+            {spawnable.length ? spawnable.map((name) => <option key={name} value={name}>{name}</option>) :
+              <option value="">No spawnable objects</option>}
+          </select>
+        </label>
         {BUTTONS.map(({ cmd, label, tone, enabled }) => (
           <button
             key={cmd}
             className={`btn ${tone}`}
-            disabled={!live || pending || state.busy || state.pending || !enabled(state)}
-            onClick={() => onClick(cmd)}
+            disabled={!live || pending || state.busy || state.pending || !enabled(state) || (cmd === "spawn" && !spawnObject)}
+            onClick={() => onClick(cmd, cmd === "spawn" ? { object: spawnObject } : {})}
           >
             {state?.mode === "eval-sim-real" && cmd === "start" ? "Start real → sim" :
-              state?.mode === "eval-sim-real" && cmd === "stop" ? "Stop evaluation" : label}
+              state?.mode === "eval-sim-real" && cmd === "stop" ? "Stop evaluation" :
+              cmd === "spawn" && spawnObject ? `Spawn ${spawnObject}` : label}
           </button>
         ))}
         <button className="btn stop"

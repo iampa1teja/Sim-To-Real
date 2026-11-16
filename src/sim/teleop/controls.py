@@ -3,6 +3,7 @@
 
 """One command queue for GUI requests and typed terminal commands."""
 from queue import Empty, Queue
+import shlex
 from threading import Event, Thread
 
 
@@ -22,7 +23,7 @@ class CommandQueue:
         self.help = self.HELP
         if enable_spawn:
             self._aliases.update(spawn="spawn", s="spawn", right="toggle")
-            self.help += " spawn places an object; right starts/saves."
+            self.help += " spawn <object> places the named object; right starts/saves."
 
     def submit(self, command, **payload):
         if command not in {"start", "end", "rerecord", "stop", "reset", "spawn", "toggle", "prepare_rerecord"}:
@@ -33,18 +34,28 @@ class CommandQueue:
     def submit_gui(self, requests):
         for button, command in self.GUI_COMMANDS.items():
             if requests.get(button):
-                self.submit(command)
+                payload = {"object": requests[button]} if button == "spawn" and isinstance(requests[button], str) else {}
+                self.submit(command, **payload)
         if requests.get("rerecord"):
             self.submit("prepare_rerecord", rerecord_episode=requests.get("rerecord_episode"))
 
     def submit_text(self, text):
-        text = text.strip().lower()
+        text = text.strip()
         if not text:
             return False
-        if text in ("help", "?"):
+        if text.lower() in ("help", "?"):
             print(self.help)
             return False
-        command = self._aliases.get(text)
+        try:
+            words = shlex.split(text)
+        except ValueError:
+            words = []
+        command = self._aliases.get(words[0].lower()) if words else None
+        if command == "spawn" and len(words) == 2:
+            self.submit(command, object=words[1])
+            return True
+        if len(words) != 1:
+            command = None
         if command is None:
             print(f"[controls] Unknown command: {text!r}. Type help.")
             return False

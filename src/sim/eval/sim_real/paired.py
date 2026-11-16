@@ -198,12 +198,12 @@ def run(args, app):
                     target = mirror(real_state if args.enable_motion or not positioning else positioned)
                     if requests.get('spawn') and not args.no_object:
                         if any(real_state[i] < 40 for i, joint in enumerate(arm.action_joints) if joint.role == 'gripper'):
-                            status, error = 'Open the gripper before spawning.', 'The cube needs clearance between the jaws.'
+                            status, error = 'Open the gripper before spawning.', f'{requests["spawn"]} needs clearance between the jaws.'
                         else:
                             env.step(target)
-                            spawner.spawn()
+                            spawner.spawn(requests['spawn'])
                             ready, error = True, ''
-                            status = 'Object spawned. Match the real cube placement, then Run real → sim.'
+                            status = f'{requests["spawn"]} spawned. Match its real placement, then Run real → sim.'
                     if requests.get('run') and ready:
                         selected = trial_arguments(args, requests['run'])
                         start_raw = real_state.copy()

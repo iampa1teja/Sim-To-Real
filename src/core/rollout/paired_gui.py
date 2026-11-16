@@ -51,7 +51,9 @@ class PairedEvaluationGui:
         self._lock = threading.RLock()
         self.motion_lock = threading.Lock()
         self.cancel = threading.Event()
-        self.task_stages = load_task(args.task).stages
+        task = load_task(args.task)
+        self.task_stages = task.stages
+        self.spawnable = tuple(name for name, obj in task.spec.objects.items() if obj.params.get('spawnable', False))
         self._trial_end = None
         self._requests, self._frames, self._history = {}, {}, []
         self._seq = 0
@@ -59,7 +61,8 @@ class PairedEvaluationGui:
         self._heartbeat = self._last_frame = 0.
         self._state = dict(phase='disconnected', connected=False, can_start=False, busy=False,
                            status='Connect the real arm to prepare a comparison.', error='',
-                           elapsed=0., steps=0, duration=args.episode_seconds, positioning=False)
+                           elapsed=0., steps=0, duration=args.episode_seconds, positioning=False,
+                           spawnable=list(self.spawnable))
         self._server = TestingHttpServer(self, host=args.gui_host, port=args.gui_port)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
@@ -93,6 +96,7 @@ class PairedEvaluationGui:
                     camera_devices={name: getattr(self.args, 'camera_' + name)
                                     for name in ('external', 'gripper') if getattr(self.args, 'camera_' + name)},
                     requires_spawn=not self.args.no_object, motion_enabled=self.args.enable_motion,
+                    spawnable=list(self.spawnable),
                     stages=[dict(value=name, label=name.replace('_', ' ').capitalize())
                             for name in ('not_reached', *self.task_stages)],
                     defaults=dict(policy=self.args.policy, host=self.args.policy_host, port=self.args.policy_port,
@@ -150,12 +154,14 @@ class PairedEvaluationGui:
             self._trial_end = None
             self._state.update(phase='queued', busy=True, error='', status='Preparing the real → sim comparison…')
 
-    def request_spawn(self):
+    def request_spawn(self, name=None):
         with self._lock:
             if not self._state['connected'] or self._state['busy'] or self._requests or self.args.no_object:
                 raise ValueError('Spawn is available after connecting, between comparisons.')
-            self._requests['spawn'] = True
-            self._state.update(phase='spawning', busy=True, error='', status='Spawning the simulation object…')
+            if not isinstance(name, str) or name not in self.spawnable:
+                raise ValueError('Choose a spawnable object from the selected task.')
+            self._requests['spawn'] = name
+            self._state.update(phase='spawning', busy=True, error='', status=f'Spawning {name}…')
 
     def request_stop(self, *, disconnect=False):
         with self.motion_lock, self._lock:

@@ -25,8 +25,10 @@
           <label for="prompt">Task prompt</label>
           <textarea id="prompt" rows="5" maxlength="4000" required placeholder="Pick up the blue cube and place it in the white box."></textarea>
           <div class="duration-row"><label for="duration" id="duration-label">Run duration</label><div class="duration-input"><input id="duration" type="number" min="1" max="600" step="1" value="30" required><span>seconds</span></div></div>
+          <label id="spawn-object-label" for="spawn-object" hidden>Object to spawn</label>
+          <select id="spawn-object" hidden disabled></select>
           <button id="spawn" class="spawn-button" type="button" hidden disabled>Spawn object</button>
-          <p id="spawn-help" class="help" hidden>Place the real cube beside the open gripper, then spawn its simulation counterpart.</p>
+          <p id="spawn-help" class="help" hidden>Place the selected object beside the open gripper, then spawn its simulation counterpart.</p>
           <div class="actions"><button id="run" class="primary" type="submit" disabled>Run on real arm</button><button id="stop" class="stop" type="button" disabled>Stop</button></div>
           <p class="help hold-note">Stop keeps the arm holding its last position. <kbd>Esc</kbd></p>
           <details><summary>Connection settings</summary><label for="host">Policy server</label><input id="host" type="text" value="localhost" required spellcheck="false"><label for="port">Port</label><input id="port" type="number" min="1" max="65535" required><dl id="hardware"></dl></details>

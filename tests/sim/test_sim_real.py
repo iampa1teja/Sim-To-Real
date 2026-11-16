@@ -184,9 +184,9 @@ def test_no_object_is_opt_in_and_default_gui_requires_spawn():
     assert parse_args(['--no-object', '--shadow']).no_object is True
     gui = RecordingWebGui([], port=0)
     try:
-        gui.set_state(False, default.no_object, 'Positioning')
+        gui.set_state(False, default.no_object, 'Positioning', spawnable=['selected_object'])
         assert not gui._command('start')
-        assert gui._command('spawn')
+        assert gui._command('spawn', object_name='selected_object')
         assert gui.consume_requests()['spawn']
         gui.set_state(False, True, 'Spawned')
         assert gui._command('start')
@@ -244,9 +244,9 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     monkeypatch.setattr(real_rollout, 'make_policy', policy_factory)
     spawned = []
     monkeypatch.setattr(spawner, 'ObjectSpawner', lambda *a, **k: SimpleNamespace(
-        spawn=lambda: spawned.append(True), hold=noop, close=noop))
+        spawn=lambda name: spawned.append(name), hold=noop, close=noop))
     body = dict(policy='molmoact2', prompt='Move the cube', host='localhost', port=5556, seconds=.1)
-    requests = iter([{'connect': True}, {'spawn': True} if spawn else {}, {'run': body}, {'exit': True}])
+    requests = iter([{'connect': True}, {'spawn': 'selected_object'} if spawn else {}, {'run': body}, {'exit': True}])
     monkeypatch.setattr(paired_gui, 'PairedEvaluationGui', lambda *a, **k: SimpleNamespace(
         url='fake', publish=noop, update_images=noop, destroy=noop, clear_real_frames=noop,
         record_report=noop, cancel=threading.Event(), cancelled=False, motion_lock=threading.Lock(),
@@ -256,7 +256,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     args.arm_spec, args.calibration_selection = arm, selection
     run(args, SimpleNamespace(is_running=lambda: True))
     assert bool(attempted) is connects
-    assert bool(spawned) is spawn
+    assert spawned == (["selected_object"] if spawn else [])
 
 
 @pytest.mark.parametrize('cancel_inference,operator_end', [(False,False),(True,False),(False,True)])

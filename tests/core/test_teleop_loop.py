@@ -122,3 +122,10 @@ def test_buffer_motion_stops_at_first_invalid_simulation_step():
     with pytest.raises(RuntimeError, match='Simulation physics produced nonfinite'):
         run_loop(cfg, SimpleNamespace(is_running=lambda: True), resources)
     assert commands == [action]
+
+
+def test_named_spawn_request_reaches_spawner_without_using_configured_default(session):
+    controller, events = session
+    controller.cfg.sim_reset_object_name = "default_object"
+    controller.handle({"spawn": True, "object": "second_object"})
+    assert events == [("spawn", "second_object", (0., 0., 0.))]

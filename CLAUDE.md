@@ -72,7 +72,8 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
   `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.
 - `sim.teleop.controls.CommandQueue` accepts GUI requests and typed terminal commands, one transition per tick.
-  Teleop and eval share it; keyboard listeners are removed. GUI-only recording selects `control_input: gui`.
+  Teleop and eval share it; keyboard listeners are removed. Both recorder and paired GUIs list the selected
+  task's spawnable objects and send the selected name to `spawner.spawn(name)`. GUI-only recording selects `control_input: gui`.
 - Recording calibration/root preparation, environment configuration, camera discovery and trajectory validation
   live in `sim.recording.setup`, shared by teleop and paired recording.
 - Scene manifests own room anchors, fixed cameras, lights, renderer and physics settings. `workspace/scenes/<scene>/mounts/<arm>.toml`

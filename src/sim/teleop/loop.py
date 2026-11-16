@@ -134,7 +134,8 @@ class RecordingController:
         invalidate = False
         if requests.get('spawn'):
             try:
-                ctx.spawner.spawn(self.cfg.sim_reset_object_name, offset=tuple(self.cfg.sim_reset_object_offset))
+                ctx.spawner.spawn(requests.get('object', self.cfg.sim_reset_object_name),
+                                  offset=tuple(self.cfg.sim_reset_object_offset))
                 invalidate = True
             except ValueError as exc:
                 print(f'[WARNING]: Spawn failed: {exc}')
@@ -259,6 +260,7 @@ def run_loop(cfg, simulation_app, ctx: LoopResources):
                     status=controller.gui_status(), recording=controller.recording,
                     encode_progress='Videos are encoded while recording.',
                     saved_episodes=ctx.recorders.saved_episodes if ctx.recorders is not None else 0,
+                    spawnable=list(ctx.spawner.offsets),
                     rerecord_episode=ctx.recorders.target if ctx.recorders is not None else None,
                 )
                 ctx.gui.update_images(gui_frames(obs.get('visual'), ctx.sim_cameras, follower_observation, ctx.real_cameras))

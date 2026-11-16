@@ -43,7 +43,7 @@ def test_connect_and_spawn_gate_the_real_then_sim_run(gui):
     gui.publish('ready','Connected',connected=True)
     with pytest.raises(ValueError,match='Spawn'):
         gui.request_run(body())
-    gui.request_spawn(); assert gui.consume_requests()=={'spawn':True}
+    gui.request_spawn(gui.spawnable[0]); assert gui.consume_requests()=={'spawn':gui.spawnable[0]}
     gui.publish('ready','Spawned',connected=True,can_start=True)
     gui.request_run(body())
     run=gui.consume_requests()['run']
@@ -85,13 +85,13 @@ def test_http_serves_the_same_console_and_extra_spawn_command(gui):
     def post(path,payload):
         return urlopen(Request(gui.url+path,data=json.dumps(payload).encode(),headers={'Content-Type':'application/json'}))
     gui.publish('ready','Connected',connected=True)
-    assert post('/api/spawn',{}).status==202
-    assert gui.consume_requests()=={'spawn':True}
+    assert post('/api/spawn',{'object':gui.spawnable[0]}).status==202
+    assert gui.consume_requests()=={'spawn':gui.spawnable[0]}
     gui.publish('ready','Spawned',connected=True,can_start=True)
     assert post('/api/run',body()).status==202
     assert gui.consume_requests()['run']['prompt']=='Place the red cube in the box'
     with pytest.raises(HTTPError) as error:
-        post('/api/spawn',{})
+        post('/api/spawn',{'object':gui.spawnable[0]})
     assert error.value.code==409
 
 
