@@ -48,6 +48,22 @@ def _walk(checks):
 
 
 class Task(BaseTask):
+    def __deepcopy__(self, memo):
+        """Copy per-env task/check state while retaining the imported code module."""
+        from copy import deepcopy
+
+        copied = type(self).__new__(type(self))
+        memo[id(self)] = copied
+        # Runtime owners are live simulator environments, not task configuration.
+        # Keep their identity; a frame from another environment initializes fresh state.
+        for check in self.checks:
+            owner = getattr(check, "_owner", None)
+            if owner is not None:
+                memo[id(owner)] = owner
+        for name, value in vars(self).items():
+            setattr(copied, name, value if name == "module" else deepcopy(value, memo))
+        return copied
+
     def __init__(self, spec: TaskSpec, module=None):
         if spec.task_py is None:
             raise ValueError(f"Task {spec.name!r} has no task.py")

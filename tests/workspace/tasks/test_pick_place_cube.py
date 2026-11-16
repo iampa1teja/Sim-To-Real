@@ -8,14 +8,10 @@ Oracles are the verbatim legacy files in tests/fixtures/legacy_tasks/pick_place_
 - core: observe, failure_mode, progress_label, sample_start, start_is_valid (stored eval sets) and
   episode_metadata of the legacy PickPlaceTask against the generic Task.
 """
-from contextlib import contextmanager
 from dataclasses import replace
-import importlib
 import json
 from pathlib import Path
 import random
-import sys
-import types
 from types import SimpleNamespace
 
 import numpy as np
@@ -32,99 +28,12 @@ ENVS = ROOT / "src" / "sim" / "workspace" / "envs"
 TASK = "pick_place_cube"
 
 
-# ---------------------------------------------------------------------------
-# Isolated imports: Isaac stubs, the legacy fixture package and the env modules without gym registration
-# ---------------------------------------------------------------------------
+from task_oracle import (isolated_modules as _isolated_modules, legacy_task as _legacy_task,
+                         yaw as _yaw, same as _same, plan as _plan, Untouchable as _Untouchable)
 
 
-def _math_module():
-    """Isaac Lab 3.0 quaternion math (XYZW) in torch."""
-    math = types.ModuleType("isaaclab.utils.math")
-
-    def quat_mul(a, b):
-        x1, y1, z1, w1 = a.unbind(-1)
-        x2, y2, z2, w2 = b.unbind(-1)
-        return torch.stack((w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-                            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-                            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2), dim=-1)
-
-    def quat_inv(q):
-        conjugate = torch.cat((-q[..., :3], q[..., 3:]), dim=-1)
-        return conjugate / q.pow(2).sum(-1, keepdim=True).clamp(min=1e-9)
-
-    def quat_apply(q, v):
-        xyz, w = q[..., :3], q[..., 3:]
-        t = 2 * torch.cross(xyz, v, dim=-1)
-        return v + w * t + torch.cross(xyz, t, dim=-1)
-
-    def matrix_from_quat(q):
-        x, y, z, w = q.unbind(-1)
-        s = 2.0 / (q * q).sum(-1)
-        return torch.stack((1 - s * (y * y + z * z), s * (x * y - z * w), s * (x * z + y * w),
-                            s * (x * y + z * w), 1 - s * (x * x + z * z), s * (y * z - x * w),
-                            s * (x * z - y * w), s * (y * z + x * w), 1 - s * (x * x + y * y)),
-                           dim=-1).reshape(q.shape[:-1] + (3, 3))
-
-    math.quat_mul, math.quat_inv, math.quat_apply, math.matrix_from_quat = quat_mul, quat_inv, quat_apply, matrix_from_quat
-    return math
-
-
-def _module(name, **attributes):
-    module = types.ModuleType(name)
-    module.__dict__.update(attributes)
-    return module
-
-
-def _package(name, path):
-    module = types.ModuleType(name)
-    module.__path__ = [str(path)]
-    return module
-
-
-@contextmanager
 def isolated_modules():
-    """Install stubs and path-loaded packages; restore every touched sys.modules entry afterwards."""
-    stub_names = ("pxr", "isaaclab", "isaaclab.utils", "isaaclab.utils.math", "isaaclab.assets", "isaaclab.envs",
-                  "isaaclab.managers", "isaaclab.sensors", "isaaclab.sim", "sim.workspace.envs",
-                  "sim.workspace.envs.mdp", "sim.workspace.scene.geometry", "legacy_pick_place", "core.tasks.expert")
-    prefixes = ("sim.workspace.envs.", "legacy_pick_place.", "isaaclab.", "pxr.")
-    saved = {name: module for name, module in sys.modules.items()
-             if name in stub_names or name.startswith(prefixes)}
-    import sim.actions.action as action
-
-    def not_used(*args, **kwargs):
-        raise AssertionError("a parallel gripper must not need the USD tip mesh")
-
-    sys.modules.update({
-        "pxr": _module("pxr", Gf=None, Usd=None, UsdShade=None),
-        "isaaclab": _module("isaaclab"),
-        "isaaclab.utils": _module("isaaclab.utils"),
-        "isaaclab.utils.math": _math_module(),
-        "isaaclab.assets": _module("isaaclab.assets", RigidObject=object),
-        "isaaclab.envs": _module("isaaclab.envs", ManagerBasedRLEnv=object),
-        "isaaclab.managers": _module("isaaclab.managers", SceneEntityCfg=lambda name: SimpleNamespace(name=name)),
-        "isaaclab.sensors": _module("isaaclab.sensors", ContactSensor=object),
-        "isaaclab.sim": _module("isaaclab.sim", get_current_stage=lambda: None),
-        "sim.workspace.envs": _package("sim.workspace.envs", ENVS),
-        "sim.workspace.envs.mdp": _package("sim.workspace.envs.mdp", ENVS / "mdp"),
-        "sim.workspace.scene.geometry": _module("sim.workspace.scene.geometry", gripper_tip_local_offset=not_used),
-        "legacy_pick_place": _package("legacy_pick_place", LEGACY),
-        # The legacy expert predates the move of its data classes to sim.actions.action.
-        "core.tasks.expert": action,
-    })
-    sys.modules["isaaclab"].utils = sys.modules["isaaclab.utils"]
-    sys.modules["isaaclab.utils"].math = sys.modules["isaaclab.utils.math"]
-    try:
-        yield SimpleNamespace(
-            mdp=importlib.import_module("legacy_pick_place.mdp"),
-            expert=importlib.import_module("legacy_pick_place.expert"),
-            task_env=importlib.import_module("sim.workspace.envs.task_env"),
-        )
-    finally:
-        for name in [name for name in sys.modules if name in stub_names or name.startswith(prefixes)]:
-            del sys.modules[name]
-        sys.modules.update(saved)
+    return _isolated_modules(TASK)
 
 
 @pytest.fixture
@@ -135,18 +44,7 @@ def legacy():
 
 @pytest.fixture
 def legacy_task():
-    """The legacy PickPlaceTask class, built from the legacy task.toml fixture."""
-    import tomllib
-    from core.tasks import base
-
-    spec = load_task(TASK).spec
-    raw = tomllib.loads((LEGACY / "task.toml").read_text())["task"]
-    namespace = {}
-    source = (LEGACY / "__init__.py").read_text().replace('TASK = PickPlaceTask(load_task_spec("pick_place_cube"))', "")
-    exec(compile(source, str(LEGACY / "__init__.py"), "exec"), namespace)
-    legacy_spec = replace(spec, raw=raw, task_py=None,
-                          variants={key: f"{base.TASK_PACKAGE}.{TASK}.{value}" for key, value in raw["variants"].items()})
-    return namespace["PickPlaceTask"](legacy_spec)
+    return _legacy_task(TASK, "PickPlaceTask")
 
 
 # ---------------------------------------------------------------------------
@@ -172,10 +70,6 @@ def _legacy_params(task):
         "force_threshold": success["force_threshold"],
         "confirm_steps": success["confirm_steps"],
     }
-
-
-def _yaw(angle):
-    return [0., 0., float(np.sin(angle / 2)), float(np.cos(angle / 2))]
 
 
 class History:
@@ -281,11 +175,6 @@ def _env(task, rng, n):
                            common_step_counter=0, episode_length_buf=torch.zeros(n, dtype=torch.long))
 
 
-def _same(left, right, label):
-    assert left.dtype == right.dtype and left.shape == right.shape, (label, left, right)
-    assert torch.equal(left, right), (label, left, right)
-
-
 @pytest.mark.parametrize("seed", range(6))
 def test_signals_match_the_legacy_mdp_in_isaac_step_order(legacy, seed):
     rng = np.random.default_rng(seed)
@@ -350,14 +239,6 @@ def test_signals_match_the_legacy_mdp_in_isaac_step_order(legacy, seed):
                 _same(new[key], old[key], (key, step, "after reset"))
     # The synthetic histories exercised every stage, including confirmed successes.
     assert all(count > 0 for count in seen.values()), seen
-
-
-class _Untouchable:
-    def __init__(self, label):
-        self._label = label
-
-    def __getattr__(self, name):
-        raise AssertionError(f"{self._label}.{name} must not be read by this term")
 
 
 def test_termination_observations_and_reset_read_no_robot_or_velocity(legacy):
@@ -438,13 +319,6 @@ def _expert_case(seed):
         arm = load_arm_spec(rng.choice(["so101", "sp7"]))[0]
     base = Pose.from_lists((rng.uniform(-.05, .05), rng.uniform(-.05, .05), .75))
     return ExpertContext(state, ee, tuple(table), options, base, arm)
-
-
-def _plan(expert, context):
-    try:
-        return expert.plan(context)
-    except Exception as error:  # the same refusal is part of the behaviour
-        return type(error), str(error)
 
 
 @pytest.mark.parametrize("seed", range(50))

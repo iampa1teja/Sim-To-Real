@@ -8,9 +8,34 @@ from sim.actions.action import ExpertContext
 from core.tasks.loader import load_task
 
 
+@pytest.mark.parametrize("name,held_stage", [("pick_place_cube", "over_box"), ("stack_two_cubes", "over_target")])
+def test_task_deepcopy_preserves_code_and_isolates_check_state(monkeypatch, name, held_stage):
+    from copy import deepcopy
+
+    class LiveOwner:
+        def __deepcopy__(self, memo):
+            raise AssertionError("A live simulator environment must not be copied")
+
+    task = load_task(name)
+    grasp = task.stage_checks["grasped"]
+    monkeypatch.setattr(grasp, "_owner", LiveOwner())
+    monkeypatch.setattr(grasp, "_state", {"step": [1]})
+    copied = deepcopy(task)
+    assert copied is not task
+    assert copied.module is task.module
+    assert copied.spec == task.spec
+    assert all(a is not b for a, b in zip(copied.checks, task.checks))
+    assert copied.stage_checks["grasped"] is copied.stage_checks[held_stage].held
+    assert copied.stage_checks["grasped"]._owner is grasp._owner
+    assert copied.stage_checks["grasped"]._state == grasp._state
+    assert copied.stage_checks["grasped"]._state is not grasp._state
+    copied.stage_checks["grasped"].copy_probe = True
+    assert not hasattr(task.stage_checks["grasped"], "copy_probe")
+
+
 def test_optional_expert_missing_is_clear(tmp_path):
     # Legacy layout: the expert is an optional expert.py.
-    task = load_task("stack_two_cubes")
+    task = load_task("stack_bowls")
     task = type(task)(replace(task.spec, name="missing_expert", task_dir=tmp_path))
     with pytest.raises(NotImplementedError, match="no expert.py"):
         task.expert()
@@ -25,7 +50,7 @@ def test_optional_expert_missing_is_clear(tmp_path):
 
 def test_internal_expert_import_failure_is_not_masked(tmp_path, monkeypatch):
     from core.tasks import loader
-    task = load_task("stack_two_cubes")
+    task = load_task("stack_bowls")
     (tmp_path / "expert.py").write_text("import unavailable_internal_dependency\n")
     task = type(task)(replace(task.spec, task_dir=tmp_path))
     def broken(*args):

@@ -109,10 +109,13 @@ def test_two_cube_task_composes_from_its_folder(variant):
     for name in task.spec.tracked_objects:
         assert getattr(cfg.scene, name).spawn.size == (.02, .02, .02)
     assert cfg.scene.contact_grasp.filter_prim_paths_expr == ["{ENV_REGEX_NS}/cube_a"]
-    assert cfg.events.reset_tracking.func.__module__.endswith("stack_two_cubes.mdp")
+    from sim.workspace.envs.task_env import reset_task_tracking, task_success
+    assert cfg.events.reset_tracking.func is reset_task_tracking
+    assert cfg.events.reset_tracking.params == {"task": task.name}
     if variant == "eval":
         assert cfg.events.reset_from_starts.params["task"] == task.name
-        assert cfg.terminations.success.func.__module__.endswith("stack_two_cubes.mdp")
+        assert cfg.terminations.success.func is task_success
+        assert cfg.terminations.success.params == {"task": task.name}
 
 
 def test_explicit_arm_snapshot_survives_config_copy_replace_and_export(monkeypatch):

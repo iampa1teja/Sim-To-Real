@@ -209,7 +209,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     from sim.eval.sim_real.trials import parse_args, run
     from core.rollout import real_rollout
     from sim.teleop import agent, loop
-    from sim.datagen import spawner
+    from sim.teleop import spawner
     from core.rollout import paired_gui
     import threading
 
@@ -229,7 +229,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
     import sim
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs', fake_envs)
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
-    monkeypatch.setattr(sim, 'envs', fake_envs, raising=False)
+    monkeypatch.setattr(sim, 'workspace', SimpleNamespace(envs=fake_envs), raising=False)
     monkeypatch.setattr(agent, '_env_id', lambda _: 'fake')
     monkeypatch.setattr(agent, '_make_env_cfg', lambda *a: None)
     monkeypatch.setattr(agent, '_sim_cameras', lambda _: [])
@@ -269,9 +269,9 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
     from utils.arms.calibration import resolve_calibration
     from utils.arms.mapping import JointMapping
     from core.rollout import real_rollout, paired_gui
-    from sim.eval import sim_real
+    from sim.eval.sim_real import trials as sim_real
     from sim.teleop import agent, loop
-    from sim.datagen import spawner
+    from sim.teleop import spawner
     import sim
 
     arm=load_arm_spec('so101')[0]
@@ -290,7 +290,7 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
     env.unwrapped=env
     monkeypatch.setattr(gymnasium,'make',lambda *a,**k:env)
     fake=SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
-    monkeypatch.setitem(sys.modules,'sim.workspace.envs',fake);monkeypatch.setattr(sim,'envs',fake,raising=False)
+    monkeypatch.setitem(sys.modules,'sim.workspace.envs',fake);monkeypatch.setattr(sim,'workspace',SimpleNamespace(envs=fake),raising=False)
     monkeypatch.setitem(sys.modules,'sim.workspace.envs.mdp._common',SimpleNamespace(as_torch=torch.as_tensor))
     monkeypatch.setattr(agent,'_env_id',lambda _:'fake')
     monkeypatch.setattr(agent,'_make_env_cfg',lambda *a:None)

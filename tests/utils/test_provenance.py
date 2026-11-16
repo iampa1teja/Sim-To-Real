@@ -32,7 +32,8 @@ def repo(tmp_path):
     return path
 
 
-def test_missing_repository_has_fallback_or_explicitly_required_commit(tmp_path):
+def test_missing_repository_has_fallback_or_explicitly_required_commit(tmp_path, monkeypatch):
+    monkeypatch.delenv("S2R_GIT_COMMIT", raising=False)
     assert git_commit(tmp_path) == "unknown"
     assert git_commit(tmp_path, default=None) is None
     with pytest.raises(subprocess.CalledProcessError):
