@@ -83,7 +83,7 @@ def _new_rerecording_journal(journal, entries):  # the replacement line, verbati
 
 def _callers():
     from core.eval.resume import write_report
-    from sim.datagen.rollout import write_json
+    from utils.io import write_json
     from utils.datasets.task_meta import _write
 
     return [(_old_resume_write_report, write_report), (_old_task_meta_write, _write),

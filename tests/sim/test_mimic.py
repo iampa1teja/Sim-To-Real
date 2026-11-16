@@ -212,7 +212,7 @@ def test_actual_sdk_queue_execution_keeps_physics_outside_asyncio(
     report_path = tmp_path / 'mimic.json'
     diagnostic_path = tmp_path / 'mimic-diagnostics/attempt_0000.json'
     context = SimpleNamespace(raw=env, task=task, arm=arm,
-                              args=SimpleNamespace(max_steps=max_steps, diagnostic_trace=diagnostic_trace,
+                              args=SimpleNamespace(max_steps=max_steps, debug=diagnostic_trace,
                                   report=report_path, destination=tmp_path / 'dataset'),
                               begin_attempt=begin_attempt)
     pool = DataGenInfoPool(env, cfg, 'cpu')
@@ -312,9 +312,9 @@ mimic_options:
     assert args.source == 'mimic' and args.source_dataset == source
     assert args.mimic_options == {'select_source_per_subtask': False}
     assert args.unit == 'rpd_robot' and args.headless
-    assert not args.diagnostic_trace
-    traced = parse_args(['--config_path', str(config), '--diagnostic_trace', '--report', str(tmp_path / 'run.json')])
-    assert traced.diagnostic_trace
+    assert not args.debug
+    traced = parse_args(['--config_path', str(config), '--debug', '--report', str(tmp_path / 'run.json')])
+    assert traced.debug
     with pytest.raises(SystemExit):
-        parse_args(['--config_path', str(config), '--diagnostic_trace', '--report',
+        parse_args(['--config_path', str(config), '--debug', '--report',
                     str(tmp_path / 'generated/run.json')])

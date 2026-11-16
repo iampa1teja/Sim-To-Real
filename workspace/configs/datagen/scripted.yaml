@@ -1,4 +1,5 @@
 source: scripted
+start_mode: random
 arm: so101
 scene: rpd_meeting_room
 task: pick_place_cube

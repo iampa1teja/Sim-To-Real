@@ -35,16 +35,19 @@ headless: true
 
 
 def test_scripted_imported_arm_controls_are_explicit_and_validated(tmp_path, monkeypatch):
-    from sim.datagen import scripted
+    from sim.datagen import scripted, rollout
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
     arguments = ['--destination', str(tmp_path / 'episodes'),
                  '--solver_njmax', '4096', '--solver_nconmax', '1024']
     args = scripted.parse_args(arguments)
     assert (args.solver_njmax, args.solver_nconmax) == (4096, 1024)
+    assert args.start_mode == "random" and not args.debug
+    assert scripted.parse_args(arguments + ["--debug"]).debug
     for invalid in (['--solver_njmax', '0'], ['--ik_damping', 'nan'],
                     ['--ik_orientation_weight', '.2'], ['--ik_orientation_tolerance_rad', '.1'],
-                    ['--ik_backend', 'bounded'], ['--control_offset', '[0,0,0]']):
+                    ['--ik_backend', 'bounded'], ['--control_offset', '[0,0,0]'],
+                    ['--start_mode', 'grid'], ['--diagnostic_images']):
         with pytest.raises(SystemExit):
             scripted.parse_args(arguments + invalid)
 
@@ -53,13 +56,13 @@ def test_start_variation_is_seeded_and_does_not_mutate_task_or_fingers(tmp_path,
     import numpy as np
     from utils.arms.arms import load_arm_spec
     from core.tasks.task import load_task
-    from sim.datagen import scripted
+    from sim.datagen import scripted, rollout
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
     task = load_task('pick_place_cube')
     original = dict(task.spec.start)
     options = {'xy_min': [-.20, -.18], 'xy_max': [-.08, -.06]}
-    modified = scripted.task_with_start_options(task, options)
+    modified = rollout.task_with_start_options(task, options)
     assert task.spec.start == original
     assert modified.spec.start['xy_min'] == [-.20, -.18]
     for seed in range(5):
@@ -67,21 +70,21 @@ def test_start_variation_is_seeded_and_does_not_mutate_task_or_fingers(tmp_path,
         assert np.all(np.asarray(xy) >= options['xy_min']) and np.all(np.asarray(xy) <= options['xy_max'])
     arm, _ = load_arm_spec('so101')
     positions = np.array([[j.initial for j in arm.action_joints]])
-    varied = scripted.jitter_start_positions(arm, positions, .04, 123)
-    assert np.array_equal(varied, scripted.jitter_start_positions(arm, positions, .04, 123))
+    varied = rollout.jitter_start_positions(arm, positions, .04, 123)
+    assert np.array_equal(varied, rollout.jitter_start_positions(arm, positions, .04, 123))
     assert not np.array_equal(varied[:, :-1], positions[:, :-1])
     assert varied[0, -1] == positions[0, -1]
     for invalid in ('{"xy_min":[0]}', '{"yaw_deg":[0,"bad"]}'):
         with pytest.raises((SystemExit, TypeError)):
             scripted.parse_args(['--destination', str(tmp_path), '--start_options', invalid])
     with pytest.raises(ValueError, match='xy_min'):
-        scripted.task_with_start_options(task, {'xy_min': [.3, .2]})
+        rollout.task_with_start_options(task, {'xy_min': [.3, .2]})
 
 
 def test_carried_object_feedback_corrects_slip_and_freezes_after_release():
     import numpy as np
     from core.tasks.task import Pose, StepState
-    from sim.datagen.scripted import carried_object_offset
+    from sim.datagen.rollout import carried_object_offset
 
     tcp = Pose((.3, .1, .2))
     state = StepState({'cube': Pose((.3, .1, .19))}, tcp, 0., {'holding': True})
@@ -100,7 +103,7 @@ def test_carried_object_feedback_corrects_slip_and_freezes_after_release():
 @pytest.mark.parametrize('producer', ['scripted', 'mimic'])
 def test_generation_uses_task_expert_ik_settings(tmp_path, monkeypatch, producer):
     from core.tasks.task import load_task
-    from sim.datagen import mimic, scripted
+    from sim.datagen import mimic, scripted, rollout
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
     arguments = ['--destination', str(tmp_path / 'output'), '--task', 'stack_bowls']
@@ -110,11 +113,11 @@ def test_generation_uses_task_expert_ik_settings(tmp_path, monkeypatch, producer
         arguments += ['--source_dataset', str(source)]
     args = (scripted if producer == 'scripted' else mimic).parse_args(arguments)
     task = load_task(args.task)
-    options = scripted.generation_ik_options(task, args)
+    options = rollout.generation_ik_options(task, args)
     assert (options.orientation_weight, options.orientation_tolerance_rad) == (.1, .25)
     assert task.spec.raw['expert']['ik_solver'] == 'bounded'
     assert task.spec.raw['expert']['control_offset'] == [-.0059, -.0002249, -.0994253]
-    defaults = scripted.generation_ik_options(load_task('pick_place_cube'), args)
+    defaults = rollout.generation_ik_options(load_task('pick_place_cube'), args)
     assert (defaults.orientation_weight, defaults.orientation_tolerance_rad) == (.05, .03)
-    replay = scripted.generation_ik_options(task, args, use_expert=False)
+    replay = rollout.generation_ik_options(task, args, use_expert=False)
     assert replay == defaults  # Command replay retains its arm TCP and old IK defaults.

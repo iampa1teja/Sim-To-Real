@@ -163,6 +163,9 @@ Phases 0-14 preserve behaviour; 15-18 are the only intended behaviour changes, o
    pass/skip set (minus deliberately deleted tests).
 3. Phases 7-10: old-vs-new signal oracle and waypoint equality.
 4. Phase 12: scripted reference recipe (seed 101) reproduces the Phase 0 frame hashes.
+   Phase 12 exception approved by the user on 2026-11-16: use fresh Phase 11 controls; exact hashes differ,
+   and unchanged Phase 11 repeats also differ (391-frame success versus 492-frame failure). Proceed with
+   that limitation documented in `tests/fixtures/v3_baseline/phase12_gate.json`; other phase gates passed.
 5. End: one scripted episode per task, one `one_per_zone` eval smoke, one recording session with the
    spawn dropdown.
 

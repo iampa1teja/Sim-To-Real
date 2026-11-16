@@ -8,7 +8,7 @@ import yaml
 from utils.arms.calibration import resolve_calibration
 from utils.arms.mapping import JointMapping
 from utils.arms.arms import load_arm_spec
-from sim.datagen.scripted import GenerationContext
+from sim.datagen.rollout import GenerationContext
 
 
 def test_scripted_reference_start_preserves_the_historical_physical_jaw_opening(monkeypatch):
@@ -16,6 +16,7 @@ def test_scripted_reference_start_preserves_the_historical_physical_jaw_opening(
     config = yaml.safe_load((Path(__file__).resolve().parents[2] / "workspace/configs/datagen/scripted.yaml").read_text())
     # Phase 5's retained 391-frame reference used this seeded task sample, without starts_dir.
     assert config["seed"] == 101
+    assert config["start_mode"] == "random"
     assert not config.get("starts_dir")
     arm = load_arm_spec(config["arm"])[0]
     current = resolve_calibration(arm, unit=config["unit"], environ={})

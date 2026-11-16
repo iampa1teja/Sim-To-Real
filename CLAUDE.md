@@ -63,7 +63,9 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   Scripted generation, Mimic and calibration replay share `sim.datagen.rollout`: capture pre-action frames,
   execute physical actions, then observe task signals. Commit only confirmed successes still valid at the final
   frame. Generated actions are absolute simulator targets encoded through the selected device mapping; they
-  do not use teleop wrist rezeroing. Mimic annotations record FK of the executed target, the same TCP offset,
+  do not use teleop wrist rezeroing. Shared generation setup and execution live in `sim.datagen.rollout`;
+  `--debug` enables optional rollout traces and waypoint images. Scripted reference YAML explicitly selects random starts.
+  Mimic annotations record FK of the executed target, the same TCP offset,
   named object poses and latched task stages. Nominal requested waypoints are separate from executed targets.
 - Table planes and link-local jaw geometry are static across resets and cached per USD stage. Call
   `clear_geometry_cache(stage)` after explicitly editing those meshes or table transforms.

@@ -1,0 +1,174 @@
+{
+  "phase": 12,
+  "reference_commit": "55fd21759665ff3b87953b6c26117a3494b3b5a4",
+  "image_id": "sha256:cfb85d8696a20d44965c561f63b49c0f5c7d9ab8dc5c4af4536d75710cb2a9a7",
+  "comparison_requested": "Fresh Phase 11 versus Phase 12, as selected by the user.",
+  "control_setup": "Phase 11 src/ archived from reference_commit and mounted at the same container path; committed Phase 11 YAML; shared unchanged assets and stock SDK; OMP/OPENBLAS/MKL threads=1; seed 101, one attempt, random starts.",
+  "phase11": [
+    {
+      "attempt": 0,
+      "seed": 101,
+      "accepted": true,
+      "frames": 391,
+      "reason": "task_success",
+      "stages": {
+        "reached": true,
+        "grasped": true,
+        "lifted": true,
+        "over_box": true,
+        "placed": true,
+        "success": true
+      }
+    }
+  ],
+  "phase11_unchanged_repeat": [
+    {
+      "attempt": 0,
+      "seed": 101,
+      "accepted": false,
+      "frames": 492,
+      "reason": "expert_finished_without_success",
+      "stages": {
+        "reached": true,
+        "grasped": true,
+        "lifted": true,
+        "over_box": false,
+        "placed": false,
+        "success": false
+      }
+    }
+  ],
+  "phase12": [
+    {
+      "attempt": 0,
+      "seed": 101,
+      "accepted": true,
+      "frames": 391,
+      "reason": "task_success",
+      "stages": {
+        "reached": true,
+        "grasped": true,
+        "lifted": true,
+        "over_box": true,
+        "placed": true,
+        "success": true
+      }
+    }
+  ],
+  "frame_hash_comparison": {
+    "before": "outputs/v3-gates/phase12/phase11-dataset-seed101",
+    "after": "outputs/v3-gates/phase12/dataset-seed101",
+    "before_hashes": {
+      "0": {
+        "action": {
+          "shape": [
+            391,
+            6
+          ],
+          "dtype": "float32",
+          "sha256": "8cda632ffeb0f52ed91869391e662a5eb1babd212ecbe69c6f31d55dd15c6de1"
+        },
+        "observation.state": {
+          "shape": [
+            391,
+            6
+          ],
+          "dtype": "float32",
+          "sha256": "e56ed96cdaa747f41218d5d792fe66e89518e5a3e325a96e1cc3d7860be9e64c"
+        }
+      }
+    },
+    "after_hashes": {
+      "0": {
+        "action": {
+          "shape": [
+            391,
+            6
+          ],
+          "dtype": "float32",
+          "sha256": "ec88636d3a206c27d344b6618fb3b724957f0a244fabece178e91a52c92a9a58"
+        },
+        "observation.state": {
+          "shape": [
+            391,
+            6
+          ],
+          "dtype": "float32",
+          "sha256": "a60878c4cca9e21ad9dc3a0edadd97bb344a04fbef89c2de90cd493ab2b7cb5c"
+        }
+      }
+    },
+    "identical": false
+  },
+  "first_differences": {
+    "action": {
+      "shape_before": [
+        391,
+        6
+      ],
+      "shape_after": [
+        391,
+        6
+      ],
+      "first_differing_frame_joint": [
+        3,
+        0
+      ],
+      "max_absolute_difference": 0.15288162231445312,
+      "before": -17.70471954345703,
+      "after": -17.704742431640625
+    },
+    "observation.state": {
+      "shape_before": [
+        391,
+        6
+      ],
+      "shape_after": [
+        391,
+        6
+      ],
+      "first_differing_frame_joint": [
+        4,
+        0
+      ],
+      "max_absolute_difference": 8.547172546386719,
+      "before": -17.705596923828125,
+      "after": -17.70561981201172
+    }
+  },
+  "ast_equivalence": {
+    "task_with_start_options": true,
+    "jitter_start_positions": true,
+    "reset_task_tracking": true,
+    "_matrix_pose": true,
+    "GenerationContext": true,
+    "generation_ik_options": true,
+    "setup_context": true,
+    "make_report": true,
+    "publish_report": true,
+    "carried_object_offset": true,
+    "execute_expert_physical_body": true
+  },
+  "gates": {
+    "cpu_baseline": {
+      "no_longer_passing": 0,
+      "newly_failing": 0
+    },
+    "required_tests_passed": 228,
+    "compileall": "passed",
+    "stale_imports": "no stale moved helpers or removed diagnostic flags in active source/config",
+    "stock_container_suite": "native abort in NumPy cross during bowl waypoint oracle; exit 134",
+    "isolated_test_overlay": {
+      "numpy": "2.5.5",
+      "scipy": "1.17.0 (image unchanged)",
+      "passed": 861,
+      "skipped": 6,
+      "subtests_passed": 22,
+      "exit": 0
+    },
+    "exact_simulator_hashes": "failed; unchanged Phase 11 also differs in acceptance and frame count"
+  },
+  "gate_exception": "User explicitly approved: document the hash-gate exception and continue. Fresh unchanged Phase 11 controls disagree; all other Phase 12 checks passed. Exact simulator hash equality remains unproven.",
+  "rerun_hash_comparison": "PYTHONPATH=src python tests/workspace/tasks/check_datagen_hashes.py --before outputs/v3-gates/phase12/phase11-dataset-seed101 --after outputs/v3-gates/phase12/dataset-seed101 --output outputs/v3-gates/phase12/frame-hash-comparison.json",
+  "log_directory": "outputs/v3-gates/phase12 (ignored)"
+}

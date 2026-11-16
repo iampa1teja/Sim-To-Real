@@ -12,7 +12,8 @@ from utils.datasets.task_meta import load_task_meta
 from core.tasks.task import Pose, StepState, Task
 from core.tasks.task import load_task
 from sim.datagen.rollout import LiveRollout, SuccessRecorder
-from sim.datagen.scripted import GenerationContext, parse_args
+from sim.datagen.rollout import GenerationContext
+from sim.datagen.scripted import parse_args
 
 
 class ToyTask(Task):
@@ -168,7 +169,7 @@ def test_supplied_scripted_yaml_parses_without_launching_kit(tmp_path):
 
 def test_waypoint_requires_declared_orientation_convergence(monkeypatch):
     from sim.actions.action import Waypoint
-    from sim.datagen.scripted import execute_expert
+    from sim.datagen.rollout import execute_expert
     import sim.eval.scene
     monkeypatch.setattr(sim.eval.scene, "capture_scene", lambda *args: {
         "table_plane_world": [0., 0., 0.], "base_position_world": [0., 0., 0.], "base_quaternion_wxyz": [1., 0., 0., 0.]})
@@ -282,7 +283,7 @@ def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monk
     pytest.importorskip("isaaclab")
     from utils.arms.mapping import JointMapping
     from utils.arms.arms import load_arm_spec
-    import sim.datagen.scripted
+    import sim.datagen.rollout
     arm = load_arm_spec()[0]
     events = []
     robot = SimpleNamespace(
@@ -297,7 +298,7 @@ def test_controller_bias_resets_after_warmup_and_for_audit_replay(tmp_path, monk
     args = SimpleNamespace(expert_options={}, warmup_steps=2, fps=30)
     context = GenerationContext(args, env, task, arm, JointMapping.from_arm(arm, device="cpu"), None,
                                 {}, Writer(tmp_path), ik, None)
-    monkeypatch.setattr(sim.datagen.scripted, "reset_task_tracking", lambda raw: events.append("tracking_reset"))
+    monkeypatch.setattr(sim.datagen.rollout, "reset_task_tracking", lambda raw: events.append("tracking_reset"))
     context.begin_attempt(101)
     assert events == ["reset", "warmup", "warmup", "tracking_reset", "controller_reset"]
     context.begin_attempt(102, reset=False, warmup=False)

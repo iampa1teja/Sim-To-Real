@@ -388,3 +388,17 @@ def supported_on_table(xy, yaw, scene, object_name=None):
     projected = footprint(centre, base_rotation.T @ rotation, scene['objects'][object_name]['size'])
     return all(inside_polygon(p, scene['table_outline_base_xy']) for p in projected)
 
+
+def relative_pose(base, pose):
+    bx, by, bz, bw = base.quat_xyzw
+    position = rotation_matrix_wxyz((bw, bx, by, bz)).T @ (np.asarray(pose.position) - base.position)
+    quaternion = np.asarray(quaternion_multiply((-bx, -by, -bz, bw), pose.quat_xyzw))
+    quaternion /= np.linalg.norm(quaternion)
+    return Pose.from_lists(position, quaternion)
+
+
+def pose_matrix(pose):
+    result = np.eye(4)
+    result[:3, :3] = rotation_matrix_wxyz(xyzw_to_wxyz(pose.quat_xyzw))
+    result[:3, 3] = pose.position
+    return result.tolist()

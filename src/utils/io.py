@@ -1,4 +1,5 @@
 """Atomic file replacement shared by reports, sidecars and journals."""
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -24,3 +25,9 @@ def atomic_write_text(path, text, *, fsync=False, encoding=None, newline=None):
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def write_json(path, data):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, json.dumps(data, indent=2, allow_nan=False))

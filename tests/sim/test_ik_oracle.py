@@ -20,7 +20,7 @@ pytest.importorskip('isaaclab')
 from core.tasks.task import load_task
 from utils.arms.arms import load_arm_spec
 from sim.actions import ik
-from sim.datagen.scripted import generation_ik_options
+from sim.datagen.rollout import generation_ik_options
 
 FIXTURES = Path(__file__).resolve().parents[1] / 'fixtures' / 'legacy_ik'
 _KINEMATICS = {}

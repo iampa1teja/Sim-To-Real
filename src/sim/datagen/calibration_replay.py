@@ -9,7 +9,8 @@ import os
 from pathlib import Path
 
 from sim import apply_selection, close_app, launch
-from sim.datagen.scripted import add_generation_launch_arguments, make_report, publish_report, reset_task_tracking, setup_context
+from sim.datagen.scripted import add_generation_launch_arguments
+from sim.datagen.rollout import make_report, publish_report, reset_task_tracking, setup_context
 
 
 def build_parser():
