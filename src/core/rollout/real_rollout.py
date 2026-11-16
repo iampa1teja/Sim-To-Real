@@ -229,7 +229,7 @@ def parse_args(argv=None):
 
     args = parse_yaml_args(build_parser(), argv, json_fields=("rename_map",))
     if args.lang_instruction is None:
-        from core.tasks.loader import load_task
+        from core.tasks.task import load_task
 
         args.lang_instruction = load_task(args.task).instruction
     return args

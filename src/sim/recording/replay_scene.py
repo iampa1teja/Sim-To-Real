@@ -15,7 +15,7 @@ import torch
 import isaaclab.utils.math as math_utils
 from isaaclab.managers import SceneEntityCfg
 
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 from utils.geometry import wxyz_to_xyzw
 from sim.workspace.envs.mdp._common import as_torch
 from sim.workspace.envs.mdp.appearance import set_robot_color

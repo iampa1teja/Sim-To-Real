@@ -9,13 +9,17 @@ import pytest
 import torch
 
 from utils.datasets.task_meta import load_task_meta
-from core.tasks.base import Pose, StepState, Task
-from core.tasks.loader import load_task
+from core.tasks.task import Pose, StepState, Task
+from core.tasks.task import load_task
 from sim.datagen.rollout import LiveRollout, SuccessRecorder
 from sim.datagen.scripted import GenerationContext, parse_args
 
 
 class ToyTask(Task):
+    def __init__(self, spec):
+        # Inline test task: the live checks/signals below stand in for a task module.
+        self.spec, self.module, self.checks = spec, SimpleNamespace(), ()
+
     def signals(self, env):
         return env.signals
 

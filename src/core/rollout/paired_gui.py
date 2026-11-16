@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 
 from core.policy_client.discovery import discover
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 from core.rollout.testing_http import TestingHttpServer
 
 

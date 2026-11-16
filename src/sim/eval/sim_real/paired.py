@@ -123,6 +123,7 @@ def run(args, app):
         log = (folder / f'{side}.jsonl').open('w', buffering=1)
 
     try:
+        task = sim.workspace.envs.register(args.scene, args.task)
         cfg = AgentConfig(arm=args.arm, scene=args.scene, task=args.task, variant=args.variant, fps=args.fps)
         env_id = _env_id(cfg)
         env = gym.make(env_id, cfg=_make_env_cfg(cfg, env_id, args.device, args.calibration_selection))
@@ -133,7 +134,7 @@ def run(args, app):
         joint_ids = robot.find_joints(list(arm.action_usd_joint_names), preserve_order=True)[0]
         base_id = robot.find_bodies(arm.links.base)[0][0]
         ids = torch.tensor([0], device=env.unwrapped.device)
-        spawner = ObjectSpawner(env, task=sim.workspace.envs.TASK)
+        spawner = ObjectSpawner(env, task=task)
         sim_cameras, real_cameras = _sim_cameras(env), camera_specs(args)
         keys = list(arm.feature_names)
         ranges = joint_ranges(arm, args.calibration_selection.mapping)
@@ -212,7 +213,7 @@ def run(args, app):
                         else:
                             positioning, ready, error = False, False, ''
                             start_objects = {name: as_torch(env.unwrapped.scene[name].data.root_state_w).clone()
-                                             for name in (() if args.no_object else sim.workspace.envs.TASK.spec.tracked_objects)}
+                                             for name in (() if args.no_object else task.spec.tracked_objects)}
                             run_id = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f') + '_' + uuid.uuid4().hex[:6]
                             folder = output / run_id
                             folder.mkdir()

@@ -2,7 +2,7 @@
 import pytest
 pytest.importorskip('isaaclab')
 from utils.arms.arms import load_arm_spec
-from core.tasks.loader import load_task, resolve
+from core.tasks.task import load_task, resolve
 from sim.workspace.envs import scene_builder
 
 

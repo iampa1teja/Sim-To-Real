@@ -276,7 +276,7 @@ def _generate_recorded_region(dataset, scene, *, seed=1984, n_id=60, n_ood=20, n
 
 
 def _generate_task_distribution(dataset, scene, *, task, arm, seed, n_id, n_ood, n_yaw, git_commit, **options):
-    from core.tasks.base import sample_start_in_base
+    from core.tasks.task import sample_start_in_base
 
     recorded = RecordedStarts(dataset, robot_states_root=dataset, arm=arm, task=task)
     primary = primary_object(task)

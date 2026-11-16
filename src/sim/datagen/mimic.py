@@ -412,7 +412,7 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
                     base_pose = _matrix_pose(base)
                     position, orientation = env._base()
                     from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, xyzw_to_wxyz
-                    from core.tasks.base import Pose
+                    from core.tasks.task import Pose
                     p = position[0].detach().cpu().numpy()
                     q = orientation[0].detach().cpu().numpy()
                     world = p + rotation_matrix_wxyz(xyzw_to_wxyz(q)) @ base_pose.position
@@ -454,7 +454,7 @@ def generate_attempt(context, pool, *, attempt, seed, event_loop):
 def main(argv=None):
     from sim import apply_selection, close_app, launch
     from sim.datagen.scripted import make_report, publish_report, setup_context
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
 
     args = parse_args(argv)
     apply_selection(args)

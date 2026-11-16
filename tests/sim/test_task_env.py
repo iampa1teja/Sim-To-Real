@@ -14,7 +14,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 ENVS = Path(__file__).resolve().parents[2] / "src" / "sim" / "workspace" / "envs"
 TASK = "pick_place_cube"

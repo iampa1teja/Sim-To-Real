@@ -8,7 +8,7 @@ import numpy as np
 
 def workspace_sweep(spec, kin, task, geometry):
     from utils.geometry import rotation_matrix_wxyz
-    from core.tasks.base import Pose
+    from core.tasks.task import Pose
     from sim.actions.ik import IKOptions
 
     rotation=rotation_matrix_wxyz(geometry['base_quaternion_wxyz'])
@@ -93,7 +93,7 @@ def validate_import(name,*,repo=None):
     from utils.arms.arms import load_arm_spec
     from utils.paths import DEFAULT_SCENE,DEFAULT_TASK
     from sim.actions.ik import ArmKinematics,make_ik
-    from core.tasks.base import Pose
+    from core.tasks.task import Pose
     from sim.workspace.envs.mdp._common import as_torch
     from sim.workspace.envs.mdp.mimic import write_mimic_state
     from sim.eval.scene import capture_scene
@@ -113,7 +113,7 @@ def validate_import(name,*,repo=None):
             row=dict(name=name,passed=False,error=str(error));results.append(row);return row
     try:
         import sim.workspace.envs
-        task=sim.workspace.envs.register_envs(scene=DEFAULT_SCENE,task=DEFAULT_TASK)
+        task=sim.workspace.envs.register(scene=DEFAULT_SCENE,task=DEFAULT_TASK)
         cfg=parse_env_cfg(task.gym_id(task.spec.default_variant),device='cuda:0',num_envs=1)
         cfg.terminations=None
         cfg.episode_length_s=120.

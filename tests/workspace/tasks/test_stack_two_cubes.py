@@ -7,8 +7,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from core.tasks.base import Pose, StepState
-from core.tasks.loader import load_task
+from core.tasks.task import Pose, StepState
+from core.tasks.task import load_task
 from sim.actions.action import ExpertContext
 from utils.arms.arms import load_arm_spec
 from utils.geometry import rotation_matrix_xyzw

@@ -16,10 +16,10 @@ def test_registered_scene_task_becomes_valid_sdk_mimic_cfg_without_launch(scene_
     from isaaclab.managers import RecorderManager
     from isaaclab_tasks.utils import parse_env_cfg
     from isaaclab_mimic.datagen.data_generator import DataGenerator
-    from sim.workspace.envs import register_envs
+    from sim.workspace.envs import register
 
     monkeypatch.setenv('S2R_ARM', 'so101')
-    task = register_envs(scene=scene_name, task='pick_place_cube')
+    task = register(scene=scene_name, task='pick_place_cube')
     arm = load_arm_spec('so101')[0]
     cfg = parse_env_cfg(task.gym_id('teleop'), device='cpu', num_envs=1)
     before = cfg.to_dict()

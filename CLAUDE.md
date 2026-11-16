@@ -10,8 +10,9 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   containers with `docker compose` (`sim` service; `serve` profile for a policy server) and pass
   `S2R_GIT_COMMIT=$(git rev-parse HEAD)`, because the container cannot resolve the worktree pointer itself.
 - The typed arm loader reads `S2R_ARM` when called. Pass an explicit `ArmSpec` to components that must keep one arm
-  for their lifetime. Scene loaders also resolve selectors at call time; the Gym registry and task modules still
-  select registrations at import time, so choose selectors before importing them. Shared selection and Kit
+  for their lifetime. Scene loaders also resolve selectors at call time. `core.tasks.task.load_task(name)`
+  requires an explicit task name; entry points call `sim.workspace.envs.register(scene, task)` after selection.
+  Importing tasks or the registry selects no task. Shared selection and Kit
   argument helpers live in `sim` and are safe before Kit startup.
 - Launch simulator programs through `sim.launch` after choosing arm/scene/task. Recording lives in
   `sim.teleop.agent`, evaluation in `sim.eval.run`, generation in `sim.datagen`, and real rollout in
@@ -48,8 +49,7 @@ locally `PYTHONPATH=src python tests/fixtures/v3_baseline/compare_outcomes.py`, 
   do not add rigid bodies during a running episode.
 - A task is `workspace/tasks/<task>/task.toml` (objects, starts, DR, episode) plus `task.py` (stages built from
   `sim.actions` checks, success hold, expert built from `sim.actions` moves). Low-level check and move code lives
-  once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac. Tasks not yet ported
-  keep the legacy `__init__/env_cfg/mdp/expert.py` layout until their phase.
+  once in `src/sim/actions/{checks,moves}/`; `task.py` must import without torch or Isaac.
   All three production tasks use the two-file layout. Custom nesting geometry stays in its task.py;
   composed rim moves live in `sim/actions/moves/rim.py`. Task contact filters/TCP choice, reset policy,
   USD grasp-material flags and minimum solver capacities are declared in the task manifest.

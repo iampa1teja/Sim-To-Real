@@ -344,11 +344,11 @@ def setup(args_cli, simulation_app, resources):
     from core.policy_client.grasp import GraspConfig
     from core.eval.resume import read_report
     from core.eval.eval_set import EvalSetStarts
-    from sim.eval.stage_tracking import install_stage_tracking
+    from sim.workspace.envs.task_env import install_stage_tracking
     from sim.eval.sim_remote_policy import SimRemotePolicy
     from sim.teleop.controls.keyboard import KeyboardControl
 
-    task = sim.workspace.envs.TASK
+    task = sim.workspace.envs.register(args.scene, args.task)
     env_id = task.gym_id(args_cli.variant)
     if args_cli.lang_instruction is None:
         args_cli.lang_instruction = task.instruction

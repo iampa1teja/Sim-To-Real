@@ -3,7 +3,7 @@ import numpy as np
 
 from utils.arms.arms import load_arm_spec
 from utils.scene import load_scene_spec
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 
 def capture_scene(env, task=None, index=0):

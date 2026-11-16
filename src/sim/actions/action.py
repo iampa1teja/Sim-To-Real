@@ -40,7 +40,7 @@ import numpy as np
 from utils.geometry import Pose
 
 if TYPE_CHECKING:
-    from core.tasks.base import ObjectSpec, StepState
+    from core.tasks.task import ObjectSpec, StepState
 
 
 # ---------------------------------------------------------------------------

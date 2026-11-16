@@ -8,8 +8,8 @@ import pytest
 torch = pytest.importorskip('torch')
 from scipy.spatial.transform import Rotation
 
-from core.tasks.loader import load_task
-from core.tasks.base import StepState
+from core.tasks.task import load_task
+from core.tasks.task import StepState
 from sim.actions.action import ExpertContext
 from utils.arms.arms import load_arm_spec
 from utils.geometry import Pose

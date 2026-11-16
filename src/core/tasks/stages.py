@@ -1,5 +1,5 @@
 """Task-defined milestones latched once per live episode."""
-from core.tasks.base import StepState, Task
+from core.tasks.task import StepState, Task
 
 
 class StageTrace:

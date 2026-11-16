@@ -114,7 +114,7 @@ def test_reorders_match_the_replaced_expressions(quaternions):
         # core/eval/starts.py poses_to_objects and rollout.py pose_matrix/control_pose
         assert same(xyzw_to_wxyz((x, y, z, w)), np.array([w, x, y, z], dtype=float))
         assert same(rotation_matrix_wxyz(xyzw_to_wxyz((x, y, z, w))), old_rotation_matrix((w, x, y, z)))
-        # core/tasks/base.py start_is_valid: the tuple (w, x, y, z) fed to upright_orientation
+        # core/tasks/task.py start_is_valid: the tuple (w, x, y, z) fed to upright_orientation
         base, plane = rng.normal(size=4), (.01, -.02, .75)
         assert same(upright_orientation_wxyz(base, plane, xyzw_to_wxyz((x, y, z, w))),
                     old_upright_orientation(base, plane, (w, x, y, z)))

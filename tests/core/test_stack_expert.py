@@ -3,9 +3,9 @@ import numpy as np
 import pytest
 
 from utils.geometry import rotation_matrix_xyzw
-from core.tasks.base import Pose, StepState
+from core.tasks.task import Pose, StepState
 from sim.actions.action import ExpertContext
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 
 def context(options=None, rotation=(0., 0., 0., 1.)):
@@ -51,8 +51,8 @@ def test_yaw_controlled_stack_preserves_pickup_offset_without_changing_legacy(sy
     from dataclasses import replace
     from utils.arms.spec import IKSpec
     from sim.actions.action import ExpertContext
-    from core.tasks.base import Pose,StepState
-    from core.tasks.loader import load_task
+    from core.tasks.task import Pose,StepState
+    from core.tasks.task import load_task
     task=load_task('stack_two_cubes')
     state=StepState({'cube_a':Pose((.14,-.12,.8)),'cube_b':Pose((.20,-.08,.8))},Pose((.15,-.1,.9)),0.)
     arm=replace(synthetic_arm,ik=IKSpec(orientation_axes=('x','y','z')))

@@ -53,7 +53,7 @@ def connect_trial_policies(factory, executor=None):
 def parse_args(argv=None):
     from core.rollout.real_rollout import build_parser
     from utils.cli import parse_yaml_args
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
     from sim import add_launch_arguments
 
     parser = build_parser()

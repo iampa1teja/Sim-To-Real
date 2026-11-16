@@ -52,7 +52,7 @@ def test_scripted_imported_arm_controls_are_explicit_and_validated(tmp_path, mon
 def test_start_variation_is_seeded_and_does_not_mutate_task_or_fingers(tmp_path, monkeypatch):
     import numpy as np
     from utils.arms.arms import load_arm_spec
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
     from sim.datagen import scripted
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)
@@ -80,7 +80,7 @@ def test_start_variation_is_seeded_and_does_not_mutate_task_or_fingers(tmp_path,
 
 def test_carried_object_feedback_corrects_slip_and_freezes_after_release():
     import numpy as np
-    from core.tasks.base import Pose, StepState
+    from core.tasks.task import Pose, StepState
     from sim.datagen.scripted import carried_object_offset
 
     tcp = Pose((.3, .1, .2))
@@ -99,7 +99,7 @@ def test_carried_object_feedback_corrects_slip_and_freezes_after_release():
 
 @pytest.mark.parametrize('producer', ['scripted', 'mimic'])
 def test_generation_uses_task_expert_ik_settings(tmp_path, monkeypatch, producer):
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
     from sim.datagen import mimic, scripted
 
     monkeypatch.setattr(scripted, 'add_generation_launch_arguments', lambda parser: parser)

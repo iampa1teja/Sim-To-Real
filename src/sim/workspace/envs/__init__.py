@@ -1,17 +1,14 @@
 """Register generic scene/task factories without importing the simulator runtime."""
-import os
-
-import gymnasium as gym
-
-from utils.paths import DEFAULT_TASK
 from utils.scene import load_scene_spec, selected_scene_name
-from core.tasks.loader import load_task, resolve
+from core.tasks.task import load_task, resolve
 
 _ENV_CLASS = "isaaclab.envs:ManagerBasedRLEnv"
 BASE_GYM_ID = "S2R-base"
 
 
 def _register(env_id, env_cfg_entry_point):
+    import gymnasium as gym
+
     if env_id in gym.registry:
         # Task ids intentionally omit scene/arm. An explicit new composition must
         # replace its factory instead of silently retaining the previous scene.
@@ -53,18 +50,15 @@ def _variant_builder(scene, task, variant):
     return build_env_cfg
 
 
-def register_envs(scene=None, task=None):
-    scene = selected_scene_name() if scene is None else scene
+def register(scene, task):
+    """Register an explicitly selected scene and task after entry-point selection."""
     _register(BASE_GYM_ID, f"{__name__}.base_env_cfg:BaseEnvCfg")
     scene_entry_point(scene)
     _register(scene_gym_id(scene), _scene_builder(scene))
-    task_name = task if task is not None else os.environ.get("S2R_TASK", DEFAULT_TASK)
+    task_name = task
     if not task_name:
         return None
     loaded = load_task(task_name)
     for variant in loaded.spec.all_variants():
         _register(loaded.gym_id(variant), _variant_builder(scene, loaded, variant))
     return loaded
-
-
-TASK = register_envs()

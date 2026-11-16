@@ -17,8 +17,8 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 
-from core.tasks import base
-from core.tasks.loader import load_task
+from utils.workspace import load_file_module
+from core.tasks.task import load_task
 
 ROOT = Path(__file__).resolve().parents[3]
 LEGACY_TASKS = ROOT / "tests" / "fixtures" / "legacy_tasks"
@@ -70,6 +70,24 @@ def _package(name, path):
     return module
 
 
+def legacy_base():
+    return load_file_module(LEGACY_TASKS / "base.py", "_s2r_legacy_task_base")
+
+
+@contextmanager
+def legacy_base_import():
+    name = "core.tasks.base"
+    previous = sys.modules.get(name)
+    sys.modules[name] = legacy_base()
+    try:
+        yield
+    finally:
+        if previous is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = previous
+
+
 @contextmanager
 def isolated_modules(task, legacy_task=None):
     """Install Isaac stubs and the path-loaded legacy package ``legacy_<task>``; restore sys.modules after.
@@ -79,7 +97,7 @@ def isolated_modules(task, legacy_task=None):
     package = "legacy_" + task
     stub_names = ("pxr", "isaaclab", "isaaclab.utils", "isaaclab.utils.math", "isaaclab.assets", "isaaclab.envs",
                   "isaaclab.managers", "isaaclab.sensors", "isaaclab.sim", "sim.workspace.envs",
-                  "sim.workspace.envs.mdp", "sim.workspace.scene.geometry", package, "core.tasks.expert")
+                  "sim.workspace.envs.mdp", "sim.workspace.scene.geometry", package, "core.tasks.expert", "core.tasks.base")
     prefixes = ("sim.workspace.envs.", package + ".", "isaaclab.", "pxr.")
     saved = {name: module for name, module in sys.modules.items()
              if name in stub_names or name.startswith(prefixes)}
@@ -104,6 +122,7 @@ def isolated_modules(task, legacy_task=None):
         package: _package(package, LEGACY_TASKS / task),
         # The legacy expert predates the move of its data classes to sim.actions.action.
         "core.tasks.expert": action,
+        "core.tasks.base": legacy_base(),
     })
     sys.modules["isaaclab"].utils = sys.modules["isaaclab.utils"]
     sys.modules["isaaclab.utils"].math = sys.modules["isaaclab.utils.math"]
@@ -135,9 +154,10 @@ def legacy_task(task, class_name, **changes):
     path = LEGACY_TASKS / task / "__init__.py"
     source = re.sub(r"^TASK = .*$", "", path.read_text(), flags=re.M)
     namespace = {}
-    exec(compile(source, str(path), "exec"), namespace)
+    with legacy_base_import():
+        exec(compile(source, str(path), "exec"), namespace)
     legacy_spec = replace(spec, raw=raw, task_py=None,
-                          variants={key: f"{base.TASK_PACKAGE}.{task}.{value}" for key, value in raw["variants"].items()})
+                          variants={key: f"{legacy_base().TASK_PACKAGE}.{task}.{value}" for key, value in raw["variants"].items()})
     return namespace[class_name](replace(legacy_spec, **changes))
 
 

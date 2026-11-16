@@ -6,8 +6,8 @@ import numpy as np
 import torch
 
 from utils.arms.arms import load_arm_spec
-from core.tasks.base import Pose
-from core.tasks.loader import load_task
+from core.tasks.task import Pose
+from core.tasks.task import load_task
 from utils.geometry import wxyz_to_xyzw, xyzw_to_wxyz
 from sim.workspace.envs.mdp._common import as_torch, env_indices
 
@@ -24,7 +24,7 @@ class _TaskStarts:
         self.scene = None
 
     def sample(self, accepts_random=None):
-        from core.tasks.base import sample_start_in_base
+        from core.tasks.task import sample_start_in_base
 
         for _ in range(10000):
             poses = sample_start_in_base(self.task, self.rng, self.scene)

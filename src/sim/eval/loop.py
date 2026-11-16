@@ -11,7 +11,7 @@ from tqdm import tqdm
 from core.eval.resume import load_episodes, next_video_attempt, write_report
 from sim.eval.report import build_report, episode_metadata, progress_summary, finish_report
 from sim.eval.scene import capture_scene, validate_scene_geometry
-from sim.eval.stage_tracking import reset_stage_traces
+from sim.workspace.envs.task_env import reset_stage_traces
 
 
 @dataclass

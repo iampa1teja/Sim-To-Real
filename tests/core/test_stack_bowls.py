@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pytest
 import torch
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 
 def test_all_six_color_orders_are_accepted_geometrically():
@@ -76,7 +76,7 @@ def test_first_placement_ignores_unstacked_third_bowl_height():
 
 
 def test_rim_grasps_follow_pan_instead_of_a_fixed_world_direction():
-    from core.tasks.base import Pose, StepState
+    from core.tasks.task import Pose, StepState
     from sim.actions.action import ExpertContext
     from utils.arms.arms import load_arm_spec
     from utils.geometry import rotation_matrix_xyzw
@@ -109,7 +109,7 @@ def test_rim_grasps_follow_pan_instead_of_a_fixed_world_direction():
 
 def test_replans_next_pickup_after_the_support_bowl_moves():
     from dataclasses import replace
-    from core.tasks.base import Pose, StepState
+    from core.tasks.task import Pose, StepState
     from sim.actions.action import ExpertContext
     from utils.arms.arms import load_arm_spec
     task = load_task('stack_bowls')
@@ -129,7 +129,7 @@ def test_replans_next_pickup_after_the_support_bowl_moves():
 
 
 def test_bowl_orientation_feedback_reduces_tilt_and_freezes_on_release():
-    from core.tasks.base import Pose, StepState
+    from core.tasks.task import Pose, StepState
     from sim.actions.action import ExpertContext
     from utils.arms.arms import load_arm_spec
     from utils.geometry import rotation_matrix_xyzw

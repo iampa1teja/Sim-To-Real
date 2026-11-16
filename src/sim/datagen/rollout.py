@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 
 from utils.geometry import quaternion_multiply, rotation_matrix_wxyz, xyzw_to_wxyz
-from core.tasks.base import Pose, StepState
+from core.tasks.task import Pose, StepState
 from core.tasks.stages import StageTrace
 from utils.datasets.task_meta import save_task_trajectory, validate_task_meta
 from utils.io import atomic_write_text

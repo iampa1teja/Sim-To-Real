@@ -18,8 +18,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 EVAL_SET_MODULES = ("core.eval.eval_set",)# first importable wins
-TASK_LOADER_MODULES = ("core.tasks.loader",)                          # provides load_task(name)
-POSE_MODULES = ("core.tasks.base",)                                   # provides Pose.from_lists(pos, xyzw)
+TASK_LOADER_MODULES = ("core.tasks.task",)                          # provides load_task(name)
+POSE_MODULES = ("core.tasks.task",)                                   # provides Pose.from_lists(pos, xyzw)
 TASK_DIRS = ("workspace/tasks", "tasks")                              # first existing wins
 LEGACY_FIXTURE = "legacy_eval_set_v1.json"                            # schema-1 set, searched under tests/
 SKIP_DIRS = {"node_modules", "__pycache__"}                           # plus dot-dirs and top-level tests/

@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 import torch
 
-from core.tasks.loader import load_task
-from core.tasks.base import Pose, StepState
+from core.tasks.task import load_task
+from core.tasks.task import Pose, StepState
 from sim.datagen.mimic import MimicSpec, episode_from_annotations
 
 

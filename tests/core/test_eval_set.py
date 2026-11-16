@@ -15,7 +15,7 @@ from core.eval.eval_set import (EvalSetStarts, convert_eval_set, eval_set_digest
 from core.eval.starts import RecordedStarts
 from core.eval.smoke import MilestoneDeadline
 from utils.datasets.task_meta import save_task_trajectory
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 SETS = Path(__file__).resolve().parents[2] / 'workspace/tasks/pick_place_cube/eval_sets'
 LEGACY = Path(__file__).resolve().parents[1] / 'fixtures/legacy_eval_set_v1.json'

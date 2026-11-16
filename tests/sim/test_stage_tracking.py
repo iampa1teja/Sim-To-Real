@@ -5,12 +5,16 @@ import pytest
 import torch
 pytest.importorskip("isaaclab")
 from utils.arms.arms import load_arm_spec
-from core.tasks.base import Task
-from core.tasks.loader import load_task
-from sim.eval.stage_tracking import install_stage_tracking
+from core.tasks.task import Task
+from core.tasks.task import load_task
+from sim.workspace.envs.task_env import install_stage_tracking
 
 
 class SampleTask(Task):
+    def __init__(self, spec):
+        # Inline test task: the live checks/signals below stand in for a task module.
+        self.spec, self.module, self.checks = spec, SimpleNamespace(), ()
+
     def signals(self, env):
         return {"arrived": env.arrived}
 

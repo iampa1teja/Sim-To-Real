@@ -225,7 +225,7 @@ def test_trial_loop_requires_spawn_unless_opted_out(no_object, spawn, connects, 
                           step=lambda _: (observation, 0, False, False, {}), close=noop)
     env.unwrapped = env
     monkeypatch.setattr(gymnasium, 'make', lambda *a, **k: env)
-    fake_envs = SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
+    fake_envs = SimpleNamespace(register=lambda *a, **k: SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
     import sim
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs', fake_envs)
     monkeypatch.setitem(sys.modules, 'sim.workspace.envs.mdp._common', SimpleNamespace(as_torch=torch.as_tensor))
@@ -289,7 +289,7 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
         sim=SimpleNamespace(forward=noop,render=noop),observation_manager=SimpleNamespace(compute=lambda:observation))
     env.unwrapped=env
     monkeypatch.setattr(gymnasium,'make',lambda *a,**k:env)
-    fake=SimpleNamespace(TASK=SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
+    fake=SimpleNamespace(register=lambda *a, **k: SimpleNamespace(spec=SimpleNamespace(tracked_objects=())))
     monkeypatch.setitem(sys.modules,'sim.workspace.envs',fake);monkeypatch.setattr(sim,'workspace',SimpleNamespace(envs=fake),raising=False)
     monkeypatch.setitem(sys.modules,'sim.workspace.envs.mdp._common',SimpleNamespace(as_torch=torch.as_tensor))
     monkeypatch.setattr(agent,'_env_id',lambda _:'fake')
@@ -333,7 +333,7 @@ def test_both_trials_use_the_submitted_prompt_policy_endpoint_and_duration(tmp_p
             cancel.set();release.set();return {'stop':True}
         if operator_end:
             from core.rollout.paired_gui import operator_stage_label
-            from core.tasks.loader import load_task
+            from core.tasks.task import load_task
             import time
             side=ui_state.get('phase')
             if side=='real' and entered.is_set() and 'real' not in labels:

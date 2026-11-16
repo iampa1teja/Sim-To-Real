@@ -57,9 +57,10 @@ def _prepare(cfg: AgentConfig):
 def _env_id(cfg: AgentConfig):
     import sim.workspace.envs
 
-    if sim.workspace.envs.TASK is None:
-        return sim.workspace.envs.scene_gym_id()
-    return sim.workspace.envs.TASK.gym_id(cfg.variant)
+    task = sim.workspace.envs.register(cfg.scene, cfg.task)
+    if task is None:
+        return sim.workspace.envs.scene_gym_id(cfg.scene)
+    return task.gym_id(cfg.variant)
 
 def _make_env_cfg(cfg: AgentConfig, env_id, device, selection):
     from isaaclab_tasks.utils import parse_env_cfg
@@ -143,6 +144,8 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
             telemetry = JointAngleTelemetry(cfg.telemetry.joint_angle_log, selection=selection,
                                             provenance={"agent": "sim.teleop.agent", "sim_wrist_start_rezero": True})
 
+        from core.tasks.task import load_task
+        task = load_task(cfg.task) if cfg.task else None
         env_id = _env_id(cfg)
         env_cfg = _make_env_cfg(cfg, env_id, sim_device, selection)
         env = gym.make(env_id, cfg=env_cfg)
@@ -150,7 +153,7 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         print(f"[INFO]: {env_id}  obs: {env.observation_space}  action: {env.action_space}")
         env.reset()
         # Spawnable task objects start parked; `spawn --object <name>` puts one at the sim jaw (Newton-safe teleport).
-        spawner = ObjectSpawner(env, task=sim.workspace.envs.TASK, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
+        spawner = ObjectSpawner(env, task=task, port=cfg.spawn_port, authkey=cfg.spawn_authkey)
 
         sim_cameras = _sim_cameras(env)
         arm, _ = load_arm_spec(cfg.arm)
@@ -188,7 +191,6 @@ def run(cfg: AgentConfig, simulation_app, sim_device, selection, contract, roots
         # Track every declared object, including fixed objects and tasks with multiple spawnables.
         tracked = None
         base_id = None
-        task = sim.workspace.envs.TASK
         if task is not None:
             from sim.teleop.spawner import _half_extents
 

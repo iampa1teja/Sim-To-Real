@@ -9,9 +9,15 @@ from utils.geometry import rotation_matrix_wxyz, wxyz_to_xyzw, xyzw_to_wxyz
 
 
 def task_instance(task=None):
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
 
-    return load_task(task) if task is None or isinstance(task, str) else task
+    if task is None:
+        # Optional eval/dataset helpers retain their selected-task default, resolved
+        # at the call boundary rather than by importing a task singleton.
+        import os
+        from utils.paths import DEFAULT_TASK
+        task = os.environ.get("S2R_TASK", DEFAULT_TASK)
+    return load_task(task) if isinstance(task, str) else task
 
 
 def primary_object(task=None):
@@ -164,7 +170,7 @@ class RecordedStarts:
                     objects = {self.primary_object: dict(position=position,
                         orientation_wxyz=np.array([np.cos(yaw / 2), 0, 0, np.sin(yaw / 2)]))}
                 else:
-                    from core.tasks.base import sample_start_in_base
+                    from core.tasks.task import sample_start_in_base
 
                     objects = poses_to_objects(sample_start_in_base(self.task, self.rng, self.scene))
                 if accepts_random(objects):
@@ -197,7 +203,7 @@ def poses_to_objects(poses):
 
 
 def objects_to_poses(objects):
-    from core.tasks.base import Pose
+    from core.tasks.task import Pose
 
     result = {}
     for name, pose in objects.items():

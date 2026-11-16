@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from utils.arms.arms import load_arm_spec
-from core.tasks.loader import load_task
+from core.tasks.task import load_task
 
 
 @pytest.mark.parametrize("with_termination", [False, True])

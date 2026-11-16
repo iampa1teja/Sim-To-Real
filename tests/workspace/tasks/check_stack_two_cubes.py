@@ -13,7 +13,7 @@ def main(task_name="stack_two_cubes", class_name="StackTwoCubesTask"):
     from sim import launch, close_app
     # Select the repository's utils package before Kit adds its own search paths,
     # just as the production entry points' prelaunch task imports do.
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
 
     app = launch(headless=True, enable_cameras=True, device="cuda:0")
     try:

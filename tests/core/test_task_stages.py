@@ -3,8 +3,8 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from core.tasks.base import Pose, StepState, Task, sample_start_in_base
-from core.tasks.loader import load_task
+from core.tasks.task import Pose, StepState, Task, sample_start_in_base
+from core.tasks.task import load_task
 from core.tasks.stages import StageTrace
 
 
@@ -77,6 +77,7 @@ def test_sampling_boundary_converts_declared_frame_without_changing_plugin_signa
     assert converted.quat_xyzw == (0., 0., 0., 1.)
 
 
-def test_incomplete_task_plugins_fail_instead_of_reporting_all_false():
-    with pytest.raises(TypeError, match="abstract"):
-        Task(load_task("pick_place_cube").spec)
+def test_task_stage_declarations_must_match_the_manifest():
+    from types import SimpleNamespace
+    with pytest.raises(ValueError, match="task.toml stages"):
+        Task(load_task("pick_place_cube").spec, SimpleNamespace(stages={}))

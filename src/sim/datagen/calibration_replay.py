@@ -70,7 +70,7 @@ def main(argv=None):
         saved, saved_path = recorded_joint_mapping(args.source, arm)
         if saved is not None and saved != _mapping_bounds(audit["old_mapping"], arm):
             raise ValueError(f"Audit old_mapping differs from source dataset metadata in {saved_path}")
-        from core.tasks.loader import load_task
+        from core.tasks.task import load_task
         task = load_task(args.task)
         source = load_source(str(args.source), args.source_repo_id, set(), arm=arm, task=task)
         count = len(source)

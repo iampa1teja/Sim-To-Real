@@ -116,9 +116,9 @@ def make_env(args):
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
 
-    import sim.workspace.envs
+    from sim.workspace.envs import register
 
-    env_id = sim.workspace.envs.TASK.gym_id(args.variant)
+    env_id = register(args.scene, args.task).gym_id(args.variant)
     env_cfg = parse_env_cfg(env_id, device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
     env_cfg.seed = args.seed
     if env_cfg.terminations is not None and any(
@@ -207,7 +207,7 @@ def main(argv=None):
     from sim.datagen.dr_variants import cube_colors, build_manifest, parse_csv, plan_episodes, write_json_atomic
     from utils.datasets.sources import load_source, replay_joint_mapping
     from utils.arms.arms import load_arm_spec
-    from core.tasks.loader import load_task
+    from core.tasks.task import load_task
 
     arm, _ = load_arm_spec(args.arm)
     task = load_task(args.task)
@@ -235,11 +235,10 @@ def main(argv=None):
 
     env = writer = None
     try:
-        import sim.workspace.envs
         from sim.recording.replay_scene import SceneReplayer
 
         source = load_source(args.src_root, args.src_repo_id, exclude, arm=arm, task=task)
-        ranges = read_dr_ranges(sim.workspace.envs.TASK)
+        ranges = read_dr_ranges(task)
         plan = plan_episodes([s.index for s in source], colors, terms, ranges, args.seed,
                              args.include_originals, args.lang_blue, args.lang_red)
         if args.limit > 0:

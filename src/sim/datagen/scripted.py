@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from utils.paths import DEFAULT_ARM, DEFAULT_SCENE, DEFAULT_TASK
-from core.tasks.base import Pose
+from core.tasks.task import Pose
 from utils.geometry import wxyz_to_xyzw
 from sim.actions.action import ExpertContext
 from utils.cli import parse_yaml_args
@@ -295,7 +295,7 @@ def setup_context(args, *, env_factory=None, sample_starts=True, source=None, us
 
     if Path(args.destination).exists():
         raise FileExistsError(args.destination)
-    task = sim.workspace.envs.register_envs(scene=args.scene, task=args.task)
+    task = sim.workspace.envs.register(scene=args.scene, task=args.task)
     task = task_with_start_options(task, getattr(args, 'start_options', {}))
     arm, _ = load_arm_spec(args.arm)
     calibration = resolve_sim_calibration(arm, unit=args.unit)

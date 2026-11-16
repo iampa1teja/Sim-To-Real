@@ -19,8 +19,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from core.tasks.base import Pose, StepState  # noqa: E402
-from core.tasks.loader import load_task  # noqa: E402
+from core.tasks.task import Pose, StepState  # noqa: E402
+from core.tasks.task import load_task  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 LEGACY = ROOT / "tests" / "fixtures" / "legacy_tasks" / "pick_place_cube"
