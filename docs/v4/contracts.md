@@ -1397,3 +1397,6 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - `pick_place_cube` keeps `PickPlaceTask` (signals), gains `[task.stages].order` without `hold_until`, `[task.failures]`, `[task.roles]`, `[task.start]`, `[task.expert]`, `[task.perturbations]` and the `generate` variant; `reached` uses the TCP when the state has one; `_over_box` no longer imports `eval.py`. `object_drop` and `object_shift` recoveries are not available to it (signal stages); its recovery uses `grasp_offset`.
 - `stack_two_cubes`: roles `target = red_cube`, `base = blue_cube`. `pick_place_color_cube`: 7-colour palette, hold-out `purple` and count 4, 4 cm-inner box with randomised pose, `wrong_object_placed`.
 - Two WP1 assertions accept both the pre- and post-WP10 state of `pick_place_cube` (variants, `sample_start`).
+
+**WP13** (see `docs/v4/prompts/WP13.md`)
+- Proposed bowl geometry (owner to confirm): small bowl 4 × 4 × 2.5 cm, large bowl 8 × 8 × 3.5 cm with inner half size 3 cm, both bottom-origin procedural USDA with convex collision pieces. Success via `nested_in`.
