@@ -147,6 +147,7 @@ class LegacyLoadTests(unittest.TestCase):
         """§4.2 the existing tasks/pick_place_cube still loads unchanged (PickPlaceTask, same objects)."""
         with sandbox() as box:
             copy_repo_folder("tasks", "pick_place_cube", box.root)
+            copy_repo_folder("arms", "so101", box.root)   # WP14: workspace regions use the default arm's workspace
             spec = load_task_spec("pick_place_cube")
             self.assertEqual(list(spec.objects), ["white_box", "blue_cube"])
             self.assertEqual(spec.instruction, "Pick up the cube and place it in the box")

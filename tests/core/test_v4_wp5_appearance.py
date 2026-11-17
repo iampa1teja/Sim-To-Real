@@ -85,7 +85,8 @@ class DrawTests(unittest.TestCase):
     def test_type(self):
         """§8.6 AppearanceDraw fields; instances are deeply frozen (colors read-only)."""
         self.assertEqual([f.name for f in dataclasses.fields(AppearanceDraw)],
-                         ["colors", "instruction", "light_exposure", "robot_color", "seed", "appearance_fp"])
+                         ["colors", "instruction", "light_exposure", "robot_color", "seed", "appearance_fp",
+                          "camera_offsets"])  # camera_offsets: WP14 §16.7
         d = draw(parent_sidecar())
         assert_frozen(d)
         self.assertIsInstance(d.colors, types.MappingProxyType)

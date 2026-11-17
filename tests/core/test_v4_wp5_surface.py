@@ -16,7 +16,7 @@ SRC_ROOT = GENERATE_DIR.parents[1]
 PUBLIC = {
     plan: {"KINDS", "attempt_seed", "shard_quota", "owns", "PlannedAttempt", "iter_plan", "shard_attempts",
            "check_capacity", "CapacityReport"},
-    fingerprint: {"quantize", "scenario_key", "spec_fp", "traj_fp", "appearance_fp", "episode_fp"},
+    fingerprint: {"quantize", "scenario_key", "near_key", "spec_fp", "traj_fp", "appearance_fp", "episode_fp"},  # near_key: WP14
     manifest: {"ManifestLine", "Manifest", "reconcile", "ReconcileResult", "write_plan_json", "read_plan_json"},
     config: {"Quotas", "NoiseConfig", "DRConfig", "GenerateConfig", "load_generate_config"},
     appearance: {"AppearanceDraw", "draw_appearance", "dr_copy_sidecar"},

@@ -51,15 +51,21 @@ def assert_plain_json(test, value, where="$"):
         test.assertIn(kind, (str, int, bool, type(None)), f"{where}: {kind.__name__}")
 
 
+OMITTED_WHEN_DEFAULT = {"ObjectState": {"size"}, "EpisodeSpec": {"expert_params", "physics"}}
+
+
 class ToJsonTests(unittest.TestCase):
     """WP0 §3.4 to_json encoding."""
 
     def test_keys_are_field_names_plus_schema_tag(self):
-        """§3.4 to_json has one key per field, plus "schema" for EpisodeSpec and EpisodeResult only."""
+        """§3.4 to_json has one key per field, plus "schema" for EpisodeSpec and EpisodeResult only. WP14 §16.8: the
+        optional fields added later (ObjectState.size, EpisodeSpec.expert_params / physics) are left out while they
+        hold their default (None or empty), so earlier payloads and golden fingerprints are unchanged."""
         for name, maker in MAKERS.items():
             with self.subTest(name=name):
                 payload = maker().to_json()
                 expected = {f.name for f in dataclasses.fields(getattr(protocols, name))}
+                expected -= OMITTED_WHEN_DEFAULT.get(name, set())
                 if name in SCHEMA:
                     expected.add("schema")
                 self.assertEqual(set(payload), expected)

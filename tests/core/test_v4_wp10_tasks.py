@@ -117,20 +117,23 @@ class PickPlaceCubeTests(CubeTaskBase):
         self.assertFalse(outside["over_box"])
 
     def test_starts(self):
+        """WP14 §16.1-2: cube and box anywhere in the arm's workspace; the cube rests on the table at its drawn size."""
+        from core.arms.spec import load_arm_spec
+        from core.tasks.sampling import in_workspace
         specs = self.specs("pick_place_cube", n=40)
         self.assertGreaterEqual(len(specs), 35)
-        reg = load_task("pick_place_cube").spec.raw["start"]["place"]
+        workspace = load_arm_spec(ARM)[0]["workspace"]
         for s in specs:
             box = s.objects["white_box"].pose.position
             cube = s.objects["blue_cube"].pose.position
             with self.subTest(seed=s.seed):
-                self.assertTrue(np.all(np.array(box[:2]) >= reg["white_box"]["region"]["xy_min"]) and
-                                np.all(np.array(box[:2]) <= reg["white_box"]["region"]["xy_max"]))
-                self.assertTrue(np.all(np.array(cube[:2]) >= reg["blue_cube"]["region"]["xy_min"]) and
-                                np.all(np.array(cube[:2]) <= reg["blue_cube"]["region"]["xy_max"]))
-                self.assertAlmostEqual(cube[2], 0.01, places=9)
+                self.assertTrue(in_workspace(box[:2], workspace))
+                self.assertTrue(in_workspace(cube[:2], workspace))
+                self.assertAlmostEqual(cube[2], s.objects["blue_cube"].size[2] / 2, places=9)
                 self.assertEqual(s.instruction, "Pick up the cube and place it in the box")
         xs = np.array([s.objects["blue_cube"].pose.position[0] for s in specs])
+        bx = np.array([s.objects["white_box"].pose.position[0] for s in specs])
+        self.assertGreater(bx.max() - bx.min(), 0.2, "the box moves too")
         self.assertGreater(xs.max() - xs.min(), 0.2)
 
 

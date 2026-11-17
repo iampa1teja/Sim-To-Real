@@ -1,0 +1,802 @@
+diff --git a/tasks/pick_place_color_cube/task.toml b/tasks/pick_place_color_cube/task.toml
+index 1674671..bd9a5a1 100644
+--- a/tasks/pick_place_color_cube/task.toml
++++ b/tasks/pick_place_color_cube/task.toml
+@@ -17,6 +17,7 @@ floor_z = 0.002
+ prefix = "cube"
+ count_max = 6
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.palette]
+@@ -41,25 +42,20 @@ texts = ["Pick up the {target.color} cube and place it in the box"]
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ count = [2, 6]
+ min_separation_m = 0.035
+ clearance_m = 0.01
+ reachable = ["@target", "@container"]
+ 
+ [task.start.place.small_box]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.small_box.region]
+-xy_min = [-0.25, -0.36]
+-xy_max = [-0.15, -0.22]
+-
+ [task.start.place.cubes]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cubes.region]
+-xy_min = [-0.10, -0.40]
+-xy_max = [0.25, -0.18]
+-
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
+ 
+@@ -135,9 +131,15 @@ region = "@container.inner"
+ rules = [{ name = "wrong_object_placed", if = ["distractor_in_box"] }, { name = "placed_not_confirmed", if = ["placed"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_box", unless = ["over_box"] }, { name = "dropped_outside" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@container", height_m = 0.06, stage = "over_box" }, { skill = "place", target = "@container" }, { skill = "release", stage = "placed" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.1] }, stage = "lifted" }, { skill = "transport", target = "@container", height_m = { range = [0.05, 0.09] }, stage = "over_box" }, { skill = "place", target = "@container" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "placed" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 30, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.025, 0.05] }, { type = "wrong_target" }, { type = "object_drop", stages = ["lifted", "over_box"], xy_jitter_m = [0.0, 0.02] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }, { type = "container_shift", stages = ["lifted"], xy_m = [0.02, 0.05] }]
++
++[task.physics.cubes]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/pick_place_cube/task.toml b/tasks/pick_place_cube/task.toml
+index 63b3a39..7625cd8 100644
+--- a/tasks/pick_place_cube/task.toml
++++ b/tasks/pick_place_cube/task.toml
+@@ -21,6 +21,7 @@ front_edge_clearance = 0.0
+ 
+ [task.objects.blue_cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ rigid = true
+ mass = 0.008
+ position = [0.0, 0.0, 0.05]
+@@ -45,20 +46,18 @@ container = "white_box"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ min_separation_m = 0.035
+ clearance_m = 0.01
+ reachable = ["@target", "@container"]
+ 
+-[task.start.place.white_box.region]
+-xy_min = [-0.252, 0.0005]
+-xy_max = [-0.242, 0.0105]
+-
+ [task.start.place.blue_cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.blue_cube.region]
+-xy_min = [-0.25, -0.40]
+-xy_max = [0.25, -0.18]
++[task.start.place.white_box]
++region = "workspace"
++yaw_deg = [0.0, 180.0]
+ 
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
+@@ -67,9 +66,15 @@ order = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
+ rules = [{ name = "placed_not_confirmed", if = ["placed"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_box", unless = ["over_box"] }, { name = "dropped_outside" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@container", height_m = 0.06, stage = "over_box" }, { skill = "place", target = "@container" }, { skill = "release", stage = "placed" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.1] }, stage = "lifted" }, { skill = "transport", target = "@container", height_m = { range = [0.05, 0.09] }, stage = "over_box" }, { skill = "place", target = "@container" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "placed" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 30, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.08, 0.12] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }]
++
++[task.physics.blue_cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_calibration_reach/task.toml b/tasks/prim_calibration_reach/task.toml
+index 6897ebf..61d00c5 100644
+--- a/tasks/prim_calibration_reach/task.toml
++++ b/tasks/prim_calibration_reach/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ 
+ [task.start.goal.c0]
+ type = "grid"
+@@ -48,9 +49,10 @@ of = ["c2"]
+ rules = [{ name = "missed_c0", unless = ["c0"] }, { name = "missed_c1", unless = ["c1"] }, { name = "missed_c2", unless = ["c2"] }, { name = "left_grid" }]
+ 
+ [task.expert]
+-max_steps = 500
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 750
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.c0", stage = "c0" }, { skill = "reach", target = "@goal.c1", stage = "c1" }, { skill = "reach", target = "@goal.c2", stage = "c2" }, { skill = "wait", steps = 10, stage = "success" }]
++steps = [{ skill = "reach", target = "@goal.c0", stage = "c0" }, { skill = "reach", target = "@goal.c1", stage = "c1" }, { skill = "reach", target = "@goal.c2", stage = "c2" }, { skill = "wait", steps = 10, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "target_offset", stages = ["c2"], xy_m = [0.03, 0.06] }]
+diff --git a/tasks/prim_grasp_lift/task.toml b/tasks/prim_grasp_lift/task.toml
+index 9573392..b96f9c3 100644
+--- a/tasks/prim_grasp_lift/task.toml
++++ b/tasks/prim_grasp_lift/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,15 +17,13 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.36]
+-xy_max = [0.15, -0.22]
+-
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "success"]
+ 
+@@ -73,9 +72,15 @@ negate = true
+ rules = [{ name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "not_lifted", unless = ["lifted"] }, { name = "dropped" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "wait", steps = 15, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.07, 0.1] }, stage = "lifted" }, { skill = "wait", steps = 15, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_close", delay_steps = [0, 5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_gripper_gap/task.toml b/tasks/prim_gripper_gap/task.toml
+index fe67fca..6edd205 100644
+--- a/tasks/prim_gripper_gap/task.toml
++++ b/tasks/prim_gripper_gap/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ 
+ [task.start.goal.gap]
+ type = "gap"
+@@ -17,7 +18,7 @@ gap_m = [0.005, 0.045]
+ [task.start.goal.point]
+ type = "point"
+ z_m = [0.06, 0.15]
+-region = { r_m = [0.22, 0.34], bearing_deg = [-140.0, -40.0] }
++region = "workspace"
+ 
+ [task.stages]
+ order = ["opened", "success"]
+@@ -35,9 +36,10 @@ of = ["opened"]
+ rules = [{ name = "wrong_gap", unless = ["opened"] }, { name = "lost_gap" }]
+ 
+ [task.expert]
+-max_steps = 300
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 450
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.point" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "opened" }, { skill = "wait", steps = 5, stage = "success" }]
++steps = [{ skill = "reach", target = "@goal.point" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "opened" }, { skill = "wait", steps = 5, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
+diff --git a/tasks/prim_joint_sweep/task.toml b/tasks/prim_joint_sweep/task.toml
+index 875c428..1261b55 100644
+--- a/tasks/prim_joint_sweep/task.toml
++++ b/tasks/prim_joint_sweep/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ 
+ [task.start.goal.sweep]
+ type = "joint"
+@@ -48,10 +49,11 @@ of = ["set"]
+ rules = [{ name = "never_started", unless = ["started"] }, { name = "sweep_incomplete", unless = ["swept"] }, { name = "wrong_gap" }]
+ 
+ [task.expert]
+-max_steps = 400
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 600
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", stage = "swept" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "set" }, { skill = "wait", steps = 5, stage = "success" }]
++steps = [{ skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", stage = "swept" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "set" }, { skill = "wait", steps = 5, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "stall", stages = ["started"], steps = [400, 400] }, { type = "target_offset", gap_m = [0.008, 0.015] }]
++failure = [{ type = "stall", stages = ["started"], steps = [600, 600] }, { type = "target_offset", gap_m = [0.008, 0.015] }]
+ recovery = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
+diff --git a/tasks/prim_lift_test/task.toml b/tasks/prim_lift_test/task.toml
+index b9d00b1..f9d1147 100644
+--- a/tasks/prim_lift_test/task.toml
++++ b/tasks/prim_lift_test/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,15 +17,13 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.36]
+-xy_max = [0.15, -0.22]
+-
+ [task.stages]
+ order = ["reached", "grasped", "tested", "set_down", "success"]
+ 
+@@ -79,9 +78,15 @@ negate = true
+ rules = [{ name = "not_set_down", if = ["tested"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "slipped" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.01, stage = "tested" }, { skill = "release", stage = "set_down" }, { skill = "retreat", dz_m = 0.06, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.008, 0.02] }, stage = "tested" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "set_down" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "stall", stages = ["tested"], steps = [600, 600] }]
++failure = [{ type = "stall", stages = ["tested"], steps = [900, 900] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_nudge/task.toml b/tasks/prim_nudge/task.toml
+index 3347e64..6642951 100644
+--- a/tasks/prim_nudge/task.toml
++++ b/tasks/prim_nudge/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,16 +17,16 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.10, -0.335]
+-xy_max = [0.10, -0.32]
+-
+ [task.start.goal.area]
+ type = "region"
+-center_region = { xy_min = [-0.10, -0.28], xy_max = [0.10, -0.28] }
+-half_size_m = [0.15, 0.025]
++center_region = { around = "@target", distance_m = [0.025, 0.035] }
++half_size_m = [0.0125, 0.0125]
++
++[task.start.place.cube]
++region = { workspace_inset_m = 0.045 }
+ 
+ [task.stages]
+ order = ["above", "in_place", "success"]
+@@ -66,10 +67,16 @@ of = ["in_place", "away"]
+ rules = [{ name = "not_in_goal", unless = ["in_place"] }, { name = "stayed_on_object" }]
+ 
+ [task.expert]
+-max_steps = 500
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 750
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = 0.06 }, { skill = "wait", steps = 5, stage = "success" }]
++steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 5, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [500, 500] }]
++failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [750, 750] }]
+ recovery = [{ type = "target_offset", stages = ["above"], xy_m = [0.03, 0.05] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_place_at/task.toml b/tasks/prim_place_at/task.toml
+index f98b5a4..984bef4 100644
+--- a/tasks/prim_place_at/task.toml
++++ b/tasks/prim_place_at/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,18 +17,16 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [0.05, -0.38]
+-xy_max = [0.20, -0.22]
+-
+ [task.start.goal.spot]
+ type = "region"
+-center_region = { xy_min = [-0.22, -0.36], xy_max = [-0.08, -0.22] }
++center_region = { around = "@target", distance_m = [0.08, 0.25] }
+ half_size_m = [0.02, 0.02]
+ 
+ [task.stages]
+@@ -89,9 +88,15 @@ negate = true
+ rules = [{ name = "placed_not_confirmed", if = ["placed"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_spot", unless = ["over_spot"] }, { name = "missed_spot" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.06 }, { skill = "transport", target = "@goal.spot", height_m = 0.06, stage = "over_spot" }, { skill = "place", target = "@goal.spot" }, { skill = "release", stage = "placed" }, { skill = "retreat", dz_m = 0.06, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.05, 0.08] } }, { skill = "transport", target = "@goal.spot", height_m = { range = [0.05, 0.09] }, stage = "over_spot" }, { skill = "place", target = "@goal.spot" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "placed" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "place_offset", xy_m = [0.05, 0.08] }, { type = "early_release", stages = ["grasped"], delay_steps = [0, 10] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_push_to_region/task.toml b/tasks/prim_push_to_region/task.toml
+index 2930184..1bc811e 100644
+--- a/tasks/prim_push_to_region/task.toml
++++ b/tasks/prim_push_to_region/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,17 +17,17 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.38]
+-xy_max = [0.15, -0.34]
+-
+ [task.start.goal.area]
+ type = "region"
+-center_region = { xy_min = [-0.12, -0.30], xy_max = [0.12, -0.26] }
++center_region = { around = "@target", distance_m = [0.07, 0.14] }
+ half_size_m = [0.03, 0.03]
+ 
++[task.start.place.cube]
++region = { workspace_inset_m = 0.045 }
++
+ [task.stages]
+ order = ["above", "in_place", "success"]
+ 
+@@ -60,10 +61,16 @@ of = ["in_place", "away"]
+ rules = [{ name = "not_in_goal", unless = ["in_place"] }, { name = "stayed_on_object" }]
+ 
+ [task.expert]
+-max_steps = 500
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 750
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = 0.06 }, { skill = "wait", steps = 5, stage = "success" }]
++steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 5, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [500, 500] }]
++failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [750, 750] }]
+ recovery = [{ type = "target_offset", stages = ["above"], xy_m = [0.03, 0.05] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_reach_point/task.toml b/tasks/prim_reach_point/task.toml
+index f593524..4da9c5d 100644
+--- a/tasks/prim_reach_point/task.toml
++++ b/tasks/prim_reach_point/task.toml
+@@ -9,11 +9,12 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ 
+ [task.start.goal.point]
+ type = "point"
+ z_m = [0.03, 0.15]
+-region = { r_m = [0.22, 0.36], bearing_deg = [-140.0, -40.0] }
++region = "workspace"
+ 
+ [task.stages]
+ order = ["reached", "success"]
+@@ -31,9 +32,10 @@ of = ["reached"]
+ rules = [{ name = "never_reached", unless = ["reached"] }, { name = "left_point" }]
+ 
+ [task.expert]
+-max_steps = 300
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 450
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.point", stage = "reached" }, { skill = "wait", steps = 10, stage = "success" }]
++steps = [{ skill = "reach", target = "@goal.point", stage = "reached" }, { skill = "wait", steps = 10, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "target_offset", xy_m = [0.03, 0.06] }]
+diff --git a/tasks/prim_regrasp_after_drop/task.toml b/tasks/prim_regrasp_after_drop/task.toml
+index e92b680..a522cc7 100644
+--- a/tasks/prim_regrasp_after_drop/task.toml
++++ b/tasks/prim_regrasp_after_drop/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,15 +17,13 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.36]
+-xy_max = [0.15, -0.22]
+-
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "dropped", "regrasped", "success"]
+ 
+@@ -82,9 +81,15 @@ negate = true
+ rules = [{ name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "never_dropped", unless = ["dropped"] }, { name = "missed_regrasp" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.025, stage = "lifted" }, { skill = "release", stage = "dropped" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06] }, { skill = "grasp", target = "@target" }, { skill = "lift", height_m = 0.07, stage = "regrasped" }, { skill = "wait", steps = 10, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.028, 0.036] }, stage = "lifted" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "dropped" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }] }, { skill = "grasp", target = "@target" }, { skill = "lift", height_m = { range = [0.06, 0.09] }, stage = "regrasped" }, { skill = "wait", steps = 10, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "stall", stages = ["dropped"], steps = [600, 600] }]
++failure = [{ type = "stall", stages = ["dropped"], steps = [900, 900] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_test_reach/task.toml b/tasks/prim_test_reach/task.toml
+index eb75386..7ce7037 100644
+--- a/tasks/prim_test_reach/task.toml
++++ b/tasks/prim_test_reach/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,15 +17,13 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = { workspace_inset_m = 0.045 }
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.36]
+-xy_max = [0.15, -0.22]
+-
+ [task.stages]
+ order = ["beside", "success"]
+ 
+@@ -51,10 +50,16 @@ of = ["beside"]
+ rules = [{ name = "touched_object", if = ["moved"] }, { name = "never_beside", unless = ["beside"] }, { name = "left_point" }]
+ 
+ [task.expert]
+-max_steps = 300
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 450
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@target", offset_m = [0.0, 0.04, 0.0], stage = "beside" }, { skill = "wait", steps = 10, stage = "success" }]
++steps = [{ skill = "reach", target = "@target", offset_m = [0.0, 0.04, { range = [0.05, 0.09] }] }, { skill = "reach", target = "@target", offset_m = [0.0, 0.04, 0.0], stage = "beside" }, { skill = "wait", steps = 10, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
+ recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_touch_object/task.toml b/tasks/prim_touch_object/task.toml
+index 91c8aa0..983d46c 100644
+--- a/tasks/prim_touch_object/task.toml
++++ b/tasks/prim_touch_object/task.toml
+@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.objects.cube]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -16,15 +17,13 @@ target = "cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ reachable = ["@target"]
+ 
+ [task.start.place.cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.cube.region]
+-xy_min = [-0.15, -0.36]
+-xy_max = [0.15, -0.22]
+-
+ [task.stages]
+ order = ["touched", "withdrawn", "success"]
+ 
+@@ -57,10 +56,16 @@ of = ["withdrawn"]
+ rules = [{ name = "never_touched", unless = ["touched"] }, { name = "pushed_object", if = ["moved"] }, { name = "stayed_on_object" }]
+ 
+ [task.expert]
+-max_steps = 400
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 600
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.05] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = 0.06, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
++steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
+ 
+ [task.perturbations]
+-failure = [{ type = "stall", stages = ["touched"], steps = [400, 400] }]
++failure = [{ type = "stall", stages = ["touched"], steps = [600, 600] }]
+ recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
++
++[task.physics.cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/prim_waypoint_path/task.toml b/tasks/prim_waypoint_path/task.toml
+index b69b027..d82464e 100644
+--- a/tasks/prim_waypoint_path/task.toml
++++ b/tasks/prim_waypoint_path/task.toml
+@@ -9,13 +9,14 @@ generate = "env_cfg:apply_generate"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ 
+ [task.start.goal.points]
+ type = "points"
+ count = 3
+ z_m = [0.04, 0.14]
+ min_separation_m = 0.06
+-region = { r_m = [0.22, 0.36], bearing_deg = [-140.0, -40.0] }
++region = "workspace"
+ 
+ [task.stages]
+ order = ["w0", "w1", "w2", "success"]
+@@ -43,9 +44,10 @@ of = ["w2"]
+ rules = [{ name = "missed_w0", unless = ["w0"] }, { name = "missed_w1", unless = ["w1"] }, { name = "missed_w2", unless = ["w2"] }, { name = "left_path" }]
+ 
+ [task.expert]
+-max_steps = 500
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 750
+ settle_steps = 5
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.points.0", stage = "w0" }, { skill = "reach", target = "@goal.points.1", stage = "w1" }, { skill = "reach", target = "@goal.points.2", stage = "w2" }, { skill = "wait", steps = 10, stage = "success" }]
++steps = [{ skill = "reach", target = "@goal.points.0", stage = "w0" }, { skill = "reach", target = "@goal.points.1", stage = "w1" }, { skill = "reach", target = "@goal.points.2", stage = "w2" }, { skill = "wait", steps = 10, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "target_offset", stages = ["w2"], xy_m = [0.03, 0.06] }]
+diff --git a/tasks/stack_bowls/task.toml b/tasks/stack_bowls/task.toml
+index 4a17b11..ae3f870 100644
+--- a/tasks/stack_bowls/task.toml
++++ b/tasks/stack_bowls/task.toml
+@@ -27,17 +27,16 @@ container = "large_bowl"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ min_separation_m = 0.08
+ clearance_m = 0.02
+ reachable = ["@target", "@container"]
+ 
+-[task.start.place.small_bowl.region]
+-xy_min = [-0.05, -0.40]
+-xy_max = [0.25, -0.20]
++[task.start.place.small_bowl]
++region = "workspace"
+ 
+-[task.start.place.large_bowl.region]
+-xy_min = [-0.28, -0.36]
+-xy_max = [-0.15, -0.22]
++[task.start.place.large_bowl]
++region = "workspace"
+ 
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "over_bowl", "nested", "success"]
+@@ -111,9 +110,15 @@ of = ["nested", "ee_clear"]
+ rules = [{ name = "nested_not_confirmed", if = ["nested"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_bowl", unless = ["over_bowl"] }, { name = "dropped_outside" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.07], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@container", height_m = 0.06, stage = "over_bowl" }, { skill = "place", target = "@container" }, { skill = "release", stage = "nested" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.1] }, stage = "lifted" }, { skill = "transport", target = "@container", height_m = { range = [0.05, 0.09] }, stage = "over_bowl" }, { skill = "place", target = "@container" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "nested" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 30, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.012, 0.025] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.06, 0.09] }, { type = "object_drop", stages = ["lifted", "over_bowl"], xy_jitter_m = [0.0, 0.02] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.012, 0.025] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }, { type = "container_shift", stages = ["lifted"], xy_m = [0.02, 0.04] }]
++
++[task.physics.small_bowl]
++mass_kg = [0.01, 0.05]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/tasks/stack_two_cubes/task.toml b/tasks/stack_two_cubes/task.toml
+index 5ad4fa9..1a5d9a1 100644
+--- a/tasks/stack_two_cubes/task.toml
++++ b/tasks/stack_two_cubes/task.toml
+@@ -10,11 +10,13 @@ generate = "env_cfg:apply_generate"
+ [task.objects.red_cube]
+ color = [0.8, 0.05, 0.05]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.objects.blue_cube]
+ color = [0.05, 0.1, 0.8]
+ size = [0.02, 0.02, 0.02]
++size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+ mass = 0.008
+ 
+ [task.roles]
+@@ -23,24 +25,19 @@ base = "blue_cube"
+ 
+ [task.start]
+ table_z_m = 0.0
++initial_q = { around = "home", spread = 0.12 }
+ min_separation_m = 0.06
+ clearance_m = 0.01
+ reachable = ["@target", "@base"]
+ 
+ [task.start.place.red_cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.red_cube.region]
+-xy_min = [-0.25, -0.40]
+-xy_max = [0.25, -0.18]
+-
+ [task.start.place.blue_cube]
++region = "workspace"
+ yaw_deg = [0.0, 90.0]
+ 
+-[task.start.place.blue_cube.region]
+-xy_min = [-0.25, -0.40]
+-xy_max = [0.25, -0.18]
+-
+ [task.stages]
+ order = ["reached", "grasped", "lifted", "over_base", "stacked", "success"]
+ 
+@@ -110,9 +107,20 @@ of = ["stacked", "ee_clear"]
+ rules = [{ name = "stacked_not_confirmed", if = ["stacked"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_base", unless = ["over_base"] }, { name = "fell_off_base" }]
+ 
+ [task.expert]
+-max_steps = 600
+-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@base", height_m = 0.06, stage = "over_base" }, { skill = "place", target = "@base" }, { skill = "release", stage = "stacked" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
++speed_scale = { range = [0.6, 1.0] }
++max_steps = 900
++steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.1] }, stage = "lifted" }, { skill = "transport", target = "@base", height_m = { range = [0.05, 0.09] }, stage = "over_base" }, { skill = "place", target = "@base" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "stacked" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 30, stage = "success" }]
+ 
+ [task.perturbations]
+ failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.02, 0.04] }, { type = "object_drop", stages = ["lifted", "over_base"], xy_jitter_m = [0.0, 0.02] }]
+ recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }]
++
++[task.physics.red_cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
++
++[task.physics.blue_cube]
++mass_kg = [0.005, 0.03]
++static_friction = [0.4, 1.0]
++dynamic_friction = [0.3, 0.9]
+diff --git a/arms/so101/arm.toml b/arms/so101/arm.toml
+index ccdb166..557b877 100644
+--- a/arms/so101/arm.toml
++++ b/arms/so101/arm.toml
+@@ -120,3 +120,11 @@ ik_axis_weight = 0.3
+ ik_roll_weight = 0.1
+ ik_tol_pos_m = 0.0005
+ ik_tol_rot_rad = 0.02
++
++# WP14 §16.1: the table area the scripted generator may use (base frame). Proposed from the v3 cube and box
++# placements; the owner confirms reach and camera view in the container (tests/sim/check_workspace.py).
++[arm.workspace]
++r_m = [0.15, 0.40]
++bearing_deg = [-182.0, 2.0]
++xy_min = [-0.30, -0.42]
++xy_max = [0.30, 0.03]

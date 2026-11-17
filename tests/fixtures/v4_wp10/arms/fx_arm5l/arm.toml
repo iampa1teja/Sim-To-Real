@@ -57,3 +57,10 @@ ik_axis_weight = 0.3
 ik_roll_weight = 0.1
 ik_tol_pos_m = 0.0005
 ik_tol_rot_rad = 0.02
+
+# WP14 §16.1: where objects and goals may be placed on the table (base frame, metres / degrees).
+[arm.workspace]
+r_m = [0.16, 0.40]
+bearing_deg = [-182.0, -10.0]
+xy_min = [-0.30, -0.42]
+xy_max = [0.30, 0.03]

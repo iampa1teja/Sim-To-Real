@@ -1404,3 +1404,62 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 **WP9** (see `docs/v4/prompts/WP9.md`)
 - Owner-approved primitive meanings, with two adaptations for scenario variety: `prim_calibration_reach` visits three points drawn from a fixed 9-point grid; `prim_gripper_gap` sets the width at a random reach point. `prim_place_at` grasps the cube from the table (a held start breaks the expert's place height).
 - Arm-only tasks have small scenario spaces when `initial_q` is fixed; `generate-plan` reports the capacity before a run.
+
+## 16. Wide randomisation (WP14; binding)
+
+Owner request: generated episodes must not repeat. Every episode draws its layout, sizes, start pose, expert motion and physics from its attempt seed; DR copies also draw camera pose offsets. All draws are deterministic per attempt seed (§8.1). Golden fingerprints of specs without the new fields do not change.
+
+### 16.1 Arm workspace and workspace regions
+
+- `[arm.workspace]` in `arm.toml`: `r_m = [lo, hi]`, `bearing_deg = [lo, hi]` (a polar annulus in the base frame, bearing measured from +x towards +y, `lo < hi`, may exceed ±180°), optional `xy_min = [x, y]` / `xy_max = [x, y]` clip (both or neither, `min < max`). No other keys. `core.tasks.sampling.validate_workspace(table)` returns the table or raises `ConfigError`; `in_workspace(xy, workspace)` tests a point (bearing taken modulo 360° from `lo`).
+- A region may be `"workspace"` or `{ workspace_inset_m = d }` (`d ≥ 0`): the workspace with `r_m` shrunk by `d` at both ends and the clip shrunk by `d` on every side (bearings unchanged); a region that leaves nothing raises `ConfigError` (or `SamplingError` at draw time). Allowed in `[task.start.place.*].region`, point/points goal `region` and region-goal `center_region`.
+- Draws are area-uniform: `r = sqrt(U(r_lo², r_hi²))`, then `bearing = U(lo, hi)`; a draw outside the clip is rejected and counts as one try (`max_tries`). Without a workspace, a workspace region raises `ValueError`.
+- `sample_start(..., workspace=None, tcp_fn=None)`; `Task.sample_episode_start` passes both through; `make_spec_fn` validates `spec["workspace"]` of the arm and passes it, plus `tcp_fn(q) -> Pose` of the TCP (FK). The legacy `Task.sample_start(rng)` uses the default arm's workspace when the start table names one.
+- Object-relative region goals: `center_region = { around = "<object or @role>", distance_m = [lo, hi] }`; centre = object xy + `U(lo, hi)`·(cos θ, sin θ), θ = `U(0, 2π)`, redrawn until inside the workspace (when one is given). Goals are drawn after placements.
+
+### 16.2 Size variants
+
+- `size_variants = [[w, d, h], ...]` (≥ 2 entries, all positive) on an object with `size`, or on an object-set template (applies to every slot). Anything else raises `ConfigError` at task load.
+- After slots and before placements, one variant index is drawn per active object with variants, in `task_spec.objects` order (`rng.integers(len)`); the drawn size is used for its resting z, separation and footprint checks.
+- `ObjectState.size: tuple[float, float, float] | None = None` (validated: 3 finite positive values; `ValueError`). `core.tasks.base.episode_objects(task_spec, spec)` returns the task's `ObjectSpec`s with drawn sizes substituted; `CheckContext.from_spec`, `FakeEnv`, `WorldPerturber`, the expert and the sidecar `objects.*.size_m` use it.
+- `scenario_key` adds `"s"` (size quantised at 1e-4 m) to an object's entry only when its size is set.
+
+### 16.3 Random start pose
+
+- `initial_q = { around = "home", spread = s, min_tcp_height_m = 0.05, min_tcp_clearance_m = 0.05 }` with `0 < s ≤ 0.5`; the two minimums are optional and nonnegative; no other keys.
+- Drawn after goals: for each arm joint (`[arm.expert].arm_joints`, in joint order) `q = clip(home + U(−1, 1)·s·(upper − lower), lower, upper)`; the gripper stays at home. Redrawn (up to `max_tries`, then `SamplingError`) until the TCP z ≥ `table_z_m + min_tcp_height_m` and its xy distance to every active object ≥ `min_tcp_clearance_m`.
+- Needs `home_q`, `joint_limits`, `joint_names`, `arm_joints` and `tcp_fn` (`ValueError` otherwise); with `home_q = None` (legacy path) `initial_q` is None.
+- Tasks no longer start with `move_joint home`: the expert starts from the drawn pose.
+
+### 16.4 Expert variation
+
+- Any step parameter (not `skill`, `name`, `stage`, `budget`) may be `{ range = [lo, hi] }` or `{ choice = [v, ...] }`, also per component of a vector parameter. `dwell_steps` and `steps` ranges are integers (inclusive). `[task.expert].speed_scale` is a number or a range/choice in (0, 1] (default 1.0).
+- `parse_program` validates the nominal program (range midpoint, integer ranges their low end, first choice) and every range end and choice value with the existing rules; anything invalid raises `ConfigError`. `ExpertProgram.speed_scale` holds the nominal scale.
+- `core.generate.specs.draw_expert_params(expert_table, rng) -> dict`: `{"speed_scale": float}` when it varies, then `{"steps": {"<index>": {param: value}}}` for steps with varied values; order: speed_scale, steps in order, parameters in sorted key order, vector components in order; `range` → `rng.uniform` (`rng.integers(lo, hi + 1)` for integer parameters), `choice` → `values[rng.integers(len)]`. Vector parameters store the whole vector. Empty dict when nothing varies.
+- `EpisodeSpec.expert_params` (RNG stream `"expert_params"`). In `reset`, the expert overlays the drawn values onto its program, uses the drawn object sizes, and scales its joint, gripper and Cartesian speed limits by `speed_scale`.
+
+### 16.5 Physics
+
+- `[task.physics.<object or set>]` with any of `mass_kg`, `static_friction`, `dynamic_friction`, each `[lo, hi]` (`0 ≤ lo ≤ hi`, mass `lo > 0`). Unknown names or keys raise `ConfigError` (`validate_physics(task_spec)`, called by `make_spec_fn`).
+- `draw_physics(task_spec, objects, rng) -> dict`: per active object in spec order (an object-set entry applies to its slots): the present keys in the order mass, static, dynamic, each `rng.uniform`; then `dynamic = min(dynamic, static)`. RNG stream `"physics"`. Stored in `EpisodeSpec.physics`, which rejects inactive or unknown object names (`ValueError`). The Isaac env applies them at reset; `FakeEnv` ignores them.
+
+### 16.6 Near-duplicate starts
+
+- `core.generate.fingerprint.near_key(spec)`: SHA-256 of `{"v": 1, "near": true, task, arm, scene, objects, goal, held}` where `objects` are the active objects as `{kind, role, color, xy: quantised at 5 mm, yaw: quantised at 5°, s: size quantised at 1 mm (only when set)}` sorted by canonical JSON, `goal` quantised at 5e-3 and `held = held_object is not None`. Heights, `initial_q`, instruction, seed, expert params and physics are not part of it.
+- `iter_plan(..., near_duplicates=False)`: when True, an attempt whose near_key was seen before (across kinds when `unique_across_kinds`) is skipped as `SCENARIO_SEEN`. `run_generation`, `scripted_generate` and `generate-plan` use True; `check_capacity(..., near_duplicates=False)` likewise.
+
+### 16.7 Camera pose jitter (DR)
+
+- `draw_appearance(..., camera_jitter=None, cameras=())`: `camera_jitter = {"position_m": p, "rotation_deg": r}` (both ≥ 0; with at least one camera, else `ValueError`). Per camera in sorted name order, after the existing draws of each try: 3 position offsets `U(−p, p)` then 3 rotation offsets `U(−r, r)` (roll, pitch, yaw in the camera's parent frame).
+- `AppearanceDraw.camera_offsets` (last field, default None): `{camera: {"position_m": [3], "rotation_deg": [3]}}`. `appearance_fp(colors, instruction, light, robot, camera_offsets=None)` adds `"camera": {camera: [[position quantised at 1e-4], [rotation quantised at 1e-2]]}` only when offsets are given, so earlier fingerprints are unchanged.
+- `dr_copy_sidecar` writes `appearance.camera_offsets` when present; the validator accepts it (non-empty mapping of 3-vectors); the audit recomputes `appearance_fp` with it.
+- `DRConfig.camera_jitter` (optional, `position_m ≤ 0.05`, `rotation_deg ≤ 10`; `ConfigError`), written to the config identity only when set. `dr-replay` applies the offsets to the camera prims for each copy.
+
+### 16.8 Optional JSON fields and sidecar
+
+- The JSON base supports optional fields: `to_json` leaves out an optional field whose value is falsy, `from_json` accepts it missing. Optional: `ObjectState.size`, `EpisodeSpec.expert_params`, `EpisodeSpec.physics`.
+- Sidecar `attempt` may hold `physics` and `expert_params` (non-empty mappings; physics values are numbers under `mass_kg` / `static_friction` / `dynamic_friction`); `objects.*.size_m` is the drawn size.
+
+### 16.9 Task tables
+
+All 17 tasks: placements and point goals in the workspace (pushing tasks and `prim_test_reach` with `workspace_inset_m = 0.045`); containers turn (`yaw_deg` span ≥ 90°, except bowls); `nudge`, `push_to_region` and `place_at` draw their target area around the cube; `initial_q = {around = "home", spread = 0.12}`; no leading home move; `speed_scale = {range = [0.6, 1.0]}`; approach heights, lift heights, transport heights, retreat heights and release dwell vary; `max_steps` and stall lengths ×1.5; cubes have five size variants 18–26 mm; movable objects have physics ranges. The exact tables are `docs/v4/prompts/WP14_tasks.diff`.

@@ -14,7 +14,7 @@ from core.generate.errors import ConfigError
 from v4_support import FIXTURES_DIR, copy_repo_folder, sandbox
 from v4_support.fx_arms import FX_ARMS, fx_arm_table, fx_kinematics, write_arm
 
-V4_TABLES = ("kinematics", "gripper", "expert")
+V4_TABLES = ("kinematics", "gripper", "expert", "workspace")  # workspace: WP14 §16.1
 V4_LINK_KEYS = ("moving_jaw", "moving_jaw_mesh")
 
 

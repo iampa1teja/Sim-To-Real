@@ -17,7 +17,7 @@ PUBLIC = {
     perturbations: {"PERTURBATION_TYPES", "PerturbationType", "draw_perturbation", "WorldPerturber", "ou_noise"},
     labels: {"build_segments", "build_imitate", "accept", "build_phases", "build_recovery", "frame_labels",
              "label_columns"},
-    specs: {"build_spec"},
+    specs: {"build_spec", "draw_expert_params", "draw_physics", "validate_physics"},  # WP14 §16.4-5
 }
 FILES = {m: Path(m.__file__).name for m in PUBLIC}
 FORBIDDEN_ROOTS = {"isaaclab", "isaacsim", "omni", "carb", "pxr", "warp", "lerobot", "torch", "random", "pyarrow",

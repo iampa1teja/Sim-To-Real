@@ -263,12 +263,14 @@ def generate_small(task_names: Sequence[str], kinds: Sequence[str] = KINDS, quot
 # fake DR
 
 def fake_dr(src_root, dst_root, *, copies: int = 2, dr_seed: int = 0, terms=("light", "robot_color"),
-            recolor: bool = True, include_originals: bool = True, source_repo_id: str = "local/source") -> Path:
+            recolor: bool = True, include_originals: bool = True, source_repo_id: str = "local/source",
+            camera_jitter=None, cameras=()) -> Path:
     """Build a DR dataset at ``dst_root`` from the audited dataset at ``src_root`` without rendering.
 
     For each source episode (in index order): the original (if ``include_originals``), then ``copies``
     copies with appearance drawn by ``draw_appearance`` (``taken`` = parent + earlier siblings). Frames are
-    the source frames; each copy's ``task`` column is its new instruction.
+    the source frames; each copy's ``task`` column is its new instruction. ``camera_jitter`` / ``cameras`` are
+    passed to ``draw_appearance`` when given (WP14 §16.7).
     """
     from core.datasets.frames import LiteDatasetWriter, read_frames
     from core.datasets.task_meta import list_sidecars, read_sidecar, write_sidecar
@@ -281,6 +283,7 @@ def fake_dr(src_root, dst_root, *, copies: int = 2, dr_seed: int = 0, terms=("li
     names = tuple(info["features"]["action"]["names"])
     writer = LiteDatasetWriter(dst_root, fps=int(info["fps"]), joint_names=names)
     specs = {}
+    jitter = {} if camera_jitter is None else {"camera_jitter": camera_jitter, "cameras": tuple(cameras)}
 
     def put(sidecar, data):
         index = writer.episode_count()
@@ -304,7 +307,7 @@ def fake_dr(src_root, dst_root, *, copies: int = 2, dr_seed: int = 0, terms=("li
         for c in range(copies):
             draw = draw_appearance(parent, task_spec=specs[task], terms=terms, exposure_range=EXPOSURE,
                                    robot_colors=ROBOT_COLORS, recolor=recolor, dr_seed=dr_seed, copy_index=c,
-                                   taken=set(taken))
+                                   taken=set(taken), **jitter)
             taken.add(draw.appearance_fp)
             put(dr_copy_sidecar(parent, draw, episode_index=writer.episode_count(), source_repo_id=source_repo_id),
                 frames[i])
@@ -352,9 +355,14 @@ def assert_no_duplicates(test, root, *, source_root=None) -> dict:
                    "objects0": {n: [quant(c, 1e-4) for c in o["position"][0]] for n, o in sc["objects"].items()}}
         traj = json_sha256(payload)
         light = sc["appearance"]["light_exposure"]
-        app = json_sha256({"v": 1, "colors": {n: o["color"] for n, o in sc["objects"].items()},
-                           "instruction": sc["instruction"], "light": None if light is None else quant(light, 1e-3),
-                           "robot_color": sc["appearance"]["robot_color"]})
+        app_payload = {"v": 1, "colors": {n: o["color"] for n, o in sc["objects"].items()},
+                       "instruction": sc["instruction"], "light": None if light is None else quant(light, 1e-3),
+                       "robot_color": sc["appearance"]["robot_color"]}
+        cams = sc["appearance"].get("camera_offsets")
+        if cams:   # WP14 §16.7
+            app_payload["camera"] = {c: [[quant(v, 1e-4) for v in o["position_m"]],
+                                         [quant(v, 1e-2) for v in o["rotation_deg"]]] for c, o in sorted(cams.items())}
+        app = json_sha256(app_payload)
         epi = hashlib.sha256((traj + app).encode("ascii")).hexdigest()
         with test.subTest(episode=i):
             test.assertEqual(fp["traj_fp"], traj, f"episode {i}: stored traj_fp does not match the data")

@@ -21,14 +21,14 @@ MISSING = dataclasses.MISSING
 
 # (field name, has default) in contract order.
 FIELDS = {
-    "ObjectState": [("pose", False), ("active", True), ("color", True)],
+    "ObjectState": [("pose", False), ("active", True), ("color", True), ("size", True)],  # size: WP14 §16.2
     "PerturbationSpec": [("type", False), ("group", False), ("onset_stage", False), ("delay_steps", True),
                          ("params", True)],
     "NoiseSpec": [("theta", False), ("sigma_rad", False), ("max_abs_rad", False)],
     "EpisodeSpec": [("task", False), ("arm", False), ("scene", False), ("kind", False), ("attempt_index", False),
                     ("seed", False), ("objects", False), ("roles", False), ("goal", False), ("instruction", False),
                     ("initial_q", False), ("held_object", True), ("perturbation", True), ("noise", True),
-                    ("max_steps", True), ("fps", True)],
+                    ("max_steps", True), ("fps", True), ("expert_params", True), ("physics", True)],  # WP14 §16.4-5
     "StageProgress": [("frame", False), ("stage_index", False), ("furthest_index", False), ("satisfied", False),
                       ("regressed_stage", False)],
     "ExpertObs": [("frame", False), ("q", False), ("ee", False), ("tcp", False), ("gripper_gap_m", False),

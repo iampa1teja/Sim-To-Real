@@ -124,7 +124,8 @@ class PlanScriptTests(SandboxCase):
                 fn = make_spec_fn(task, ARM, scene=cfg.scene, noise=cfg.noise, fps=cfg.fps)
                 rep = check_capacity(row["task"], 0, fn, cfg.quotas[row["task"]],
                                      max_attempt_factor=cfg.max_attempt_factor,
-                                     max_consecutive_skips=cfg.max_consecutive_skips)
+                                     max_consecutive_skips=cfg.max_consecutive_skips,
+                                     near_duplicates=True)  # WP14 §16.6: generation skips near-duplicates
                 self.assertEqual(row["non_skipped"], {k.value: rep.non_skipped[k] for k in KINDS})
                 self.assertEqual(row["horizon"], rep.horizon)
         code, out, _ = run_main(plan_script.main, ["--config_path", str(cfg_path), "--task", "fx7_reach"])
