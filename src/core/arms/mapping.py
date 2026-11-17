@@ -89,4 +89,14 @@ class JointMapping:
         mapped_degs = np.clip(mapped_degs, clamp_mins, clamp_maxs)
 
         return np.deg2rad(mapped_degs)
-    
+
+    def as_raw_mapping(self):
+        from core.arms.raw_mapping import RawMapping
+        bounds = [t.detach().cpu().double().numpy() for t in (self.mins, self.maxs, self.clamp_mins, self.clamp_maxs)]
+        return RawMapping(self.names, *bounds, self.gripper_mask.detach().cpu().numpy())
+
+    def to_raw_np(self, radians: np.ndarray) -> np.ndarray:
+        return self.as_raw_mapping().to_raw(radians)
+
+    def clamp_radians_np(self, radians: np.ndarray) -> np.ndarray:
+        return self.as_raw_mapping().clamp_radians(radians)

@@ -9,6 +9,8 @@ activate_contact_sensors = false
 base = "base"
 ee = "gripper"
 fixed_jaw_mesh = "wrist_roll_follower_so101_v1"
+moving_jaw = "jaw"
+moving_jaw_mesh = "moving_jaw_so101_v1"
 
 [arm.joints]
 names = ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll", "Jaw"]
@@ -96,3 +98,25 @@ names = [
 motor="ST3215"
 encoder_counts_per_turn=4096
 zero_count=2048
+
+[arm.kinematics]
+file = "kinematics.json"
+ee_link = "gripper"
+tcp_quat_wxyz = [1.0, 0.0, 0.0, 0.0]
+# tcp_position_m, approach_axis, closing_axis: container-measured, not yet committed
+
+[arm.gripper]
+joint = "Jaw"
+max_object_width_m = 0.045
+# open_rad, closed_rad, opening_table: container-measured, not yet committed
+
+[arm.expert]
+arm_joints = ["Rotation", "Pitch", "Elbow", "Wrist_Pitch", "Wrist_Roll"]
+max_joint_speed_rad_s = 1.5
+max_gripper_speed_rad_s = 3.0
+max_ee_speed_m_s = 0.15
+ik_position_weight = 1.0
+ik_axis_weight = 0.3
+ik_roll_weight = 0.1
+ik_tol_pos_m = 0.0005
+ik_tol_rot_rad = 0.02
