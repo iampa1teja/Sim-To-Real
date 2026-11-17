@@ -113,7 +113,7 @@ All dataclasses are `@dataclass(frozen=True)`. Mapping-valued fields are wrapped
 | `NoiseSpec` | `theta: float`; `sigma_rad: float`; `max_abs_rad: float` (OU on arm joints only) |
 | `EpisodeSpec` | `task: str`; `arm: str`; `scene: str`; `kind: Kind`; `attempt_index: int`; `seed: int`; `objects: Mapping[str, ObjectState]` (every object of the expanded `TaskSpec.objects`, inactive ones with `active=False` and their park pose); `roles: Mapping[str, str]` (role → object name); `goal: Mapping[str, Any]` (JSON values, §4.6); `instruction: str`; `initial_q: tuple[float, ...]` (J, rad); `held_object: str \| None = None`; `perturbation: PerturbationSpec \| None = None`; `noise: NoiseSpec \| None = None`; `max_steps: int = 600`; `fps: int = 30`. Property `expert_mode -> Literal["closed_loop", "blind"]` is `"blind"` iff `kind is Kind.FAILURE`. Invariants (`ValueError`): success ⇔ `perturbation is None`; `noise` only when `kind is Kind.SUCCESS`; each role value is an active object. |
 | `StageProgress` | `frame: int`; `stage_index: int` (−1 = none); `furthest_index: int`; `satisfied: Mapping[str, bool]` (instantaneous values of all checks); `regressed_stage: str \| None` (set on the frame a regression fires) |
-| `ExpertObs` | `frame: int`; `q: np.ndarray (J,)` measured rad; `ee: Pose`; `tcp: Pose`; `gripper_gap_m: float`; `objects: Mapping[str, ObjectState]`; `signals: Mapping[str, bool] = {}`. Method `step_state() -> StepState` = `StepState(objects={n: s.pose for active n}, ee=ee, gripper=gripper_gap_m, signals=signals, tcp=tcp)` |
+| `ExpertObs` | `frame: int`; `q: np.ndarray (J,)` measured rad; `ee: Pose`; `tcp: Pose`; `gripper_gap_m: float`; `objects: Mapping[str, ObjectState]`; `signals: Mapping[str, bool] = {}`. Method `step_state(joint_names: Sequence[str] | None = None) -> StepState` = `StepState(objects={n: s.pose for active n}, ee=ee, gripper=gripper_gap_m, signals=signals, tcp=tcp)`; when `joint_names` is given (length must equal `len(q)`, else `ValueError`) it also sets `joints=dict(zip(joint_names, q))`, otherwise `joints` stays `None` |
 | `ExpertAction` | `q_target: np.ndarray (J,)` rad, clamped to limits; `phase: str`; `done: bool`; `injected: bool` (frame inside a group-A error window); `reentered: bool`; `resumed_stage: str \| None` |
 | `FrameLabels` | `stage: int`; `imitate: bool`; `ee_pose_wxyz: np.ndarray (7,)` |
 | `StepRecord` | `frame: int`; `state_raw: np.ndarray (J,)`; `action_raw: np.ndarray (J,)`; `labels: FrameLabels`; `phase: str`; `injected: bool`; `reentered: bool`; `objects: Mapping[str, Pose]` (active objects) |
@@ -280,7 +280,7 @@ The per-frame label `stage[t]` is `stage_index` after the update at frame t. Mis
 | `signal` | `name` | `state.signals.get(name, False)` |
 | `all` / `any` | `of: list[str]` (check names) | conjunction / disjunction |
 
-Note for `joint_near`: `StepState` also gains `joints: Mapping[str, float] | None = None` (USD name → rad), which `ExpertObs.step_state()` fills.
+Note for `joint_near`: `StepState` also gains `joints: Mapping[str, float] | None = None` (USD name → rad), which `ExpertObs.step_state(joint_names=...)` fills when the caller passes the arm's USD joint names (the generation loop does; see §3.2).
 
 ### 4.5 Start sampler (`core/tasks/sampling.py`)
 
