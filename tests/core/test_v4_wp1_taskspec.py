@@ -150,7 +150,8 @@ class LegacyLoadTests(unittest.TestCase):
             spec = load_task_spec("pick_place_cube")
             self.assertEqual(list(spec.objects), ["white_box", "blue_cube"])
             self.assertEqual(spec.instruction, "Pick up the cube and place it in the box")
-            self.assertEqual(set(spec.variants), {"teleop", "eval", "eval_dr"})
+            # WP10 adds the "generate" variant; the existing ones stay.
+            self.assertTrue({"teleop", "eval", "eval_dr"} <= set(spec.variants) <= {"teleop", "eval", "eval_dr", "generate"})
             self.assertEqual(spec.objects["white_box"].params["inner_half_size"], [0.065625, 0.04064896])
             self.assertEqual(dict(spec.object_sets), {})
             self.assertEqual(dict(spec.palette), {})
@@ -166,9 +167,14 @@ class LegacyLoadTests(unittest.TestCase):
             self.assertEqual(flags, {"reached": True, "grasped": False, "lifted": False, "over_box": False,
                                      "placed": False, "success": False})
             self.assertEqual(task.observe_checks(state, None), flags)
-            # PickPlaceTask.sample_start still reads the old top-level [task.start] keys.
-            with self.assertRaises(ValueError):
-                task.sample_start(np.random.default_rng(0))
+            # Before WP10 PickPlaceTask.sample_start reads the old top-level [task.start] keys (ValueError without
+            # them); after WP10 the base sampler places both objects from [task.start].
+            if "place" in (spec.raw.get("start") or {}):
+                poses = task.sample_start(np.random.default_rng(0))
+                self.assertEqual(set(poses), {"white_box", "blue_cube"})
+            else:
+                with self.assertRaises(ValueError):
+                    task.sample_start(np.random.default_rng(0))
 
     def test_custom_task_subclass_still_loads(self):
         """§4.2 stages/observe stay abstract; a subclass overriding sample_start loads as before."""

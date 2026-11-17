@@ -1391,3 +1391,9 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - `robot_color_names()` reads `ROBOT_COLORS` from `sim/envs/mdp/resets.py` with `ast`, so the dry run shows exactly the draws of the real run; `exposure_range(task_spec)` defaults to (−3.0, 1.0).
 - New helpers `sidecar_v2`, `build_manifest_v2`, `print_plan_v2`; `dr_replay` gains `--copies` and `--no_recolor` and takes the v2 path when the source has `task_meta/`.
 - `load_source` gains keyword arguments `task`, `arm`, `scene` (passed to `load_episode`); `SourceEpisode` gains `objects`, `colors`, `roles`, `meta`.
+
+**WP10** (see `docs/v4/prompts/WP10.md`)
+- CPU tests of real tasks run on `fx_arm5l` (`tests/fixtures/v4_wp10/`): fx_arm5 scaled ×2.2 and turned −90° about z, matching the SO-101 base-frame conventions (faces −y, table at z = 0). `harness.prepare_sandbox` copies it and merges its setup block.
+- `pick_place_cube` keeps `PickPlaceTask` (signals), gains `[task.stages].order` without `hold_until`, `[task.failures]`, `[task.roles]`, `[task.start]`, `[task.expert]`, `[task.perturbations]` and the `generate` variant; `reached` uses the TCP when the state has one; `_over_box` no longer imports `eval.py`. `object_drop` and `object_shift` recoveries are not available to it (signal stages); its recovery uses `grasp_offset`.
+- `stack_two_cubes`: roles `target = red_cube`, `base = blue_cube`. `pick_place_color_cube`: 7-colour palette, hold-out `purple` and count 4, 4 cm-inner box with randomised pose, `wrong_object_placed`.
+- Two WP1 assertions accept both the pre- and post-WP10 state of `pick_place_cube` (variants, `sample_start`).

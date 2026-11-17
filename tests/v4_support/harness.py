@@ -54,11 +54,26 @@ def find_task_dir(name: str) -> Path:
     raise FileNotFoundError(f"no task folder {name!r} in {[str(b) for b in TASK_DIRS]}")
 
 
-def prepare_sandbox(box, task_names: Iterable[str], *, arms: Sequence[str] = ("fx_arm5", "fx_arm6")) -> None:
-    """Copy arms, the fx scene and the task folders into ``box`` (a ``v4_support.sandbox()``)."""
-    for arm in arms:
-        copy_fixture(f"arms/{arm}", box.root)
+EXTRA_ARMS = {"fx_arm5l": FIXTURES_DIR / "v4_wp10"}    # fx_arm5 scaled x1.6: SO-101-scale reach (WP10)
+
+
+def prepare_sandbox(box, task_names: Iterable[str], *, arms: Sequence[str] = ("fx_arm5", "fx_arm6", "fx_arm5l")) -> None:
+    """Copy arms, the fx scene and the task folders into ``box`` (a ``v4_support.sandbox()``).
+
+    Arms in ``EXTRA_ARMS`` come from their package fixture folder (``<dir>/arms/<arm>``); their setup block
+    (``<dir>/scenes/fx_scene_arms.json``) is merged into the sandbox's ``fx_scene/real_setup.json``.
+    """
     copy_fixture(f"scenes/{SCENE}", box.root)
+    for arm in arms:
+        if arm in EXTRA_ARMS:
+            base = EXTRA_ARMS[arm]
+            copy_fixture(f"arms/{arm}", box.root, fixtures_dir=base)
+            setup_path = box.root / "scenes" / SCENE / "real_setup.json"
+            setup = json.loads(setup_path.read_text())
+            setup["arms"].update(json.loads((base / "scenes" / "fx_scene_arms.json").read_text()))
+            setup_path.write_text(json.dumps(setup, indent=2))
+        else:
+            copy_fixture(f"arms/{arm}", box.root)
     for name in task_names:
         dst = box.tasks / name
         if not dst.exists():
