@@ -1326,5 +1326,23 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - Integers must be real JSON integers (no bool, no `2.0`).
 - The `replay_source.py` change (`SourceEpisode.objects/colors/roles/meta`, loading through `load_episode`) is **moved from WP4 to WP11**.
 
+**WP2**
+- `load_kinematics_json` raises `SchemaError` for format problems; `KinematicChain.from_dict` raises only `KinematicsError`.
+- IK keeps iterating below the default tolerances so that `ik(fk(q))` meets §5.3; a check (position, axis, roll) is on for any weight above zero; non-chain joints are copied from the seed.
+- `RawMapping` mirrors `JointMapping.from_setup`; float32 agreement means 1e-5 rad and 1e-4 raw units.
+- `load_arm_spec` validates only the v4 keys that are present and injects no defaults. For SO-101, `tcp_position_m`, `approach_axis`, `closing_axis`, `open_rad`, `closed_rad` and `opening_table` are measured in the container and absent until then; `arms/so101/kinematics.json` is generated there too.
+- `joint_limits.py` no longer imports `joint_calibration` at import time.
+- Open for WP3: a public name for the "expert joint limits" (runtime limits intersected with USD limits, §5.4).
+
+**WP5**
+- `scenario_key` object kind = object name without a trailing `_<digits>`; role = the smallest role naming the object.
+- Skip decisions are global: the seen-set spans the whole stream, the first occurrence wins even on another shard.
+- Quaternions are canonicalised to `qw >= 0` before hashing. Ints and bools are never quantised (`1` and `1.0` hash differently).
+- `check_capacity(..., unique_across_kinds=True)`; `GenerateConfig.to_json()` and `ManifestLine.from_result()` exist. Enforcing `AttemptBudgetExceeded` during a run is WP7's job.
+- Manifest: a schema-invalid final line is `SchemaError` (not torn); a duplicate `(task, kind, attempt_index)` is `SchemaError`. Reconcile validates everything before changing any file; `next_position` is the position after the last recorded line.
+- `draw_appearance` reads the task spec by attribute and always excludes the parent's fingerprint.
+- `pyyaml` joins the `host` dependency group.
+- Open for WP11: DR copies of episodes whose instruction template uses `{goal.*}` (sidecar v2 has no `goal`; WP5 raises `GenerationError`), and legacy v1 parents without `traj_fp`.
+
 **Fixtures**
-- Each package keeps its fixtures under `tests/fixtures/v4_wpN/` (this replaces the paths listed in §13). Later packages reuse them from there: fixture tasks in `tests/fixtures/v4_wp1/tasks/`, the v1 sidecar in `tests/fixtures/v4_wp4/v1_root/`.
+- Shared fixtures stay at the §13 paths: `tests/fixtures/arms/fx_arm{5,6}/`, `tests/fixtures/scenes/fx_scene/`, `tests/fixtures/fingerprints/golden.json`. Package-private ones are under `tests/fixtures/v4_wpN/` (fixture tasks in `v4_wp1/tasks/`, the v1 sidecar in `v4_wp4/v1_root/`).
