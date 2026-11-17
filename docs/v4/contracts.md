@@ -1346,3 +1346,11 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 
 **Fixtures**
 - Shared fixtures stay at the §13 paths: `tests/fixtures/arms/fx_arm{5,6}/`, `tests/fixtures/scenes/fx_scene/`, `tests/fixtures/fingerprints/golden.json`. Package-private ones are under `tests/fixtures/v4_wpN/` (fixture tasks in `v4_wp1/tasks/`, the v1 sidecar in `v4_wp4/v1_root/`).
+
+**WP6** (see `docs/v4/prompts/WP6.md` for the full list)
+- `specs.py` (`build_spec`) is part of WP6; it takes `joint_names`, `joint_limits`, `arm_joints` and passes them to the sampler.
+- The perturbation table is validated on every `draw_perturbation` call, including for success. A type that needs a feature the task lacks is `ConfigError`; a type not applicable to one start (for example `wrong_target` with one active cube) gets weight 0 via the `start=` argument, and `SamplingError` if nothing is left.
+- World perturbations trigger on the furthest stage reached; the onset frame is the frame after the trigger; `object_drop` applies only while holding.
+- `ou_noise` takes a boolean arm mask (the gripper is not always the last joint).
+- A recovery that does not recover is rejected as `recovery_failed`, never relabelled as a failure.
+- New public label helpers: `build_phases`, `build_recovery`, `frame_labels`, `label_columns`.
