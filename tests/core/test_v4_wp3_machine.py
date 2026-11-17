@@ -512,6 +512,8 @@ class ReentryTests(_ToolTaskCase):
                                  lambda t: progress(t, k if t else -1, "reached" if t == 1 else None))
                 self.assertEqual((actions[1].resumed_stage, actions[1].phase), (resumed, phase))
                 self.assertEqual(ex.reentries, [(1, resumed)])
+                if phase != "move_joint":   # the re-entry frame's action is already the re-entered step's command
+                    self.assertFalse(np.array_equal(actions[1].q_target, actions[0].q_target))
 
     def test_rule2_on_termination(self):
         """§6.2 rule 2: a step tagged s ends while s is unsatisfied -> re-entry on exactly that frame; the
@@ -605,6 +607,57 @@ class ReentryTests(_ToolTaskCase):
                     np.testing.assert_array_equal(a.q_target, actions[n - 1].q_target)
                     self.assertEqual(a.phase, steps[0].get("name", steps[0]["skill"]))
                 self.assertTrue(ex.done)
+
+
+class TargetOffsetSelectionTests(_ToolTaskCase):
+    """WP3 §7.1 target_offset: the perturbed step is the first step tagged ``onset_stage`` (any stage tag when
+    it is None) that has a ``target``, ``q`` or ``gap_m`` parameter; offsets apply per skill."""
+
+    def _pert(self, onset, **params):
+        return PerturbationSpec(type="target_offset", group=PerturbationGroup.EXPERT, onset_stage=onset,
+                                params={"xy_m": 0.0, "dir_rad": 0.0, "z_m": 0.0, "joint_rad": 0.0, "gap_m": 0.0,
+                                        **params})
+
+    def test_step_selection(self):
+        """the wait tagged with the onset stage is skipped (no target/q/gap); the reach after it is perturbed."""
+        arm = "fx_arm5"
+        steps = [{"skill": "wait", "steps": 2, "stage": "reached"},
+                 {"skill": "reach", "target": "@goal.point", "stage": "reached", "name": "r1"},
+                 {"skill": "reach", "target": "@goal.point", "stage": "grasped", "name": "r2"},
+                 {"skill": "wait", "steps": 2, "name": "end"}]
+        for onset, perturbed in (("reached", "r1"), ("grasped", "r2"), (None, "r1")):
+            with self.subTest(onset=onset):
+                ex = self.expert(steps, arm)
+                spec = make_spec(arm, "failure", perturbation=self._pert(onset, xy_m=0.03, dir_rad=1.0, z_m=0.01))
+                actions, seen = run(ex, spec, arm, 200)
+                frames = [t for t, a in enumerate(actions) if a.phase == perturbed and not a.done]
+                self.assertEqual([t for t, a in enumerate(actions) if a.injected], frames)
+                end = frames[-1] + 1
+                aim = np.array([0.15, 0.02, 0.02]) + [0.03 * math.cos(1.0), 0.03 * math.sin(1.0), 0.01]
+                self.assertLessEqual(np.linalg.norm(np.array(seen[end].tcp.position) - aim), 0.005)
+
+    def test_joint_and_gap_offsets(self):
+        """joint_rad is added to every commanded joint of move_joint; gap_m to the set_gripper gap."""
+        arm = "fx_arm6"
+        names = fx_joint_names(arm)
+        grip = make_gripper(arm)
+        steps = [{"skill": "move_joint", "q": {names[0]: 0.3, names[2]: 0.5}, "stage": "reached"},
+                 {"skill": "set_gripper", "gap_m": 0.02, "stage": "grasped"}, {"skill": "wait", "steps": 2}]
+        for onset in ("reached", "grasped"):
+            with self.subTest(onset=onset):
+                ex = self.expert(steps, arm)
+                spec = make_spec(arm, "failure", perturbation=self._pert(onset, joint_rad=0.1, gap_m=0.006))
+                actions, seen = run(ex, spec, arm, 200)
+                self.assertTrue(actions[-1].done)
+                q = actions[-1].q_target
+                gap = grip.gap_from_angle(q[grip.index])      # steps end within their tolerances
+                if onset == "reached":
+                    self.assertAlmostEqual(q[0], 0.4, delta=0.01)
+                    self.assertAlmostEqual(q[2], 0.6, delta=0.01)
+                    self.assertAlmostEqual(gap, 0.02, delta=0.002)
+                else:
+                    self.assertAlmostEqual(q[0], 0.3, delta=0.01)
+                    self.assertAlmostEqual(gap, 0.026, delta=0.002)
 
 
 if __name__ == "__main__":

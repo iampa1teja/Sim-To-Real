@@ -1362,3 +1362,11 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - Upload: a remote file with unknown hash is uploaded again; `_COMPLETE` is written last; a dirty tree (`*.tmp`, leftover image folders) is refused.
 - Added: `ShardSummary.from_root`, `streaming.iter_episodes`.
 - To verify in the container before relying on them: the LeRobot v0.6.1 aggregate and streaming APIs (names, episode order, `label.*` columns kept). Known limits to revisit: one Hub commit per file (rate limits), and buckets that report no sha256 (full re-send on resume).
+
+**WP3** (see `docs/v4/prompts/WP3.md` for the full list)
+- Expert joint limits: `core.expert.motion.expert_joint_limits(arm=None, *, setup=None) -> (lower, upper)`, the per-joint intersection of runtime and USD limits; `ConfigError` if they do not overlap. `MotionLimits` lives in `motion.py`.
+- Detection rule 2 (stage check lost) is not applied to `approach` steps; this resolves the §4.6 colour-cube example, where `approach` is tagged `reached` but stops 6 cm short.
+- `ExpertProgram` carries `objects`, `approach_axis` and `closing_axis`; `parse_program(..., joint_limits=None)` enables the reachability checks.
+- Every step emits between 1 and `budget` actions; a re-entry frame's action already belongs to the re-entered step; after `max_retries` the expert stops detecting.
+- Expert-side perturbations are executed by the expert, on the first execution of a step only; `wrong_target` draws from `rng_for(seed, "expert")`; a grasp started by a re-entry re-opens the gripper first.
+- Per-frame motion uses a private damped-least-squares step, not `KinematicChain.ik` (30–200 ms per call).

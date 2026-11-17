@@ -13,9 +13,12 @@ Decisions pinned here (see docs/v4/prompts/WP3.md):
 * ``ExpertProgram(steps, max_steps, settle_steps, max_retries, objects, approach_axis, closing_axis)``.
 """
 
+import ast
 import math
+import tomllib
 import types
 import unittest
+from pathlib import Path
 
 import numpy as np
 
@@ -23,7 +26,8 @@ from core.expert.program import ExpertProgram, ProgramStep, parse_program
 from core.expert.skills import SKILLS, Skill
 from core.generate.errors import ConfigError
 from core.tasks.loader import load_task
-from v4_support import assert_frozen, clear_task_cache, copy_fixture, sandbox, temp_env
+import core.expert
+from v4_support import REPO_ROOT, assert_frozen, clear_task_cache, copy_fixture, sandbox, temp_env
 from v4_support.fx_arms import FX_ARMS, FX_OPENING_TABLE, fx_arm_table, fx_home_q, fx_joint_names, fx_limits
 from v4_support.tasks import STUB_USDA, write_task
 
@@ -429,6 +433,82 @@ class ParseInvalidTests(unittest.TestCase):
         arm = fx_arm_table("fx_arm6")
         del arm["kinematics"]["approach_axis"]
         self.assert_rejected({"steps": [{"skill": "wait", "steps": 1}]}, arm_spec=arm)
+
+
+class ModuleHygieneTests(unittest.TestCase):
+    """WP3 §1.6 imports / Python 3.11, §12 no arm literals in src/core/expert, §2 package files."""
+
+    FILES = ("__init__.py", "motion.py", "skills.py", "program.py", "machine.py")
+    FORBIDDEN = {"torch", "isaaclab", "isaacsim", "omni", "carb", "pxr", "warp", "lerobot", "yaml", "pyarrow", "random"}
+
+    def _trees(self):
+        root = Path(core.expert.__file__).parent
+        for name in self.FILES:
+            path = root / name
+            self.assertTrue(path.is_file(), path)
+            yield name, ast.parse(path.read_text(), filename=str(path), feature_version=(3, 11))
+
+    def test_imports(self):
+        """§1.6 only stdlib, numpy, scipy and core modules; no torch / Isaac / LeRobot / yaml / random."""
+        for name, tree in self._trees():
+            for node in ast.walk(tree):
+                mods = []
+                if isinstance(node, ast.Import):
+                    mods = [a.name for a in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    mods = [node.module]
+                for mod in mods:
+                    with self.subTest(file=name, module=mod):
+                        self.assertNotIn(mod.split(".")[0], self.FORBIDDEN)
+
+    def test_public_names(self):
+        """§2 each module defines only its public names (helpers start with "_"; imports are not definitions)."""
+        allowed = {"__init__.py": set(), "motion.py": {"MotionLimits", "step_toward_joint", "cartesian_waypoint",
+                                                       "expert_joint_limits"},
+                   "skills.py": {"SKILLS", "Skill"}, "program.py": {"ProgramStep", "ExpertProgram", "parse_program"},
+                   "machine.py": {"ScriptedExpert"}}
+        for name, tree in self._trees():
+            defined = set()
+            for node in tree.body:
+                if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                    defined.add(node.name)
+                elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    defined.update(t.id for t in targets if isinstance(t, ast.Name))
+            public = {n for n in defined if not n.startswith("_")}
+            with self.subTest(file=name):
+                self.assertLessEqual(public, allowed[name])
+                self.assertLessEqual(allowed[name], public)
+
+    def test_no_global_numpy_random(self):
+        """§1.4 no global np.random state (np.random.default_rng / Generator only)."""
+        allowed = {"default_rng", "Generator"}
+        for name, tree in self._trees():
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute)
+                        and node.value.attr == "random" and isinstance(node.value.value, ast.Name)
+                        and node.value.value.id in ("np", "numpy")):
+                    with self.subTest(file=name, attr=node.attr):
+                        self.assertIn(node.attr, allowed)
+
+    def test_no_repo_arm_literals(self):
+        """§12 no string constant naming a repo arm, its USD/LeRobot joint names or its ee / jaw links."""
+        literals = set()
+        for toml_path in sorted((REPO_ROOT / "arms").glob("*/arm.toml")):
+            arm = tomllib.loads(toml_path.read_text())["arm"]
+            literals.add(toml_path.parent.name)
+            literals.update(arm.get("joints", {}).get("names", []))
+            literals.update(arm.get("lerobot", {}).get("names", []))
+            links = arm.get("links", {})
+            literals.update(links[k] for k in ("ee", "moving_jaw", "moving_jaw_mesh") if k in links)
+        # arm.toml schema keys (§5.1 table names such as [arm.gripper]) are not arm literals
+        literals -= {"links", "joints", "lerobot", "initial_state", "kinematics", "gripper", "expert"}
+        self.assertTrue(literals)
+        for name, tree in self._trees():
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    with self.subTest(file=name, value=node.value):
+                        self.assertNotIn(node.value, literals)
 
 
 if __name__ == "__main__":
