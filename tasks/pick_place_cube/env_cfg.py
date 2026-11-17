@@ -140,6 +140,13 @@ def apply_teleop(cfg, task):
     cfg.sim.render_interval = cfg.decimation
     cfg.scene.robot.spawn.activate_contact_sensors = True
 
+def apply_generate(cfg, task):
+    apply_teleop(cfg, task)
+    cfg.terminations = None
+    max_steps = task.spec.raw["expert"]["max_steps"]
+    cfg.episode_length_s = (max_steps + 1) * cfg.decimation * cfg.sim.dt
+
+
 def apply_eval(cfg, task):
     apply_teleop(cfg, task)
     episode = task.spec.raw.get("episode", {})

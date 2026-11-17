@@ -1,0 +1,12 @@
+arm: so101
+scene: rpd_meeting_room
+tasks: [pick_place_cube, stack_two_cubes, pick_place_color_cube]
+master_seed: 0
+quotas: {success: 4000, failure: 1000, recovery: 1000}
+shard: "0/1"
+dst_root: /data/v4-cube-tasks
+repo_id: "local/{task}"
+fps: 30
+max_attempt_factor: 10.0
+max_consecutive_skips: 1000
+cameras: true

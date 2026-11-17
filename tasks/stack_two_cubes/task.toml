@@ -1,0 +1,118 @@
+[task]
+name = "stack_two_cubes"
+instruction = "Stack the red cube on the blue cube"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.red_cube]
+color = [0.8, 0.05, 0.05]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.objects.blue_cube]
+color = [0.05, 0.1, 0.8]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.roles]
+target = "red_cube"
+base = "blue_cube"
+
+[task.start]
+table_z_m = 0.0
+min_separation_m = 0.06
+clearance_m = 0.01
+reachable = ["@target", "@base"]
+
+[task.start.place.red_cube]
+yaw_deg = [0.0, 90.0]
+
+[task.start.place.red_cube.region]
+xy_min = [-0.25, -0.40]
+xy_max = [0.25, -0.18]
+
+[task.start.place.blue_cube]
+yaw_deg = [0.0, 90.0]
+
+[task.start.place.blue_cube.region]
+xy_min = [-0.25, -0.40]
+xy_max = [0.25, -0.18]
+
+[task.stages]
+order = ["reached", "grasped", "lifted", "over_base", "stacked", "success"]
+
+[task.stages.hold_until]
+reached = "grasped"
+grasped = "stacked"
+lifted = "stacked"
+
+[task.checks.reached]
+check = "ee_near"
+object = "@target"
+tol_m = 0.02
+
+[task.checks.holding]
+check = "held"
+object = "@target"
+
+[task.checks.grasped]
+check = "all"
+of = ["holding"]
+
+[task.checks.raised]
+check = "object_lifted"
+object = "@target"
+min_lift_m = 0.01
+
+[task.checks.lifted]
+check = "all"
+of = ["holding", "raised"]
+
+[task.checks.above_base]
+check = "ee_near"
+object = "@base"
+offset_m = [0.0, 0.0, 0.08]
+tol_m = 0.03
+
+[task.checks.over_base]
+check = "all"
+of = ["holding", "above_base"]
+
+[task.checks.on_base]
+check = "object_on_object"
+object = "@target"
+base = "@base"
+xy_tol_m = 0.008
+
+[task.checks.released]
+check = "held"
+object = "@target"
+negate = true
+
+[task.checks.stacked]
+check = "all"
+of = ["on_base", "released"]
+
+[task.checks.ee_clear]
+check = "ee_near"
+object = "@target"
+tol_m = 0.04
+negate = true
+
+[task.checks.success]
+check = "all"
+of = ["stacked", "ee_clear"]
+
+[task.failures]
+rules = [{ name = "stacked_not_confirmed", if = ["stacked"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_base", unless = ["over_base"] }, { name = "fell_off_base" }]
+
+[task.expert]
+max_steps = 600
+steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@base", height_m = 0.06, stage = "over_base" }, { skill = "place", target = "@base" }, { skill = "release", stage = "stacked" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.02, 0.04] }, { type = "object_drop", stages = ["lifted", "over_base"], xy_jitter_m = [0.0, 0.02] }]
+recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }]
