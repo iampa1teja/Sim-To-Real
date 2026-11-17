@@ -1300,3 +1300,31 @@ WP11:
 - the primitive semantics (WP9 review);
 - the Hub organisation and visibility;
 - whether `label.*` columns break any existing training prepare script.
+
+## 15. Clarifications after wave 1 (binding; override earlier text where they differ)
+
+These were settled while the wave-1 tests were written. The per-package prompts in `docs/v4/prompts/` carry the full detail; the tests are the final word.
+
+**WP0**
+- `ExpertObs.step_state(joint_names=None)`: `joints` is filled only when joint names are passed (§3.2, §4.4).
+- Nested values in `goal` and `params` are frozen deeply (lists become tuples, dicts become read-only mappings). Mappings that went through JSON come back with sorted keys; nothing may depend on mapping order.
+- `from_json` is strict: every key required, unknown keys rejected, `SchemaError` on any violation.
+
+**WP1**
+- `sample_start` and `Task.sample_episode_start` take two extra keyword arguments, `joint_names` and `arm_joints`; `joint_limits` is `(lower, upper)` in `joint_names` order.
+- `TaskSpec.palette` resolves `from_setup:` values lazily, so a task loads without a scene.
+- Predicates are called as `(state, ctx, params)` with raw parameters; `all` / `any` receive already-computed booleans; a predicate on an inactive object is false.
+- `@role.inner` resolves to a container marker; the rectangle is computed from the current state.
+- `object_on_object` expected height: `z(b) + (h(b)/2 or h(b)) + (h(o)/2 or 0)`, depending on each object's origin (centre or bottom).
+- `reachable` may list `@goal.<key>`; the pregrasp orientation passed to the reachability callback is `(1, 0, 0, 0)` (WXYZ).
+- `[task.start]` problems are `ConfigError` at load, only for keys that are present; old layouts keep loading. `core/tasks/loader.py` is not changed.
+
+**WP4**
+- Sidecar keys are exact at every level; only object names, `roles` and `perturbation.params` are free-form. `roles` values are not checked against `objects`.
+- `phases` may be `[]`; a non-empty list must cover `[0, N)`. Segments are non-empty, ordered, contiguous.
+- Fingerprints are 64 lower-case hex characters; all five are required unless `legacy_v1` is true. `generator.git_commit` may be null.
+- Integers must be real JSON integers (no bool, no `2.0`).
+- The `replay_source.py` change (`SourceEpisode.objects/colors/roles/meta`, loading through `load_episode`) is **moved from WP4 to WP11**.
+
+**Fixtures**
+- Each package keeps its fixtures under `tests/fixtures/v4_wpN/` (this replaces the paths listed in §13). Later packages reuse them from there: fixture tasks in `tests/fixtures/v4_wp1/tasks/`, the v1 sidecar in `tests/fixtures/v4_wp4/v1_root/`.
