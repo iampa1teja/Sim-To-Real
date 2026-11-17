@@ -193,6 +193,19 @@ class AtomicRebuildTests(unittest.TestCase):
             self.assertEqual(parquet_path(tmp).read_bytes(), old)
             self.assertEqual(sorted(p.name for p in (Path(tmp) / "task_meta").iterdir()), before)
 
+    def test_failed_parquet_write_keeps_old_file(self):
+        """§9.2 a failure while the new table is being written leaves the old parquet byte-identical."""
+        with tempfile.TemporaryDirectory() as tmp:
+            write_sidecar(tmp, make_sidecar("success", index=0, tag="w0"))
+            old = consolidate(tmp).read_bytes()
+            write_sidecar(tmp, make_sidecar("failure", index=1, tag="w1"))
+            before = sorted(p.name for p in (Path(tmp) / "task_meta").iterdir())
+            with mock.patch.object(pq.ParquetWriter, "write_table", side_effect=OSError("disk full")), \
+                    self.assertRaises(OSError):
+                consolidate(tmp)
+            self.assertEqual(parquet_path(tmp).read_bytes(), old)
+            self.assertEqual(sorted(p.name for p in (Path(tmp) / "task_meta").iterdir()), before)
+
     def test_failed_first_write_leaves_nothing(self):
         """§9.2 a failed first consolidation leaves no episodes.parquet and no temporary file."""
         with tempfile.TemporaryDirectory() as tmp:

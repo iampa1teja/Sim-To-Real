@@ -1354,3 +1354,11 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - `ou_noise` takes a boolean arm mask (the gripper is not always the last joint).
 - A recovery that does not recover is rejected as `recovery_failed`, never relabelled as a failure.
 - New public label helpers: `build_phases`, `build_recovery`, `frame_labels`, `label_columns`.
+
+**WP12** (see `docs/v4/prompts/WP12.md` for the full list)
+- Merge order is canonical, not the listed order: shards are sorted by (shard index from `generation_plan.json`, audit content digest), so the merged dataset does not depend on how shards are listed. This replaces the ordering sentence in §10.2.
+- Audit record that WP7 must produce exactly: `meta/audit_report.json` with the eight §10.1 fields; `content_digest = json_sha256({relative path: sha256})` over every file under `meta/`, `data/`, `videos/`, `task_meta/` except `meta/audit_report.json`. Merge and upload refuse when the digest does not match the current files.
+- Merge refuses with `ConfigError` on differing `info.json` or plan hashes and with `DuplicateError` on a repeated manifest key, episode fingerprint or original scenario key; DR copies may share their parent's scenario key. The merged dataset carries no audit report (it must be audited again).
+- Upload: a remote file with unknown hash is uploaded again; `_COMPLETE` is written last; a dirty tree (`*.tmp`, leftover image folders) is refused.
+- Added: `ShardSummary.from_root`, `streaming.iter_episodes`.
+- To verify in the container before relying on them: the LeRobot v0.6.1 aggregate and streaming APIs (names, episode order, `label.*` columns kept). Known limits to revisit: one Hub commit per file (rate limits), and buckets that report no sha256 (full re-send on resume).
