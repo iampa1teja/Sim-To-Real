@@ -1370,3 +1370,12 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - Every step emits between 1 and `budget` actions; a re-entry frame's action already belongs to the re-entered step; after `max_retries` the expert stops detecting.
 - Expert-side perturbations are executed by the expert, on the first execution of a step only; `wrong_target` draws from `rng_for(seed, "expert")`; a grasp started by a re-entry re-opens the gripper first.
 - Per-frame motion uses a private damped-least-squares step, not `KinematicChain.ik` (30–200 ms per call).
+
+**WP7** (see `docs/v4/prompts/WP7.md` for the full list)
+- `run_episode` only adds frames; the caller saves or discards. Accepted results carry `episode_index = None` until the loop commits them.
+- `traj_fp` uses the frame-0 object positions rounded to 6 decimals, exactly as the sidecar stores them, so the audit recomputes the same value.
+- `run_generation` walks the shard's plan from the start; recorded positions are not re-executed but update the counters, so a resumed run equals an uninterrupted one (data, sidecars, `info.json` byte for byte; manifest except `wall_s`; plan except `created_at`).
+- Each attempt is a pure function of (master seed, task, kind, index). With rejections, different shard counts accept different sets of attempts, so "1 shard equals 3 shards" holds per attempt, not per dataset.
+- New public names: `loop.make_spec_fn`, `loop.home_q`, `audit.CHECKS`; `frames.LiteDatasetWriter` is the writer, `MemoryWriter` adds crash hooks. Images are not stored in the lite layout.
+- The no-duplicates gate is `tests/core/test_no_duplicates.py`; its harness is `tests/v4_support/harness.py` (`run_no_duplicates_suite`, `generate_small`, `fake_dr`, `assert_no_duplicates`). WP9, WP10 and WP13 call it for their tasks on `fx_arm5`.
+- WP7 fixture tasks live in `tests/fixtures/v4_wp7/tasks/` (`fx7_grip`, `fx7_reach`, `fx7_pick`, `fx7_color`), with the table at z = −0.05 m because the fx arms reach a down-pointing TCP only for z ≈ −0.06…0.10 m.

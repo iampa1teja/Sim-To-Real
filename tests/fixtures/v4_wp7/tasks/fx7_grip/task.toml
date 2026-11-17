@@ -1,0 +1,43 @@
+[task]
+name = "fx7_grip"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.instruction_template]
+texts = ["Set the gripper opening", "Open the gripper to the requested width"]
+
+[task.start.goal.sweep]
+type = "joint"
+joints = "arm"
+fraction = [0.3, 0.7]
+count = 1
+
+[task.start.goal.gap]
+type = "gap"
+gap_m = [0.005, 0.045]
+
+[task.stages]
+order = ["opened", "success"]
+
+[task.checks.opened]
+check = "gap_near"
+value_m = "@goal.gap"
+tol_m = 0.003
+
+[task.checks.success]
+check = "all"
+of = ["opened"]
+
+[task.failures]
+rules = [{ name = "wrong_gap", unless = ["opened"] }, { name = "lost_gap" }]
+
+[task.expert]
+max_steps = 120
+settle_steps = 5
+steps = [{ skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", budget = 60 }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "opened", budget = 30 }, { skill = "wait", steps = 5, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
+recovery = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
