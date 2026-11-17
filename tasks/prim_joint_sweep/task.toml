@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 
 [task.start.goal.sweep]
 type = "joint"
@@ -48,10 +49,11 @@ of = ["set"]
 rules = [{ name = "never_started", unless = ["started"] }, { name = "sweep_incomplete", unless = ["swept"] }, { name = "wrong_gap" }]
 
 [task.expert]
-max_steps = 400
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 600
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", stage = "swept" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "set" }, { skill = "wait", steps = 5, stage = "success" }]
+steps = [{ skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", stage = "swept" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "set" }, { skill = "wait", steps = 5, stage = "success" }]
 
 [task.perturbations]
-failure = [{ type = "stall", stages = ["started"], steps = [400, 400] }, { type = "target_offset", gap_m = [0.008, 0.015] }]
+failure = [{ type = "stall", stages = ["started"], steps = [600, 600] }, { type = "target_offset", gap_m = [0.008, 0.015] }]
 recovery = [{ type = "target_offset", gap_m = [0.008, 0.015] }]

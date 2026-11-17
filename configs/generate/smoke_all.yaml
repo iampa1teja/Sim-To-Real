@@ -1,0 +1,31 @@
+# WP14 smoke run: 5 randomised episodes per task (3 success, 1 failure, 1 recovery) for all 17 tasks.
+arm: so101
+scene: rpd_meeting_room
+tasks:
+  - pick_place_cube
+  - stack_two_cubes
+  - pick_place_color_cube
+  - stack_bowls
+  - prim_joint_sweep
+  - prim_gripper_gap
+  - prim_reach_point
+  - prim_test_reach
+  - prim_calibration_reach
+  - prim_waypoint_path
+  - prim_touch_object
+  - prim_nudge
+  - prim_push_to_region
+  - prim_lift_test
+  - prim_grasp_lift
+  - prim_place_at
+  - prim_regrasp_after_drop
+master_seed: 0
+quotas: {success: 3, failure: 1, recovery: 1}
+shard: "0/1"
+dst_root: /data/v4-smoke-all
+repo_id: "local/smoke-{task}"
+fps: 30
+max_attempt_factor: 20.0
+max_consecutive_skips: 1000
+dr: {copies: 2, camera_jitter: {position_m: 0.01, rotation_deg: 2.0}}
+cameras: true

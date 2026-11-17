@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 
 [task.start.goal.c0]
 type = "grid"
@@ -48,9 +49,10 @@ of = ["c2"]
 rules = [{ name = "missed_c0", unless = ["c0"] }, { name = "missed_c1", unless = ["c1"] }, { name = "missed_c2", unless = ["c2"] }, { name = "left_grid" }]
 
 [task.expert]
-max_steps = 500
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 750
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.c0", stage = "c0" }, { skill = "reach", target = "@goal.c1", stage = "c1" }, { skill = "reach", target = "@goal.c2", stage = "c2" }, { skill = "wait", steps = 10, stage = "success" }]
+steps = [{ skill = "reach", target = "@goal.c0", stage = "c0" }, { skill = "reach", target = "@goal.c1", stage = "c1" }, { skill = "reach", target = "@goal.c2", stage = "c2" }, { skill = "wait", steps = 10, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "target_offset", stages = ["c2"], xy_m = [0.03, 0.06] }]

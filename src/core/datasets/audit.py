@@ -150,7 +150,8 @@ def audit_dataset(root, *, source_root=None, check_manifest=True):
             fp = sc["fingerprints"]
             traj = _traj_fp(data["action"], data["observation.state"], {name: o["position"][0] for name, o in sc["objects"].items()})
             appearance = _appearance_fp({name: o["color"] for name, o in sc["objects"].items()}, sc["instruction"],
-                                         sc["appearance"]["light_exposure"], sc["appearance"]["robot_color"])
+                                         sc["appearance"]["light_exposure"], sc["appearance"]["robot_color"],
+                                         sc["appearance"].get("camera_offsets"))
             episode = _episode_fp(traj, appearance)
             if fp is None or any(fp[key] != value for key, value in (("traj_fp", traj), ("appearance_fp", appearance), ("episode_fp", episode))):
                 fail("fingerprints_recomputed", f"Fingerprints differ for episode {index}")

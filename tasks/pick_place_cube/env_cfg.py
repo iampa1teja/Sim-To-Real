@@ -142,6 +142,25 @@ def apply_teleop(cfg, task):
 
 def apply_generate(cfg, task):
     apply_teleop(cfg, task)
+    from sim.envs.mdp.objects import generation_assets, select_generation_assets
+    from core.tasks.sampling import park_positions
+
+    variants = generation_assets(task.spec)["blue_cube"]
+    if "blue_cube" not in variants:
+        cube = cfg.scene.blue_cube
+        sensor = cfg.scene.contact_grasp
+        for name, position in park_positions(variants).items():
+            prim_path = "{ENV_REGEX_NS}/" + name
+            setattr(cfg.scene, name, cube.replace(prim_path=prim_path, spawn=cube.spawn.replace(size=variants[name]),
+                                                  init_state=cube.init_state.replace(pos=position)))
+            setattr(cfg.scene, f"contact_grasp_{name}", sensor.replace(filter_prim_paths_expr=[prim_path]))
+            setattr(cfg.events, f"park_{name}", EventTerm(func=park_object, mode="reset",
+                                                           params=dict(asset_cfg=SceneEntityCfg(name), park_offset=position)))
+        default = select_generation_assets(task.spec, {})["blue_cube"]
+        cfg.scene.blue_cube = cfg.scene.contact_grasp = cfg.events.spawn_cube = None
+        cfg.events.reset_tracking.params = {"object_name": default}
+        for term in (cfg.observations.subtask_terms.cube_grasped, cfg.observations.subtask_terms.cube_placed):
+            term.params.update(object_name=default, contact_sensor_cfg=SceneEntityCfg(f"contact_grasp_{default}"))
     cfg.terminations = None
     max_steps = task.spec.raw["expert"]["max_steps"]
     cfg.episode_length_s = (max_steps + 1) * cfg.decimation * cfg.sim.dt

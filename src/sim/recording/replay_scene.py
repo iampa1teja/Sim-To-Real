@@ -12,6 +12,8 @@ rendered without stepping physics, so the motion is exactly the recorded one.
 # - Cube colour and room light setters come from tasks/pick_place_cube/mdp.py.
 
 from collections.abc import Mapping
+from contextlib import contextmanager
+from math import radians
 
 import numpy as np
 import torch
@@ -50,6 +52,7 @@ class SceneReplayer:
         self.robot = env.scene["robot"]
         self.object_name = object_name
         self.palette = palette
+        self.env_ids = torch.arange(env.num_envs, device=env.device)
         if palette is None:
             self.cube = env.scene[object_name]
             self.task_mdp = load_task_module("mdp", task)
@@ -57,7 +60,6 @@ class SceneReplayer:
             self.light_defaults = self._light_defaults()
         self.base_body_id = self.robot.find_bodies(BASE_LINK)[0][0]
         self.joint_ids, _ = self.robot.find_joints(JOINT_NAMES, preserve_order=True)
-        self.env_ids = torch.arange(env.num_envs, device=env.device)
 
     def apply(self, color_rgb, color_name, draw: DRDraw | None) -> None:
         """Set the cube colour and every DR term present in `draw`.
@@ -103,14 +105,14 @@ class SceneReplayer:
                     defaults.append((exposure, exposure.Get()))
         return defaults
 
-    def apply_v2(self, sidecar) -> None:
+    def apply_v2(self, sidecar, assets) -> None:
         """Apply the episode's complete appearance, including nominal defaults."""
         from sim.envs.mdp.objects import set_object_color
 
         for name, obj in sidecar["objects"].items():
             color = obj["color"]
             if color is not None:
-                set_object_color(self.env, name, self.palette[color])
+                set_object_color(self.env, assets[name], self.palette[color])
         appearance = sidecar["appearance"]
         light = appearance["light_exposure"]
         for attribute, default in self.light_defaults:
@@ -118,6 +120,22 @@ class SceneReplayer:
         robot_color = appearance["robot_color"]
         if robot_color is not None:
             set_robot_color(self.env, self.dr_ranges.robot_colors[robot_color])
+
+    @contextmanager
+    def camera_jitter(self, offsets):
+        """Temporarily offset each recorded camera in its parent coordinate frame."""
+        paths = []
+        try:
+            for name, offset in offsets.items():
+                path = self.env.scene[f"camera_{name}"].cfg.prim_path
+                paths.append(path)
+                position = dict(zip(("x", "y", "z"), offset["position_m"], strict=True))
+                rotation = dict(zip(("roll", "pitch", "yaw"), map(radians, offset["rotation_deg"]), strict=True))
+                set_camera_pose_offset(self.env, path, position, rotation, parent_frame=True)
+            yield
+        finally:
+            for path in paths:
+                set_camera_pose_offset(self.env, path, {}, {}, parent_frame=True)
 
     def pose_frame(self, state_raw, poses_by_name) -> None:
         """Write recorded joints and base-link object poses (WXYZ)."""

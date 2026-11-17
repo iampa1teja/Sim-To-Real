@@ -6,7 +6,7 @@ import math as _math
 import re as _re
 import string as _string
 from collections.abc import Mapping as _Mapping
-from dataclasses import dataclass as _dataclass
+from dataclasses import dataclass as _dataclass, replace as _replace
 from types import MappingProxyType as _MappingProxyType
 from typing import Any as _Any
 
@@ -82,7 +82,59 @@ def _range(value, *, nonnegative=False):
     return _vector(value, 2) and value[0] <= value[1] and (not nonnegative or value[0] >= 0)
 
 
+def validate_workspace(table):
+    keys = {"r_m", "bearing_deg"}
+    clip_keys = {"xy_min", "xy_max"}
+    if (not isinstance(table, _Mapping) or set(table) not in (keys, keys | clip_keys)
+            or not _range(table["r_m"], nonnegative=True) or table["r_m"][0] == table["r_m"][1]
+            or not _range(table["bearing_deg"]) or table["bearing_deg"][0] == table["bearing_deg"][1]):
+        raise _ConfigError("Invalid arm workspace")
+    if "xy_min" in table and (not all(_vector(table[key], 2) for key in clip_keys)
+                              or not all(lo < hi for lo, hi in zip(table["xy_min"], table["xy_max"]))):
+        raise _ConfigError("Invalid arm workspace clip")
+    return table
+
+
+def in_workspace(xy, workspace):
+    radius = _math.hypot(*xy)
+    lo, hi = workspace["bearing_deg"]
+    bearing = lo + (_math.degrees(_math.atan2(xy[1], xy[0])) - lo) % 360.0
+    return (workspace["r_m"][0] <= radius <= workspace["r_m"][1] and bearing <= hi
+            and ("xy_min" not in workspace or all(lo <= x <= hi for x, lo, hi in
+                                                   zip(xy, workspace["xy_min"], workspace["xy_max"]))))
+
+
+def _workspace_region(region):
+    return region == "workspace" or isinstance(region, _Mapping) and set(region) == {"workspace_inset_m"}
+
+
+def _uses_workspace(start):
+    return (any(_workspace_region(place["region"]) for place in start.get("place", {}).values())
+            or any(_workspace_region(goal.get("region", goal.get("center_region")))
+                   for goal in start.get("goal", {}).values()))
+
+
+def _region_workspace(region, workspace):
+    if not _workspace_region(region):
+        return None
+    if workspace is None:
+        raise ValueError("Workspace region requires an arm workspace")
+    if region == "workspace":
+        return workspace
+    inset = region["workspace_inset_m"]
+    lo, hi = workspace["r_m"]
+    result = {**workspace, "r_m": [lo + inset, hi - inset]}
+    if "xy_min" in workspace:
+        result.update(xy_min=[v + inset for v in workspace["xy_min"]],
+                      xy_max=[v - inset for v in workspace["xy_max"]])
+    return validate_workspace(result)
+
+
 def _validate_region(region):
+    if region == "workspace":
+        return
+    if _workspace_region(region) and _number(region["workspace_inset_m"]) and region["workspace_inset_m"] >= 0:
+        return
     if not isinstance(region, dict):
         raise _ConfigError("Region must be a table")
     if set(region) == {"xy_min", "xy_max"}:
@@ -130,6 +182,12 @@ def _validate_start(spec):
     if "distinct_colors" in start and type(start["distinct_colors"]) is not bool:
         raise _ConfigError("distinct_colors must be boolean")
     plain = {name for name, obj in spec.objects.items() if "set" not in obj.params}
+    for name, obj in spec.objects.items():
+        if "size_variants" in obj.params:
+            variants = obj.params["size_variants"]
+            if ((obj.size is None and name in plain) or not isinstance(variants, (tuple, list)) or len(variants) < 2
+                    or not all(_vector(size, 3) and min(size) > 0 for size in variants)):
+                raise _ConfigError(f"Invalid size variants for {name}")
     places = start.get("place", {})
     if not isinstance(places, dict):
         raise _ConfigError("start.place must be a table")
@@ -142,6 +200,9 @@ def _validate_start(spec):
     goals = start.get("goal", {})
     if not isinstance(goals, dict):
         raise _ConfigError("start.goal must be a table")
+    def valid_object(ref):
+        return isinstance(ref, str) and (ref in spec.objects or (ref.startswith("@") and ref[1:] in spec.roles))
+
     for name, goal in goals.items():
         if not isinstance(goal, dict) or goal.get("type") not in ("point", "points", "grid", "gap", "region", "joint"):
             raise _ConfigError(f"Unknown goal type: {name}")
@@ -155,7 +216,13 @@ def _validate_start(spec):
             if "min_separation_m" in goal and (not _number(goal["min_separation_m"]) or goal["min_separation_m"] < 0):
                 raise _ConfigError("Invalid point separation")
         elif kind == "region":
-            _validate_region(goal.get("center_region"))
+            region = goal.get("center_region")
+            if isinstance(region, dict) and "around" in region:
+                if (set(region) != {"around", "distance_m"} or not valid_object(region["around"])
+                        or not _range(region["distance_m"], nonnegative=True)):
+                    raise _ConfigError("Invalid object-relative region goal")
+            else:
+                _validate_region(region)
             if not _vector(goal.get("half_size_m"), 2) or any(v < 0 for v in goal["half_size_m"]):
                 raise _ConfigError("Region goal requires nonnegative half extents")
         elif kind == "grid":
@@ -173,8 +240,6 @@ def _validate_start(spec):
                 raise _ConfigError("Invalid joint fraction range")
             if type(goal.get("count", 2)) is not int or goal.get("count", 2) < 1:
                 raise _ConfigError("Invalid joint goal count")
-    def valid_object(ref):
-        return isinstance(ref, str) and (ref in spec.objects or (ref.startswith("@") and ref[1:] in spec.roles))
     reachable = start.get("reachable", [])
     if not isinstance(reachable, list):
         raise _ConfigError("reachable must be a list")
@@ -184,11 +249,23 @@ def _validate_start(spec):
     if "held" in start and not valid_object(start["held"]):
         raise _ConfigError("Invalid held reference")
     initial = start.get("initial_q", "home")
-    if initial != "home" and (not isinstance(initial, dict) or not all(_number(v) for v in initial.values())):
+    if isinstance(initial, dict) and "around" in initial:
+        optional = {"min_tcp_height_m", "min_tcp_clearance_m"}
+        if (initial.keys() - {"around", "spread"} - optional or initial["around"] != "home"
+                or not _number(initial.get("spread")) or not 0 < initial["spread"] <= 0.5
+                or any(not _number(initial[key]) or initial[key] < 0 for key in optional & initial.keys())):
+            raise _ConfigError("Invalid random initial_q")
+    elif initial != "home" and (not isinstance(initial, dict) or not all(_number(v) for v in initial.values())):
         raise _ConfigError("initial_q must be home or a joint table")
 
 
-def _xy(rng, region):
+def _xy(rng, region, workspace=None):
+    if workspace is not None:
+        lo, hi = workspace["r_m"]
+        radius = _math.sqrt(rng.uniform(lo**2, hi**2))
+        bearing = _math.radians(rng.uniform(*workspace["bearing_deg"]))
+        xy = _np.array([radius * _math.cos(bearing), radius * _math.sin(bearing)])
+        return xy if in_workspace(xy, workspace) else None
     if "xy_min" in region:
         return rng.uniform(region["xy_min"], region["xy_max"])
     radius = rng.uniform(*region["r_m"])
@@ -236,13 +313,18 @@ def _object_ref(ref, roles):
     return roles[ref[1:]] if ref.startswith("@") else ref
 
 
-def _goal(rng, entry, *, reachable, reach_fn, max_tries, joint_names, joint_limits, arm_joints):
+def _goal(rng, entry, *, reachable, reach_fn, max_tries, joint_names, joint_limits, arm_joints,
+          workspace, poses, roles):
     kind = entry["type"]
     if kind in ("point", "points"):
+        region = entry["region"]
+        clip = _region_workspace(region, workspace)
         points = []
         for _ in range(entry.get("count", 1) if kind == "points" else 1):
             for _ in range(max_tries):
-                xy = _xy(rng, entry["region"])
+                xy = _xy(rng, region, clip)
+                if xy is None:
+                    continue
                 point = (float(xy[0]), float(xy[1]), float(rng.uniform(*entry["z_m"])))
                 if any(_np.linalg.norm(_np.subtract(point, previous)) < entry.get("min_separation_m", 0) for previous in points):
                     continue
@@ -258,9 +340,28 @@ def _goal(rng, entry, *, reachable, reach_fn, max_tries, joint_names, joint_limi
     if kind == "gap":
         return float(rng.uniform(*entry["gap_m"]))
     if kind == "region":
-        center = _xy(rng, entry["center_region"])
-        return {"xy_min": (center - entry["half_size_m"]).tolist(),
-                "xy_max": (center + entry["half_size_m"]).tolist()}
+        region = entry["center_region"]
+        clip = _region_workspace(region, workspace)
+        relative = isinstance(region, _Mapping) and "around" in region
+        if relative:
+            name = _object_ref(region["around"], roles)
+            if name not in poses:
+                raise _SamplingError(f"Region goal references inactive object {name}")
+            anchor = _np.asarray(poses[name].position[:2])
+        for _ in range(max_tries):
+            if relative:
+                radius = rng.uniform(*region["distance_m"])
+                angle = rng.uniform(0, 2 * _math.pi)
+                center = anchor + radius * _np.array([_math.cos(angle), _math.sin(angle)])
+                if workspace is not None and not in_workspace(center, workspace):
+                    continue
+            else:
+                center = _xy(rng, region, clip)
+                if center is None:
+                    continue
+            return {"xy_min": (center - entry["half_size_m"]).tolist(),
+                    "xy_max": (center + entry["half_size_m"]).tolist()}
+        raise _SamplingError("Region goal exceeded max_tries")
     if joint_names is None or joint_limits is None or (entry["joints"] == "arm" and arm_joints is None):
         raise ValueError("Joint goals require joint_names, joint_limits, and arm_joints for arm goals")
     candidates = arm_joints if entry["joints"] == "arm" else entry["joints"]
@@ -273,9 +374,41 @@ def _goal(rng, entry, *, reachable, reach_fn, max_tries, joint_names, joint_limi
     return {"joint": joint, "angles": [float(lower + f * (upper - lower)) for f in fractions]}
 
 
+def _initial_q(start, rng, poses, home_q, joint_limits, joint_names, arm_joints, tcp_fn, max_tries):
+    initial = start.get("initial_q", "home")
+    q = list(home_q) if home_q is not None else None
+    if not isinstance(initial, dict):
+        return q
+    if "around" not in initial:
+        if q is None or joint_names is None or len(q) != len(joint_names):
+            raise ValueError("initial_q overrides require matching home_q and joint_names")
+        for name, value in initial.items():
+            q[list(joint_names).index(name)] = float(value)
+        return q
+    if q is None:
+        return None
+    if joint_limits is None or joint_names is None or arm_joints is None or tcp_fn is None:
+        raise ValueError("Random initial_q requires joint limits, joint names, arm joints and tcp_fn")
+    lo, hi = joint_limits
+    if len(lo) != len(hi) or len(hi) != len(q) or len(q) != len(joint_names):
+        raise ValueError("Random initial_q requires one home and limit per joint")
+    indices = [i for i, name in enumerate(joint_names) if name in arm_joints]
+    min_z = start.get("table_z_m", 0.0) + initial.get("min_tcp_height_m", 0.05)
+    clearance = initial.get("min_tcp_clearance_m", 0.05)
+    for _ in range(max_tries):
+        for i in indices:
+            delta = rng.uniform(-1, 1) * initial["spread"] * (hi[i] - lo[i])
+            q[i] = float(_np.clip(home_q[i] + delta, lo[i], hi[i]))
+        x, y, z = tcp_fn(tuple(q)).position
+        if z >= min_z and all(_math.hypot(x - pose.position[0], y - pose.position[1]) >= clearance
+                             for pose in poses.values()):
+            return q
+    raise _SamplingError("Random initial_q exceeded max_tries")
+
+
 def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=None,
-                 instruction_rng=None, joint_names=None, arm_joints=None):
-    """Draw count, colours, slots, placements and goals in the contract's order."""
+                 instruction_rng=None, joint_names=None, arm_joints=None, workspace=None, tcp_fn=None):
+    """Draw a deterministic episode start."""
     start = task_spec.raw.get("start", {})
     target_set = task_spec.object_sets.get(task_spec.roles.get("target"))
     active = set(task_spec.objects)
@@ -304,6 +437,14 @@ def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=Non
             roles[role] = target_slot if target_set is not None and name == target_set.name else task_spec.object_sets[name].slot_names()[0]
         else:
             roles[role] = name
+    drawn_sizes = {}
+    definitions = dict(task_spec.objects)
+    for name, obj in task_spec.objects.items():
+        variants = obj.params.get("size_variants")
+        if name in active and variants:
+            size = tuple(float(value) for value in variants[rng.integers(len(variants))])
+            drawn_sizes[name] = size
+            definitions[name] = _replace(obj, size=size)
     reachable = start.get("reachable", ["@target"] if "target" in roles else [])
     reachable_objects = {_object_ref(ref, roles) for ref in reachable if not ref.startswith("@goal.")}
     max_tries = start.get("max_tries", 200)
@@ -318,16 +459,20 @@ def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=Non
         if name in active and name not in moving:
             poses[name] = _pose(obj.position[:2], obj.position[2], _math.radians(obj.rotation_euler_degrees[2]))
     for name, place in placement_order:
-        obj = task_spec.objects[name]
+        obj = definitions[name]
         height = _dims(obj)[2]
         z = start.get("table_z_m", 0.0) + (0 if _bottom_origin(obj) else height / 2)
+        region = place["region"]
+        clip = _region_workspace(region, workspace)
         for _ in range(max_tries):
-            xy = _xy(rng, place["region"])
+            xy = _xy(rng, region, clip)
+            if xy is None:
+                continue
             yaw = _math.radians(rng.uniform(*place.get("yaw_deg", (0, 0))))
             pose = _pose(xy, z, yaw)
             valid = True
             for other, other_pose in poses.items():
-                other_obj = task_spec.objects[other]
+                other_obj = definitions[other]
                 if "inner_half_size" in obj.params or "inner_half_size" in other_obj.params:
                     valid = _footprint_distance(_footprint(obj, pose), _footprint(other_obj, other_pose)) >= start.get("clearance_m", 0.01)
                 else:
@@ -345,18 +490,13 @@ def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=Non
         else:
             raise _SamplingError(f"Placement of {name} exceeded max_tries")
     parked = park_positions(list(task_spec.objects))
-    objects = {name: _ObjectState(poses[name], True, colors[name]) if name in active
+    objects = {name: _ObjectState(poses[name], True, colors[name], drawn_sizes.get(name)) if name in active
                else _ObjectState(_Pose(parked[name]), False, None) for name in task_spec.objects}
     goal = {name: _goal(rng, entry, reachable=f"@goal.{name}" in reachable, reach_fn=reach_fn,
-                        max_tries=max_tries, joint_names=joint_names, joint_limits=joint_limits, arm_joints=arm_joints)
+                        max_tries=max_tries, joint_names=joint_names, joint_limits=joint_limits, arm_joints=arm_joints,
+                        workspace=workspace, poses=poses, roles=roles)
             for name, entry in start.get("goal", {}).items()}
-    initial = start.get("initial_q", "home")
-    q = list(home_q) if home_q is not None else None
-    if isinstance(initial, dict):
-        if q is None or joint_names is None or len(q) != len(joint_names):
-            raise ValueError("initial_q overrides require matching home_q and joint_names")
-        for name, value in initial.items():
-            q[list(joint_names).index(name)] = float(value)
+    q = _initial_q(start, rng, poses, home_q, joint_limits, joint_names, arm_joints, tcp_fn, max_tries)
     held = _object_ref(start["held"], roles) if "held" in start else None
     instruction = task_spec.instruction
     if task_spec.instruction_templates:

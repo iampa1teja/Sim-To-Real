@@ -59,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Also re-render every kept episode blue with no DR, as the first episodes")
     parser.add_argument("--copies", type=int, default=2, help="Number of appearance copies per v2 episode")
     parser.add_argument("--no_recolor", action="store_true", help="Keep source object colors in v2 copies")
+    parser.add_argument("--camera_jitter", metavar="POS_M,ROT_DEG", help="Jitter camera poses in v2 copies")
     parser.add_argument("--lang_blue", default="Pick up the blue cube and place it in the white box")
     parser.add_argument("--lang_red", default="Pick up the red cube and place it in the white box")
     parser.add_argument("--seed", type=int, default=0)
@@ -219,7 +220,7 @@ def print_plan(plan) -> None:
 def _json_args(args, *, legacy=False) -> dict:
     return {k: v for k, v in vars(args).items()
             if isinstance(v, (str, int, float, bool, type(None)))
-            and (not legacy or k not in {"copies", "no_recolor"})}
+            and (not legacy or k not in {"copies", "no_recolor", "camera_jitter"})}
 
 
 def _main_v2(parser, args, argv):
@@ -238,19 +239,33 @@ def _main_v2(parser, args, argv):
     if len(tasks) != 1 or None in tasks:
         raise ValueError("V2 replay requires a source dataset with one task")
     task_spec = load_task_spec(tasks.pop())
+    camera_jitter = None
+    if args.camera_jitter is not None:
+        try:
+            position, rotation = map(float, args.camera_jitter.split(","))
+        except ValueError as exc:
+            raise ValueError("--camera_jitter expects POS_M,ROT_DEG") from exc
+        camera_jitter = {"position_m": position, "rotation_deg": rotation}
     config = DRConfig(copies=args.copies, terms=tuple(parse_dr_terms(args.dr)),
-                      recolor=not args.no_recolor, seed=args.seed)
+                      recolor=not args.no_recolor, seed=args.seed, camera_jitter=camera_jitter)
     if Path(args.dst_root).exists():
         raise FileExistsError(f"Destination already exists: {args.dst_root}")
     check_source_fps(args.src_root, args.fps)
     kept = [sidecar for sidecar in source_meta if sidecar["episode_index"] not in exclude]
-    plan = plan_episodes_v2(kept, task_spec=task_spec, cfg=config,
-                            exposure_range=exposure_range(task_spec), robot_colors=robot_color_names(),
-                            include_originals=args.include_originals)
-    if args.limit > 0:
-        plan = plan[:args.limit]
-    print_plan_v2(plan)
+
+    def make_plan(cameras):
+        plan = plan_episodes_v2(kept, task_spec=task_spec, cfg=config, cameras=cameras,
+                                exposure_range=exposure_range(task_spec), robot_colors=robot_color_names(),
+                                include_originals=args.include_originals)
+        if args.limit > 0:
+            plan = plan[:args.limit]
+        print_plan_v2(plan)
+        return plan
+
     if args.dry_run:
+        info = json.loads((Path(args.src_root) / "meta" / "info.json").read_text())
+        prefix = "observation.images."
+        make_plan([key.removeprefix(prefix) for key in info.get("features", {}) if key.startswith(prefix)])
         return 0
 
     from isaaclab.app import AppLauncher
@@ -262,6 +277,8 @@ def _main_v2(parser, args, argv):
     if len(arms) != 1 or None in arms or len(scenes) != 1 or None in scenes:
         raise ValueError("V2 replay requires one source arm and scene")
     args.task, args.arm, args.scene = task_spec.name, arms.pop(), scenes.pop()
+    if any(obj.params.get("size_variants") for obj in task_spec.objects.values()):
+        args.variant = "generate"
     apply_selection(args)
     args.enable_cameras = True
     args.kit_args = rendering_kit_args(args.kit_args)
@@ -274,7 +291,7 @@ def _main_v2(parser, args, argv):
         from core.datasets.task_meta import LABEL_FEATURES, write_sidecar
         from core.generate.labels import label_columns
         from core.generate.protocols import FrameLabels
-        from sim.envs.mdp.objects import park_all
+        from sim.envs.mdp.objects import generation_assets, park_all, select_generation_assets
         from sim.envs.mdp.resets import ROBOT_COLORS
         from sim.generate.dr_variants import DRRanges, build_manifest_v2, sidecar_v2, write_json_atomic
         from sim.recording.lerobot_recorder import LeRobotRecorder
@@ -287,6 +304,8 @@ def _main_v2(parser, args, argv):
         frames = read_frames(args.src_root)
         env = make_env(args)
         cameras = discover_sim_cameras(env)
+        plan = make_plan(cameras)
+        physical_assets = tuple(asset for variants in generation_assets(task_spec).values() for asset in variants)
         ranges = DRRanges(exposure_range(task_spec), ROBOT_COLORS, {}, {}, None)
         replayer = SceneReplayer(env.unwrapped, make_mapping(env), ranges, cameras,
                                  task=args.task, palette=task_spec.palette)
@@ -299,17 +318,21 @@ def _main_v2(parser, args, argv):
                 src = by_index[planned.src_index]
                 payload = sidecar_v2(planned, src.meta, source_repo_id=args.src_repo_id)
                 data = frames[src.index]
+                sizes = {name: obj["size_m"] for name, obj in payload["objects"].items()}
+                assets = select_generation_assets(task_spec, sizes)
+                env.unwrapped._generation_object_assets = assets
                 env.reset()
-                park_all(env.unwrapped, task_spec.objects)
-                replayer.apply_v2(payload)
-                for t in range(src.length):
-                    replayer.pose_frame(src.states[t], {name: poses[t] for name, poses in src.objects.items()})
-                    labels = FrameLabels(int(data["label.stage"][t]), bool(data["label.imitate"][t]),
-                                         data["label.ee_pose"][t])
-                    frame = writer.make_sim_frame(src.actions[t], src.states[t], replayer.render_images(),
-                                                  extra=label_columns(labels))
-                    frame["task"] = payload["instruction"]
-                    writer.add_frame(frame)
+                park_all(env.unwrapped, physical_assets)
+                replayer.apply_v2(payload, assets)
+                with replayer.camera_jitter(payload["appearance"].get("camera_offsets", {})):
+                    for t in range(src.length):
+                        replayer.pose_frame(src.states[t], {assets[name]: poses[t] for name, poses in src.objects.items()})
+                        labels = FrameLabels(int(data["label.stage"][t]), bool(data["label.imitate"][t]),
+                                             data["label.ee_pose"][t])
+                        frame = writer.make_sim_frame(src.actions[t], src.states[t], replayer.render_images(),
+                                                      extra=label_columns(labels))
+                        frame["task"] = payload["instruction"]
+                        writer.add_frame(frame)
                 index = writer.save_episode()
                 if index != planned.dst_index:
                     raise RuntimeError(f"Saved episode {index}, planned {planned.dst_index}")
@@ -335,6 +358,8 @@ def main(argv=None):
     args, _ = parser.parse_known_args(argv)
     if (Path(args.src_root) / "task_meta").is_dir():
         return _main_v2(parser, args, argv)
+    if args.camera_jitter is not None:
+        raise ValueError("Camera jitter requires a v2 dataset")
     apply_selection(args)
 
     import torch
