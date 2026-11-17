@@ -1379,3 +1379,9 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - New public names: `loop.make_spec_fn`, `loop.home_q`, `audit.CHECKS`; `frames.LiteDatasetWriter` is the writer, `MemoryWriter` adds crash hooks. Images are not stored in the lite layout.
 - The no-duplicates gate is `tests/core/test_no_duplicates.py`; its harness is `tests/v4_support/harness.py` (`run_no_duplicates_suite`, `generate_small`, `fake_dr`, `assert_no_duplicates`). WP9, WP10 and WP13 call it for their tasks on `fx_arm5`.
 - WP7 fixture tasks live in `tests/fixtures/v4_wp7/tasks/` (`fx7_grip`, `fx7_reach`, `fx7_pick`, `fx7_color`), with the table at z = −0.05 m because the fx arms reach a down-pointing TCP only for z ≈ −0.06…0.10 m.
+
+**WP8** (see `docs/v4/prompts/WP8.md`)
+- `generate --dry_run` prints exactly what `generate-plan` prints for the resolved config; `--shard`, `--dst_root` and `--master_seed` are config overrides; `--limit_attempts` defaults to 0 (no limit).
+- `LeRobotRecorder(extra_features=None)` keeps today's features; `make_sim_frame(..., extra=None)` keeps today's frame; an unknown extra key raises `KeyError`.
+- The SO-101 literal scan excludes docstrings and mapping keys (`spec["gripper"]` names the `[arm.gripper]` table).
+- Container check scripts are written after WP8 lands, against the implemented `IsaacGenEnv`.
