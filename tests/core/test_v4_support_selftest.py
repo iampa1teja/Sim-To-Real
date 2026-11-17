@@ -325,7 +325,10 @@ class TaskFolderTests(unittest.TestCase):
             self.assertEqual((color / "usd" / "Small-Box-Physics.usda").read_text(), STUB_USDA)
             self.assertIn("from core.tasks.generic import GenericTask", (reach / "__init__.py").read_text())
             spec = load_task_spec("fx_contract_color")
-            self.assertEqual(set(spec.objects), {"small_box"})
+            # Before WP1 only the plain object loads; WP1 (contracts §4.1) adds the
+            # object-set slots cube_0..cube_5 to spec.objects.
+            slots = {f"cube_{i}" for i in range(6)}
+            self.assertIn(set(spec.objects), ({"small_box"}, {"small_box"} | slots))
             self.assertEqual(spec.raw["object_sets"]["cubes"]["count_max"], 6)
             self.assertEqual(spec.raw["failures"]["rules"][0], {"name": "wrong_object_placed", "if": ["distractor_in_box"]})
             reach_spec = load_task_spec("fx_contract_reach")
