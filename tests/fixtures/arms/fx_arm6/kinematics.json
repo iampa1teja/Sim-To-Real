@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "arm": "fx_arm6",
+  "base_link": "fx6_base",
+  "source": {
+    "usd": "usd/fx_arm6.usd",
+    "usd_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "git_commit": "unknown"
+  },
+  "joints": [
+    {
+      "name": "fx6_j1",
+      "type": "revolute",
+      "parent": "fx6_base",
+      "child": "fx6_l1",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.05
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.8,
+        2.8
+      ]
+    },
+    {
+      "name": "fx6_j2",
+      "type": "revolute",
+      "parent": "fx6_l1",
+      "child": "fx6_l2",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.04
+        ],
+        "quat_wxyz": [
+          0.7071067811865476,
+          0.7071067811865475,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          0.7071067811865476,
+          0.7071067811865475,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -1.8,
+        1.8
+      ]
+    },
+    {
+      "name": "fx6_j3",
+      "type": "revolute",
+      "parent": "fx6_l2",
+      "child": "fx6_l3",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.12
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.4,
+        2.4
+      ]
+    },
+    {
+      "name": "fx6_j4",
+      "type": "revolute",
+      "parent": "fx6_l3",
+      "child": "fx6_l4",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.06
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.8,
+        2.8
+      ]
+    },
+    {
+      "name": "fx6_j5",
+      "type": "revolute",
+      "parent": "fx6_l4",
+      "child": "fx6_l5",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.07
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.0,
+        2.0
+      ]
+    },
+    {
+      "name": "fx6_j6",
+      "type": "revolute",
+      "parent": "fx6_l5",
+      "child": "fx6_hand",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.04
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          -0.01
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.8,
+        2.8
+      ]
+    },
+    {
+      "name": "fx6_grip",
+      "type": "revolute",
+      "parent": "fx6_hand",
+      "child": "fx6_finger",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.01,
+          0.0,
+          0.03
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        0.0,
+        1.0
+      ]
+    }
+  ]
+}

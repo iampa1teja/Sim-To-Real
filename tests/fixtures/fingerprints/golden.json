@@ -1,0 +1,880 @@
+{
+ "_doc": "Golden fingerprints (contracts \u00a78.2). Each case: inputs, the canonical payload of the \u00a78.2 table (not for episode_fp) and the expected lower-case hex. Specs are EpisodeSpec.to_json(). Generated once from the contract table; never regenerate to make a failing test pass.",
+ "cases": {
+  "appearance_fp": [
+   {
+    "colors": {
+     "cube_0": "red",
+     "cube_3": "green",
+     "small_box": null
+    },
+    "expected": "d23baf9180f88fbb936ed73a00864b6d9089e743ee48488bdf3a5b704448b88b",
+    "instruction": "Pick up the red cube and place it in the box",
+    "light_exposure": null,
+    "name": "original",
+    "payload": {
+     "colors": {
+      "cube_0": "red",
+      "cube_3": "green",
+      "small_box": null
+     },
+     "instruction": "Pick up the red cube and place it in the box",
+     "light": null,
+     "robot_color": null,
+     "v": 1
+    },
+    "robot_color": null
+   },
+   {
+    "colors": {
+     "cube_0": "yellow",
+     "cube_3": "pink",
+     "small_box": null
+    },
+    "expected": "023c7c2d0f48fb38da668b591526b92ad9ea286336687d4d24a4f282eeb1f888",
+    "instruction": "Pick up the yellow cube and place it in the box",
+    "light_exposure": 0.8123,
+    "name": "copy",
+    "payload": {
+     "colors": {
+      "cube_0": "yellow",
+      "cube_3": "pink",
+      "small_box": null
+     },
+     "instruction": "Pick up the yellow cube and place it in the box",
+     "light": 812,
+     "robot_color": "black",
+     "v": 1
+    },
+    "robot_color": "black"
+   }
+  ],
+  "episode_fp": [
+   {
+    "appearance_fp": "d23baf9180f88fbb936ed73a00864b6d9089e743ee48488bdf3a5b704448b88b",
+    "expected": "26e62b318e4710807b59cfa3c5d78daa5a4cb7a4e8132e830e4f6537564638fb",
+    "name": "original",
+    "traj_fp": "a31e5b044d2b5b69bffbd32c293c23fb93143e44cc2f75527fe48dee22d6ed28"
+   },
+   {
+    "appearance_fp": "023c7c2d0f48fb38da668b591526b92ad9ea286336687d4d24a4f282eeb1f888",
+    "expected": "a60d0fa6e3dc2ec8a80ed39bf3cc1d41e38324259efb2bd70f0581b5a6ac32a3",
+    "name": "copy",
+    "traj_fp": "a31e5b044d2b5b69bffbd32c293c23fb93143e44cc2f75527fe48dee22d6ed28"
+   }
+  ],
+  "scenario_key": [
+   {
+    "expected": "0bcb86bd6b318bba1cae51c0025f38ff305a0db3fd627d396deb902d95d6c44e",
+    "name": "success_noise_goal",
+    "payload": {
+     "arm": "fx_arm5",
+     "goal": {
+      "flag": true,
+      "gap": 15,
+      "joint": {
+       "angles": [
+        313,
+        -207
+       ],
+       "joint": "j1"
+      },
+      "n": 3,
+      "name": "left",
+      "point": [
+       211,
+       -53,
+       121
+      ]
+     },
+     "held": false,
+     "objects": [
+      {
+       "color": "green",
+       "kind": "cube",
+       "p": [
+        153,
+        -87,
+        10
+       ],
+       "role": null,
+       "yaw": -63
+      },
+      {
+       "color": "red",
+       "kind": "cube",
+       "p": [
+        203,
+        51,
+        10
+       ],
+       "role": "target",
+       "yaw": 40
+      },
+      {
+       "color": null,
+       "kind": "small_box",
+       "p": [
+        231,
+        -41,
+        0
+       ],
+       "role": "container",
+       "yaw": 14
+      }
+     ],
+     "q0": [
+      1,
+      -35,
+      184,
+      137,
+      0,
+      57
+     ],
+     "scene": "fx_scene",
+     "task": "fx_pick",
+     "v": 1
+    },
+    "spec": {
+     "arm": "fx_arm5",
+     "attempt_index": 17,
+     "fps": 30,
+     "goal": {
+      "flag": true,
+      "gap": 0.0153,
+      "joint": {
+       "angles": [
+        0.3125,
+        -0.2071
+       ],
+       "joint": "j1"
+      },
+      "n": 3,
+      "name": "left",
+      "point": [
+       0.2113,
+       -0.0526,
+       0.1207
+      ]
+     },
+     "held_object": null,
+     "initial_q": [
+      0.0123,
+      -0.3051,
+      1.6017,
+      1.1987,
+      -0.0042,
+      0.5
+     ],
+     "instruction": "Pick up the red cube and place it in the box",
+     "kind": "success",
+     "max_steps": 600,
+     "noise": {
+      "max_abs_rad": 0.02,
+      "sigma_rad": 0.01,
+      "theta": 0.15
+     },
+     "objects": {
+      "cube_0": {
+       "active": true,
+       "color": "red",
+       "pose": {
+        "position": [
+         0.2034,
+         0.0512,
+         0.01
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.34289780745545134,
+         0.9393727128473789
+        ]
+       }
+      },
+      "cube_1": {
+       "active": false,
+       "color": null,
+       "pose": {
+        "position": [
+         0.1,
+         0.0,
+         -2.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.0,
+         1.0
+        ]
+       }
+      },
+      "cube_3": {
+       "active": true,
+       "color": "green",
+       "pose": {
+        "position": [
+         0.1525,
+         -0.0871,
+         0.01
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         -0.5226872289306592,
+         0.8525245220595057
+        ]
+       }
+      },
+      "small_box": {
+       "active": true,
+       "color": null,
+       "pose": {
+        "position": [
+         0.2311,
+         -0.0412,
+         0.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.12467473338522769,
+         0.992197667229329
+        ]
+       }
+      }
+     },
+     "perturbation": null,
+     "roles": {
+      "container": "small_box",
+      "target": "cube_0"
+     },
+     "scene": "fx_scene",
+     "schema": "episode_spec/1",
+     "seed": 11062146242513595739,
+     "task": "fx_pick"
+    }
+   },
+   {
+    "expected": "ddfa180e5421ac0ca0f96e556293230182ee0de5589bc64f099f3e37066f4367",
+    "name": "failure_held_perturbed",
+    "payload": {
+     "arm": "fx_arm5",
+     "goal": {},
+     "held": true,
+     "objects": [
+      {
+       "color": "blue",
+       "kind": "cube",
+       "p": [
+        200,
+        50,
+        30
+       ],
+       "role": "target",
+       "yaw": 166
+      },
+      {
+       "color": null,
+       "kind": "box",
+       "p": [
+        250,
+        -50,
+        0
+       ],
+       "role": "container",
+       "yaw": -172
+      }
+     ],
+     "q0": [
+      11,
+      -23,
+      172,
+      115,
+      23,
+      34
+     ],
+     "scene": "fx_scene",
+     "task": "fx_pick",
+     "v": 1
+    },
+    "spec": {
+     "arm": "fx_arm5",
+     "attempt_index": 3,
+     "fps": 30,
+     "goal": {},
+     "held_object": "cube_0",
+     "initial_q": [
+      0.1,
+      -0.2,
+      1.5,
+      1.0,
+      0.2,
+      0.3
+     ],
+     "instruction": "Pick up the blue cube and place it in the box",
+     "kind": "failure",
+     "max_steps": 600,
+     "noise": null,
+     "objects": {
+      "box": {
+       "active": true,
+       "color": null,
+       "pose": {
+        "position": [
+         0.25,
+         -0.05,
+         0.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         -0.9974949866040544,
+         0.0707372016677029
+        ]
+       }
+      },
+      "cube_0": {
+       "active": true,
+       "color": "blue",
+       "pose": {
+        "position": [
+         0.2,
+         0.05,
+         0.03
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.9927129910375885,
+         0.12050276936736662
+        ]
+       }
+      }
+     },
+     "perturbation": {
+      "delay_steps": 4,
+      "group": "world",
+      "onset_stage": "lifted",
+      "params": {
+       "dir_rad": 4.1234,
+       "xy_jitter_m": 0.0123
+      },
+      "type": "object_drop"
+     },
+     "roles": {
+      "container": "box",
+      "target": "cube_0"
+     },
+     "scene": "fx_scene",
+     "schema": "episode_spec/1",
+     "seed": 7801958555027104258,
+     "task": "fx_pick"
+    }
+   }
+  ],
+  "spec_fp": [
+   {
+    "expected": "74e07b0fefa9670fde41ac4f0dfc9cc7775a141fa5035899d50b7dc377bc7c07",
+    "name": "success_noise_goal",
+    "payload": {
+     "spec": {
+      "arm": "fx_arm5",
+      "fps": 30,
+      "goal": {
+       "flag": true,
+       "gap": 153,
+       "joint": {
+        "angles": [
+         3125,
+         -2071
+        ],
+        "joint": "j1"
+       },
+       "n": 3,
+       "name": "left",
+       "point": [
+        2113,
+        -526,
+        1207
+       ]
+      },
+      "held_object": null,
+      "initial_q": [
+       123,
+       -3051,
+       16017,
+       11987,
+       -42,
+       5000
+      ],
+      "instruction": "Pick up the red cube and place it in the box",
+      "kind": "success",
+      "max_steps": 600,
+      "noise": {
+       "max_abs_rad": 200,
+       "sigma_rad": 100,
+       "theta": 1500
+      },
+      "objects": {
+       "cube_0": {
+        "active": true,
+        "color": "red",
+        "pose": {
+         "position": [
+          2034,
+          512,
+          100
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          3429,
+          9394
+         ]
+        }
+       },
+       "cube_1": {
+        "active": false,
+        "color": null,
+        "pose": {
+         "position": [
+          1000,
+          0,
+          -20000
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          0,
+          10000
+         ]
+        }
+       },
+       "cube_3": {
+        "active": true,
+        "color": "green",
+        "pose": {
+         "position": [
+          1525,
+          -871,
+          100
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          -5227,
+          8525
+         ]
+        }
+       },
+       "small_box": {
+        "active": true,
+        "color": null,
+        "pose": {
+         "position": [
+          2311,
+          -412,
+          0
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          1247,
+          9922
+         ]
+        }
+       }
+      },
+      "perturbation": null,
+      "roles": {
+       "container": "small_box",
+       "target": "cube_0"
+      },
+      "scene": "fx_scene",
+      "schema": "episode_spec/1",
+      "task": "fx_pick"
+     },
+     "v": 1
+    },
+    "spec": {
+     "arm": "fx_arm5",
+     "attempt_index": 17,
+     "fps": 30,
+     "goal": {
+      "flag": true,
+      "gap": 0.0153,
+      "joint": {
+       "angles": [
+        0.3125,
+        -0.2071
+       ],
+       "joint": "j1"
+      },
+      "n": 3,
+      "name": "left",
+      "point": [
+       0.2113,
+       -0.0526,
+       0.1207
+      ]
+     },
+     "held_object": null,
+     "initial_q": [
+      0.0123,
+      -0.3051,
+      1.6017,
+      1.1987,
+      -0.0042,
+      0.5
+     ],
+     "instruction": "Pick up the red cube and place it in the box",
+     "kind": "success",
+     "max_steps": 600,
+     "noise": {
+      "max_abs_rad": 0.02,
+      "sigma_rad": 0.01,
+      "theta": 0.15
+     },
+     "objects": {
+      "cube_0": {
+       "active": true,
+       "color": "red",
+       "pose": {
+        "position": [
+         0.2034,
+         0.0512,
+         0.01
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.34289780745545134,
+         0.9393727128473789
+        ]
+       }
+      },
+      "cube_1": {
+       "active": false,
+       "color": null,
+       "pose": {
+        "position": [
+         0.1,
+         0.0,
+         -2.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.0,
+         1.0
+        ]
+       }
+      },
+      "cube_3": {
+       "active": true,
+       "color": "green",
+       "pose": {
+        "position": [
+         0.1525,
+         -0.0871,
+         0.01
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         -0.5226872289306592,
+         0.8525245220595057
+        ]
+       }
+      },
+      "small_box": {
+       "active": true,
+       "color": null,
+       "pose": {
+        "position": [
+         0.2311,
+         -0.0412,
+         0.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.12467473338522769,
+         0.992197667229329
+        ]
+       }
+      }
+     },
+     "perturbation": null,
+     "roles": {
+      "container": "small_box",
+      "target": "cube_0"
+     },
+     "scene": "fx_scene",
+     "schema": "episode_spec/1",
+     "seed": 11062146242513595739,
+     "task": "fx_pick"
+    }
+   },
+   {
+    "expected": "aec6336222c5dc368df69abc917373408f2c662e680ec4817d9b4784ad9ed432",
+    "name": "failure_held_perturbed",
+    "payload": {
+     "spec": {
+      "arm": "fx_arm5",
+      "fps": 30,
+      "goal": {},
+      "held_object": "cube_0",
+      "initial_q": [
+       1000,
+       -2000,
+       15000,
+       10000,
+       2000,
+       3000
+      ],
+      "instruction": "Pick up the blue cube and place it in the box",
+      "kind": "failure",
+      "max_steps": 600,
+      "noise": null,
+      "objects": {
+       "box": {
+        "active": true,
+        "color": null,
+        "pose": {
+         "position": [
+          2500,
+          -500,
+          0
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          -9975,
+          707
+         ]
+        }
+       },
+       "cube_0": {
+        "active": true,
+        "color": "blue",
+        "pose": {
+         "position": [
+          2000,
+          500,
+          300
+         ],
+         "quat_xyzw": [
+          0,
+          0,
+          9927,
+          1205
+         ]
+        }
+       }
+      },
+      "perturbation": {
+       "delay_steps": 4,
+       "group": "world",
+       "onset_stage": "lifted",
+       "params": {
+        "dir_rad": 41234,
+        "xy_jitter_m": 123
+       },
+       "type": "object_drop"
+      },
+      "roles": {
+       "container": "box",
+       "target": "cube_0"
+      },
+      "scene": "fx_scene",
+      "schema": "episode_spec/1",
+      "task": "fx_pick"
+     },
+     "v": 1
+    },
+    "spec": {
+     "arm": "fx_arm5",
+     "attempt_index": 3,
+     "fps": 30,
+     "goal": {},
+     "held_object": "cube_0",
+     "initial_q": [
+      0.1,
+      -0.2,
+      1.5,
+      1.0,
+      0.2,
+      0.3
+     ],
+     "instruction": "Pick up the blue cube and place it in the box",
+     "kind": "failure",
+     "max_steps": 600,
+     "noise": null,
+     "objects": {
+      "box": {
+       "active": true,
+       "color": null,
+       "pose": {
+        "position": [
+         0.25,
+         -0.05,
+         0.0
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         -0.9974949866040544,
+         0.0707372016677029
+        ]
+       }
+      },
+      "cube_0": {
+       "active": true,
+       "color": "blue",
+       "pose": {
+        "position": [
+         0.2,
+         0.05,
+         0.03
+        ],
+        "quat_xyzw": [
+         0.0,
+         0.0,
+         0.9927129910375885,
+         0.12050276936736662
+        ]
+       }
+      }
+     },
+     "perturbation": {
+      "delay_steps": 4,
+      "group": "world",
+      "onset_stage": "lifted",
+      "params": {
+       "dir_rad": 4.1234,
+       "xy_jitter_m": 0.0123
+      },
+      "type": "object_drop"
+     },
+     "roles": {
+      "container": "box",
+      "target": "cube_0"
+     },
+     "scene": "fx_scene",
+     "schema": "episode_spec/1",
+     "seed": 7801958555027104258,
+     "task": "fx_pick"
+    }
+   }
+  ],
+  "traj_fp": [
+   {
+    "action_raw": [
+     [
+      61.0006,
+      61.5882,
+      3.0651,
+      -42.8397,
+      -89.2139,
+      67.9182
+     ],
+     [
+      -18.3054,
+      -90.945,
+      -90.2485,
+      99.8352,
+      30.4738,
+      87.0089
+     ],
+     [
+      -13.0105,
+      94.8372,
+      79.5355,
+      68.8462,
+      -21.5191,
+      22.7319
+     ],
+     [
+      35.3379,
+      -87.8395,
+      11.1192,
+      -45.7097,
+      75.9302,
+      89.5448
+     ]
+    ],
+    "expected": "a31e5b044d2b5b69bffbd32c293c23fb93143e44cc2f75527fe48dee22d6ed28",
+    "name": "4x6",
+    "objects0": {
+     "cube_0": [
+      0.20345,
+      0.05121,
+      0.01
+     ],
+     "small_box": [
+      0.23111,
+      -0.04123,
+      0.0
+     ]
+    },
+    "payload": {
+     "action": "800003727ac40d0ec9e841b40eda3f4d60044c553c14109f2ade9c53aae15df6",
+     "objects0": {
+      "cube_0": [
+       2034,
+       512,
+       100
+      ],
+      "small_box": [
+       2311,
+       -412,
+       0
+      ]
+     },
+     "shape": [
+      4,
+      6
+     ],
+     "state": "177ba4d8107b18304776abc476970143acab4f13e912d89591e077019f9b1cf1",
+     "v": 1
+    },
+    "state_raw": [
+     [
+      60.5102,
+      61.5016,
+      2.4204,
+      -42.8294,
+      -89.2328,
+      67.766
+     ],
+     [
+      -18.8294,
+      -91.1431,
+      -90.7942,
+      99.1576,
+      30.5862,
+      86.4542
+     ],
+     [
+      -12.4254,
+      95.1955,
+      78.5366,
+      68.9823,
+      -22.07,
+      22.7484
+     ],
+     [
+      35.3597,
+      -88.8337,
+      11.0025,
+      -45.8376,
+      76.4112,
+      88.9541
+     ]
+    ]
+   }
+  ]
+ }
+}

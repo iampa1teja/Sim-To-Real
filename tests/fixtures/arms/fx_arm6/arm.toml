@@ -1,0 +1,60 @@
+[arm]
+name = "FX_ARM6"
+usd_path = "usd/fx_arm6.usd"
+
+[arm.links]
+base = "fx6_base"
+ee = "fx6_hand"
+fixed_jaw_mesh = "fx6_fixed_mesh"
+moving_jaw = "fx6_finger"
+moving_jaw_mesh = "fx6_moving_mesh"
+
+[arm.joints]
+names = ["fx6_j1", "fx6_j2", "fx6_j3", "fx6_j4", "fx6_j5", "fx6_j6", "fx6_grip"]
+
+[arm.initial_state]
+position = [0.0, 0.0, 0.0]
+rotation_euler_degrees = [0.0, 0.0, 0.0]
+
+[arm.initial_state.joint_positions]
+fx6_j1 = 0.0
+fx6_j2 = 0.4
+fx6_j3 = 0.9
+fx6_j4 = 0.0
+fx6_j5 = 1.2
+fx6_j6 = 0.0
+fx6_grip = 0.5
+
+[arm.lerobot]
+follower_type = "fx_arm6_follower"
+leader_type = "fx_arm6_leader"
+use_degrees = false
+roll_joint = "j6"
+gripper_joint = "grip"
+names = ["j1", "j2", "j3", "j4", "j5", "j6", "grip"]
+
+[arm.kinematics]
+file = "kinematics.json"
+ee_link = "fx6_hand"
+tcp_position_m = [0.0, 0.0, 0.08]
+tcp_quat_wxyz = [1.0, 0.0, 0.0, 0.0]
+approach_axis = [0.0, 0.0, 1.0]
+closing_axis = [1.0, 0.0, 0.0]
+
+[arm.gripper]
+joint = "fx6_grip"
+open_rad = 1.0
+closed_rad = 0.0
+opening_table = [[0.0, 0.0], [0.25, 0.012], [0.5, 0.025], [0.75, 0.037], [1.0, 0.048]]
+max_object_width_m = 0.045
+
+[arm.expert]
+arm_joints = ["fx6_j1", "fx6_j2", "fx6_j3", "fx6_j4", "fx6_j5", "fx6_j6"]
+max_joint_speed_rad_s = 1.5
+max_gripper_speed_rad_s = 3.0
+max_ee_speed_m_s = 0.15
+ik_position_weight = 1.0
+ik_axis_weight = 0.3
+ik_roll_weight = 0.1
+ik_tol_pos_m = 0.0005
+ik_tol_rot_rad = 0.02

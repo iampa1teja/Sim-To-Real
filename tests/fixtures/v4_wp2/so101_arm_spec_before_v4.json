@@ -1,0 +1,365 @@
+{
+ "base": {
+  "actuators": {
+   "elbow": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Elbow"
+    ],
+    "stiffness": 25.0
+   },
+   "gripper": {
+    "armature": 0.000625,
+    "damping": 0.3,
+    "effort_limit_sim": 0.3,
+    "joint_names_expr": [
+     "Jaw"
+    ],
+    "stiffness": 4.0
+   },
+   "pitch": {
+    "damping": 0.8,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Pitch"
+    ],
+    "stiffness": 30.0
+   },
+   "rotation": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Rotation"
+    ],
+    "stiffness": 55.0
+   },
+   "wrist_pitch": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Pitch"
+    ],
+    "stiffness": 12.0
+   },
+   "wrist_roll": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Roll"
+    ],
+    "stiffness": 7.0
+   }
+  },
+  "hardware": {
+   "encoder_counts_per_turn": 4096,
+   "motor": "ST3215",
+   "zero_count": 2048
+  },
+  "initial_state": {
+   "joint_positions": {
+    "Elbow": -0.0745,
+    "Jaw": -0.1465,
+    "Pitch": -0.6109,
+    "Rotation": -0.2736,
+    "Wrist_Pitch": 1.5148,
+    "Wrist_Roll": -0.0326036732
+   },
+   "position": [
+    -0.05,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_degrees": [
+    0.0,
+    0.0,
+    90.0
+   ]
+  },
+  "joints": {
+   "names": [
+    "Rotation",
+    "Pitch",
+    "Elbow",
+    "Wrist_Pitch",
+    "Wrist_Roll",
+    "Jaw"
+   ]
+  },
+  "lerobot": {
+   "follower_calibration_dir": "robots/so101_follower",
+   "follower_type": "so101_follower",
+   "gripper_joint": "gripper",
+   "leader_calibration_dir": "teleoperators/so101_leader",
+   "leader_type": "so101_leader",
+   "names": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper"
+   ],
+   "roll_joint": "wrist_roll",
+   "use_degrees": false
+  },
+  "links": {
+   "base": "base",
+   "ee": "gripper",
+   "fixed_jaw_mesh": "wrist_roll_follower_so101_v1"
+  },
+  "name": "SO101",
+  "spawn": {
+   "activate_contact_sensors": false,
+   "articulation_props": {
+    "self_collision_enabled": false
+   },
+   "rigid_props": {
+    "disable_gravity": false
+   }
+  },
+  "usd_path": "usd/SO-ARM101-USD.usd"
+ },
+ "contact_grasp": {
+  "actuators": {
+   "elbow": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Elbow"
+    ],
+    "stiffness": 25.0
+   },
+   "gripper": {
+    "armature": 0.000625,
+    "damping": 0.3,
+    "effort_limit_sim": 0.3,
+    "joint_names_expr": [
+     "Jaw"
+    ],
+    "stiffness": 4.0
+   },
+   "pitch": {
+    "damping": 0.8,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Pitch"
+    ],
+    "stiffness": 30.0
+   },
+   "rotation": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Rotation"
+    ],
+    "stiffness": 55.0
+   },
+   "wrist_pitch": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Pitch"
+    ],
+    "stiffness": 12.0
+   },
+   "wrist_roll": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Roll"
+    ],
+    "stiffness": 7.0
+   }
+  },
+  "hardware": {
+   "encoder_counts_per_turn": 4096,
+   "motor": "ST3215",
+   "zero_count": 2048
+  },
+  "initial_state": {
+   "joint_positions": {
+    "Elbow": -0.0745,
+    "Jaw": -0.1465,
+    "Pitch": -0.6109,
+    "Rotation": -0.2736,
+    "Wrist_Pitch": 1.5148,
+    "Wrist_Roll": -0.0326036732
+   },
+   "position": [
+    -0.05,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_degrees": [
+    0.0,
+    0.0,
+    90.0
+   ]
+  },
+  "joints": {
+   "names": [
+    "Rotation",
+    "Pitch",
+    "Elbow",
+    "Wrist_Pitch",
+    "Wrist_Roll",
+    "Jaw"
+   ]
+  },
+  "lerobot": {
+   "follower_calibration_dir": "robots/so101_follower",
+   "follower_type": "so101_follower",
+   "gripper_joint": "gripper",
+   "leader_calibration_dir": "teleoperators/so101_leader",
+   "leader_type": "so101_leader",
+   "names": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper"
+   ],
+   "roll_joint": "wrist_roll",
+   "use_degrees": false
+  },
+  "links": {
+   "base": "base",
+   "ee": "gripper",
+   "fixed_jaw_mesh": "wrist_roll_follower_so101_v1"
+  },
+  "name": "SO101",
+  "spawn": {
+   "activate_contact_sensors": true,
+   "articulation_props": {
+    "self_collision_enabled": false
+   },
+   "rigid_props": {
+    "disable_gravity": false
+   }
+  },
+  "usd_path": "usd/SO-ARM101-USD.usd"
+ },
+ "no_camera": {
+  "actuators": {
+   "elbow": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Elbow"
+    ],
+    "stiffness": 25.0
+   },
+   "gripper": {
+    "armature": 0.000625,
+    "damping": 0.3,
+    "effort_limit_sim": 0.3,
+    "joint_names_expr": [
+     "Jaw"
+    ],
+    "stiffness": 4.0
+   },
+   "pitch": {
+    "damping": 0.8,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Pitch"
+    ],
+    "stiffness": 30.0
+   },
+   "rotation": {
+    "damping": 0.7,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Rotation"
+    ],
+    "stiffness": 55.0
+   },
+   "wrist_pitch": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Pitch"
+    ],
+    "stiffness": 12.0
+   },
+   "wrist_roll": {
+    "damping": 0.5,
+    "effort_limit_sim": 30.0,
+    "joint_names_expr": [
+     "Wrist_Roll"
+    ],
+    "stiffness": 7.0
+   }
+  },
+  "hardware": {
+   "encoder_counts_per_turn": 4096,
+   "motor": "ST3215",
+   "zero_count": 2048
+  },
+  "initial_state": {
+   "joint_positions": {
+    "Elbow": -0.0745,
+    "Jaw": -0.1465,
+    "Pitch": -0.6109,
+    "Rotation": -0.2736,
+    "Wrist_Pitch": 1.5148,
+    "Wrist_Roll": -0.0326036732
+   },
+   "position": [
+    -0.05,
+    0.0,
+    0.0
+   ],
+   "rotation_euler_degrees": [
+    0.0,
+    0.0,
+    90.0
+   ]
+  },
+  "joints": {
+   "names": [
+    "Rotation",
+    "Pitch",
+    "Elbow",
+    "Wrist_Pitch",
+    "Wrist_Roll",
+    "Jaw"
+   ]
+  },
+  "lerobot": {
+   "follower_calibration_dir": "robots/so101_follower",
+   "follower_type": "so101_follower",
+   "gripper_joint": "gripper",
+   "leader_calibration_dir": "teleoperators/so101_leader",
+   "leader_type": "so101_leader",
+   "names": [
+    "shoulder_pan",
+    "shoulder_lift",
+    "elbow_flex",
+    "wrist_flex",
+    "wrist_roll",
+    "gripper"
+   ],
+   "roll_joint": "wrist_roll",
+   "use_degrees": false
+  },
+  "links": {
+   "base": "base",
+   "ee": "gripper",
+   "fixed_jaw_mesh": "wrist_roll_follower_so101_v1"
+  },
+  "name": "SO101",
+  "spawn": {
+   "activate_contact_sensors": false,
+   "articulation_props": {
+    "self_collision_enabled": false
+   },
+   "rigid_props": {
+    "disable_gravity": false
+   }
+  },
+  "usd_path": "usd/SO-ARM101-USD-NO-CAMERA.usd"
+ }
+}

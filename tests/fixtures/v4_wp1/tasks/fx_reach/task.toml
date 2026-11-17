@@ -1,0 +1,39 @@
+[task]
+name = "fx_reach"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.instruction_template]
+texts = ["Move the gripper to the point"]
+
+[task.start.goal.point]
+type = "point"
+z_m = [0.03, 0.2]
+
+[task.start.goal.point.region]
+r_m = [0.15, 0.32]
+bearing_deg = [-60.0, 60.0]
+
+[task.stages]
+order = ["reached", "success"]
+
+[task.checks.reached]
+check = "ee_near"
+point = "@goal.point"
+tol_m = 0.01
+
+[task.checks.success]
+check = "all"
+of = ["reached"]
+
+[task.failures]
+rules = [{ name = "never_reached", unless = ["reached"] }, { name = "left_target" }]
+
+[task.expert]
+steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.point", stage = "reached" }, { skill = "wait", steps = 10, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", xy_m = [0.03, 0.08] }, { type = "stall", stages = ["reached"], steps = [600, 600] }]
+recovery = [{ type = "target_offset", xy_m = [0.03, 0.08] }]

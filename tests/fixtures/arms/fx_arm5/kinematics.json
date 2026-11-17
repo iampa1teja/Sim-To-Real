@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "arm": "fx_arm5",
+  "base_link": "fx5_base",
+  "source": {
+    "usd": "usd/fx_arm5.usd",
+    "usd_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "git_commit": "unknown"
+  },
+  "joints": [
+    {
+      "name": "fx5_pan",
+      "type": "revolute",
+      "parent": "fx5_base",
+      "child": "fx5_shoulder",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.055
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -2.0,
+        2.0
+      ]
+    },
+    {
+      "name": "fx5_lift",
+      "type": "revolute",
+      "parent": "fx5_shoulder",
+      "child": "fx5_upper",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.035
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -1.8,
+        1.8
+      ]
+    },
+    {
+      "name": "fx5_elbow",
+      "type": "revolute",
+      "parent": "fx5_upper",
+      "child": "fx5_fore",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.13
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -1.7,
+        2.6
+      ]
+    },
+    {
+      "name": "fx5_flex",
+      "type": "revolute",
+      "parent": "fx5_fore",
+      "child": "fx5_wrist",
+      "axis": [
+        0,
+        1,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.14
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -1.8,
+        1.8
+      ]
+    },
+    {
+      "name": "fx5_roll",
+      "type": "revolute",
+      "parent": "fx5_wrist",
+      "child": "fx5_hand",
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.04
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        -3.0,
+        3.0
+      ]
+    },
+    {
+      "name": "fx5_grip",
+      "type": "revolute",
+      "parent": "fx5_hand",
+      "child": "fx5_jaw",
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "parent_frame": {
+        "position": [
+          0.0,
+          0.015,
+          0.02
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "child_frame": {
+        "position": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "quat_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "limits_rad": [
+        0.0,
+        1.0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+[arm]
+name = "FX_ARM5"
+usd_path = "usd/fx_arm5.usd"
+
+[arm.links]
+base = "fx5_base"
+ee = "fx5_hand"
+fixed_jaw_mesh = "fx5_fixed_mesh"
+moving_jaw = "fx5_jaw"
+moving_jaw_mesh = "fx5_moving_mesh"
+
+[arm.joints]
+names = ["fx5_pan", "fx5_lift", "fx5_elbow", "fx5_flex", "fx5_roll", "fx5_grip"]
+
+[arm.initial_state]
+position = [0.0, 0.0, 0.0]
+rotation_euler_degrees = [0.0, 0.0, 0.0]
+
+[arm.initial_state.joint_positions]
+fx5_pan = 0.0
+fx5_lift = -0.3
+fx5_elbow = 1.6
+fx5_flex = 1.2
+fx5_roll = 0.0
+fx5_grip = 0.5
+
+[arm.lerobot]
+follower_type = "fx_arm5_follower"
+leader_type = "fx_arm5_leader"
+use_degrees = false
+roll_joint = "roll"
+gripper_joint = "grip"
+names = ["pan", "lift", "elbow", "flex", "roll", "grip"]
+
+[arm.kinematics]
+file = "kinematics.json"
+ee_link = "fx5_hand"
+tcp_position_m = [0.0, 0.0, 0.09]
+tcp_quat_wxyz = [1.0, 0.0, 0.0, 0.0]
+approach_axis = [0.0, 0.0, 1.0]
+closing_axis = [1.0, 0.0, 0.0]
+
+[arm.gripper]
+joint = "fx5_grip"
+open_rad = 1.0
+closed_rad = 0.0
+opening_table = [[0.0, 0.0], [0.25, 0.012], [0.5, 0.025], [0.75, 0.037], [1.0, 0.048]]
+max_object_width_m = 0.045
+
+[arm.expert]
+arm_joints = ["fx5_pan", "fx5_lift", "fx5_elbow", "fx5_flex", "fx5_roll"]
+max_joint_speed_rad_s = 1.5
+max_gripper_speed_rad_s = 3.0
+max_ee_speed_m_s = 0.15
+ik_position_weight = 1.0
+ik_axis_weight = 0.3
+ik_roll_weight = 0.1
+ik_tol_pos_m = 0.0005
+ik_tol_rot_rad = 0.02
