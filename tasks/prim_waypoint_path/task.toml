@@ -1,0 +1,52 @@
+[task]
+name = "prim_waypoint_path"
+instruction = "Move the gripper through the waypoints in order"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.start]
+table_z_m = 0.0
+
+[task.start.goal.points]
+type = "points"
+count = 3
+z_m = [0.04, 0.14]
+min_separation_m = 0.06
+region = { r_m = [0.22, 0.36], bearing_deg = [-140.0, -40.0] }
+
+[task.stages]
+order = ["w0", "w1", "w2", "success"]
+
+[task.checks.w0]
+check = "ee_near"
+point = "@goal.points.0"
+tol_m = 0.01
+
+[task.checks.w1]
+check = "ee_near"
+point = "@goal.points.1"
+tol_m = 0.01
+
+[task.checks.w2]
+check = "ee_near"
+point = "@goal.points.2"
+tol_m = 0.01
+
+[task.checks.success]
+check = "all"
+of = ["w2"]
+
+[task.failures]
+rules = [{ name = "missed_w0", unless = ["w0"] }, { name = "missed_w1", unless = ["w1"] }, { name = "missed_w2", unless = ["w2"] }, { name = "left_path" }]
+
+[task.expert]
+max_steps = 500
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.points.0", stage = "w0" }, { skill = "reach", target = "@goal.points.1", stage = "w1" }, { skill = "reach", target = "@goal.points.2", stage = "w2" }, { skill = "wait", steps = 10, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", stages = ["w2"], xy_m = [0.03, 0.06] }]
+recovery = [{ type = "target_offset", xy_m = [0.03, 0.06] }]

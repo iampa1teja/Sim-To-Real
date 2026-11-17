@@ -1,0 +1,66 @@
+[task]
+name = "prim_touch_object"
+instruction = "Touch the top of the cube and pull back"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.cube]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.roles]
+target = "cube"
+
+[task.start]
+table_z_m = 0.0
+reachable = ["@target"]
+
+[task.start.place.cube]
+yaw_deg = [0.0, 90.0]
+
+[task.start.place.cube.region]
+xy_min = [-0.15, -0.36]
+xy_max = [0.15, -0.22]
+
+[task.stages]
+order = ["touched", "withdrawn", "success"]
+
+[task.checks.touched]
+check = "ee_near"
+object = "@target"
+offset_m = [0.0, 0.0, 0.01]
+tol_m = 0.006
+
+[task.checks.away]
+check = "ee_near"
+object = "@target"
+tol_m = 0.04
+negate = true
+
+[task.checks.withdrawn]
+check = "all"
+of = ["away"]
+
+[task.checks.moved]
+check = "object_displaced"
+object = "@target"
+min_m = 0.005
+
+[task.checks.success]
+check = "all"
+of = ["withdrawn"]
+
+[task.failures]
+rules = [{ name = "never_touched", unless = ["touched"] }, { name = "pushed_object", if = ["moved"] }, { name = "stayed_on_object" }]
+
+[task.expert]
+max_steps = 400
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.05] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = 0.06, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "stall", stages = ["touched"], steps = [400, 400] }]
+recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]

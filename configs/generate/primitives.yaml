@@ -1,0 +1,25 @@
+arm: so101
+scene: rpd_meeting_room
+tasks:
+  - prim_joint_sweep
+  - prim_gripper_gap
+  - prim_reach_point
+  - prim_test_reach
+  - prim_calibration_reach
+  - prim_waypoint_path
+  - prim_touch_object
+  - prim_nudge
+  - prim_push_to_region
+  - prim_lift_test
+  - prim_grasp_lift
+  - prim_place_at
+  - prim_regrasp_after_drop
+master_seed: 0
+quotas: {success: 1000, failure: 500, recovery: 500}
+shard: "0/1"
+dst_root: /data/v4-primitives
+repo_id: "local/{task}"
+fps: 30
+max_attempt_factor: 10.0
+max_consecutive_skips: 1000
+cameras: true

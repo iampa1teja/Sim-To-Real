@@ -1,0 +1,60 @@
+[task]
+name = "prim_test_reach"
+instruction = "Move the gripper next to the cube without touching it"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.cube]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.roles]
+target = "cube"
+
+[task.start]
+table_z_m = 0.0
+reachable = ["@target"]
+
+[task.start.place.cube]
+yaw_deg = [0.0, 90.0]
+
+[task.start.place.cube.region]
+xy_min = [-0.15, -0.36]
+xy_max = [0.15, -0.22]
+
+[task.stages]
+order = ["beside", "success"]
+
+[task.checks.beside]
+check = "ee_near"
+object = "@target"
+offset_m = [0.0, 0.04, 0.0]
+tol_m = 0.01
+
+[task.checks.moved]
+check = "object_displaced"
+object = "@target"
+min_m = 0.003
+
+[task.checks.untouched]
+check = "all"
+of = ["beside"]
+
+[task.checks.success]
+check = "all"
+of = ["beside"]
+
+[task.failures]
+rules = [{ name = "touched_object", if = ["moved"] }, { name = "never_beside", unless = ["beside"] }, { name = "left_point" }]
+
+[task.expert]
+max_steps = 300
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@target", offset_m = [0.0, 0.04, 0.0], stage = "beside" }, { skill = "wait", steps = 10, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
+recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]

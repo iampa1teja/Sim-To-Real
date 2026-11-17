@@ -1,0 +1,87 @@
+[task]
+name = "prim_lift_test"
+instruction = "Lift the cube a little and set it down"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.cube]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.roles]
+target = "cube"
+
+[task.start]
+table_z_m = 0.0
+reachable = ["@target"]
+
+[task.start.place.cube]
+yaw_deg = [0.0, 90.0]
+
+[task.start.place.cube.region]
+xy_min = [-0.15, -0.36]
+xy_max = [0.15, -0.22]
+
+[task.stages]
+order = ["reached", "grasped", "tested", "set_down", "success"]
+
+[task.checks.reached]
+check = "ee_near"
+object = "@target"
+tol_m = 0.02
+
+[task.checks.grasped]
+check = "all"
+of = ["holding"]
+
+[task.checks.raised]
+check = "object_lifted"
+object = "@target"
+min_lift_m = 0.007
+
+[task.checks.tested]
+check = "all"
+of = ["holding", "raised"]
+
+[task.checks.low]
+check = "object_lifted"
+object = "@target"
+min_lift_m = 0.004
+negate = true
+
+[task.checks.set_down]
+check = "all"
+of = ["released", "low"]
+
+[task.checks.success]
+check = "all"
+of = ["set_down", "clear"]
+
+[task.checks.holding]
+check = "held"
+object = "@target"
+
+[task.checks.released]
+check = "held"
+object = "@target"
+negate = true
+
+[task.checks.clear]
+check = "ee_near"
+object = "@target"
+tol_m = 0.04
+negate = true
+
+[task.failures]
+rules = [{ name = "not_set_down", if = ["tested"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "slipped" }]
+
+[task.expert]
+max_steps = 600
+steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.06], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.01, stage = "tested" }, { skill = "release", stage = "set_down" }, { skill = "retreat", dz_m = 0.06, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "stall", stages = ["tested"], steps = [600, 600] }]
+recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }]

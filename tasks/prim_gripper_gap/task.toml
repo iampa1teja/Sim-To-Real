@@ -1,0 +1,44 @@
+[task]
+name = "prim_gripper_gap"
+instruction = "Open the gripper to the requested width"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.start]
+table_z_m = 0.0
+
+[task.start.goal.gap]
+type = "gap"
+gap_m = [0.005, 0.045]
+
+[task.start.goal.point]
+type = "point"
+z_m = [0.06, 0.15]
+region = { r_m = [0.22, 0.34], bearing_deg = [-140.0, -40.0] }
+
+[task.stages]
+order = ["opened", "success"]
+
+[task.checks.opened]
+check = "gap_near"
+value_m = "@goal.gap"
+tol_m = 0.003
+
+[task.checks.success]
+check = "all"
+of = ["opened"]
+
+[task.failures]
+rules = [{ name = "wrong_gap", unless = ["opened"] }, { name = "lost_gap" }]
+
+[task.expert]
+max_steps = 300
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.point" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "opened" }, { skill = "wait", steps = 5, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
+recovery = [{ type = "target_offset", gap_m = [0.008, 0.015] }]

@@ -1,0 +1,57 @@
+[task]
+name = "prim_calibration_reach"
+instruction = "Visit the three calibration points in order"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.start]
+table_z_m = 0.0
+
+[task.start.goal.c0]
+type = "grid"
+points = [[-0.12, -0.24, 0.07], [0.0, -0.24, 0.07], [0.12, -0.24, 0.07], [-0.12, -0.3, 0.07], [0.0, -0.3, 0.07], [0.12, -0.3, 0.07], [-0.12, -0.36, 0.07], [0.0, -0.36, 0.07], [0.12, -0.36, 0.07]]
+
+[task.start.goal.c1]
+type = "grid"
+points = [[-0.12, -0.24, 0.07], [0.0, -0.24, 0.07], [0.12, -0.24, 0.07], [-0.12, -0.3, 0.07], [0.0, -0.3, 0.07], [0.12, -0.3, 0.07], [-0.12, -0.36, 0.07], [0.0, -0.36, 0.07], [0.12, -0.36, 0.07]]
+
+[task.start.goal.c2]
+type = "grid"
+points = [[-0.12, -0.24, 0.07], [0.0, -0.24, 0.07], [0.12, -0.24, 0.07], [-0.12, -0.3, 0.07], [0.0, -0.3, 0.07], [0.12, -0.3, 0.07], [-0.12, -0.36, 0.07], [0.0, -0.36, 0.07], [0.12, -0.36, 0.07]]
+
+[task.stages]
+order = ["c0", "c1", "c2", "success"]
+
+[task.checks.c0]
+check = "ee_near"
+point = "@goal.c0"
+tol_m = 0.01
+
+[task.checks.c1]
+check = "ee_near"
+point = "@goal.c1"
+tol_m = 0.01
+
+[task.checks.c2]
+check = "ee_near"
+point = "@goal.c2"
+tol_m = 0.01
+
+[task.checks.success]
+check = "all"
+of = ["c2"]
+
+[task.failures]
+rules = [{ name = "missed_c0", unless = ["c0"] }, { name = "missed_c1", unless = ["c1"] }, { name = "missed_c2", unless = ["c2"] }, { name = "left_grid" }]
+
+[task.expert]
+max_steps = 500
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.c0", stage = "c0" }, { skill = "reach", target = "@goal.c1", stage = "c1" }, { skill = "reach", target = "@goal.c2", stage = "c2" }, { skill = "wait", steps = 10, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "target_offset", stages = ["c2"], xy_m = [0.03, 0.06] }]
+recovery = [{ type = "target_offset", xy_m = [0.03, 0.06] }]

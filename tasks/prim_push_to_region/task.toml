@@ -1,0 +1,69 @@
+[task]
+name = "prim_push_to_region"
+instruction = "Push the cube into the marked area"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.cube]
+size = [0.02, 0.02, 0.02]
+mass = 0.008
+
+[task.roles]
+target = "cube"
+
+[task.start]
+table_z_m = 0.0
+reachable = ["@target"]
+
+[task.start.place.cube.region]
+xy_min = [-0.15, -0.38]
+xy_max = [0.15, -0.34]
+
+[task.start.goal.area]
+type = "region"
+center_region = { xy_min = [-0.12, -0.30], xy_max = [0.12, -0.26] }
+half_size_m = [0.03, 0.03]
+
+[task.stages]
+order = ["above", "in_place", "success"]
+
+[task.checks.above]
+check = "ee_near"
+object = "@target"
+offset_m = [0.0, 0.0, 0.05]
+tol_m = 0.015
+
+[task.checks.in_goal]
+check = "object_in_region"
+object = "@target"
+region = "@goal.area"
+check_z = false
+
+[task.checks.in_place]
+check = "all"
+of = ["in_goal"]
+
+[task.checks.away]
+check = "ee_near"
+object = "@target"
+tol_m = 0.04
+negate = true
+
+[task.checks.success]
+check = "all"
+of = ["in_place", "away"]
+
+[task.failures]
+rules = [{ name = "not_in_goal", unless = ["in_place"] }, { name = "stayed_on_object" }]
+
+[task.expert]
+max_steps = 500
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = 0.06 }, { skill = "wait", steps = 5, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [500, 500] }]
+recovery = [{ type = "target_offset", stages = ["above"], xy_m = [0.03, 0.05] }]

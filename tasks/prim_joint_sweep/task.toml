@@ -1,0 +1,57 @@
+[task]
+name = "prim_joint_sweep"
+instruction = "Sweep one arm joint through the given angles"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.start]
+table_z_m = 0.0
+
+[task.start.goal.sweep]
+type = "joint"
+joints = "arm"
+fraction = [0.2, 0.8]
+count = 3
+
+[task.start.goal.gap]
+type = "gap"
+gap_m = [0.005, 0.045]
+
+[task.stages]
+order = ["started", "swept", "set", "success"]
+
+[task.checks.started]
+check = "joint_near"
+joint = "@goal.sweep.joint"
+value_rad = "@goal.sweep.angles.0"
+tol_rad = 0.02
+
+[task.checks.swept]
+check = "joint_near"
+joint = "@goal.sweep.joint"
+value_rad = "@goal.sweep.angles.2"
+tol_rad = 0.02
+
+[task.checks.set]
+check = "gap_near"
+value_m = "@goal.gap"
+tol_m = 0.003
+
+[task.checks.success]
+check = "all"
+of = ["set"]
+
+[task.failures]
+rules = [{ name = "never_started", unless = ["started"] }, { name = "sweep_incomplete", unless = ["swept"] }, { name = "wrong_gap" }]
+
+[task.expert]
+max_steps = 400
+settle_steps = 5
+steps = [{ skill = "move_joint", q = "home" }, { skill = "sweep", joint = "@goal.sweep.joint", angles = "@goal.sweep.angles", stage = "swept" }, { skill = "set_gripper", gap_m = "@goal.gap", stage = "set" }, { skill = "wait", steps = 5, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "stall", stages = ["started"], steps = [400, 400] }, { type = "target_offset", gap_m = [0.008, 0.015] }]
+recovery = [{ type = "target_offset", gap_m = [0.008, 0.015] }]
