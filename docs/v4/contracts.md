@@ -1316,7 +1316,7 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - Predicates are called as `(state, ctx, params)` with raw parameters; `all` / `any` receive already-computed booleans; a predicate on an inactive object is false.
 - `@role.inner` resolves to a container marker; the rectangle is computed from the current state.
 - `object_on_object` expected height: `z(b) + (h(b)/2 or h(b)) + (h(o)/2 or 0)`, depending on each object's origin (centre or bottom).
-- `reachable` may list `@goal.<key>`; the pregrasp orientation passed to the reachability callback is `(1, 0, 0, 0)` (WXYZ).
+- `reachable` may list `@goal.<key>`; the pregrasp pose passed to the reachability callback is a `Pose` with `quat_xyzw = (1, 0, 0, 0)` (in-memory XYZW order, §1.1): a 180° rotation about x, i.e. the TCP pointing down. (Corrected: an earlier version of this line said WXYZ, which would be the identity, TCP pointing up.)
 - `[task.start]` problems are `ConfigError` at load, only for keys that are present; old layouts keep loading. `core/tasks/loader.py` is not changed.
 
 **WP4**
