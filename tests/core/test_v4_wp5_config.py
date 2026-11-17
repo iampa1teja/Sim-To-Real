@@ -53,7 +53,8 @@ class DataclassTests(unittest.TestCase):
         self.assertEqual(NoiseConfig(), NoiseConfig(fraction=0.5, theta=0.15, sigma_rad=0.01, max_abs_rad=0.02))
         self.assertEqual([f.name for f in dataclasses.fields(NoiseConfig)], ["fraction", "theta", "sigma_rad", "max_abs_rad"])
         self.assertEqual(DRConfig(), DRConfig(copies=2, terms=("light", "robot_color"), recolor=True, seed=0))
-        self.assertEqual([f.name for f in dataclasses.fields(DRConfig)], ["copies", "terms", "recolor", "seed"])
+        self.assertEqual([f.name for f in dataclasses.fields(DRConfig)], ["copies", "terms", "recolor", "seed",
+                                                                   "camera_jitter"])  # camera_jitter: WP14 §16.7
         self.assertEqual([f.name for f in dataclasses.fields(GenerateConfig)],
                          ["arm", "scene", "tasks", "master_seed", "quotas", "shard", "dst_root", "repo_id", "fps",
                           "max_attempt_factor", "max_consecutive_skips", "scenario_unique_across_kinds", "noise", "dr",
