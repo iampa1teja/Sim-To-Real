@@ -1385,3 +1385,9 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 - `LeRobotRecorder(extra_features=None)` keeps today's features; `make_sim_frame(..., extra=None)` keeps today's frame; an unknown extra key raises `KeyError`.
 - The SO-101 literal scan excludes docstrings and mapping keys (`spec["gripper"]` names the `[arm.gripper]` table).
 - Container check scripts are written after WP8 lands, against the implemented `IsaacGenEnv`.
+
+**WP11** (see `docs/v4/prompts/WP11.md`)
+- `PlannedEpisodeV2` gains `copy_index` (None for originals). Originals come first, then the copies of each source in order.
+- `robot_color_names()` reads `ROBOT_COLORS` from `sim/envs/mdp/resets.py` with `ast`, so the dry run shows exactly the draws of the real run; `exposure_range(task_spec)` defaults to (−3.0, 1.0).
+- New helpers `sidecar_v2`, `build_manifest_v2`, `print_plan_v2`; `dr_replay` gains `--copies` and `--no_recolor` and takes the v2 path when the source has `task_meta/`.
+- `load_source` gains keyword arguments `task`, `arm`, `scene` (passed to `load_episode`); `SourceEpisode` gains `objects`, `colors`, `roles`, `meta`.

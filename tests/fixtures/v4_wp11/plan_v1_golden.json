@@ -1,0 +1,1156 @@
+{
+ "exposure": [
+  -3.0,
+  1.0
+ ],
+ "robot_colors": [
+  [
+   "orange",
+   [
+    0.876,
+    0.317,
+    0.132
+   ]
+  ],
+  [
+   "beige",
+   [
+    0.96,
+    0.96,
+    0.86
+   ]
+  ],
+  [
+   "teal",
+   [
+    0.0,
+    0.8,
+    0.5
+   ]
+  ],
+  [
+   "white",
+   [
+    0.95,
+    0.95,
+    0.95
+   ]
+  ],
+  [
+   "black",
+   [
+    0.08,
+    0.08,
+    0.08
+   ]
+  ]
+ ],
+ "cases": [
+  {
+   "args": {
+    "src_indices": [
+     0,
+     1,
+     2,
+     5
+    ],
+    "colors": [
+     "blue",
+     "red"
+    ],
+    "terms": [
+     "light",
+     "robot_color"
+    ],
+    "seed": 1984,
+    "include_originals": true,
+    "lang_blue": "Pick up the blue cube and place it in the white box",
+    "lang_red": "Pick up the red cube and place it in the white box"
+   },
+   "plan": [
+    {
+     "dst_index": 0,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 1,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 2,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 3,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 4,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": 0.5636287684915593,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 5,
+     "src_index": 0,
+     "color": "red",
+     "dr_seed": 8412531226166313556,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.362010857410059,
+      "robot_color": "black",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 6,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -1.3720673176173053,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 7,
+     "src_index": 1,
+     "color": "red",
+     "dr_seed": 1915149068774486737,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.227351949637146,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 8,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -2.1184540860585535,
+      "robot_color": "beige",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 9,
+     "src_index": 2,
+     "color": "red",
+     "dr_seed": 8913133071733292151,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.8890921003891954,
+      "robot_color": "teal",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 10,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -0.5572445694840855,
+      "robot_color": "beige",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 11,
+     "src_index": 5,
+     "color": "red",
+     "dr_seed": 386321162649294118,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -0.7873832671099703,
+      "robot_color": "black",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    }
+   ],
+   "manifest": {
+    "git_commit": "abc123",
+    "args": {
+     "note": "golden"
+    },
+    "episodes": [
+     {
+      "dst_index": 0,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 1,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 2,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 3,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 4,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": 0.5636287684915593,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 5,
+      "src_index": 0,
+      "color": "red",
+      "dr_seed": 8412531226166313556,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.362010857410059,
+       "robot_color": "black",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 6,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -1.3720673176173053,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 7,
+      "src_index": 1,
+      "color": "red",
+      "dr_seed": 1915149068774486737,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.227351949637146,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 8,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -2.1184540860585535,
+       "robot_color": "beige",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 9,
+      "src_index": 2,
+      "color": "red",
+      "dr_seed": 8913133071733292151,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.8890921003891954,
+       "robot_color": "teal",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 10,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -0.5572445694840855,
+       "robot_color": "beige",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 11,
+      "src_index": 5,
+      "color": "red",
+      "dr_seed": 386321162649294118,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -0.7873832671099703,
+       "robot_color": "black",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     }
+    ],
+    "counts": {
+     "total": 12,
+     "originals": 4,
+     "blue": 4,
+     "red": 4
+    }
+   }
+  },
+  {
+   "args": {
+    "src_indices": [
+     0,
+     1,
+     2,
+     5
+    ],
+    "colors": [
+     "blue",
+     "red"
+    ],
+    "terms": [],
+    "seed": 1984,
+    "include_originals": true,
+    "lang_blue": "Pick up the blue cube and place it in the white box",
+    "lang_red": "Pick up the red cube and place it in the white box"
+   },
+   "plan": [
+    {
+     "dst_index": 0,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 1,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 2,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 3,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": null
+    },
+    {
+     "dst_index": 4,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 5,
+     "src_index": 0,
+     "color": "red",
+     "dr_seed": 8412531226166313556,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 6,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 7,
+     "src_index": 1,
+     "color": "red",
+     "dr_seed": 1915149068774486737,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 8,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 9,
+     "src_index": 2,
+     "color": "red",
+     "dr_seed": 8913133071733292151,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 10,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 11,
+     "src_index": 5,
+     "color": "red",
+     "dr_seed": 386321162649294118,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    }
+   ],
+   "manifest": {
+    "git_commit": "abc123",
+    "args": {
+     "note": "golden"
+    },
+    "episodes": [
+     {
+      "dst_index": 0,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 1,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 2,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 3,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": null
+     },
+     {
+      "dst_index": 4,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 5,
+      "src_index": 0,
+      "color": "red",
+      "dr_seed": 8412531226166313556,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 6,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 7,
+      "src_index": 1,
+      "color": "red",
+      "dr_seed": 1915149068774486737,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 8,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 9,
+      "src_index": 2,
+      "color": "red",
+      "dr_seed": 8913133071733292151,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 10,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 11,
+      "src_index": 5,
+      "color": "red",
+      "dr_seed": 386321162649294118,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     }
+    ],
+    "counts": {
+     "total": 12,
+     "originals": 4,
+     "blue": 4,
+     "red": 4
+    }
+   }
+  },
+  {
+   "args": {
+    "src_indices": [
+     0,
+     1,
+     2,
+     5
+    ],
+    "colors": [
+     "blue",
+     "red"
+    ],
+    "terms": [
+     "light",
+     "robot_color"
+    ],
+    "seed": 1984,
+    "include_originals": false,
+    "lang_blue": "Pick up the blue cube and place it in the white box",
+    "lang_red": "Pick up the red cube and place it in the white box"
+   },
+   "plan": [
+    {
+     "dst_index": 0,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": 0.5636287684915593,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 1,
+     "src_index": 0,
+     "color": "red",
+     "dr_seed": 8412531226166313556,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.362010857410059,
+      "robot_color": "black",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 2,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -1.3720673176173053,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 3,
+     "src_index": 1,
+     "color": "red",
+     "dr_seed": 1915149068774486737,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.227351949637146,
+      "robot_color": "white",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 4,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -2.1184540860585535,
+      "robot_color": "beige",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 5,
+     "src_index": 2,
+     "color": "red",
+     "dr_seed": 8913133071733292151,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -2.8890921003891954,
+      "robot_color": "teal",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 6,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": -0.5572445694840855,
+      "robot_color": "beige",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 7,
+     "src_index": 5,
+     "color": "red",
+     "dr_seed": 386321162649294118,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": -0.7873832671099703,
+      "robot_color": "black",
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    }
+   ],
+   "manifest": {
+    "git_commit": "abc123",
+    "args": {
+     "note": "golden"
+    },
+    "episodes": [
+     {
+      "dst_index": 0,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": 0.5636287684915593,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 1,
+      "src_index": 0,
+      "color": "red",
+      "dr_seed": 8412531226166313556,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.362010857410059,
+       "robot_color": "black",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 2,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -1.3720673176173053,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 3,
+      "src_index": 1,
+      "color": "red",
+      "dr_seed": 1915149068774486737,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.227351949637146,
+       "robot_color": "white",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 4,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -2.1184540860585535,
+       "robot_color": "beige",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 5,
+      "src_index": 2,
+      "color": "red",
+      "dr_seed": 8913133071733292151,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -2.8890921003891954,
+       "robot_color": "teal",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 6,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": -0.5572445694840855,
+       "robot_color": "beige",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 7,
+      "src_index": 5,
+      "color": "red",
+      "dr_seed": 386321162649294118,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": -0.7873832671099703,
+       "robot_color": "black",
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     }
+    ],
+    "counts": {
+     "total": 8,
+     "originals": 0,
+     "blue": 4,
+     "red": 4
+    }
+   }
+  },
+  {
+   "args": {
+    "src_indices": [
+     0,
+     1,
+     2,
+     5
+    ],
+    "colors": [
+     "blue",
+     "red"
+    ],
+    "terms": [],
+    "seed": 1984,
+    "include_originals": false,
+    "lang_blue": "Pick up the blue cube and place it in the white box",
+    "lang_red": "Pick up the red cube and place it in the white box"
+   },
+   "plan": [
+    {
+     "dst_index": 0,
+     "src_index": 0,
+     "color": "blue",
+     "dr_seed": 10724018099814055062,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 1,
+     "src_index": 0,
+     "color": "red",
+     "dr_seed": 8412531226166313556,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 2,
+     "src_index": 1,
+     "color": "blue",
+     "dr_seed": 14795565795151677722,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 3,
+     "src_index": 1,
+     "color": "red",
+     "dr_seed": 1915149068774486737,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 4,
+     "src_index": 2,
+     "color": "blue",
+     "dr_seed": 13355976309655432064,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 5,
+     "src_index": 2,
+     "color": "red",
+     "dr_seed": 8913133071733292151,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 6,
+     "src_index": 5,
+     "color": "blue",
+     "dr_seed": 10571279211345416915,
+     "task_text": "Pick up the blue cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    },
+    {
+     "dst_index": 7,
+     "src_index": 5,
+     "color": "red",
+     "dr_seed": 386321162649294118,
+     "task_text": "Pick up the red cube and place it in the white box",
+     "draw": {
+      "exposure": null,
+      "robot_color": null,
+      "camera_external": null,
+      "camera_wrist_focal": null
+     }
+    }
+   ],
+   "manifest": {
+    "git_commit": "abc123",
+    "args": {
+     "note": "golden"
+    },
+    "episodes": [
+     {
+      "dst_index": 0,
+      "src_index": 0,
+      "color": "blue",
+      "dr_seed": 10724018099814055062,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 1,
+      "src_index": 0,
+      "color": "red",
+      "dr_seed": 8412531226166313556,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 2,
+      "src_index": 1,
+      "color": "blue",
+      "dr_seed": 14795565795151677722,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 3,
+      "src_index": 1,
+      "color": "red",
+      "dr_seed": 1915149068774486737,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 4,
+      "src_index": 2,
+      "color": "blue",
+      "dr_seed": 13355976309655432064,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 5,
+      "src_index": 2,
+      "color": "red",
+      "dr_seed": 8913133071733292151,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 6,
+      "src_index": 5,
+      "color": "blue",
+      "dr_seed": 10571279211345416915,
+      "task_text": "Pick up the blue cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     },
+     {
+      "dst_index": 7,
+      "src_index": 5,
+      "color": "red",
+      "dr_seed": 386321162649294118,
+      "task_text": "Pick up the red cube and place it in the white box",
+      "draw": {
+       "exposure": null,
+       "robot_color": null,
+       "camera_external": null,
+       "camera_wrist_focal": null
+      }
+     }
+    ],
+    "counts": {
+     "total": 8,
+     "originals": 0,
+     "blue": 4,
+     "red": 4
+    }
+   }
+  }
+ ]
+}
