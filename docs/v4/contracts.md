@@ -1400,3 +1400,7 @@ These were settled while the wave-1 tests were written. The per-package prompts 
 
 **WP13** (see `docs/v4/prompts/WP13.md`)
 - Proposed bowl geometry (owner to confirm): small bowl 4 × 4 × 2.5 cm, large bowl 8 × 8 × 3.5 cm with inner half size 3 cm, both bottom-origin procedural USDA with convex collision pieces. Success via `nested_in`.
+
+**WP9** (see `docs/v4/prompts/WP9.md`)
+- Owner-approved primitive meanings, with two adaptations for scenario variety: `prim_calibration_reach` visits three points drawn from a fixed 9-point grid; `prim_gripper_gap` sets the width at a random reach point. `prim_place_at` grasps the cube from the table (a held start breaks the expert's place height).
+- Arm-only tasks have small scenario spaces when `initial_q` is fixed; `generate-plan` reports the capacity before a run.
