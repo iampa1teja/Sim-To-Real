@@ -11,6 +11,8 @@ rendered without stepping physics, so the motion is exactly the recorded one.
 #   (v1 replay_math.base_to_world is gone). Base body comes from arm.toml.
 # - Cube colour and room light setters come from tasks/pick_place_cube/mdp.py.
 
+from collections.abc import Mapping
+
 import numpy as np
 import torch
 
@@ -34,7 +36,7 @@ class SceneReplayer:
 
     def __init__(self, env, mapping, dr_ranges, cameras,
                  external_camera="camera_realsense_rgb", wrist_camera="camera_wrist_cam",
-                 render_passes=2, object_name="blue_cube", task="pick_place_cube"):
+                 render_passes=2, object_name="blue_cube", task="pick_place_cube", *, palette=None):
         """mapping: core.arms.mapping.JointMapping; cameras: recorded sim camera names (without camera_)."""
         from sim.envs.base_env_cfg import BASE_LINK, JOINT_NAMES
 
@@ -46,8 +48,13 @@ class SceneReplayer:
         self.wrist_camera = wrist_camera
         self.render_passes = render_passes
         self.robot = env.scene["robot"]
-        self.cube = env.scene[object_name]
-        self.task_mdp = load_task_module("mdp", task)
+        self.object_name = object_name
+        self.palette = palette
+        if palette is None:
+            self.cube = env.scene[object_name]
+            self.task_mdp = load_task_module("mdp", task)
+        else:
+            self.light_defaults = self._light_defaults()
         self.base_body_id = self.robot.find_bodies(BASE_LINK)[0][0]
         self.joint_ids, _ = self.robot.find_joints(JOINT_NAMES, preserve_order=True)
         self.env_ids = torch.arange(env.num_envs, device=env.device)
@@ -79,8 +86,41 @@ class SceneReplayer:
             # The room cameras use a calibrated OpenCV lens model; keep it in step with focalLength.
             sync_pick_place_camera_intrinsics(self.env, self.env_ids)
 
-    def pose_frame(self, state_raw, pose_base) -> None:
-        """Write one recorded frame: joints from observation.state, object from its base-link pose (WXYZ)."""
+    def _light_defaults(self):
+        from isaaclab.sim import get_current_stage
+        from sim.envs.mdp.resets import _env_prim_path
+
+        if "room" not in self.env.scene.keys():
+            return []
+        stage = get_current_stage()
+        room = self.env.scene["room"]
+        defaults = []
+        for index in self.env_ids.tolist():
+            prim = stage.GetPrimAtPath(_env_prim_path(self.env, room, index) + "/Room/Lighting/Tubelight")
+            if prim.IsValid():
+                exposure = prim.GetAttribute("inputs:exposure")
+                if exposure.IsValid():
+                    defaults.append((exposure, exposure.Get()))
+        return defaults
+
+    def apply_v2(self, sidecar) -> None:
+        """Apply the episode's complete appearance, including nominal defaults."""
+        from sim.envs.mdp.objects import set_object_color
+
+        for name, obj in sidecar["objects"].items():
+            color = obj["color"]
+            if color is not None:
+                set_object_color(self.env, name, self.palette[color])
+        appearance = sidecar["appearance"]
+        light = appearance["light_exposure"]
+        for attribute, default in self.light_defaults:
+            attribute.Set(default if light is None else light)
+        robot_color = appearance["robot_color"]
+        if robot_color is not None:
+            set_robot_color(self.env, self.dr_ranges.robot_colors[robot_color])
+
+    def pose_frame(self, state_raw, poses_by_name) -> None:
+        """Write recorded joints and base-link object poses (WXYZ)."""
         q = self.mapping.to_radians(np.asarray(state_raw)).reshape(1, -1)
         q = q.to(as_torch(self.robot.data.joint_pos).dtype)
         self.robot.write_joint_state_to_sim_index(position=q, velocity=torch.zeros_like(q),
@@ -88,11 +128,15 @@ class SceneReplayer:
 
         base_pos = as_torch(self.robot.data.body_link_pos_w)[:, self.base_body_id]
         base_quat = as_torch(self.robot.data.body_link_quat_w)[:, self.base_body_id]
-        pose = torch.as_tensor(np.asarray(pose_base), dtype=base_pos.dtype, device=base_pos.device).reshape(1, 7)
-        quat_xyzw = torch.cat((pose[:, 4:7], pose[:, 3:4]), dim=-1)
-        pos_w, quat_w = math_utils.combine_frame_transforms(base_pos, base_quat, pose[:, :3], quat_xyzw)
-        self.cube.write_root_pose_to_sim_index(root_pose=torch.cat((pos_w, quat_w), dim=-1), env_ids=self.env_ids)
-        self.cube.write_root_velocity_to_sim_index(root_velocity=pos_w.new_zeros((1, 6)), env_ids=self.env_ids)
+        if not isinstance(poses_by_name, Mapping):
+            poses_by_name = {self.object_name: poses_by_name}
+        for name, pose_base in poses_by_name.items():
+            asset = self.env.scene[name]
+            pose = torch.as_tensor(np.asarray(pose_base), dtype=base_pos.dtype, device=base_pos.device).reshape(1, 7)
+            quat_xyzw = torch.cat((pose[:, 4:7], pose[:, 3:4]), dim=-1)
+            pos_w, quat_w = math_utils.combine_frame_transforms(base_pos, base_quat, pose[:, :3], quat_xyzw)
+            asset.write_root_pose_to_sim_index(root_pose=torch.cat((pos_w, quat_w), dim=-1), env_ids=self.env_ids)
+            asset.write_root_velocity_to_sim_index(root_velocity=pos_w.new_zeros((1, 6)), env_ids=self.env_ids)
 
     def _camera_sensors(self):
         """The two recorded cameras first, then any other camera sensor in the scene (once each)."""

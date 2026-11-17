@@ -1,5 +1,7 @@
 """Pure-Python planning for domain-randomized replay (no Isaac / LeRobot imports)."""
 
+import ast
+from copy import deepcopy
 from dataclasses import dataclass
 import hashlib
 import json
@@ -9,6 +11,8 @@ import random
 import tempfile
 
 from core.scenes import load_setup
+from core.datasets.task_meta import validate_sidecar
+from core.generate.appearance import AppearanceDraw, dr_copy_sidecar, draw_appearance
 
 
 COLORS: dict[str, tuple[float, float, float]] = {
@@ -170,3 +174,81 @@ def write_json_atomic(path, data) -> None:
     except Exception as e:
         os.remove(temp_path)
         raise e
+
+
+@dataclass(frozen=True)
+class PlannedEpisodeV2:
+    dst_index: int
+    src_index: int
+    draw: AppearanceDraw | None = None
+    copy_index: int | None = None
+
+
+def plan_episodes_v2(sources, *, task_spec, cfg, exposure_range, robot_colors, include_originals):
+    sources = list(sources)
+    if any(source.get("legacy_v1") or not source.get("fingerprints") for source in sources):
+        raise ValueError("V2 replay requires source sidecars with fingerprints")
+    episodes = []
+    if include_originals:
+        episodes.extend(PlannedEpisodeV2(index, source["episode_index"]) for index, source in enumerate(sources))
+    for parent in sources:
+        taken = {parent["fingerprints"]["appearance_fp"]}
+        for copy_index in range(cfg.copies):
+            draw = draw_appearance(parent, task_spec=task_spec, terms=cfg.terms, exposure_range=exposure_range,
+                                   robot_colors=robot_colors, recolor=cfg.recolor, dr_seed=cfg.seed,
+                                   copy_index=copy_index, taken=taken)
+            episodes.append(PlannedEpisodeV2(len(episodes), parent["episode_index"], draw, copy_index))
+            taken.add(draw.appearance_fp)
+    return episodes
+
+
+def robot_color_names():
+    path = Path(__file__).resolve().parents[1] / "envs" / "mdp" / "resets.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "ROBOT_COLORS" for target in node.targets
+        ):
+            return tuple(ast.literal_eval(node.value))
+    raise ValueError(f"ROBOT_COLORS is missing from {path}")
+
+
+def exposure_range(task_spec):
+    bounds = task_spec.raw.get("dr", {}).get("room_light_exposure_range", (-3.0, 1.0))
+    return tuple(map(float, bounds))
+
+
+def sidecar_v2(planned, parent, *, source_repo_id):
+    if planned.draw is None:
+        payload = deepcopy(parent)
+        payload["episode_index"] = planned.dst_index
+    else:
+        payload = dr_copy_sidecar(parent, planned.draw, episode_index=planned.dst_index, source_repo_id=source_repo_id)
+    validate_sidecar(payload)
+    return payload
+
+
+def build_manifest_v2(plan, args, git_commit):
+    episodes = []
+    for planned in plan:
+        draw = planned.draw
+        episodes.append(dict(dst_index=planned.dst_index, src_index=planned.src_index, copy_index=planned.copy_index,
+                             draw=None if draw is None else dict(
+                                 colors=dict(draw.colors), instruction=draw.instruction,
+                                 light_exposure=draw.light_exposure, robot_color=draw.robot_color,
+                                 seed=draw.seed, appearance_fp=draw.appearance_fp)))
+    originals = sum(item["draw"] is None for item in episodes)
+    return dict(git_commit=git_commit, args=args, episodes=episodes,
+                counts=dict(total=len(episodes), originals=originals, copies=len(episodes) - originals))
+
+
+def print_plan_v2(plan):
+    originals = 0
+    for planned in plan:
+        draw = planned.draw
+        originals += draw is None
+        print(json.dumps(dict(dst=planned.dst_index, src=planned.src_index, copy=planned.copy_index,
+                              robot_color=draw.robot_color if draw else None,
+                              light=draw.light_exposure if draw else None,
+                              instruction=draw.instruction if draw else None)))
+    print(f"{len(plan)} episodes: {originals} originals, {len(plan) - originals} copies")

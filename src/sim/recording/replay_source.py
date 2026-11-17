@@ -13,6 +13,7 @@ import os
 import numpy as np
 
 from core.arms.joint_calibration import FOLLOWER_JOINTS
+from core.datasets.task_meta import load_episode, validate_sidecar
 from sim.recording.episode_metadata import SIDECAR_DIR, SIDECAR_FRAME
 
 
@@ -26,6 +27,10 @@ class SourceEpisode:
     task: str
     poses_base: np.ndarray     # (N, 7) x y z qw qx qy qz, robot base-link frame
     cube_size: tuple = (0.02, 0.02, 0.02)
+    objects: dict[str, np.ndarray] | None = None
+    colors: dict[str, str | None] | None = None
+    roles: dict[str, str] | None = None
+    meta: dict | None = None
 
 
 def _sidecar_path(root, index):
@@ -81,7 +86,8 @@ def _episode_columns(hf_dataset, start, end):
             np.asarray(hf_dataset["observation.state"][start:end]))
 
 
-def load_source(root, repo_id, exclude: set[int], dataset=None) -> list[SourceEpisode]:
+def load_source(root, repo_id, exclude: set[int], dataset=None, *, task="pick_place_cube", arm=None,
+                scene=None) -> list[SourceEpisode]:
     """All kept episodes with actions, states, task text and object poses.
 
     `dataset` is injectable for tests; otherwise a stock LeRobotDataset is opened.
@@ -89,7 +95,6 @@ def load_source(root, repo_id, exclude: set[int], dataset=None) -> list[SourceEp
     if dataset is None:
         from lerobot.datasets.lerobot_dataset import LeRobotDataset
         dataset = LeRobotDataset(repo_id=repo_id, root=root)
-    joints = len(FOLLOWER_JOINTS)
     rows = list(dataset.meta.episodes)
     episode_indices = {int(row["episode_index"]) for row in rows}
     unknown_excluded = set(exclude) - episode_indices
@@ -104,21 +109,33 @@ def load_source(root, repo_id, exclude: set[int], dataset=None) -> list[SourceEp
         length = end - start
         if length <= 0:
             raise ValueError(f"Episode {index} has invalid length: {length}")
+        try:
+            meta = load_episode(root, index, task=task, arm=arm, scene=scene)
+        except FileNotFoundError as exc:
+            raise ValueError(f"Missing sidecar for episode {index}") from exc
+        validate_sidecar(meta, num_frames=length)
+        joints = len(meta["joint_names"] or FOLLOWER_JOINTS)
         actions, states = _episode_columns(dataset.hf_dataset, start, end)
         for name, values in (("action", actions), ("state", states)):
             if values.shape != (length, joints):
                 raise ValueError(f"Episode {index}: {name} shape {values.shape} != ({length}, {joints})")
             if not np.isfinite(values).all():
                 raise ValueError(f"Episode {index}: {name} contains NaN/Inf")
-        poses_base = load_sidecar(root, index)
-        if len(poses_base) != length:
-            raise ValueError(f"Episode {index}: sidecar {_sidecar_path(root, index)} length "
-                             f"{len(poses_base)} != episode length {length}")
+        objects = {
+            name: np.concatenate((np.asarray(obj["position"], dtype=np.float64),
+                                  np.asarray(obj["orientation_wxyz"], dtype=np.float64)), axis=1)
+            for name, obj in meta["objects"].items()
+        }
+        target = meta["roles"].get("target")
+        poses_base = objects[target] if target in objects else np.empty((0, 7), dtype=np.float64)
+        cube_size = tuple(meta["objects"][target]["size_m"]) if target in objects else ()
         tasks = row["tasks"]
-        task = tasks[0] if isinstance(tasks, (list, tuple)) else str(tasks)
+        task_text = tasks[0] if isinstance(tasks, (list, tuple)) else str(tasks)
         episodes.append(SourceEpisode(
             index=index, start=start, length=length,
             actions=actions.astype(np.float32, copy=False), states=states.astype(np.float32, copy=False),
-            task=task, poses_base=poses_base, cube_size=sidecar_cube_size(root, index),
+            task=task_text, poses_base=poses_base, cube_size=cube_size, objects=objects,
+            colors={name: obj["color"] for name, obj in meta["objects"].items()},
+            roles=dict(meta["roles"]), meta=meta,
         ))
     return episodes

@@ -57,6 +57,8 @@ def build_parser() -> argparse.ArgumentParser:
                              "Cameras are never randomized: they are calibrated to the real setup.")
     parser.add_argument("--include_originals", action="store_true",
                         help="Also re-render every kept episode blue with no DR, as the first episodes")
+    parser.add_argument("--copies", type=int, default=2, help="Number of appearance copies per v2 episode")
+    parser.add_argument("--no_recolor", action="store_true", help="Keep source object colors in v2 copies")
     parser.add_argument("--lang_blue", default="Pick up the blue cube and place it in the white box")
     parser.add_argument("--lang_red", default="Pick up the red cube and place it in the white box")
     parser.add_argument("--seed", type=int, default=0)
@@ -138,6 +140,7 @@ def make_env(args):
     from isaaclab_tasks.utils import parse_env_cfg
 
     import sim.envs
+    from sim.envs.mdp.resets import park_object, reset_object_pose
 
     env_id = sim.envs.TASK.gym_id(args.variant)
     env_cfg = parse_env_cfg(env_id, device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
@@ -146,7 +149,13 @@ def make_env(args):
         value is not None for key, value in vars(env_cfg.terminations).items() if not key.startswith("_")
     ):
         raise ValueError(f"{env_id} has terminations; replay needs a variant without them (e.g. teleop).")
-    env_cfg.events.spawn_cube = None
+    if env_cfg.events is not None:
+        for name, term in vars(env_cfg.events).items():
+            fn = getattr(term, "func", None)
+            fn_name = getattr(fn, "__name__", str(fn).rsplit(":", 1)[-1])
+            if (fn in (park_object, reset_object_pose) or name.startswith("spawn")
+                    or fn_name.startswith("spawn") or fn_name == "reset_cube_from_recorded_starts"):
+                setattr(env_cfg.events, name, None)
     env = gym.make(env_id, cfg=env_cfg)
     env.reset()
     return env
@@ -207,13 +216,125 @@ def print_plan(plan) -> None:
           f"{sum(e.color == 'blue' for e in generated)} blue, {sum(e.color == 'red' for e in generated)} red")
 
 
-def _json_args(args) -> dict:
-    return {k: v for k, v in vars(args).items() if isinstance(v, (str, int, float, bool, type(None)))}
+def _json_args(args, *, legacy=False) -> dict:
+    return {k: v for k, v in vars(args).items()
+            if isinstance(v, (str, int, float, bool, type(None)))
+            and (not legacy or k not in {"copies", "no_recolor"})}
+
+
+def _main_v2(parser, args, argv):
+    from core.datasets.task_meta import list_sidecars, read_sidecar
+    from core.generate.config import DRConfig
+    from core.tasks.base import load_task_spec
+    from sim.generate.dr_variants import exposure_range, plan_episodes_v2, print_plan_v2, robot_color_names
+
+    exclude = parse_episode_list(args.exclude_episodes)
+    indices = list_sidecars(args.src_root)
+    unknown = exclude - set(indices)
+    if unknown:
+        raise ValueError(f"Unknown excluded episode(s): {sorted(unknown)}")
+    source_meta = [read_sidecar(args.src_root, index) for index in indices]
+    tasks = {sidecar["task"] for sidecar in source_meta}
+    if len(tasks) != 1 or None in tasks:
+        raise ValueError("V2 replay requires a source dataset with one task")
+    task_spec = load_task_spec(tasks.pop())
+    config = DRConfig(copies=args.copies, terms=tuple(parse_dr_terms(args.dr)),
+                      recolor=not args.no_recolor, seed=args.seed)
+    if Path(args.dst_root).exists():
+        raise FileExistsError(f"Destination already exists: {args.dst_root}")
+    check_source_fps(args.src_root, args.fps)
+    kept = [sidecar for sidecar in source_meta if sidecar["episode_index"] not in exclude]
+    plan = plan_episodes_v2(kept, task_spec=task_spec, cfg=config,
+                            exposure_range=exposure_range(task_spec), robot_colors=robot_color_names(),
+                            include_originals=args.include_originals)
+    if args.limit > 0:
+        plan = plan[:args.limit]
+    print_plan_v2(plan)
+    if args.dry_run:
+        return 0
+
+    from isaaclab.app import AppLauncher
+
+    AppLauncher.add_app_launcher_args(parser)
+    args = parser.parse_args(argv)
+    arms = {sidecar["arm"] for sidecar in source_meta}
+    scenes = {sidecar["scene"] for sidecar in source_meta}
+    if len(arms) != 1 or None in arms or len(scenes) != 1 or None in scenes:
+        raise ValueError("V2 replay requires one source arm and scene")
+    args.task, args.arm, args.scene = task_spec.name, arms.pop(), scenes.pop()
+    apply_selection(args)
+    args.enable_cameras = True
+    args.kit_args = rendering_kit_args(args.kit_args)
+    app = AppLauncher(args).app
+
+    env = writer = None
+    try:
+        import torch
+        from core.datasets.frames import read_frames
+        from core.datasets.task_meta import LABEL_FEATURES, write_sidecar
+        from core.generate.labels import label_columns
+        from core.generate.protocols import FrameLabels
+        from sim.envs.mdp.objects import park_all
+        from sim.envs.mdp.resets import ROBOT_COLORS
+        from sim.generate.dr_variants import DRRanges, build_manifest_v2, sidecar_v2, write_json_atomic
+        from sim.recording.lerobot_recorder import LeRobotRecorder
+        from sim.recording.replay_scene import SceneReplayer
+        from sim.recording.replay_source import load_source
+
+        sources = load_source(args.src_root, args.src_repo_id, exclude,
+                              task=args.task, arm=args.arm, scene=args.scene)
+        by_index = {src.index: src for src in sources}
+        frames = read_frames(args.src_root)
+        env = make_env(args)
+        cameras = discover_sim_cameras(env)
+        ranges = DRRanges(exposure_range(task_spec), ROBOT_COLORS, {}, {}, None)
+        replayer = SceneReplayer(env.unwrapped, make_mapping(env), ranges, cameras,
+                                 task=args.task, palette=task_spec.palette)
+        writer = LeRobotRecorder(task_name=task_spec.instruction, repo_id=args.dst_repo_id,
+                                 dataset_root=args.dst_root, fps=args.fps, device=env.unwrapped.device,
+                                 cameras=cameras, extra_features=LABEL_FEATURES)
+        writer.init_dataset()
+        with torch.inference_mode():
+            for planned in plan:
+                src = by_index[planned.src_index]
+                payload = sidecar_v2(planned, src.meta, source_repo_id=args.src_repo_id)
+                data = frames[src.index]
+                env.reset()
+                park_all(env.unwrapped, task_spec.objects)
+                replayer.apply_v2(payload)
+                for t in range(src.length):
+                    replayer.pose_frame(src.states[t], {name: poses[t] for name, poses in src.objects.items()})
+                    labels = FrameLabels(int(data["label.stage"][t]), bool(data["label.imitate"][t]),
+                                         data["label.ee_pose"][t])
+                    frame = writer.make_sim_frame(src.actions[t], src.states[t], replayer.render_images(),
+                                                  extra=label_columns(labels))
+                    frame["task"] = payload["instruction"]
+                    writer.add_frame(frame)
+                index = writer.save_episode()
+                if index != planned.dst_index:
+                    raise RuntimeError(f"Saved episode {index}, planned {planned.dst_index}")
+                write_sidecar(writer.dataset_root, payload)
+        write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json",
+                          build_manifest_v2(plan, _json_args(args), git_commit()))
+        print(f"[INFO]: Wrote {len(plan)} episodes to {args.dst_root}")
+        return 0
+    finally:
+        try:
+            if writer is not None:
+                writer.finalize()
+        finally:
+            try:
+                if env is not None:
+                    env.close()
+            finally:
+                app.close()
 
 
 def main(argv=None):
     parser = build_parser()
     args, _ = parser.parse_known_args(argv)
+    if (Path(args.src_root) / "task_meta").is_dir():
+        return _main_v2(parser, args, argv)
     apply_selection(args)
 
     import torch
@@ -269,7 +390,7 @@ def main(argv=None):
                 replay_episode(replayer, writer, by_index[planned.src_index], planned, args.fps)
 
         write_json_atomic(Path(args.dst_root) / "meta" / "dr_replay_manifest.json",
-                          build_manifest(plan, _json_args(args), git_commit()))
+                          build_manifest(plan, _json_args(args, legacy=True), git_commit()))
         print(f"[INFO]: Wrote {len(plan)} episodes to {args.dst_root}")
     finally:
         if writer is not None:
