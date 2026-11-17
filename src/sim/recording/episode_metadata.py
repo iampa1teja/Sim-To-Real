@@ -7,9 +7,9 @@ WXYZ quaternions (v1 on-disk format); callers convert from Isaac Lab 3.0's XYZW.
 
 import json
 import math
-import os
 from pathlib import Path
-import tempfile
+
+from core.datasets.task_meta import _write_text_atomic
 
 SIDECAR_DIR = "pick_place_meta"
 SIDECAR_FRAME = "robot base link (base)"
@@ -29,18 +29,7 @@ def save_cube_trajectory(root, episode_index, poses, cube_size, fps):
         "position": [[round(v, 6) for v in pose[:3]] for pose in poses],
         "orientation_wxyz": [[round(v, 6) for v in pose[3:]] for pose in poses],
     }
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=directory,
-                                         suffix=".tmp", delete=False) as stream:
-            temporary = Path(stream.name)
-            json.dump(payload, stream, allow_nan=False)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, directory / f"episode_{episode_index:06d}.json")
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+    _write_text_atomic(directory / f"episode_{episode_index:06d}.json", json.dumps(payload, allow_nan=False))
 
 
 def validate_cube_trajectories(root, episode_lengths, fps):
