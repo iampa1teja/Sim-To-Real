@@ -1,6 +1,7 @@
 """Author collision schemas and contact materials before Newton imports the scene."""
 
 from pxr import Usd, UsdGeom, UsdPhysics
+from core.arms.spec import load_arm_spec
 
 
 CONTACT_FRICTION = 0.5
@@ -86,13 +87,15 @@ def _split_fixed_finger(root):
     the entire L-shaped part fills that opening and overlaps a valid cube
     placement by several millimetres. Two hulls retain that contact face.
     """
-    return _split_link_mesh(root, link_name="gripper", mesh_name="wrist_roll_follower_so101_v1",
+    links = load_arm_spec()[0]["links"]
+    return _split_link_mesh(root, link_name=links["ee"], mesh_name=links["fixed_jaw_mesh"],
                             axis=2, coordinate=-0.04)
 
 
 def _split_moving_finger(root):
     """Keep the moving finger's proximal body out of its distal contact hull."""
-    return _split_link_mesh(root, link_name="jaw", mesh_name="moving_jaw_so101_v1",
+    links = load_arm_spec()[0]["links"]
+    return _split_link_mesh(root, link_name=links["moving_jaw"], mesh_name=links["moving_jaw_mesh"],
                             axis=1, coordinate=-0.04)
 
 

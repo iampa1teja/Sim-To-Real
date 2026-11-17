@@ -46,6 +46,7 @@ class LeRobotRecorder:
         instance_id_seg: bool = False,
         *,
         features: dict | None = None,
+        extra_features: dict | None = None,
         robot_type: str | None = None,
         image_writer_threads_per_camera: int = 4,
     ):
@@ -62,6 +63,8 @@ class LeRobotRecorder:
         self.image_writer_threads_per_camera = image_writer_threads_per_camera
 
         self.dataset_features = features or self._make_sim_features(self.cameras)
+        if extra_features is not None:
+            self.dataset_features = {**self.dataset_features, **extra_features}
         self.dataset: RecordingDataset | None = None
         self._closed = False
         self._save_failed = False
@@ -154,7 +157,7 @@ class LeRobotRecorder:
         # Async writers must own their pixels even when simulation runs on CPU.
         return array.astype(dtype, copy=True) if dtype is not None else array.copy()
 
-    def make_sim_frame(self, action: torch.Tensor, observation: torch.Tensor, visual_buffers: dict) -> dict:
+    def make_sim_frame(self, action: torch.Tensor, observation: torch.Tensor, visual_buffers: dict, extra=None) -> dict:
         """One simulation frame. ``action``/``observation`` are in LeRobot range units (JointMapping.to_raw)."""
         frame = {
             "action": self._as_numpy(action, dtype=np.float32),
@@ -163,6 +166,8 @@ class LeRobotRecorder:
         }
         for camera_name in self.cameras:
             frame[f"observation.images.{camera_name}"] = self._as_numpy(visual_buffers[camera_name], dtype=np.uint8)
+        for name, value in (extra or {}).items():
+            frame[name] = self._as_numpy(value, dtype=np.dtype(self.dataset_features[name]["dtype"]))
         return frame
 
     def make_auxiliary_frame(self, visual_buffers: dict, depth_buffers: dict, instance_id_seg_buffers: dict) -> dict | None:

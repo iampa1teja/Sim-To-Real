@@ -2,8 +2,7 @@
 """Read-only, in-memory measurements of a pick-place grasp attempt."""
 # Changes from v1 for Isaac Lab 3.0 / Newton:
 # - Live body quaternions are XYZW; converted to WXYZ for the numpy rotation helper.
-# - Fixed-jaw body and mesh come from arm.toml (links.ee, links.fixed_jaw_mesh). The moving-jaw body and mesh
-#   are still the SO-101 names below (arm.toml has no fields for them yet).
+# - Fixed and moving finger bodies and meshes come from arm.toml links.
 # - Gripper percent comes from the arm's JointMapping instead of v1's robot_iface bounds.
 from __future__ import annotations
 
@@ -12,9 +11,7 @@ import math
 import numpy as np
 
 from core.tasks.loader import load_task_module
-
-MOVING_JAW_BODY = "jaw"
-MOVING_JAW_MESH = "moving_jaw_so101_v1"
+from core.arms.spec import load_arm_spec
 
 
 def _rotation_matrix(quaternion_wxyz):
@@ -80,15 +77,15 @@ def _tip_offsets(stage, root, fixed_body, half_size):
     """Read mesh vertices once, then retain only two body-local contact points."""
     from pxr import Gf, Usd, UsdGeom
 
-    from sim.scene.gripper_geometry import fixed_jaw_mesh_name
+    links = load_arm_spec()[0]["links"]
     cache = UsdGeom.XformCache()
     gripper = stage.GetPrimAtPath(f"{root}/{fixed_body}")
-    jaw = stage.GetPrimAtPath(f"{root}/{MOVING_JAW_BODY}")
+    jaw = stage.GetPrimAtPath(f"{root}/{links['moving_jaw']}")
     gripper_matrix = cache.GetLocalToWorldTransform(gripper)
     scale = UsdGeom.GetStageMetersPerUnit(stage)
     result = []
-    for body, fragment in ((gripper, f'/visuals/{fixed_jaw_mesh_name()}/'),
-                           (jaw, f'/visuals/{MOVING_JAW_MESH}/')):
+    for body, fragment in ((gripper, f"/visuals/{links['fixed_jaw_mesh']}/"),
+                           (jaw, f"/visuals/{links['moving_jaw_mesh']}/")):
         mesh = next((p for p in Usd.PrimRange(body, Usd.TraverseInstanceProxies())
                      if p.IsA(UsdGeom.Mesh) and fragment in str(p.GetPath())), None)
         if mesh is None:
@@ -127,12 +124,13 @@ def install_grasp_diagnostics(env, mapping, step_dt):
     import torch
     from isaaclab.sim import get_current_stage
 
-    from sim.envs.base_env_cfg import EE_LINK
+    links = load_arm_spec()[0]["links"]
+    ee_link = links["ee"]
     from sim.envs.mdp.resets import as_torch
     robot = env.scene['robot']
-    body_ids = [robot.find_bodies(name)[0][0] for name in (EE_LINK, MOVING_JAW_BODY)]
+    body_ids = [robot.find_bodies(name)[0][0] for name in (ee_link, links["moving_jaw"])]
     cube_size = float(env.scene['blue_cube'].cfg.spawn.size[0])
-    fixed_tip, moving_tip = _tip_offsets(get_current_stage(), env.scene.env_prim_paths[0] + '/Robot', EE_LINK,
+    fixed_tip, moving_tip = _tip_offsets(get_current_stage(), env.scene.env_prim_paths[0] + '/Robot', ee_link,
                                          cube_size / 2)
     gripper_index = int(mapping.gripper_mask.nonzero()[0].item())
     trace = GraspTrace()

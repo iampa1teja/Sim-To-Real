@@ -1,0 +1,12 @@
+arm: so101
+scene: rpd_meeting_room
+tasks: [pick_place_cube]
+master_seed: 0
+quotas: {success: 2, failure: 2, recovery: 2}
+shard: "0/1"
+dst_root: /data/v4-smoke
+repo_id: "local/{task}-smoke"
+fps: 30
+max_attempt_factor: 8.0
+max_consecutive_skips: 200
+cameras: true

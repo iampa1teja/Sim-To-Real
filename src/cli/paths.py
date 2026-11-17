@@ -24,7 +24,10 @@ SIM_PROGRAMS = {"record": "lerobot_agent", "eval": "lerobot_eval", "rollout": "r
                 "envs": "list_envs", "dr-replay": "dr_replay", "calibration-replay": "calibration_replay",
                 "calibration-report": "calibration_report", "eval-set": "make_eval_set",
                 "calibrate": "calibrate_arm", "calibration-check": "check_calibration",
-                "calibration-stats": "calibration_stats"}
+                "calibration-stats": "calibration_stats",
+                "generate": "scripted_generate", "generate-plan": "plan_generation",
+                "arm-kinematics": "extract_kinematics", "dataset-audit": "audit_dataset",
+                "dataset-merge": "merge_shards", "dataset-upload": "upload_dataset"}
 
 
 class CliError(ValueError):

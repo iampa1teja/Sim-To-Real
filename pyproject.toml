@@ -47,6 +47,12 @@ compare_eval_results = "core.results.compare:main"
 # Replay / domain randomization (sim image)
 dr_replay = "sim.generate.dr_replay:main"
 calibration_replay = "sim.generate.calibration_replay:main"
+scripted_generate = "sim.generate.scripted_generate:main"
+plan_generation = "core.scripts.plan_generation:main"
+extract_kinematics = "sim.generate.extract_kinematics:main"
+audit_dataset = "core.scripts.audit_dataset:main"
+merge_shards = "core.scripts.merge_shards:main"
+upload_dataset = "core.scripts.upload_dataset:main"
 
 # Real arm / calibration
 real_rollout = "core.scripts.real_rollout:main"

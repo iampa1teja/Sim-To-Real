@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from functools import partial
 
 import torch
 
@@ -24,10 +25,11 @@ def _quat_from_euler_degrees(angles: list[float]) -> tuple[float, ...]:
     return tuple(quat_from_euler_xyz(roll, pitch, yaw)[0].tolist())
 
 
-def _spawn_arm(prim_path, cfg, translation=None, orientation=None, **kwargs):
+def _spawn_arm(prim_path, cfg, translation=None, orientation=None, *, arm=None, **kwargs):
     root = spawn_from_usd(prim_path, cfg, translation=translation, orientation=orientation, **kwargs)
     enable_collision_meshes(root)
-    jaws = tuple(root.GetPath().AppendChild(name) for name in ("gripper", "jaw"))
+    links = load_arm_spec(arm)[0]["links"]
+    jaws = tuple(root.GetPath().AppendChild(name) for name in (links["ee"], links["moving_jaw"]))
     bind_contact_material(root, lambda prim: any(prim.GetPath().HasPrefix(path) for path in jaws),
                           friction=GRASP_FRICTION, rolling_friction=GRASP_ROLLING_FRICTION)
     return root
@@ -44,7 +46,7 @@ def load_arm_cfg(name: str, variant: str | None = None) -> ArticulationCfg:
 
     return ArticulationCfg(
         spawn=sim_utils.UsdFileCfg(
-            func=_spawn_arm,
+            func=partial(_spawn_arm, arm=name),
             usd_path=str(usd_path),
             activate_contact_sensors=spawn.get("activate_contact_sensors", False),
             rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(**spawn.get("rigid_props", {})),

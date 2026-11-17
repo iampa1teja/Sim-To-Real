@@ -1,4 +1,5 @@
 import numpy as np 
+from core.arms.spec import load_arm_spec
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import RigidObjectCfg
@@ -92,7 +93,7 @@ def apply_teleop(cfg, task):
     episode = task.spec.raw.get("episode", {})
 
     cfg.scene.contact_grasp = ContactSensorCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/jaw",
+        prim_path="{ENV_REGEX_NS}/Robot/" + load_arm_spec()[0]["links"]["moving_jaw"],
         update_period=0.0,
         history_length=1,
         debug_vis=False,
