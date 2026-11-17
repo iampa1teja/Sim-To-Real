@@ -1,0 +1,119 @@
+[task]
+name = "stack_bowls"
+instruction = "Put the small bowl into the large bowl"
+default_variant = "teleop"
+
+[task.variants]
+teleop = "env_cfg:apply_teleop"
+generate = "env_cfg:apply_generate"
+
+[task.objects.small_bowl]
+usd = "usd/Bowl-Small.usda"
+origin = "bottom"
+size_outer = [0.04, 0.04, 0.025]
+mass = 0.02
+
+[task.objects.large_bowl]
+usd = "usd/Bowl-Large.usda"
+origin = "bottom"
+size_outer = [0.08, 0.08, 0.035]
+inner_half_size = [0.03, 0.03]
+floor_z = 0.003
+mass = 0.05
+
+[task.roles]
+target = "small_bowl"
+container = "large_bowl"
+
+[task.start]
+table_z_m = 0.0
+min_separation_m = 0.08
+clearance_m = 0.02
+reachable = ["@target", "@container"]
+
+[task.start.place.small_bowl.region]
+xy_min = [-0.05, -0.40]
+xy_max = [0.25, -0.20]
+
+[task.start.place.large_bowl.region]
+xy_min = [-0.28, -0.36]
+xy_max = [-0.15, -0.22]
+
+[task.stages]
+order = ["reached", "grasped", "lifted", "over_bowl", "nested", "success"]
+
+[task.stages.hold_until]
+reached = "grasped"
+grasped = "nested"
+lifted = "nested"
+
+[task.checks.reached]
+check = "ee_near"
+object = "@target"
+offset_m = [0.0, 0.0, 0.0125]
+tol_m = 0.02
+
+[task.checks.holding]
+check = "held"
+object = "@target"
+
+[task.checks.grasped]
+check = "all"
+of = ["holding"]
+
+[task.checks.raised]
+check = "object_lifted"
+object = "@target"
+min_lift_m = 0.01
+
+[task.checks.lifted]
+check = "all"
+of = ["holding", "raised"]
+
+[task.checks.above_bowl]
+check = "object_in_region"
+object = "@target"
+region = "@container.inner"
+check_z = false
+
+[task.checks.over_bowl]
+check = "all"
+of = ["holding", "above_bowl"]
+
+[task.checks.inside]
+check = "nested_in"
+object = "@target"
+base = "@container"
+xy_tol_m = 0.02
+max_rise_m = 0.01
+
+[task.checks.released]
+check = "held"
+object = "@target"
+negate = true
+
+[task.checks.nested]
+check = "all"
+of = ["inside", "released"]
+
+[task.checks.ee_clear]
+check = "ee_near"
+object = "@target"
+offset_m = [0.0, 0.0, 0.0125]
+tol_m = 0.04
+negate = true
+
+[task.checks.success]
+check = "all"
+of = ["nested", "ee_clear"]
+
+[task.failures]
+rules = [{ name = "nested_not_confirmed", if = ["nested"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_bowl", unless = ["over_bowl"] }, { name = "dropped_outside" }]
+
+[task.expert]
+max_steps = 600
+steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.07], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = 0.08, stage = "lifted" }, { skill = "transport", target = "@container", height_m = 0.06, stage = "over_bowl" }, { skill = "place", target = "@container" }, { skill = "release", stage = "nested" }, { skill = "retreat", dz_m = 0.08, stage = "success" }]
+
+[task.perturbations]
+failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.012, 0.025] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.06, 0.09] }, { type = "object_drop", stages = ["lifted", "over_bowl"], xy_jitter_m = [0.0, 0.02] }]
+recovery = [{ type = "grasp_offset", xy_m = [0.012, 0.025] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }, { type = "container_shift", stages = ["lifted"], xy_m = [0.02, 0.04] }]
