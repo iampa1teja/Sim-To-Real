@@ -10,16 +10,24 @@ from pathlib import Path
 import random
 import tempfile
 
-from core.scenes import load_setup
 from core.datasets.task_meta import validate_sidecar
 from core.generate.appearance import AppearanceDraw, dr_copy_sidecar, draw_appearance
 
 
-COLORS: dict[str, tuple[float, float, float]] = {
-    # Measured real cube colour; follows any recalibration of real_setup.json.
-    "blue": tuple(load_setup()["object_materials"]["blue_cube"]["color"]),
-    "red": (0.8, 0.05, 0.05),
-}
+def __getattr__(name):
+    if name != "COLORS":
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    # Only legacy cube replay needs the measured scene palette.
+    from core.scenes import load_setup
+
+    colors = {
+        "blue": tuple(load_setup()["object_materials"]["blue_cube"]["color"]),
+        "red": (0.8, 0.05, 0.05),
+    }
+    globals()[name] = colors
+    return colors
+
+
 DR_TERMS = ("light", "robot_color", "camera_external", "camera_wrist")
 # Cameras are calibrated to the real setup, so the default keeps camera views fixed.
 DEFAULT_DR = ("light", "robot_color")
