@@ -1,0 +1,18 @@
+# configs/generate/pick_place_color_cube.yaml
+arm: so101
+scene: rpd_meeting_room
+tasks: [pick_place_color_cube]
+master_seed: 0
+quotas: {success: 4000, failure: 1000, recovery: 1000}
+per_task_quotas: {}                # task: {success, failure, recovery}
+shard: "0/1"
+dst_root: /data/v4
+repo_id: "local/{task}"
+fps: 30
+max_attempt_factor: 3.0
+max_consecutive_skips: 1000
+scenario_unique_across_kinds: true
+noise: {fraction: 0.5, theta: 0.15, sigma_rad: 0.01, max_abs_rad: 0.02}
+perturbation_weights: null         # {type: weight} overrides task.toml weights
+cameras: true
+dr: {copies: 2, terms: [light, robot_color], recolor: true, seed: 0}
