@@ -93,10 +93,14 @@ def _current_summary(root):
 def _make_env(args, cfg, task):
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
+    from core.scenes import load_scene_spec
     import sim.envs
     sim.envs.register_envs(scene=cfg.scene, task=task.name)
     env_id = task.gym_id("generate")
     env_cfg = parse_env_cfg(env_id, device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
+    impratio = load_scene_spec(cfg.scene).get("generation_mjwarp_impratio")
+    if impratio is not None:
+        env_cfg.sim.physics.solver_cfg.impratio = impratio
     env_cfg.seed = cfg.master_seed
     env_cfg.decimation = round(1/(cfg.fps*env_cfg.sim.dt))
     env_cfg.sim.render_interval = env_cfg.decimation

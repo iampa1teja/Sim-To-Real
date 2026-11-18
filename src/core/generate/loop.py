@@ -1,5 +1,6 @@
 """CPU episode execution and crash-resumable dataset generation."""
 
+from copy import copy as _copy
 from dataclasses import dataclass as _dataclass, replace as _replace
 from datetime import datetime as _datetime, timezone as _timezone
 from pathlib import Path as _Path
@@ -17,6 +18,7 @@ from core.expert.machine import ScriptedExpert as _ScriptedExpert
 from core.expert.motion import MotionLimits as _MotionLimits, expert_joint_limits as _expert_joint_limits
 from core.expert.program import parse_program as _parse_program
 from core.generate.errors import (AttemptBudgetExceeded as _AttemptBudgetExceeded,
+                                  ResumeError as _ResumeError,
                                   ScenarioSpaceExhausted as _ScenarioSpaceExhausted)
 from core.generate.fake_env import SimulatedCrash as _SimulatedCrash
 from core.generate.fingerprint import (scenario_key as _scenario_key, spec_fp as _spec_fp, traj_fp as _traj_fp,
@@ -32,6 +34,7 @@ from core.generate.protocols import (AttemptStatus as _Status, EpisodeResult as 
                                      RejectionReason as _Reason, StepRecord as _StepRecord)
 from core.generate.seeds import rng_for as _rng_for
 from core.generate.specs import build_spec as _build_spec, validate_physics as _validate_physics
+from core.scenes import _generation_table_height
 from core.tasks.base import CheckContext as _CheckContext, episode_objects as _episode_objects
 from core.tasks.loader import load_task as _load_task
 from core.tasks.sampling import validate_workspace as _validate_workspace
@@ -53,7 +56,18 @@ def make_expert_factory(task, arm, *, setup=None):
                                         fps=spec.fps, stages=task.stages)
 
 
+def _task_for_scene(task, scene, arm):
+    height = _generation_table_height(scene, arm)
+    if height is None:
+        return task
+    raw = task.spec.raw
+    placed = _copy(task)
+    placed.spec = _replace(task.spec, raw={**raw, "start": {**raw.get("start", {}), "table_z_m": height}})
+    return placed
+
+
 def make_spec_fn(task, arm, *, scene, noise=None, weights_override=None, fps=30, setup=None, reach_fn=None):
+    task = _task_for_scene(task, scene, arm)
     spec, _ = _load_arm_spec(arm)
     workspace = _validate_workspace(spec["workspace"]) if "workspace" in spec else None
     _validate_physics(task.spec)
@@ -225,7 +239,8 @@ def _summary(lines):
 
 
 def run_generation(cfg, task_name, env, writer, *, expert_factory, mapping, spec_fn, git_commit="unknown"):
-    task, root = _load_task(task_name), _Path(writer.root)
+    task = _task_for_scene(_load_task(task_name), cfg.scene, cfg.arm)
+    root = _Path(writer.root)
     arm, arm_dir = _load_arm_spec(cfg.arm)
     totals = {kind: getattr(cfg.quotas[task_name], kind.value) for kind in _KINDS}
     shard, n = cfg.shard
@@ -253,6 +268,8 @@ def run_generation(cfg, task_name, env, writer, *, expert_factory, mapping, spec
         if accepted[kind] >= quotas[kind]:
             continue
         line = old.get((kind, planned.index))
+        if line is not None and line.spec_fp != (_spec_fp(planned.spec) if planned.spec is not None else None):
+            raise _ResumeError(f"{task_name}: stored attempt {kind.value}/{planned.index} has a different episode spec")
         if line is None:
             started = _time.perf_counter()
             if planned.skip is not None:

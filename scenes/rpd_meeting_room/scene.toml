@@ -8,3 +8,8 @@ setup = "real_setup.json"                     # measured geometry, cameras, ligh
 room_usd = "usd/digital_twin.usdz"            # scanned room
 env_cfg = "sim.envs.rpd_meeting_room_env_cfg:RpdMeetingRoomEnvCfg"  # scene env cfg class (sim.envs registers S2R-<scene>)
 room_usd_runtime = "usd/digital_twin_room.usda"  # wrapper the env actually spawns (references the usdz)
+# The recorded-rollout contact solver setting diverges on randomized grasps.
+generation_mjwarp_impratio = 10.0
+
+[scene.generation_table_z_m]
+so101 = 0.02179  # tabletop mesh height in the spawned SO-101 base frame

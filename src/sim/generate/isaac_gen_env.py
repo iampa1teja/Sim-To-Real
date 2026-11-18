@@ -156,7 +156,8 @@ class IsaacGenEnv:
             if self._signal_frame != self._frame:
                 self._previous_run, self._signal_frame = self._placed_run, self._frame
             self._placed_run = self._previous_run+1 if placed else 0
-            signals.update(holding=holding, grasped=self._ever_grasped, lifted=self._ever_grasped,
+            signals.update(holding=holding, grasped=signals.get("cube_grasp_contact", False) or self._ever_grasped,
+                           lifted=self._ever_grasped,
                            placed=placed, success=self._placed_run >= self._task.spec.raw.get("success", {}).get("confirm_steps", 25))
         return _ExpertObs(self._frame, q, ee, self._chain.tcp_from_ee(ee), self._grip.gap_from_angle(float(q[self._grip.index])), objects, signals)
 
