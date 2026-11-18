@@ -26,6 +26,10 @@ yaw_deg = [0.0, 90.0]
 
 [task.stages]
 order = ["reached", "grasped", "tested", "set_down", "success"]
+success_requires_stages = ["tested"]
+
+[task.stages.hold_until]
+grasped = "tested"
 
 [task.checks.reached]
 check = "ee_near"

@@ -90,14 +90,16 @@ def _value(value, ctx):
 def _ee_near(state, ctx, params):
     if ("object" in params) == ("point" in params):
         raise _ConfigError("ee_near requires exactly one of object and point")
+    if not state.signals.get(params.get("contact_signal"), True):
+        return False
     if "object" in params:
         _, target = _position(state, ctx, params["object"])
         if target is None:
             return False
     else:
         target = _np.asarray(resolve_ref(params["point"], ctx), dtype=_np.float64)
-    return bool(_np.linalg.norm(_tcp(state) - (target + _np.asarray(params.get("offset_m", (0, 0, 0)))))
-                <= params.get("tol_m", 0.02))
+    target = target + _np.asarray(params.get("offset_m", (0, 0, 0)))
+    return bool(_np.linalg.norm(_tcp(state) - target) <= params.get("tol_m", 0.02))
 
 
 @register_predicate("object_lifted")
@@ -261,6 +263,9 @@ class GenericTask(_Task):
             self._stages = tuple(stages)
             if len(set(stages)) != len(stages):
                 raise _ConfigError("Duplicate stages")
+            required = spec.raw["stages"].get("success_requires_stages", [])
+            if not isinstance(required, list) or any(stage not in stages for stage in required):
+                raise _ConfigError("success_requires_stages must list known stages")
             self._checks = {key: dict(value) for key, value in spec.raw.get("checks", {}).items()}
             if set(stages) - self._checks.keys():
                 raise _ConfigError("Every stage needs a check")
@@ -272,6 +277,9 @@ class GenericTask(_Task):
                     raise _ConfigError(f"Missing parameter for {name}")
                 if kind == "ee_near" and (("object" in table) == ("point" in table)):
                     raise _ConfigError("ee_near requires exactly one target")
+                if "contact_signal" in table and (
+                        kind != "ee_near" or not isinstance(table["contact_signal"], str) or not table["contact_signal"]):
+                    raise _ConfigError("contact_signal must name an ee_near signal")
                 for key in ("object", "base", "point"):
                     if key in table:
                         _static_ref(table[key], spec)

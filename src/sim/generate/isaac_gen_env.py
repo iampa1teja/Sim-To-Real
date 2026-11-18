@@ -137,6 +137,7 @@ class IsaacGenEnv:
         return self.observe()
 
     def observe(self):
+        import torch
         from sim.envs.mdp.objects import object_poses_in_base
         from sim.envs.mdp.resets import as_torch
         observations = self._raw.observation_manager.compute()
@@ -149,6 +150,12 @@ class IsaacGenEnv:
                    if (state := self._spec.objects.get(name)) is not None}
         group = observations.get("subtask_terms")
         signals = {} if group is None else {name: bool(as_torch(value).reshape(-1)[0].item()) for name, value in group.items()}
+        if self._task.spec.raw.get("checks", {}).get("touched", {}).get("contact_signal") == "touch_contact":
+            sensors = (self._raw.scene[name] for name in ("contact_grasp", "contact_touch_fixed"))
+            signals["touch_contact"] = any(
+                (torch.linalg.vector_norm(as_torch(sensor.data.force_matrix_w), dim=-1) > 0.1).any().item()
+                for sensor in sensors
+            )
         if group is not None and "cube_grasped" in signals:
             holding = signals["cube_grasped"]
             placed = signals.get("cube_placed", False)

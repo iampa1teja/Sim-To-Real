@@ -21,17 +21,19 @@ initial_q = { around = "home", spread = 0.12 }
 reachable = ["@target"]
 
 [task.start.place.cube]
-region = { workspace_inset_m = 0.012 }
+region = { workspace_inset_m = 0.020 }
 yaw_deg = [0.0, 90.0]
 
 [task.stages]
 order = ["touched", "withdrawn", "success"]
+success_requires_stages = ["touched"]
 
 [task.checks.touched]
 check = "ee_near"
 object = "@target"
 offset_m = [0.0, 0.0, 0.017]
-tol_m = 0.006
+tol_m = 0.009
+contact_signal = "touch_contact"
 
 [task.checks.away]
 check = "ee_near"
@@ -48,9 +50,14 @@ check = "object_displaced"
 object = "@target"
 min_m = 0.005
 
+[task.checks.stable]
+check = "all"
+of = ["moved"]
+negate = true
+
 [task.checks.success]
 check = "all"
-of = ["withdrawn"]
+of = ["withdrawn", "stable"]
 
 [task.failures]
 rules = [{ name = "never_touched", unless = ["touched"] }, { name = "pushed_object", if = ["moved"] }, { name = "stayed_on_object" }]

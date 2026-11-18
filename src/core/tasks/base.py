@@ -463,7 +463,7 @@ class Task(ABC):
         flags = tracker.flags()
         flags.update({key: bool(value) for key, value in final_checks.items() if key not in self.stages})
         holding = bool(final_checks.get("holding", final_state.signals.get("holding", False)))
-        success = bool(flags.get(self.stages[-1], False))
+        success = self.is_success(flags)
         if self.spec.raw.get("stages", {}).get("success_requires_final", True):
             success = success and bool(final_checks.get(self.stages[-1], False))
         return Outcome(success, self.failure_mode(flags, holding, success), tracker.furthest_stage)
@@ -481,7 +481,8 @@ class Task(ABC):
                 for name, value in objects.items()}
 
     def is_success(self, flags: dict[str, bool]) -> bool:
-        return bool(flags.get(self.stages[-1], False))
+        required = self.spec.raw.get("stages", {}).get("success_requires_stages", ())
+        return bool(flags.get(self.stages[-1], False)) and all(flags.get(stage, False) for stage in required)
 
     def furthest_stage(self, flags: dict[str, bool]) -> str | None:
         reached = None

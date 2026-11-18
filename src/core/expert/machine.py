@@ -326,7 +326,7 @@ class ScriptedExpert:
             return bool(_np.all(point >= value["xy_min"]) and _np.all(point <= value["xy_max"]))
         return float(_np.linalg.norm(point - _np.asarray(value)[:2])) <= 0.01
 
-    def _terminated(self, obs):
+    def _terminated(self, obs, progress):
         step, state = self._program.steps[self._index], self._state
         kind, p = step.skill, step.params
         if self._emitted >= step.budget:
@@ -342,6 +342,8 @@ class ScriptedExpert:
             return state["sweep"] == len(angles)
         if kind == "set_gripper":
             return self._gap_done(obs, self._close_gap(), p["tol_m"])
+        if kind == "touch" and obs.signals.get("touch_contact", False) and progress.satisfied.get(step.stage, False):
+            return True
         if kind in ("grasp", "release"):
             while True:
                 sub = state["sub"]
@@ -461,7 +463,7 @@ class ScriptedExpert:
         resumed = self._reenter(obs, progress) if detect and progress.regressed_stage is not None else None
         if self._state is None:
             self._enter(obs)
-        if resumed is None and self._emitted > 0 and self._terminated(obs):
+        if resumed is None and self._emitted > 0 and self._terminated(obs, progress):
             step = self._program.steps[self._index]
             if step.skill == "grasp":
                 self._held = self._resolve(step.params["target"])
