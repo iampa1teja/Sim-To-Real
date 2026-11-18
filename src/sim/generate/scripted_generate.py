@@ -169,10 +169,11 @@ def _run(args, cfg, tasks, parser, argv):
                 recorder.init_dataset()
                 maximum = args.limit_attempts-executed_total if args.limit_attempts > 0 else 0
                 limited = _LimitedWriter(writer, maximum)
+                expert_factory = make_expert_factory(task, cfg.arm, motion_idle_steps=max(1, round(cfg.fps * 0.4)))
                 try:
                     with torch.inference_mode():
                         summary = run_generation(cfg, name, env, limited,
-                                                   expert_factory=limited.expert_factory(make_expert_factory(task, cfg.arm)),
+                                                   expert_factory=limited.expert_factory(expert_factory),
                                                    mapping=mapping,
                                                    spec_fn=make_spec_fn(task, cfg.arm, scene=cfg.scene, noise=cfg.noise,
                                                                          weights_override=cfg.perturbation_weights, fps=cfg.fps),
