@@ -87,6 +87,7 @@ class IsaacGenEnv:
         if self._raw.num_envs != 1:
             raise _EnvError("Generation requires one environment")
         self._spec, self._frame, self._ever_grasped = spec, 0, False
+        self._grasp_contact_frame = -5
         self._placed_run, self._previous_run, self._signal_frame = 0, 0, None
         self._assets = select_generation_assets(self._task.spec, {name: state.size for name, state in spec.objects.items()})
         self._raw._generation_object_assets = self._assets
@@ -137,25 +138,31 @@ class IsaacGenEnv:
         return self.observe()
 
     def observe(self):
-        import torch
         from sim.envs.mdp.objects import object_poses_in_base
         from sim.envs.mdp.resets import as_torch
         observations = self._raw.observation_manager.compute()
         ee = as_torch(observations["policy"]["ee_frame_state"])[0].detach().cpu().numpy()
         ee = _Pose(tuple(float(v) for v in ee[:3]), tuple(float(v) for v in ee[3:]))
         q = as_torch(self._robot.data.joint_pos)[0, self._joint_ids].detach().cpu().numpy().astype(_np.float64)
+        tcp = self._chain.tcp_from_ee(ee)
+        gap = self._grip.gap_from_angle(float(q[self._grip.index]))
         poses = object_poses_in_base(self._raw, self._assets.values())
         objects = {name: _ObjectState(poses[asset], state.active, state.color, state.size)
                    for name, asset in self._assets.items()
                    if (state := self._spec.objects.get(name)) is not None}
         group = observations.get("subtask_terms")
         signals = {} if group is None else {name: bool(as_torch(value).reshape(-1)[0].item()) for name, value in group.items()}
-        if self._task.spec.raw.get("checks", {}).get("touched", {}).get("contact_signal") == "touch_contact":
-            sensors = (self._raw.scene[name] for name in ("contact_grasp", "contact_touch_fixed"))
-            signals["touch_contact"] = any(
-                (torch.linalg.vector_norm(as_torch(sensor.data.force_matrix_w), dim=-1) > 0.1).any().item()
-                for sensor in sensors
-            )
+        checks = self._task.spec.raw.get("checks", {})
+        if checks.get("touched", {}).get("contact_signal") == "touch_contact":
+            signals["touch_contact"] = any(self._has_contact(name, 0.1) for name in ("contact_grasp", "contact_touch_fixed"))
+        if checks.get("holding", {}).get("contact_signal") == "target_held":
+            target = self._spec.roles["target"]
+            asset = self._assets[target]
+            if all(self._has_contact(f"contact_{side}_{asset}", 0.05) for side in ("fixed", "moving")):
+                self._grasp_contact_frame = self._frame
+            # A brief solver contact gap can occur while the cube remains between the jaws.
+            signals["target_held"] = bool(self._frame - self._grasp_contact_frame <= 4 and gap < 0.05
+                                          and _np.linalg.norm(_np.subtract(tcp.position, objects[target].pose.position)) < 0.04)
         if group is not None and "cube_grasped" in signals:
             holding = signals["cube_grasped"]
             placed = signals.get("cube_placed", False)
@@ -166,7 +173,14 @@ class IsaacGenEnv:
             signals.update(holding=holding, grasped=signals.get("cube_grasp_contact", False) or self._ever_grasped,
                            lifted=self._ever_grasped,
                            placed=placed, success=self._placed_run >= self._task.spec.raw.get("success", {}).get("confirm_steps", 25))
-        return _ExpertObs(self._frame, q, ee, self._chain.tcp_from_ee(ee), self._grip.gap_from_angle(float(q[self._grip.index])), objects, signals)
+        return _ExpertObs(self._frame, q, ee, tcp, gap, objects, signals)
+
+    def _has_contact(self, name, threshold):
+        import torch
+        from sim.envs.mdp.resets import as_torch
+
+        forces = as_torch(self._raw.scene[name].data.force_matrix_w)
+        return bool((torch.linalg.vector_norm(forces, dim=-1) > threshold).any().item())
 
     def set_object_pose(self, name, pose):
         from sim.envs.mdp.objects import set_object_pose_base

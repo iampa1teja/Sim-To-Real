@@ -175,6 +175,9 @@ def _held(state, ctx, params):
     name, position = _position(state, ctx, params["object"])
     if position is None:
         return False
+    contact_signal = params.get("contact_signal")
+    if contact_signal in state.signals:
+        return state.signals[contact_signal]
     width = min(_dims(ctx.objects[name])[:2])
     return bool(width - params.get("gap_low_m", 0.006) <= state.gripper <= width + params.get("gap_high_m", 0.004)
                 and _np.linalg.norm(_tcp(state) - position) <= params.get("max_dist_m", 0.03))
@@ -278,8 +281,9 @@ class GenericTask(_Task):
                 if kind == "ee_near" and (("object" in table) == ("point" in table)):
                     raise _ConfigError("ee_near requires exactly one target")
                 if "contact_signal" in table and (
-                        kind != "ee_near" or not isinstance(table["contact_signal"], str) or not table["contact_signal"]):
-                    raise _ConfigError("contact_signal must name an ee_near signal")
+                        kind not in ("ee_near", "held") or not isinstance(table["contact_signal"], str)
+                        or not table["contact_signal"]):
+                    raise _ConfigError("contact_signal must name an ee_near or held signal")
                 for key in ("object", "base", "point"):
                     if key in table:
                         _static_ref(table[key], spec)
