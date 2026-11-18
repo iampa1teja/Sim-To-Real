@@ -108,12 +108,15 @@ def _make_env(args, cfg, task):
         raise ValueError("Requested fps is not a multiple of the physics timestep")
     env_cfg.terminations = None
     env_cfg.episode_length_s = (task.spec.raw.get("expert", {}).get("max_steps", 600)+1)/cfg.fps
+    env_cfg.observations.visual = None
     if not cfg.cameras:
-        env_cfg.observations.visual = None
         for name in dir(env_cfg.scene):
             if name.startswith("camera_"):
                 setattr(env_cfg.scene, name, None)
-    return gym.make(env_id, cfg=env_cfg)
+    env = gym.make(env_id, cfg=env_cfg)
+    # IsaacGenEnv renders the saved observation explicitly at the frame boundary.
+    env.unwrapped.render_enabled = False
+    return env
 
 
 def _run(args, cfg, tasks, parser, argv):
