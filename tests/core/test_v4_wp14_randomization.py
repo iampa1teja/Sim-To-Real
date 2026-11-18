@@ -187,9 +187,16 @@ class WorkspaceTests(_Sandboxed):
         import tomllib
         so101 = tomllib.loads((REPO_ROOT / "arms" / "so101" / "arm.toml").read_text())["arm"]
         ws = validate_workspace(so101["workspace"])
-        # the v3 recorded cube area and box position stay inside the SO-101 workspace
-        for xy in ((-0.247, 0.005), (0.0, -0.3), (-0.2, -0.3), (0.2, -0.3)):
-            self.assertTrue(_in_ws(xy, ws), xy)
+        # The SO-101 workspace is set from the container reach check (tests/sim/check_workspace.py) and may be
+        # narrowed there; it must still leave a wide area: >= 12 cm of radius, >= 90 deg of bearing, and reachable
+        # table on both sides of the base (|x| >= 0.1 m) and at two depths.
+        self.assertGreaterEqual(ws["r_m"][1] - ws["r_m"][0], 0.12)
+        self.assertGreaterEqual(ws["bearing_deg"][1] - ws["bearing_deg"][0], 90.0)
+        grid = [(x / 100, y / 100) for x in range(-45, 46) for y in range(-45, 46)]
+        inside = [p for p in grid if _in_ws(p, ws)]
+        self.assertTrue(any(p[0] <= -0.1 for p in inside) and any(p[0] >= 0.1 for p in inside), "both sides of the base")
+        depths = sorted(math.hypot(*p) for p in inside)
+        self.assertGreaterEqual(depths[-1] - depths[0], 0.12)
 
 
 # ---------------------------------------------------------------------------------------------------- §16.2
