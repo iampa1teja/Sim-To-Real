@@ -46,6 +46,21 @@ def _surface(rings):
     return vertices, faces
 
 
+def _floor_collider(radius, thickness):
+    return f'''    def Cylinder "FloorCollision" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {{
+        uniform token axis = "Z"
+        double height = {thickness}
+        double radius = {radius}
+        double3 xformOp:translate = (0, 0, {thickness / 2})
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        token visibility = "invisible"
+        bool physics:collisionEnabled = true
+    }}'''
+
+
 def _bowl(name, radius, height, floor, inner_radius, mass, color):
     # The wall flares out from the floor. The interior stays wider than
     # the small bowl's rim, including near the large bowl's floor.
@@ -54,9 +69,8 @@ def _bowl(name, radius, height, floor, inner_radius, mass, color):
     rings = [_ring(base_radius, 0), _ring(radius, height),
              _ring(inner_radius, height), _ring(inner_base, floor)]
     vertices, faces = _surface(rings)
-    meshes = [_mesh("Surface", vertices, faces, color=color)]
-    vertices, faces = _surface([rings[0], _ring(base_radius, floor)])
-    meshes.append(_mesh("FloorCollision", vertices, faces, collision=True))
+    # A cylinder gives Newton an analytic contact against the triangulated table.
+    meshes = [_mesh("Surface", vertices, faces, color=color), _floor_collider(base_radius, floor)]
     for i in range(_SEGMENTS):
         j = (i + 1) % _SEGMENTS
         vertices = [ring[k] for ring in rings for k in (i, j)]
