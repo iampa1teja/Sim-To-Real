@@ -362,6 +362,9 @@ class ScriptedExpert:
     def _ik(self, point, rotation):
         q, weights = self._q.copy(), self._weights
         at, ct = rotation @ self._approach, rotation @ self._closing
+        indices = self._arm_indices
+        lower, upper = self._lower[indices], self._upper[indices]
+        damping = 1e-4 * _np.eye(7)
         for _ in range(12):
             transform = self._chain.fk(q)
             a, c = transform[:3, :3] @ self._approach, transform[:3, :3] @ self._closing
@@ -375,14 +378,21 @@ class ScriptedExpert:
             ds, dk = at @ _skew(ct) @ dc, ct @ dc
             jac = _np.vstack((weights.position*geometric[:3], weights.axis*_skew(at) @ _skew(a) @ geometric[3:],
                               weights.roll*(k*ds - s*dk)/max(s*s + k*k, 1e-20)))
-            delta = -jac.T @ _np.linalg.solve(jac @ jac.T + 1e-4*_np.eye(7), residual)
+            delta = -jac.T @ _np.linalg.solve(jac @ jac.T + damping, residual)
+            # Re-solve over the movable joints when the first direction
+            # pushes a joint farther into a bound.
+            angles = q[indices]
+            blocked = ((angles <= lower + 1e-10) & (delta < 0)) | ((angles >= upper - 1e-10) & (delta > 0))
+            if _np.any(blocked):
+                jac[:, blocked] = 0
+                delta = -jac.T @ _np.linalg.solve(jac @ jac.T + damping, residual)
             scale = float(_np.max(_np.abs(delta))) if len(delta) else 0
             if scale > 0.2:
                 delta *= 0.2/scale
-            new = _np.clip(q[self._arm_indices] + delta, self._lower[self._arm_indices], self._upper[self._arm_indices])
-            if _np.max(_np.abs(new - q[self._arm_indices]), initial=0) < 1e-10:
+            new = _np.clip(angles + delta, lower, upper)
+            if _np.max(_np.abs(new - angles), initial=0) < 1e-10:
                 break
-            q[self._arm_indices] = new
+            q[indices] = new
         return q
 
     def _desired(self, obs):
