@@ -131,11 +131,13 @@ def _run(args, cfg, tasks, parser, argv):
         from core.arms.raw_mapping import RawMapping
         from core.arms.spec import load_arm_spec
         from core.datasets.task_meta import LABEL_FEATURES
+        from core.generate.errors import GenerationError
         from core.generate.loop import run_generation, make_expert_factory, make_spec_fn
         from core.tasks.loader import load_task
         from sim.generate.isaac_gen_env import IsaacGenEnv, RecorderEpisodeWriter
         from sim.recording.lerobot_recorder import LeRobotRecorder
         executed_total = 0
+        failed = False
         for name in tasks:
             if args.limit_attempts > 0 and executed_total >= args.limit_attempts:
                 break
@@ -174,6 +176,10 @@ def _run(args, cfg, tasks, parser, argv):
                                                    git_commit=git_commit())
                 except _AttemptLimit:
                     summary = _current_summary(writer.root)
+                except GenerationError as exc:
+                    print(f"{name}: {type(exc).__name__}: {exc}", file=_sys.stderr)
+                    summary = _current_summary(writer.root)
+                    failed = True
                 executed_total += limited._executed
                 print(f"{name}: {summary}")
             finally:
@@ -185,7 +191,7 @@ def _run(args, cfg, tasks, parser, argv):
                         env.close()
                     elif raw_env is not None:
                         raw_env.close()
-        return 0
+        return int(failed)
     finally:
         app.close()
 
