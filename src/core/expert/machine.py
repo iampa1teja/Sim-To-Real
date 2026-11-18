@@ -187,6 +187,13 @@ class ScriptedExpert:
                        "carrot": start.copy(), "sub": "up" if step.skill == "grasp" else "gap" if step.skill == "release" else "above",
                        "sub_count": 0, "last_gap": obs.gripper_gap_m, "blocked": 0, "sweep": 0}
         self._emitted = 0
+        if step.params.get("align_held"):
+            held = obs.objects.get(self._held)
+            if held is not None and held.active:
+                offset = _np.asarray(held.pose.position) - start
+                # A distant object may have slipped out before the next skill starts.
+                if _np.linalg.norm(offset) < 0.055:
+                    self._state["held_offset_xy"] = offset[:2]
         if step.skill == "grasp":
             name = self._resolve(step.params["target"])
             point = self._centre(name) + [0, 0, step.params["z_offset_m"]]
@@ -229,6 +236,8 @@ class ScriptedExpert:
                 goal = goal + [0, 0, params["height_m"]]
             else:
                 goal = goal + params["offset_m"] + _np.array([0, 0, (self._dims(self._held)[2]/2 if self._held else 0) + params["clearance_m"]])
+            if "held_offset_xy" in state:
+                goal[:2] -= state["held_offset_xy"]
         elif kind == "touch":
             goal, _ = self._destination(params["target"])
         elif kind == "push":

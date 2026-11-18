@@ -116,6 +116,8 @@ def _validated_params(params, kind, *, task, arm_spec, joint_limits, names, arm_
                 _require(value >= 0, f"{key} must be nonnegative")
         elif key in ("dwell_steps", "steps"):
             _require(type(value) is int and value >= (1 if key == "steps" else 0), f"Invalid {key}")
+        elif key == "align_held":
+            _require(type(value) is bool, "align_held must be a boolean")
         elif key == "orientation":
             _require(value in ("down", "keep"), "Invalid orientation")
         elif key == "yaw":
