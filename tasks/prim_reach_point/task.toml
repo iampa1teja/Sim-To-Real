@@ -9,11 +9,12 @@ generate = "env_cfg:apply_generate"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 
 [task.start.goal.point]
 type = "point"
 z_m = [0.03, 0.15]
-region = { r_m = [0.22, 0.36], bearing_deg = [-140.0, -40.0] }
+region = "workspace"
 
 [task.stages]
 order = ["reached", "success"]
@@ -31,9 +32,10 @@ of = ["reached"]
 rules = [{ name = "never_reached", unless = ["reached"] }, { name = "left_point" }]
 
 [task.expert]
-max_steps = 300
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 450
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.point", stage = "reached" }, { skill = "wait", steps = 10, stage = "success" }]
+steps = [{ skill = "reach", target = "@goal.point", stage = "reached" }, { skill = "wait", steps = 10, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "target_offset", xy_m = [0.03, 0.06] }]

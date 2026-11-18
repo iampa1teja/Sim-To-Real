@@ -31,9 +31,10 @@ from core.generate.protocols import (AttemptStatus as _Status, EpisodeResult as 
                                      Fingerprints as _Fingerprints, Kind as _Kind, PerturbationGroup as _Group,
                                      RejectionReason as _Reason, StepRecord as _StepRecord)
 from core.generate.seeds import rng_for as _rng_for
-from core.generate.specs import build_spec as _build_spec
-from core.tasks.base import CheckContext as _CheckContext
+from core.generate.specs import build_spec as _build_spec, validate_physics as _validate_physics
+from core.tasks.base import CheckContext as _CheckContext, episode_objects as _episode_objects
 from core.tasks.loader import load_task as _load_task
+from core.tasks.sampling import validate_workspace as _validate_workspace
 from core.utils.hashing import file_sha256 as _file_sha256
 
 
@@ -54,12 +55,18 @@ def make_expert_factory(task, arm, *, setup=None):
 
 def make_spec_fn(task, arm, *, scene, noise=None, weights_override=None, fps=30, setup=None, reach_fn=None):
     spec, _ = _load_arm_spec(arm)
+    workspace = _validate_workspace(spec["workspace"]) if "workspace" in spec else None
+    _validate_physics(task.spec)
     initial, names = home_q(arm, setup=setup), tuple(spec["joints"]["names"])
     limits, joints = _expert_joint_limits(arm, setup=setup), tuple(spec["expert"]["arm_joints"])
+    start_pose = task.spec.raw.get("start", {}).get("initial_q")
+    tcp_fn = (_KinematicChain.from_arm(arm).fk_pose
+              if isinstance(start_pose, dict) and "around" in start_pose else None)
     return lambda kind, index, seed: _build_spec(task, kind, index, seed, arm=arm, scene=scene,
                                                 home_q=initial, reach_fn=reach_fn, noise=noise,
                                                 weights_override=weights_override, fps=fps,
-                                                joint_names=names, joint_limits=limits, arm_joints=joints)
+                                                joint_names=names, joint_limits=limits, arm_joints=joints,
+                                                workspace=workspace, tcp_fn=tcp_fn)
 
 
 def _finite_obs(obs):
@@ -171,10 +178,11 @@ class GenerationSummary:
 
 def _sidecar(spec, task, env, result, records, index, shard, base, git_commit):
     objects = {}
+    definitions = _episode_objects(task.spec, spec)
     for name, state in spec.objects.items():
         if not state.active:
             continue
-        obj = task.spec.objects[name]
+        obj = definitions[name]
         dims = obj.size if obj.size is not None else obj.params.get("size_outer", (0., 0., 0.))
         roles = sorted(role for role, value in spec.roles.items() if value == name)
         object_set = next((key for key, value in task.spec.object_sets.items() if name in value.slot_names()), None)
@@ -184,6 +192,10 @@ def _sidecar(spec, task, env, result, records, index, shard, base, git_commit):
                              orientation_wxyz=[[float(v) for v in (p.quat_xyzw[3], *p.quat_xyzw[:3])] for p in poses])
     perturbation = (None if spec.perturbation is None else
                     dict(spec.perturbation.to_json(), onset_frame=result.perturbation_onset_frame, applied=result.perturbation_applied))
+    attempt = dict(index=spec.attempt_index, seed=spec.seed, shard=list(shard), spec_fp=result.fingerprints.spec_fp)
+    if spec.physics or spec.expert_params:
+        payload = spec.to_json()
+        attempt.update({key: payload[key] for key in ("physics", "expert_params") if key in payload})
     return dict(schema_version=2, episode_index=index, num_frames=result.num_frames, fps=spec.fps,
                 task=spec.task, arm=spec.arm, scene=spec.scene, reference_frame=f"robot base link ({base})",
                 units="m", angle_units="rad", joint_names=list(env.joint_names), objects=objects,
@@ -195,7 +207,7 @@ def _sidecar(spec, task, env, result, records, index, shard, base, git_commit):
                 phases=_build_phases([r.phase for r in records]), segments=[s.to_json() for s in result.segments],
                 perturbation=perturbation, recovery=result.recovery.to_json() if result.recovery else None,
                 noise=spec.noise.to_json() if spec.noise else None,
-                attempt=dict(index=spec.attempt_index, seed=spec.seed, shard=list(shard), spec_fp=result.fingerprints.spec_fp),
+                attempt=attempt,
                 fingerprints=result.fingerprints.to_json(), appearance=dict(light_exposure=None, robot_color=None),
                 source=None, generator=dict(name="scripted_expert", git_commit=git_commit), legacy_v1=False)
 
@@ -232,7 +244,8 @@ def run_generation(cfg, task_name, env, writer, *, expert_factory, mapping, spec
     trajectories = {line.traj_fp for line in old_lines if line.status is _Status.ACCEPTED}
     accepted, executed, skips = (dict.fromkeys(_KINDS, 0) for _ in range(3))
     attempts = _shard_attempts(_iter_plan(task_name, cfg.master_seed, spec_fn,
-                                          unique_across_kinds=cfg.scenario_unique_across_kinds), shard, n)
+                                          unique_across_kinds=cfg.scenario_unique_across_kinds,
+                                          near_duplicates=True), shard, n)
     for planned in attempts:
         if all(accepted[k] >= quotas[k] for k in _KINDS):
             break

@@ -7,7 +7,7 @@ import numpy as _np
 
 from core.generate.errors import EnvError as _EnvError
 from core.generate.protocols import ExpertObs as _ExpertObs, ObjectState as _ObjectState
-from core.tasks.base import Pose as _Pose
+from core.tasks.base import Pose as _Pose, episode_objects as _episode_objects
 
 
 class SimulatedCrash(Exception):
@@ -80,6 +80,7 @@ class FakeEnv:
     def reset(self, spec):
         if set(spec.objects) - self._task.spec.objects.keys() or len(spec.initial_q) != len(self.joint_names):
             raise _EnvError("Spec has an unknown object or incorrect initial joint count")
+        self._definitions = _episode_objects(self._task.spec, spec)
         self._spec, self._frame = spec, 0
         self._q = _np.array(spec.initial_q, dtype=_np.float64)
         self._objects = {name: spec.objects.get(name, _ObjectState(_Pose((0., 0., 0.)), active=False))
@@ -92,7 +93,7 @@ class FakeEnv:
             name = spec.held_object
             if name not in self._objects or not self._objects[name].active:
                 raise _EnvError("Held object is missing or inactive")
-            obj = self._task.spec.objects[name]
+            obj = self._definitions[name]
             self._q[self._grip.index] = self._grip.angle_from_gap(float(min(_dims(obj)[:2])))
             self._update_frames()
             position = self._tcp[:3, 3].copy()
@@ -119,7 +120,7 @@ class FakeEnv:
         for other, other_state in self._objects.items():
             if other == name or not other_state.active:
                 continue
-            obj = self._task.spec.objects[other]
+            obj = self._definitions[other]
             local = _local_xy(other_state.pose, (x, y))
             z = other_state.pose.position[2]
             inner = obj.params.get("inner_half_size")
@@ -127,7 +128,7 @@ class FakeEnv:
                 support = max(support, z + obj.params.get("floor_z", 0.))
             elif _np.all(abs(local) <= _dims(obj)[:2]/2):
                 support = max(support, z + _dims(obj)[2]*(1 if _bottom(obj) else .5))
-        obj = self._task.spec.objects[name]
+        obj = self._definitions[name]
         z = support + (0 if _bottom(obj) else _dims(obj)[2]/2)
         yaw = _yaw(state.pose)
         pose = _Pose((x, y, float(z)), (0., 0., _math.sin(yaw/2), _math.cos(yaw/2)))
@@ -144,7 +145,7 @@ class FakeEnv:
         self._q += self._alpha * (_np.clip(q_target, self._chain.lower, self._chain.upper) - self._q)
         gap = self._grip.gap_from_angle(self._q[self._grip.index])
         if self._held is not None:
-            width = min(_dims(self._task.spec.objects[self._held])[:2])
+            width = min(_dims(self._definitions[self._held])[:2])
             if gap < width:
                 self._q[self._grip.index] = self._grip.angle_from_gap(float(width))
                 gap = float(width)
@@ -154,7 +155,7 @@ class FakeEnv:
         if self._held is None and gap < old_gap:
             candidates = []
             for name, state in self._objects.items():
-                obj = self._task.spec.objects[name]
+                obj = self._definitions[name]
                 if not state.active or "inner_half_size" in obj.params:
                     continue
                 dims = _dims(obj)
@@ -171,11 +172,11 @@ class FakeEnv:
                 gap = width
                 self._update_frames()
                 self._attach(name)
-        if self._held is not None and gap > min(_dims(self._task.spec.objects[self._held])[:2])+.002:
+        if self._held is not None and gap > min(_dims(self._definitions[self._held])[:2])+.002:
             self._drop(self._held)
         delta = self._tcp[:2, 3]-old_tcp[:2, 3]
         for name, state in self._objects.items():
-            obj = self._task.spec.objects[name]
+            obj = self._definitions[name]
             if not state.active or name == self._held or "inner_half_size" in obj.params:
                 continue
             dims = _dims(obj)
@@ -192,7 +193,7 @@ class FakeEnv:
         target, container = self._spec.roles.get("target"), self._spec.roles.get("container")
         placed = False
         if self._held is None and target in self._objects and container in self._objects:
-            obj, box = self._task.spec.objects[target], self._task.spec.objects[container]
+            obj, box = self._definitions[target], self._definitions[container]
             state, box_state = self._objects[target], self._objects[container]
             inner = box.params.get("inner_half_size")
             bottom = state.pose.position[2] - (0 if _bottom(obj) else _dims(obj)[2]/2)

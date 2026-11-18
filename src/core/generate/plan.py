@@ -6,7 +6,7 @@ from collections.abc import Mapping as _Mapping
 from dataclasses import dataclass as _dataclass
 
 from core.generate.errors import SamplingError as _SamplingError, ScenarioSpaceExhausted as _ScenarioSpaceExhausted
-from core.generate.fingerprint import scenario_key as _scenario_key
+from core.generate.fingerprint import near_key as _near_key, scenario_key as _scenario_key
 from core.generate.protocols import EpisodeSpec as _EpisodeSpec, Kind as _Kind, SkipReason as _SkipReason
 from core.generate.seeds import derive_seed as _derive_seed
 
@@ -45,8 +45,8 @@ class PlannedAttempt:
     skip: _SkipReason | None
 
 
-def iter_plan(task, master_seed, spec_fn, *, unique_across_kinds=True):
-    seen = set()
+def iter_plan(task, master_seed, spec_fn, *, unique_across_kinds=True, near_duplicates=False):
+    seen, seen_near = set(), set()
     for index in _itertools.count():
         for kind in KINDS:
             seed = attempt_seed(master_seed, task, kind, index)
@@ -59,6 +59,12 @@ def iter_plan(task, master_seed, spec_fn, *, unique_across_kinds=True):
             mark = key if unique_across_kinds else (kind, key)
             skip = _SkipReason.SCENARIO_SEEN if mark in seen else None
             seen.add(mark)
+            if near_duplicates:
+                near = _near_key(spec)
+                near_mark = near if unique_across_kinds else (kind, near)
+                if near_mark in seen_near:
+                    skip = _SkipReason.SCENARIO_SEEN
+                seen_near.add(near_mark)
             yield PlannedAttempt(task, kind, index, seed, spec, key, skip)
 
 
@@ -76,7 +82,7 @@ class CapacityReport:
 
 
 def check_capacity(task, master_seed, spec_fn, quotas, *, max_attempt_factor, max_consecutive_skips,
-                   unique_across_kinds=True) -> CapacityReport:
+                   unique_across_kinds=True, near_duplicates=False) -> CapacityReport:
     if not _math.isfinite(max_attempt_factor) or max_attempt_factor < 1 or max_consecutive_skips < 1:
         raise ValueError("Invalid capacity budget")
     quota = {kind: quotas.get(kind, quotas.get(kind.value, 0)) if isinstance(quotas, _Mapping)
@@ -89,7 +95,8 @@ def check_capacity(task, master_seed, spec_fn, quotas, *, max_attempt_factor, ma
     horizon = 0
     if not active:
         return CapacityReport(counts, horizon)
-    for attempt in iter_plan(task, master_seed, spec_fn, unique_across_kinds=unique_across_kinds):
+    for attempt in iter_plan(task, master_seed, spec_fn, unique_across_kinds=unique_across_kinds,
+                             near_duplicates=near_duplicates):
         kind = attempt.kind
         if kind not in active:
             continue

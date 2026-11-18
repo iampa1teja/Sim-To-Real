@@ -7,6 +7,10 @@ from core.tasks.sampling import park_positions as _park_positions
 
 
 def apply_teleop(cfg, task):
+    _apply(cfg, task, {name: {name: None} for name in task.spec.objects})
+
+
+def _apply(cfg, task, assets):
     import isaaclab.sim as sim_utils
     from isaaclab.assets import RigidObjectCfg
     from isaaclab.managers import EventTermCfg, SceneEntityCfg
@@ -16,9 +20,11 @@ def apply_teleop(cfg, task):
                                              contact_material, contact_properties)
     links = _load_arm_spec(_os.environ.get("S2R_ARM"))[0]["links"]
     movable = []
-    for name, position in _park_positions(task.spec.objects).items():
-        obj = task.spec.objects[name]
-        path = "{ENV_REGEX_NS}/" + name
+    physical_assets = {asset: (task.spec.objects[name], size)
+                       for name, variants in assets.items() for asset, size in variants.items()}
+    for asset, position in _park_positions(physical_assets).items():
+        obj, size = physical_assets[asset]
+        path = "{ENV_REGEX_NS}/" + asset
         properties = dict(rigid_props=sim_utils.MujocoRigidBodyPropertiesCfg(kinematic_enabled=not obj.rigid),
                           collision_props=contact_properties(),
                           physics_material_path="physicsMaterial",
@@ -26,12 +32,23 @@ def apply_teleop(cfg, task):
                           visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=tuple(obj.params.get("color", (.5, .5, .5)))))
         if obj.params.get("mass") is not None:
             properties["mass_props"] = sim_utils.MassPropertiesCfg(mass=obj.params["mass"])
-        spawn = (sim_utils.CuboidCfg(size=obj.size, **properties) if obj.size is not None
-                 else sim_utils.UsdFileCfg(usd_path=str(obj.usd), **properties))
-        setattr(cfg.scene, name, RigidObjectCfg(prim_path=path, spawn=spawn,
+        if size is not None and obj.usd is not None:
+            native_size = obj.size or obj.params.get("size_outer")
+            if native_size is None:
+                from pxr import Usd, UsdGeom
+                stage = Usd.Stage.Open(str(obj.usd))
+                bounds = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_])
+                native_size = bounds.ComputeLocalBound(stage.GetDefaultPrim()).ComputeAlignedRange().GetSize()
+            scale = tuple(new / old for new, old in zip(size, native_size))
+            spawn = sim_utils.UsdFileCfg(usd_path=str(obj.usd), scale=scale, **properties)
+        elif obj.size is not None:
+            spawn = sim_utils.CuboidCfg(size=size or obj.size, **properties)
+        else:
+            spawn = sim_utils.UsdFileCfg(usd_path=str(obj.usd), **properties)
+        setattr(cfg.scene, asset, RigidObjectCfg(prim_path=path, spawn=spawn,
                                                init_state=RigidObjectCfg.InitialStateCfg(pos=position, rot=(0., 0., 0., 1.))))
-        setattr(cfg.events, f"park_{name}", EventTermCfg(func=park_object, mode="reset",
-                                                       params=dict(asset_cfg=SceneEntityCfg(name), park_offset=position)))
+        setattr(cfg.events, f"park_{asset}", EventTermCfg(func=park_object, mode="reset",
+                                                        params=dict(asset_cfg=SceneEntityCfg(asset), park_offset=position)))
         if obj.rigid:
             movable.append(path)
     if movable:
@@ -44,6 +61,8 @@ def apply_teleop(cfg, task):
 
 
 def apply_generate(cfg, task):
-    apply_teleop(cfg, task)
+    from sim.envs.mdp.objects import generation_assets
+
+    _apply(cfg, task, generation_assets(task.spec))
     cfg.terminations = None
     cfg.episode_length_s = (task.spec.raw.get("expert", {}).get("max_steps", 600)+1)*cfg.decimation*cfg.sim.dt

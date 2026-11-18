@@ -29,7 +29,7 @@ def main(argv=None):
             report = _check_capacity(name, cfg.master_seed, fn, cfg.quotas[name],
                                      max_attempt_factor=cfg.max_attempt_factor,
                                      max_consecutive_skips=cfg.max_consecutive_skips,
-                                     unique_across_kinds=cfg.scenario_unique_across_kinds)
+                                     unique_across_kinds=cfg.scenario_unique_across_kinds, near_duplicates=True)
             quotas = {kind.value: getattr(cfg.quotas[name], kind.value) for kind in _KINDS}
             print(_json.dumps(dict(task=name, shard=list(cfg.shard), quotas=quotas,
                                     shard_quotas={k: _shard_quota(v, *cfg.shard) for k, v in quotas.items()},

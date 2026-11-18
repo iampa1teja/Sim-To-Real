@@ -50,7 +50,7 @@ def _quantized(value, step, *, poses=False):
     return value
 
 
-def scenario_key(spec) -> str:
+def _active_objects(spec, *, near):
     objects = []
     for name, state in spec.objects.items():
         if not state.active:
@@ -58,13 +58,29 @@ def scenario_key(spec) -> str:
         roles = sorted(role for role, target in spec.roles.items() if target == name)
         x, y, z, w = _quaternion(state.pose.quat_xyzw)
         yaw = _math.atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z))
-        objects.append({"kind": _re.sub(r"_\d+$", "", name), "role": roles[0] if roles else None,
-                        "color": state.color, "p": [quantize(float(c), 1e-3) for c in state.pose.position],
-                        "yaw": quantize(yaw, _math.pi/180)})
+        obj = {"kind": _re.sub(r"_\d+$", "", name), "role": roles[0] if roles else None,
+               "color": state.color, "yaw": quantize(yaw, _math.radians(5 if near else 1))}
+        if near:
+            obj["xy"] = [quantize(c, 5e-3) for c in state.pose.position[:2]]
+        else:
+            obj["p"] = [quantize(c, 1e-3) for c in state.pose.position]
+        if state.size is not None:
+            obj["s"] = [quantize(value, 1e-3 if near else 1e-4) for value in state.size]
+        objects.append(obj)
+    return sorted(objects, key=_canonical_json)
+
+
+def scenario_key(spec) -> str:
     payload = {"v": 1, "task": spec.task, "arm": spec.arm, "scene": spec.scene,
-               "objects": sorted(objects, key=_canonical_json), "goal": _quantized(spec.goal, 1e-3),
+               "objects": _active_objects(spec, near=False), "goal": _quantized(spec.goal, 1e-3),
                "q0": [quantize(float(q), _math.pi/360) for q in spec.initial_q], "held": spec.held_object is not None}
     return _json_sha256(payload)
+
+
+def near_key(spec) -> str:
+    return _json_sha256({"v": 1, "near": True, "task": spec.task, "arm": spec.arm, "scene": spec.scene,
+                         "objects": _active_objects(spec, near=True), "goal": _quantized(spec.goal, 5e-3),
+                         "held": spec.held_object is not None})
 
 
 def spec_fp(spec) -> str:
@@ -90,10 +106,15 @@ def traj_fp(action_raw, state_raw, objects0) -> str:
                          "state": digest(state), "objects0": positions})
 
 
-def appearance_fp(colors, instruction, light_exposure, robot_color) -> str:
-    return _json_sha256({"v": 1, "colors": dict(colors), "instruction": instruction,
-                         "light": None if light_exposure is None else quantize(float(light_exposure), 1e-3),
-                         "robot_color": robot_color})
+def appearance_fp(colors, instruction, light_exposure, robot_color, camera_offsets=None) -> str:
+    payload = {"v": 1, "colors": dict(colors), "instruction": instruction,
+               "light": None if light_exposure is None else quantize(float(light_exposure), 1e-3),
+               "robot_color": robot_color}
+    if camera_offsets:
+        payload["camera"] = {name: [[quantize(v, 1e-4) for v in offsets["position_m"]],
+                                    [quantize(v, 1e-2) for v in offsets["rotation_deg"]]]
+                             for name, offsets in camera_offsets.items()}
+    return _json_sha256(payload)
 
 
 def episode_fp(traj_fp, appearance_fp) -> str:

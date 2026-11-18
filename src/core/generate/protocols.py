@@ -180,11 +180,13 @@ def _from_dict(cls, payload):
         expected.add("schema")
         if payload.get("schema") != schema:
             raise _SchemaError(f"Expected schema {schema}")
-    if payload.keys() != expected:
+    if payload.keys() - expected or expected - getattr(cls, "_optional", frozenset()) - payload.keys():
         raise _SchemaError(f"Wrong keys for {cls.__name__}: expected {sorted(expected)}")
     hints = _get_type_hints(cls)
     values = {}
     for field in _fields(cls):
+        if field.name not in payload:
+            continue
         value = payload[field.name]
         # §15 permits arbitrary nested JSON in params, beyond the table's type shorthand.
         if cls is PerturbationSpec and field.name == "params":
@@ -198,9 +200,14 @@ def _from_dict(cls, payload):
 
 class _Json:
     _schema = None
+    _optional = frozenset()
 
     def to_json(self) -> dict:
-        result = {field.name: _encode(getattr(self, field.name)) for field in _fields(self)}
+        result = {}
+        for field in _fields(self):
+            value = getattr(self, field.name)
+            if field.name not in self._optional or value:
+                result[field.name] = _encode(value)
         if self._schema is not None:
             result["schema"] = self._schema
         return result
@@ -235,7 +242,16 @@ class ObjectState(_Json):
     pose: _Pose
     active: bool = True
     color: str | None = None
+    size: tuple[float, float, float] | None = None
+    _optional = frozenset({"size"})
     __hash__ = None
+
+    def __post_init__(self):
+        if self.size is not None:
+            if (not isinstance(self.size, (list, tuple)) or len(self.size) != 3
+                    or not all(type(v) in (int, float) and _math.isfinite(v) and v > 0 for v in self.size)):
+                raise ValueError("size must contain three finite positive dimensions")
+            object.__setattr__(self, "size", tuple(float(v) for v in self.size))
 
 
 @_dataclass(frozen=True)
@@ -278,7 +294,10 @@ class EpisodeSpec(_Json):
     noise: NoiseSpec | None = None
     max_steps: int = 600
     fps: int = 30
+    expert_params: _Mapping[str, _Any] = _field(default_factory=_empty_mapping)
+    physics: _Mapping[str, _Mapping[str, float]] = _field(default_factory=_empty_mapping)
     _schema = "episode_spec/1"
+    _optional = frozenset({"expert_params", "physics"})
     __hash__ = None
 
     def __post_init__(self):
@@ -287,6 +306,8 @@ class EpisodeSpec(_Json):
         object.__setattr__(self, "roles", _mapping(self.roles))
         object.__setattr__(self, "goal", _freeze(self.goal))
         object.__setattr__(self, "initial_q", tuple(self.initial_q))
+        object.__setattr__(self, "expert_params", _freeze(self.expert_params))
+        object.__setattr__(self, "physics", _freeze(self.physics))
         _check_seed(self.seed)
         if (self.kind is Kind.SUCCESS) != (self.perturbation is None):
             raise ValueError("Only success episodes have no perturbation")
@@ -295,6 +316,9 @@ class EpisodeSpec(_Json):
         for name in self.roles.values():
             if name not in self.objects or not self.objects[name].active:
                 raise ValueError(f"Role names an inactive or missing object: {name}")
+        for name in self.physics:
+            if name not in self.objects or not self.objects[name].active:
+                raise ValueError(f"Physics names an inactive or missing object: {name}")
 
     @property
     def expert_mode(self) -> _Literal["closed_loop", "blind"]:

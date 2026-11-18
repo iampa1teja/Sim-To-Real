@@ -29,8 +29,10 @@ def _require(condition, message):
         raise _SchemaError(message)
 
 
-def _keys(value, expected):
-    _require(type(value) is dict and value.keys() == set(expected), f"Expected object keys {sorted(expected)}")
+def _keys(value, expected, optional=()):
+    required = set(expected)
+    _require(type(value) is dict and required <= value.keys() <= required.union(optional),
+             f"Expected object keys {sorted(required)}")
 
 
 def _integer(value, minimum=None, maximum=None):
@@ -173,13 +175,27 @@ def validate_sidecar(payload, *, num_frames=None, fps=None) -> None:
                 cls.from_json(payload[key])
         if payload["attempt"] is not None:
             attempt = payload["attempt"]
-            _keys(attempt, ("index", "seed", "shard", "spec_fp"))
+            _keys(attempt, ("index", "seed", "shard", "spec_fp"), ("physics", "expert_params"))
             _integer(attempt["index"], 0)
             _integer(attempt["seed"], 0, 2**64 - 1)
             _list(attempt["shard"], 2)
             _integer(attempt["shard"][1], 1)
             _integer(attempt["shard"][0], 0, attempt["shard"][1] - 1)
             _digest(attempt["spec_fp"])
+            if "physics" in attempt:
+                physics = attempt["physics"]
+                _require(type(physics) is dict and bool(physics), "Expected non-empty physics mapping")
+                for name, entry in physics.items():
+                    _require(name in payload["objects"] and payload["objects"][name]["active"],
+                             "Physics must reference an active object")
+                    _keys(entry, (), ("mass_kg", "static_friction", "dynamic_friction"))
+                    _require(bool(entry), "Expected non-empty object physics mapping")
+                    for value in entry.values():
+                        _number(value)
+            if "expert_params" in attempt:
+                params = attempt["expert_params"]
+                _require(type(params) is dict and bool(params), "Expected non-empty expert_params mapping")
+                _json_tree(params)
         fingerprints = payload["fingerprints"]
         if fingerprints is None:
             _require(legacy, "Non-legacy sidecars require fingerprints")
@@ -187,10 +203,18 @@ def validate_sidecar(payload, *, num_frames=None, fps=None) -> None:
             _keys(fingerprints, _FINGERPRINTS)
             for value in fingerprints.values():
                 _digest(value, legacy)
-        _keys(payload["appearance"], ("light_exposure", "robot_color"))
+        _keys(payload["appearance"], ("light_exposure", "robot_color"), ("camera_offsets",))
         if payload["appearance"]["light_exposure"] is not None:
             _number(payload["appearance"]["light_exposure"])
         _string(payload["appearance"]["robot_color"], True)
+        if "camera_offsets" in payload["appearance"]:
+            offsets = payload["appearance"]["camera_offsets"]
+            _require(type(offsets) is dict and bool(offsets), "Expected non-empty camera_offsets mapping")
+            for name, offset in offsets.items():
+                _string(name)
+                _keys(offset, ("position_m", "rotation_deg"))
+                _vector(offset["position_m"], 3)
+                _vector(offset["rotation_deg"], 3)
         if payload["source"] is not None:
             source = payload["source"]
             _keys(source, ("repo_id", "episode_index", "traj_fp", "episode_fp"))

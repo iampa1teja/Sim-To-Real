@@ -267,6 +267,7 @@ def _ensure_pick_place_state(env, object_name):
 
 def reset_pick_place_state(env, env_ids, object_name="blue_cube"):
     """Clear only the reset environments, after writing their new object poses."""
+    object_name, sensor_name = _active_cube(env, object_name, "contact_grasp")
     _ensure_pick_place_state(env, object_name)
     ids = slice(None) if env_ids is None else env_ids
     env._pick_place_holding[ids] = False
@@ -275,8 +276,15 @@ def reset_pick_place_state(env, env_ids, object_name="blue_cube"):
     env._pick_place_placed_steps[ids] = 0
     env._pick_place_grasp_step[ids] = -1
     env._pick_place_placed_step[ids] = -1
-    if "contact_grasp" in env.scene.keys():
-        env.scene["contact_grasp"].reset(env_ids)
+    if sensor_name in env.scene.keys():
+        env.scene[sensor_name].reset(env_ids)
+
+
+def _active_cube(env, object_name, sensor_name):
+    active = getattr(env, "_generation_object_assets", {}).get("blue_cube", object_name)
+    if "__v" in active:
+        return active, f"contact_grasp_{active}"
+    return active, sensor_name
 
 
 def _grasp_state(
@@ -296,13 +304,14 @@ def _grasp_state(
     absolute world Z: the room's table is ~0.76 m up, so a world-Z threshold
     would read "lifted" while the cube is still on the table.
     """
+    object_name, sensor_name = _active_cube(env, object_name, contact_sensor_cfg.name)
     _ensure_pick_place_state(env, object_name)
     obj: RigidObject = env.scene[object_name]
     z = as_torch(obj.data.root_pos_w)[:, 2]
     update = env._pick_place_grasp_step != env.common_step_counter
     env._pick_place_rest_z[update] = torch.minimum(env._pick_place_rest_z[update], z[update])
 
-    contact_sensor: ContactSensor = env.scene[contact_sensor_cfg.name]
+    contact_sensor: ContactSensor = env.scene[sensor_name]
     # force_matrix_w is (num_envs, num_bodies, num_filters) of vec3 -> torch (..., 3); the sole filter is the object.
     force_matrix = as_torch(contact_sensor.data.force_matrix_w)
     contact_force = torch.linalg.vector_norm(force_matrix, dim=-1).sum(dim=1)[:, 0]
@@ -402,6 +411,7 @@ def object_placed_in_container(
         Float tensor of shape (num_envs, 1) indicating placement status.
     """
     holding, ever_grasped = _grasp_state(env, contact_sensor_cfg, object_name, min_lift, force_threshold)
+    object_name, _ = _active_cube(env, object_name, contact_sensor_cfg.name)
     inside = _object_inside_container(
         env.scene[object_name], env.scene[container_name], container_size, container_floor_z, container_inner_half_size
     )

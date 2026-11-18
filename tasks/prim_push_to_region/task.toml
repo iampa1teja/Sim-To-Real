@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.objects.cube]
 size = [0.02, 0.02, 0.02]
+size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
 mass = 0.008
 
 [task.roles]
@@ -16,16 +17,16 @@ target = "cube"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 reachable = ["@target"]
-
-[task.start.place.cube.region]
-xy_min = [-0.15, -0.38]
-xy_max = [0.15, -0.34]
 
 [task.start.goal.area]
 type = "region"
-center_region = { xy_min = [-0.12, -0.30], xy_max = [0.12, -0.26] }
+center_region = { around = "@target", distance_m = [0.07, 0.14] }
 half_size_m = [0.03, 0.03]
+
+[task.start.place.cube]
+region = { workspace_inset_m = 0.045 }
 
 [task.stages]
 order = ["above", "in_place", "success"]
@@ -60,10 +61,16 @@ of = ["in_place", "away"]
 rules = [{ name = "not_in_goal", unless = ["in_place"] }, { name = "stayed_on_object" }]
 
 [task.expert]
-max_steps = 500
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 750
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = 0.06 }, { skill = "wait", steps = 5, stage = "success" }]
+steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "reach", target = "@target", offset_m = [0, 0, 0.05], stage = "above" }, { skill = "push", target = "@target", goal = "@goal.area", stage = "in_place" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] } }, { skill = "wait", steps = 5, stage = "success" }]
 
 [task.perturbations]
-failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [500, 500] }]
+failure = [{ type = "object_shift", stages = ["above"], xy_m = [0.05, 0.08] }, { type = "stall", stages = ["above"], steps = [750, 750] }]
 recovery = [{ type = "target_offset", stages = ["above"], xy_m = [0.03, 0.05] }]
+
+[task.physics.cube]
+mass_kg = [0.005, 0.03]
+static_friction = [0.4, 1.0]
+dynamic_friction = [0.3, 0.9]

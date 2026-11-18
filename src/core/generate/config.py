@@ -7,8 +7,6 @@ from dataclasses import dataclass as _dataclass, asdict as _asdict
 from pathlib import Path as _Path
 from types import MappingProxyType as _MappingProxyType
 
-import yaml as _yaml
-
 from core.generate.errors import ConfigError as _ConfigError
 from core.utils.hashing import json_sha256 as _json_sha256
 
@@ -34,6 +32,12 @@ def _text(value):
 
 def _table(value, allowed, required=()):
     _require(isinstance(value, _Mapping) and not value.keys() - set(allowed) and set(required) <= value.keys(), "Unknown or missing configuration keys")
+
+
+def _validate_camera_jitter(value, *, max_position=None, max_rotation=None):
+    _table(value, ("position_m", "rotation_deg"), ("position_m", "rotation_deg"))
+    return {"position_m": _float(value["position_m"], maximum=max_position),
+            "rotation_deg": _float(value["rotation_deg"], maximum=max_rotation)}
 
 
 @_dataclass(frozen=True)
@@ -65,6 +69,7 @@ class DRConfig:
     terms: tuple[str, ...] = ("light", "robot_color")
     recolor: bool = True
     seed: int = 0
+    camera_jitter: _Mapping[str, float] | None = None
 
     def __post_init__(self):
         _int(self.copies)
@@ -73,6 +78,9 @@ class DRConfig:
         _require(isinstance(self.terms, (tuple, list)) and all(type(v) is str for v in self.terms)
                  and len(set(self.terms)) == len(self.terms) and set(self.terms) <= {"light", "robot_color"}, "Invalid DR terms")
         object.__setattr__(self, "terms", tuple(self.terms))
+        if self.camera_jitter is not None:
+            jitter = _validate_camera_jitter(self.camera_jitter, max_position=0.05, max_rotation=10)
+            object.__setattr__(self, "camera_jitter", _MappingProxyType(jitter))
 
 
 @_dataclass(frozen=True)
@@ -108,12 +116,15 @@ class GenerateConfig:
         object.__setattr__(self, "sha256", _json_sha256(payload))
 
     def to_json(self) -> dict:
+        dr = dict(copies=self.dr.copies, terms=list(self.dr.terms), recolor=self.dr.recolor, seed=self.dr.seed)
+        if self.dr.camera_jitter is not None:
+            dr["camera_jitter"] = dict(self.dr.camera_jitter)
         return {"arm": self.arm, "scene": self.scene, "tasks": list(self.tasks), "master_seed": self.master_seed,
                 "quotas": {task: _asdict(quota) for task, quota in self.quotas.items()}, "shard": list(self.shard),
                 "dst_root": str(self.dst_root), "repo_id": self.repo_id, "fps": self.fps,
                 "max_attempt_factor": self.max_attempt_factor, "max_consecutive_skips": self.max_consecutive_skips,
                 "scenario_unique_across_kinds": self.scenario_unique_across_kinds, "noise": _asdict(self.noise),
-                "dr": {**_asdict(self.dr), "terms": list(self.dr.terms)},
+                "dr": dr,
                 "perturbation_weights": None if self.perturbation_weights is None else dict(self.perturbation_weights),
                 "cameras": self.cameras}
 
@@ -135,6 +146,8 @@ _QUOTA_KEYS = {"success", "failure", "recovery"}
 
 
 def load_generate_config(path, overrides=None) -> GenerateConfig:
+    import yaml as _yaml
+
     try:
         raw = _yaml.safe_load(_Path(path).read_text())
         _table(raw, _REQUIRED | _OPTIONAL)
@@ -181,7 +194,7 @@ def load_generate_config(path, overrides=None) -> GenerateConfig:
         _require(type(unique) is bool and type(cameras) is bool, "unique and cameras must be boolean")
         noise, dr = raw.get("noise", {}), raw.get("dr", {})
         _table(noise, ("fraction", "theta", "sigma_rad", "max_abs_rad"))
-        _table(dr, ("copies", "terms", "recolor", "seed"))
+        _table(dr, ("copies", "terms", "recolor", "seed", "camera_jitter"))
         if "terms" in dr:
             _require(isinstance(dr["terms"], list), "dr.terms must be a list")
         weights = raw.get("perturbation_weights")

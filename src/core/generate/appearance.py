@@ -8,9 +8,11 @@ from types import MappingProxyType as _MappingProxyType
 
 import numpy as _np
 
+from core.generate.config import _validate_camera_jitter
 from core.generate.errors import GenerationError as _GenerationError
 from core.generate.fingerprint import appearance_fp as _appearance_fp, episode_fp as _episode_fp
 from core.generate.seeds import derive_seed as _derive_seed
+from core.tasks.base import _freeze_value
 
 
 @_dataclass(frozen=True)
@@ -21,9 +23,12 @@ class AppearanceDraw:
     robot_color: str | None
     seed: int
     appearance_fp: str
+    camera_offsets: _Mapping | None = None
 
     def __post_init__(self):
         object.__setattr__(self, "colors", _MappingProxyType(dict(self.colors)))
+        if self.camera_offsets is not None:
+            object.__setattr__(self, "camera_offsets", _freeze_value(self.camera_offsets))
 
 
 def _render(template, roles, colors, goal):
@@ -51,7 +56,7 @@ def _render(template, roles, colors, goal):
 
 
 def draw_appearance(parent, *, task_spec, terms, exposure_range, robot_colors, recolor, dr_seed, copy_index,
-                     taken, max_redraws=100) -> AppearanceDraw:
+                     taken, max_redraws=100, camera_jitter=None, cameras=()) -> AppearanceDraw:
     fingerprints = parent.get("fingerprints")
     if fingerprints is None or fingerprints.get("traj_fp") is None:
         raise ValueError("DR requires a parent trajectory fingerprint")
@@ -61,6 +66,11 @@ def draw_appearance(parent, *, task_spec, terms, exposure_range, robot_colors, r
         raise ValueError("robot_color requires a non-empty palette")
     if exposure_range[0] > exposure_range[1]:
         raise ValueError("Exposure range must increase")
+    if camera_jitter is not None:
+        jitter = _validate_camera_jitter(camera_jitter)
+        cameras = sorted(set(cameras))
+        if not cameras:
+            raise ValueError("Camera jitter requires camera names")
     names = sorted(name for name, obj in parent["objects"].items() if obj["active"])
     base = {name: parent["objects"][name]["color"] for name in names}
     palette = [name for name in task_spec.palette if name not in task_spec.holdout.colors]
@@ -89,9 +99,13 @@ def draw_appearance(parent, *, task_spec, terms, exposure_range, robot_colors, r
                        if templates else parent["instruction"])
         light = float(rng.uniform(*exposure_range)) if "light" in terms else None
         robot = str(robot_colors[rng.integers(len(robot_colors))]) if "robot_color" in terms else None
-        fp = _appearance_fp(colors, instruction, light, robot)
+        camera_offsets = None
+        if camera_jitter is not None:
+            camera_offsets = {name: {key: rng.uniform(-limit, limit, size=3).tolist()
+                                     for key, limit in jitter.items()} for name in cameras}
+        fp = _appearance_fp(colors, instruction, light, robot, camera_offsets)
         if fp not in excluded:
-            return AppearanceDraw(colors, instruction, light, robot, seed, fp)
+            return AppearanceDraw(colors, instruction, light, robot, seed, fp, camera_offsets)
     raise _GenerationError("Appearance space exhausted without a distinct draw")
 
 
@@ -102,6 +116,9 @@ def dr_copy_sidecar(parent, draw, *, episode_index, source_repo_id) -> dict:
         result["objects"][name]["color"] = color
     result["instruction"] = draw.instruction
     result["appearance"] = {"light_exposure": draw.light_exposure, "robot_color": draw.robot_color}
+    if draw.camera_offsets:
+        result["appearance"]["camera_offsets"] = {name: {key: list(value) for key, value in offsets.items()}
+                                                   for name, offsets in draw.camera_offsets.items()}
     fp = parent["fingerprints"]
     result["fingerprints"] = {key: fp[key] for key in ("scenario_key", "spec_fp", "traj_fp")}
     result["fingerprints"].update(appearance_fp=draw.appearance_fp, episode_fp=_episode_fp(fp["traj_fp"], draw.appearance_fp))

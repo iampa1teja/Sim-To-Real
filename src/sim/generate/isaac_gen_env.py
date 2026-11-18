@@ -8,7 +8,7 @@ from core.arms.spec import load_arm_spec as _load_arm_spec
 from core.generate.errors import EnvError as _EnvError
 from core.generate.labels import label_columns as _label_columns
 from core.generate.protocols import ExpertObs as _ExpertObs, ObjectState as _ObjectState
-from core.tasks.base import Pose as _Pose
+from core.tasks.base import Pose as _Pose, episode_objects as _episode_objects
 
 
 class RecorderEpisodeWriter:
@@ -39,6 +39,7 @@ class RecorderEpisodeWriter:
 
 class IsaacGenEnv:
     def __init__(self, env, task, *, arm, mapping, chain, gripper, cameras, palette_rgb):
+        from sim.envs.mdp.objects import generation_assets
         from sim.envs.mdp.resets import as_torch
         self._env, self._raw = env, env.unwrapped
         self._task, self._arm, self._mapping = task, arm, mapping
@@ -50,6 +51,7 @@ class IsaacGenEnv:
         self.camera_names = tuple(cameras)
         self._robot = self._raw.scene["robot"]
         self._raw._generation_arm = arm
+        self._physical_assets = tuple(asset for variants in generation_assets(task.spec).values() for asset in variants)
         self._joint_ids, found = self._robot.find_joints(list(self.joint_names), preserve_order=True)
         if tuple(found) != self.joint_names:
             raise _EnvError("Articulation joint order does not match arm.toml")
@@ -77,7 +79,8 @@ class IsaacGenEnv:
 
     def reset(self, spec):
         import torch
-        from sim.envs.mdp.objects import park_all, set_object_pose_base, set_object_color
+        from sim.envs.mdp.objects import (park_all, select_generation_assets, set_object_color,
+                                          set_object_physics, set_object_pose_base)
         from sim.envs.mdp.resets import as_torch
         if set(spec.objects)-self._task.spec.objects.keys() or len(spec.initial_q) != len(self.joint_names):
             raise _EnvError("Spec objects or joint count do not match the environment")
@@ -85,13 +88,17 @@ class IsaacGenEnv:
             raise _EnvError("Generation requires one environment")
         self._spec, self._frame, self._ever_grasped = spec, 0, False
         self._placed_run, self._previous_run, self._signal_frame = 0, 0, None
+        self._assets = select_generation_assets(self._task.spec, {name: state.size for name, state in spec.objects.items()})
+        self._raw._generation_object_assets = self._assets
         self._env.reset()
-        park_all(self._raw, self._task.spec.objects)
+        park_all(self._raw, self._physical_assets)
         for name, state in spec.objects.items():
             if state.active:
-                set_object_pose_base(self._raw, name, state.pose)
+                asset = self._assets[name]
+                set_object_pose_base(self._raw, asset, state.pose)
                 if state.color is not None:
-                    set_object_color(self._raw, name, self._palette[state.color])
+                    set_object_color(self._raw, asset, self._palette[state.color])
+                set_object_physics(self._raw, asset, spec.physics.get(name, {}))
         q = torch.as_tensor(spec.initial_q, device=self._raw.device, dtype=as_torch(self._robot.data.joint_pos).dtype).reshape(1, -1)
         ids = torch.zeros(1, device=self._raw.device, dtype=torch.long)
         self._robot.write_joint_state_to_sim_index(position=q, velocity=torch.zeros_like(q), joint_ids=self._joint_ids, env_ids=ids)
@@ -99,6 +106,10 @@ class IsaacGenEnv:
         self._raw.scene.write_data_to_sim()
         self._raw.sim.forward()
         self._raw.scene.update(self._raw.physics_dt)
+        actual = as_torch(self._robot.data.joint_pos)[:, self._joint_ids]
+        velocity = as_torch(self._robot.data.joint_vel)[:, self._joint_ids]
+        if not torch.allclose(actual, q, atol=1e-4, rtol=0) or not torch.all(torch.abs(velocity) < 1e-4):
+            raise _EnvError("The simulated arm did not initialize at rest at its sampled pose")
         # Contact trackers must take their rest height from the sampled poses,
         # after reset events have parked objects and generation has placed them.
         if "reset_tracking" in self._raw.event_manager.active_terms.get("reset", ()):
@@ -106,13 +117,13 @@ class IsaacGenEnv:
             tracking.func(self._raw, ids, **tracking.params)
         if spec.held_object is not None:
             name = spec.held_object
-            obj = self._task.spec.objects[name]
+            obj = _episode_objects(self._task.spec, spec)[name]
             dims = obj.size if obj.size is not None else obj.params["size_outer"]
             obs = self.observe()
             point = list(obs.tcp.position)
             if obj.size is None and obj.params.get("origin") == "bottom":
                 point[2] -= dims[2]/2
-            set_object_pose_base(self._raw, name, _Pose(tuple(point), obs.tcp.quat_xyzw))
+            self.set_object_pose(name, _Pose(tuple(point), obs.tcp.quat_xyzw))
             close = _np.array(spec.initial_q)
             close[self._grip.index] = self._grip.closed_rad
             for _ in range(8):
@@ -132,10 +143,10 @@ class IsaacGenEnv:
         ee = as_torch(observations["policy"]["ee_frame_state"])[0].detach().cpu().numpy()
         ee = _Pose(tuple(float(v) for v in ee[:3]), tuple(float(v) for v in ee[3:]))
         q = as_torch(self._robot.data.joint_pos)[0, self._joint_ids].detach().cpu().numpy().astype(_np.float64)
-        poses = object_poses_in_base(self._raw, self._task.spec.objects)
-        objects = {name: _ObjectState(pose, name in self._spec.objects and self._spec.objects[name].active,
-                                      self._spec.objects[name].color if name in self._spec.objects else None)
-                   for name, pose in poses.items()}
+        poses = object_poses_in_base(self._raw, self._assets.values())
+        objects = {name: _ObjectState(poses[asset], state.active, state.color, state.size)
+                   for name, asset in self._assets.items()
+                   if (state := self._spec.objects.get(name)) is not None}
         group = observations.get("subtask_terms")
         signals = {} if group is None else {name: bool(as_torch(value).reshape(-1)[0].item()) for name, value in group.items()}
         if group is not None and "cube_grasped" in signals:
@@ -153,7 +164,7 @@ class IsaacGenEnv:
         from sim.envs.mdp.objects import set_object_pose_base
         if name not in self._task.spec.objects:
             raise _EnvError(f"Unknown object: {name}")
-        set_object_pose_base(self._raw, name, pose)
+        set_object_pose_base(self._raw, self._assets[name], pose)
 
     def render(self):
         from sim.envs.mdp.resets import as_torch

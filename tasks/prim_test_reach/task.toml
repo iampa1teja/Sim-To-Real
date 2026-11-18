@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.objects.cube]
 size = [0.02, 0.02, 0.02]
+size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
 mass = 0.008
 
 [task.roles]
@@ -16,14 +17,12 @@ target = "cube"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 reachable = ["@target"]
 
 [task.start.place.cube]
+region = { workspace_inset_m = 0.045 }
 yaw_deg = [0.0, 90.0]
-
-[task.start.place.cube.region]
-xy_min = [-0.15, -0.36]
-xy_max = [0.15, -0.22]
 
 [task.stages]
 order = ["beside", "success"]
@@ -51,10 +50,16 @@ of = ["beside"]
 rules = [{ name = "touched_object", if = ["moved"] }, { name = "never_beside", unless = ["beside"] }, { name = "left_point" }]
 
 [task.expert]
-max_steps = 300
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 450
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@target", offset_m = [0.0, 0.04, 0.0], stage = "beside" }, { skill = "wait", steps = 10, stage = "success" }]
+steps = [{ skill = "reach", target = "@target", offset_m = [0.0, 0.04, { range = [0.05, 0.09] }] }, { skill = "reach", target = "@target", offset_m = [0.0, 0.04, 0.0], stage = "beside" }, { skill = "wait", steps = 10, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
 recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
+
+[task.physics.cube]
+mass_kg = [0.005, 0.03]
+static_friction = [0.4, 1.0]
+dynamic_friction = [0.3, 0.9]

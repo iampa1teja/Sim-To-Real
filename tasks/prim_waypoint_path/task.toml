@@ -9,13 +9,14 @@ generate = "env_cfg:apply_generate"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 
 [task.start.goal.points]
 type = "points"
 count = 3
 z_m = [0.04, 0.14]
 min_separation_m = 0.06
-region = { r_m = [0.22, 0.36], bearing_deg = [-140.0, -40.0] }
+region = "workspace"
 
 [task.stages]
 order = ["w0", "w1", "w2", "success"]
@@ -43,9 +44,10 @@ of = ["w2"]
 rules = [{ name = "missed_w0", unless = ["w0"] }, { name = "missed_w1", unless = ["w1"] }, { name = "missed_w2", unless = ["w2"] }, { name = "left_path" }]
 
 [task.expert]
-max_steps = 500
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 750
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "reach", target = "@goal.points.0", stage = "w0" }, { skill = "reach", target = "@goal.points.1", stage = "w1" }, { skill = "reach", target = "@goal.points.2", stage = "w2" }, { skill = "wait", steps = 10, stage = "success" }]
+steps = [{ skill = "reach", target = "@goal.points.0", stage = "w0" }, { skill = "reach", target = "@goal.points.1", stage = "w1" }, { skill = "reach", target = "@goal.points.2", stage = "w2" }, { skill = "wait", steps = 10, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "target_offset", stages = ["w2"], xy_m = [0.03, 0.06] }]

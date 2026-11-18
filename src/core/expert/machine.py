@@ -1,6 +1,7 @@
 """Deterministic, speed-limited expert skills with observed-state termination."""
 
 from collections.abc import Mapping as _Mapping
+from dataclasses import replace as _replace
 import math as _math
 
 import numpy as _np
@@ -10,6 +11,7 @@ from core.arms.kinematics import IKWeights as _IKWeights
 from core.expert.motion import MotionLimits, step_toward_joint as _step_toward_joint, cartesian_waypoint as _cartesian_waypoint
 from core.generate.protocols import ExpertAction as _ExpertAction, PerturbationGroup as _PerturbationGroup
 from core.generate.seeds import rng_for as _rng_for
+from core.tasks.base import episode_objects as _episode_objects
 
 
 def _rotation(pose):
@@ -28,7 +30,8 @@ def _yaw(pose):
 
 class ScriptedExpert:
     def __init__(self, program, chain, gripper, *, lower, upper, limits, fps, stages, weights=None):
-        self._program, self._chain, self._grip, self._limits = program, chain, gripper, limits
+        self._base_program = self._program = program
+        self._chain, self._grip, self._limits = chain, gripper, limits
         self._lower, self._upper = _np.array(lower, dtype=float, copy=True), _np.array(upper, dtype=float, copy=True)
         size = (len(chain.q_names),)
         if (self._lower.shape != size or self._upper.shape != size or _np.any(self._lower > self._upper)
@@ -37,8 +40,8 @@ class ScriptedExpert:
             raise ValueError("Invalid expert limits, speed shape or fps")
         self._fps, self._stages = fps, tuple(stages)
         self._weights = weights or _IKWeights()
-        self._max_step = _np.array(limits.max_joint_speed_rad_s) / fps
-        self._max_step[gripper.index] = limits.max_gripper_speed_rad_s / fps
+        self._base_max_step = _np.array(limits.max_joint_speed_rad_s) / fps
+        self._base_max_step[gripper.index] = limits.max_gripper_speed_rad_s / fps
         self._indices = {name: i for i, name in enumerate(chain.q_names)}
         self._arm_indices = _np.array([self._indices[name] for name in chain.chain_joints], dtype=int)
         self._approach, self._closing = _np.array(program.approach_axis), _np.array(program.closing_axis)
@@ -58,6 +61,20 @@ class ScriptedExpert:
     def reset(self, spec, obs):
         if obs.q.shape != self._lower.shape:
             raise ValueError("Observation joint vector does not match the arm")
+        base = self._base_program
+        overrides = spec.expert_params.get("steps", {})
+        steps = list(base.steps)
+        for index, params in overrides.items():
+            i = int(index)
+            if params.get("q") == "home":
+                from core.arms.spec import load_arm_spec
+                arm, _ = load_arm_spec(spec.arm)
+                home = {**arm["initial_state"]["joint_positions"], **arm["expert"].get("home_rad", {})}
+                params = {**params, "q": {name: home[name] for name in arm["expert"]["arm_joints"]}}
+            steps[i] = _replace(steps[i], params={**steps[i].params, **params})
+        self._program = _replace(base, steps=tuple(steps), objects=_episode_objects(base, spec))
+        self._speed_scale = spec.expert_params.get("speed_scale", base.speed_scale)
+        self._max_step = self._base_max_step * self._speed_scale
         self._spec, self._q = spec, _np.array(obs.q, dtype=float, copy=True)
         self._blind = spec.expert_mode == "blind"
         self._poses = {name: state.pose for name, state in obs.objects.items() if state.active}
@@ -381,7 +398,8 @@ class ScriptedExpert:
         elif kind == "set_gripper" or (kind in ("grasp", "release") and state["sub"] in ("close", "gap", "dwell")):
             desired[self._grip.index] = self._grip.angle_from_gap(self._close_gap())
         elif kind != "wait":
-            state["carrot"] = _cartesian_waypoint(state["carrot"], self._goal(), self._limits.max_ee_speed_m_s / self._fps)
+            speed = self._limits.max_ee_speed_m_s * self._speed_scale
+            state["carrot"] = _cartesian_waypoint(state["carrot"], self._goal(), speed / self._fps)
             desired = self._ik(state["carrot"], self._orientation())
             if kind == "grasp" and not self._blind and self.reentries:
                 desired[self._grip.index] = self._grip.open_rad

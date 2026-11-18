@@ -271,7 +271,7 @@ def get_camera_base_pose(env, prim_path_pattern):
     return _default_poses_cache[prim_path_pattern]
 
 
-def set_camera_pose_offset(env, prim_path_pattern, pos_offset: dict, rot_offset: dict):
+def set_camera_pose_offset(env, prim_path_pattern, pos_offset: dict, rot_offset: dict, *, parent_frame=False):
     """Apply a position and Euler-angle offset to the camera's base pose."""
     prim_path = prim_path_pattern.replace("{ENV_REGEX_NS}", "/World/envs/env_.*")
     prims = sim_utils.find_matching_prims(prim_path)
@@ -284,8 +284,10 @@ def set_camera_pose_offset(env, prim_path_pattern, pos_offset: dict, rot_offset:
         torch.tensor([rot_offset.get("roll", 0.0)]),
         torch.tensor([rot_offset.get("pitch", 0.0)]),
         torch.tensor([rot_offset.get("yaw", 0.0)]),
-    )[0]
-    x, y, z, w = math_utils.quat_mul(torch.tensor([base_pose["quat"]]), delta_quat.unsqueeze(0))[0].tolist()
+    )
+    base_quat = torch.tensor([base_pose["quat"]])
+    left, right = (delta_quat, base_quat) if parent_frame else (base_quat, delta_quat)
+    x, y, z, w = math_utils.quat_mul(left, right)[0].tolist()
     with Sdf.ChangeBlock():
         for prim in prims:
             if prim.IsValid():

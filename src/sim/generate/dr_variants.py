@@ -192,7 +192,7 @@ class PlannedEpisodeV2:
     copy_index: int | None = None
 
 
-def plan_episodes_v2(sources, *, task_spec, cfg, exposure_range, robot_colors, include_originals):
+def plan_episodes_v2(sources, *, task_spec, cfg, exposure_range, robot_colors, include_originals, cameras=()):
     sources = list(sources)
     if any(source.get("legacy_v1") or not source.get("fingerprints") for source in sources):
         raise ValueError("V2 replay requires source sidecars with fingerprints")
@@ -204,7 +204,7 @@ def plan_episodes_v2(sources, *, task_spec, cfg, exposure_range, robot_colors, i
         for copy_index in range(cfg.copies):
             draw = draw_appearance(parent, task_spec=task_spec, terms=cfg.terms, exposure_range=exposure_range,
                                    robot_colors=robot_colors, recolor=cfg.recolor, dr_seed=cfg.seed,
-                                   copy_index=copy_index, taken=taken)
+                                   copy_index=copy_index, taken=taken, camera_jitter=cfg.camera_jitter, cameras=cameras)
             episodes.append(PlannedEpisodeV2(len(episodes), parent["episode_index"], draw, copy_index))
             taken.add(draw.appearance_fp)
     return episodes
@@ -240,11 +240,15 @@ def build_manifest_v2(plan, args, git_commit):
     episodes = []
     for planned in plan:
         draw = planned.draw
-        episodes.append(dict(dst_index=planned.dst_index, src_index=planned.src_index, copy_index=planned.copy_index,
-                             draw=None if draw is None else dict(
-                                 colors=dict(draw.colors), instruction=draw.instruction,
-                                 light_exposure=draw.light_exposure, robot_color=draw.robot_color,
-                                 seed=draw.seed, appearance_fp=draw.appearance_fp)))
+        appearance = None
+        if draw is not None:
+            appearance = dict(colors=dict(draw.colors), instruction=draw.instruction,
+                              light_exposure=draw.light_exposure, robot_color=draw.robot_color,
+                              seed=draw.seed, appearance_fp=draw.appearance_fp)
+            if draw.camera_offsets:
+                appearance["camera_offsets"] = _camera_offsets_json(draw.camera_offsets)
+        episodes.append(dict(dst_index=planned.dst_index, src_index=planned.src_index,
+                             copy_index=planned.copy_index, draw=appearance))
     originals = sum(item["draw"] is None for item in episodes)
     return dict(git_commit=git_commit, args=args, episodes=episodes,
                 counts=dict(total=len(episodes), originals=originals, copies=len(episodes) - originals))
@@ -255,8 +259,15 @@ def print_plan_v2(plan):
     for planned in plan:
         draw = planned.draw
         originals += draw is None
-        print(json.dumps(dict(dst=planned.dst_index, src=planned.src_index, copy=planned.copy_index,
-                              robot_color=draw.robot_color if draw else None,
-                              light=draw.light_exposure if draw else None,
-                              instruction=draw.instruction if draw else None)))
+        row = dict(dst=planned.dst_index, src=planned.src_index, copy=planned.copy_index,
+                   robot_color=draw.robot_color if draw else None,
+                   light=draw.light_exposure if draw else None,
+                   instruction=draw.instruction if draw else None)
+        if draw is not None and draw.camera_offsets:
+            row["camera_offsets"] = _camera_offsets_json(draw.camera_offsets)
+        print(json.dumps(row))
     print(f"{len(plan)} episodes: {originals} originals, {len(plan) - originals} copies")
+
+
+def _camera_offsets_json(offsets):
+    return {name: {key: list(values) for key, values in offset.items()} for name, offset in offsets.items()}

@@ -9,6 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.objects.cube]
 size = [0.02, 0.02, 0.02]
+size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
 mass = 0.008
 
 [task.roles]
@@ -16,14 +17,12 @@ target = "cube"
 
 [task.start]
 table_z_m = 0.0
+initial_q = { around = "home", spread = 0.12 }
 reachable = ["@target"]
 
 [task.start.place.cube]
+region = "workspace"
 yaw_deg = [0.0, 90.0]
-
-[task.start.place.cube.region]
-xy_min = [-0.15, -0.36]
-xy_max = [0.15, -0.22]
 
 [task.stages]
 order = ["touched", "withdrawn", "success"]
@@ -57,10 +56,16 @@ of = ["withdrawn"]
 rules = [{ name = "never_touched", unless = ["touched"] }, { name = "pushed_object", if = ["moved"] }, { name = "stayed_on_object" }]
 
 [task.expert]
-max_steps = 400
+speed_scale = { range = [0.6, 1.0] }
+max_steps = 600
 settle_steps = 5
-steps = [{ skill = "move_joint", q = "home" }, { skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, 0.05] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = 0.06, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
+steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
 
 [task.perturbations]
-failure = [{ type = "stall", stages = ["touched"], steps = [400, 400] }]
+failure = [{ type = "stall", stages = ["touched"], steps = [600, 600] }]
 recovery = [{ type = "target_offset", xy_m = [0.025, 0.05] }]
+
+[task.physics.cube]
+mass_kg = [0.005, 0.03]
+static_friction = [0.4, 1.0]
+dynamic_friction = [0.3, 0.9]

@@ -9,7 +9,7 @@ import numpy as _np
 
 from core.generate.errors import ConfigError as _ConfigError, EnvError as _EnvError, SamplingError as _SamplingError
 from core.generate.protocols import Kind as _Kind, PerturbationGroup as _Group, PerturbationSpec as _PerturbationSpec
-from core.tasks.base import Pose as _Pose
+from core.tasks.base import Pose as _Pose, episode_objects as _episode_objects
 
 
 @_dataclass(frozen=True)
@@ -189,6 +189,7 @@ def _bottom(obj):
 class WorldPerturber:
     def __init__(self, spec, task_spec, rng):
         self._spec, self._task, self._rng = spec, task_spec, rng
+        self._objects = _episode_objects(task_spec, spec)
         self.applied = False
         self.onset_frame = None
         self._latch = self._due_t = None
@@ -228,9 +229,9 @@ class WorldPerturber:
             x, y = x + radius * _math.cos(direction), y + radius * _math.sin(direction)
             support = self._task.raw.get("start", {}).get("table_z_m", 0.)
             for other, state in obs.objects.items():
-                if other == name or not state.active or other not in self._task.objects:
+                if other == name or not state.active or other not in self._objects:
                     continue
-                obj = self._task.objects[other]
+                obj = self._objects[other]
                 ox, oy, oz = state.pose.position
                 yaw = _yaw(state.pose.quat_xyzw)
                 c, s = _math.cos(yaw), _math.sin(yaw)
@@ -242,7 +243,7 @@ class WorldPerturber:
                     dims = _dims(obj)
                     if all(abs(v) <= h/2 for v, h in zip(local, dims[:2])):
                         support = max(support, oz + dims[2] * (1 if _bottom(obj) else 0.5))
-            obj = self._task.objects[name]
+            obj = self._objects[name]
             z = support + (0 if _bottom(obj) else _dims(obj)[2] / 2)
             yaw = _yaw(old.quat_xyzw)
             quat = (0., 0., _math.sin(yaw/2), _math.cos(yaw/2))

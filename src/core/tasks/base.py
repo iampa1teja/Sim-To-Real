@@ -303,7 +303,16 @@ class CheckContext:
     @classmethod
     def from_spec(cls, spec, task_spec) -> CheckContext:
         return cls(spec.roles, {name: state.pose for name, state in spec.objects.items()}, spec.goal,
-                   task_spec.objects, frozenset(name for name, state in spec.objects.items() if state.active))
+                   episode_objects(task_spec, spec), frozenset(name for name, state in spec.objects.items() if state.active))
+
+
+def episode_objects(task_spec, spec):
+    """Return object definitions with the sizes drawn for this episode."""
+    objects = dict(task_spec.objects)
+    for name, state in spec.objects.items():
+        if state.size is not None:
+            objects[name] = _replace(objects[name], size=state.size)
+    return objects
 
 
 @dataclass(frozen=True)
@@ -397,13 +406,21 @@ class Task(ABC):
         ...
 
     def sample_start(self, rng: np.random.Generator) -> dict[str, Pose]:
-        return {name: state.pose for name, state in self.sample_episode_start(rng).objects.items() if state.active}
+        from core.tasks.sampling import _uses_workspace, validate_workspace
+
+        workspace = None
+        if _uses_workspace(self.spec.raw.get("start", {})):
+            from core.arms.spec import load_arm_spec
+            workspace = validate_workspace(load_arm_spec()[0].get("workspace"))
+        return {name: state.pose for name, state in self.sample_episode_start(rng, workspace=workspace).objects.items()
+                if state.active}
 
     def sample_episode_start(self, rng, *, reach_fn=None, home_q=None, joint_limits=None,
-                             instruction_rng=None, joint_names=None, arm_joints=None):
+                             instruction_rng=None, joint_names=None, arm_joints=None, workspace=None, tcp_fn=None):
         from core.tasks.sampling import sample_start
         return sample_start(self.spec, rng, reach_fn=reach_fn, home_q=home_q, joint_limits=joint_limits,
-                            instruction_rng=instruction_rng, joint_names=joint_names, arm_joints=arm_joints)
+                            instruction_rng=instruction_rng, joint_names=joint_names, arm_joints=arm_joints,
+                            workspace=workspace, tcp_fn=tcp_fn)
 
     def observe_checks(self, state: StepState, ctx: CheckContext) -> dict[str, bool]:
         return self.observe(state)
