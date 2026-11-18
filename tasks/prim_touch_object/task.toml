@@ -21,7 +21,7 @@ initial_q = { around = "home", spread = 0.12 }
 reachable = ["@target"]
 
 [task.start.place.cube]
-region = "workspace"
+region = { workspace_inset_m = 0.012 }
 yaw_deg = [0.0, 90.0]
 
 [task.stages]
@@ -30,7 +30,7 @@ order = ["touched", "withdrawn", "success"]
 [task.checks.touched]
 check = "ee_near"
 object = "@target"
-offset_m = [0.0, 0.0, 0.01]
+offset_m = [0.0, 0.0, 0.017]
 tol_m = 0.006
 
 [task.checks.away]
@@ -56,10 +56,10 @@ of = ["withdrawn"]
 rules = [{ name = "never_touched", unless = ["touched"] }, { name = "pushed_object", if = ["moved"] }, { name = "stayed_on_object" }]
 
 [task.expert]
-speed_scale = { range = [0.6, 1.0] }
+speed_scale = { range = [0.60, 0.95] }
 max_steps = 600
 settle_steps = 5
-steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
+steps = [{ skill = "set_gripper", gap_m = "closed" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.065] }] }, { skill = "touch", target = "@target", stage = "touched" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "withdrawn" }, { skill = "wait", steps = 5, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "stall", stages = ["touched"], steps = [600, 600] }]
