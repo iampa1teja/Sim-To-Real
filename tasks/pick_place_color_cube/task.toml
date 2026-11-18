@@ -58,6 +58,7 @@ yaw_deg = [0.0, 90.0]
 
 [task.stages]
 order = ["reached", "grasped", "lifted", "over_box", "placed", "success"]
+hold_grace_steps = 10
 
 [task.stages.hold_until]
 reached = "grasped"
