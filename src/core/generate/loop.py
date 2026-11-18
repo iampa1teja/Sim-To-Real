@@ -115,6 +115,8 @@ def run_episode(spec, task, env, expert, writer, mapping, *, noise_rng=None, per
             checks = task.observe_checks(state, ctx)
             progress = tracker.update(checks)
             action = expert.act(obs, progress)
+            if action.reentered:
+                tracker.rewind_from(action.resumed_stage)
             desired = action.q_target + noise[t]
             target = mapping.clamp_radians(desired)
             if not _np.all(_np.isfinite(desired)) or not _np.all(_np.isfinite(target)):
@@ -127,7 +129,7 @@ def run_episode(spec, task, env, expert, writer, mapping, *, noise_rng=None, per
             except Exception:
                 error = _Reason.ENV_ERROR
                 break
-            labels = _frame_labels(progress.stage_index, action.injected, obs.ee)
+            labels = _frame_labels(tracker.stage_index, action.injected, obs.ee)
             raw_action, raw_state = mapping.to_raw(target), mapping.to_raw(obs.q)
             writer.add_frame(raw_action, raw_state, images, spec.instruction, labels)
             records.append(_StepRecord(t, raw_state, raw_action, labels, action.phase, action.injected,

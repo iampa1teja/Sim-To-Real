@@ -375,6 +375,13 @@ class StageTracker:
             index = i
         return index
 
+    def rewind_from(self, stage: str) -> None:
+        index = self._stages.index(stage)
+        if index <= self.stage_index:
+            for later in self._stages[index:]:
+                self._current[later] = False
+            self.stage_index = index - 1
+
     def flags(self) -> dict[str, bool]:
         return dict(self._ever)
 
