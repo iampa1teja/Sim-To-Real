@@ -146,10 +146,9 @@ ik_roll_weight = 0.1
 ik_tol_pos_m = 0.0005
 ik_tol_rot_rad = 0.02
 
-# WP14 §16.1: the table area the scripted generator may use (base frame). Proposed from the v3 cube and box
-# placements; the owner confirms reach and camera view in the container (tests/sim/check_workspace.py).
+# WP14 §16.1: table area for scripted generation in the robot base frame.
 [arm.workspace]
-r_m = [0.15, 0.40]
-bearing_deg = [-182.0, 2.0]
+r_m = [0.15, 0.26]
+bearing_deg = [-155.0, -25.0]
 xy_min = [-0.30, -0.42]
 xy_max = [0.30, 0.03]
