@@ -107,9 +107,10 @@ of = ["stacked", "ee_clear"]
 rules = [{ name = "stacked_not_confirmed", if = ["stacked"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_base", unless = ["over_base"] }, { name = "fell_off_base" }]
 
 [task.expert]
+align_held = true
 speed_scale = { range = [0.60, 0.95] }
 max_steps = 1120
-steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.07] }], stage = "reached" }, { skill = "grasp", target = "@target", z_offset_m = { range = [0.002, 0.004] }, stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.08] }, stage = "lifted" }, { skill = "transport", target = "@base", height_m = { range = [0.05, 0.065] }, align_held = true, stage = "over_base" }, { skill = "place", target = "@base", align_held = true }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "stacked" }, { skill = "retreat", dz_m = { range = [0.05, 0.065] } }, { skill = "wait", steps = 30, stage = "success" }]
+steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.07] }], stage = "reached" }, { skill = "grasp", target = "@target", z_offset_m = { range = [0.002, 0.004] }, stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.08] }, stage = "lifted" }, { skill = "transport", target = "@base", height_m = { range = [0.05, 0.065] }, stage = "over_base" }, { skill = "place", target = "@base" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "stacked" }, { skill = "retreat", dz_m = { range = [0.05, 0.065] } }, { skill = "wait", steps = 30, stage = "success" }]
 
 [task.perturbations]
 failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.02, 0.04] }, { type = "object_drop", stages = ["lifted", "over_base"], xy_jitter_m = [0.0, 0.02] }]

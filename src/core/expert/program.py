@@ -34,6 +34,7 @@ class ExpertProgram:
     approach_axis: tuple[float, ...]
     closing_axis: tuple[float, ...]
     speed_scale: float = 1.0
+    align_held: bool = False
 
     def __post_init__(self):
         object.__setattr__(self, "steps", tuple(self.steps))
@@ -116,8 +117,6 @@ def _validated_params(params, kind, *, task, arm_spec, joint_limits, names, arm_
                 _require(value >= 0, f"{key} must be nonnegative")
         elif key in ("dwell_steps", "steps"):
             _require(type(value) is int and value >= (1 if key == "steps" else 0), f"Invalid {key}")
-        elif key == "align_held":
-            _require(type(value) is bool, "align_held must be a boolean")
         elif key == "orientation":
             _require(value in ("down", "keep"), "Invalid orientation")
         elif key == "yaw":
@@ -160,7 +159,9 @@ def _validated_params(params, kind, *, task, arm_spec, joint_limits, names, arm_
 
 def parse_program(table, *, task, arm_spec, joint_limits=None) -> ExpertProgram:
     try:
-        _require(isinstance(table, _Mapping) and not table.keys() - {"steps", "max_steps", "settle_steps", "max_retries", "speed_scale"}, "Invalid expert table")
+        _require(isinstance(table, _Mapping) and not table.keys() - {
+            "steps", "max_steps", "settle_steps", "max_retries", "speed_scale", "align_held",
+        }, "Invalid expert table")
         raw_steps = table.get("steps")
         _require(isinstance(raw_steps, list) and bool(raw_steps), "Expert steps must be a non-empty list")
         counts = [table.get("max_steps", 600), table.get("settle_steps", 10), table.get("max_retries", 2)]
@@ -172,6 +173,8 @@ def parse_program(table, *, task, arm_spec, joint_limits=None) -> ExpertProgram:
         gaps = [row[1] for row in arm_spec["gripper"]["opening_table"]]
         speed_scale, speed_options = _options(table.get("speed_scale", 1.0))
         _require(_number(speed_scale) and all(_number(v) and 0 < v <= 1 for v in speed_options), "Invalid speed_scale")
+        align_held = table.get("align_held", False)
+        _require(type(align_held) is bool, "align_held must be a boolean")
         steps = []
         for raw in raw_steps:
             _require(isinstance(raw, _Mapping) and isinstance(raw.get("skill"), str) and raw["skill"] in _SKILLS, "Missing or unknown skill")
@@ -195,7 +198,8 @@ def parse_program(table, *, task, arm_spec, joint_limits=None) -> ExpertProgram:
                 _, durations = _options(params["steps"], integer=True)
                 budget = max(durations)
             steps.append(ProgramStep(skill.name, name, stage, budget, nominal))
-        return ExpertProgram(tuple(steps), *counts, task.spec.objects, tuple(approach), tuple(closing), float(speed_scale))
+        return ExpertProgram(tuple(steps), *counts, task.spec.objects, tuple(approach), tuple(closing),
+                             float(speed_scale), align_held)
     except (ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
         if isinstance(exc, _ConfigError):
             raise

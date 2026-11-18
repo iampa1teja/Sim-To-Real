@@ -187,7 +187,7 @@ class ScriptedExpert:
                        "carrot": start.copy(), "sub": "up" if step.skill == "grasp" else "gap" if step.skill == "release" else "above",
                        "sub_count": 0, "last_gap": obs.gripper_gap_m, "blocked": 0, "sweep": 0}
         self._emitted = 0
-        if step.params.get("align_held"):
+        if self._program.align_held and step.skill in ("transport", "place"):
             held = obs.objects.get(self._held)
             if held is not None and held.active:
                 offset = _np.asarray(held.pose.position) - start
