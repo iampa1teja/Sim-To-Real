@@ -181,6 +181,9 @@ def parse_program(table, *, task, arm_spec, joint_limits=None) -> ExpertProgram:
             _require(type(budget) is int and budget >= 1 and isinstance(name, str) and bool(name), "Invalid step budget or name")
             _require(stage is None or stage in task.stages, "Unknown stage")
             params = {**skill.defaults, **{key: value for key, value in raw.items() if key not in ("skill", "name", "stage", "budget")}}
+            if skill.name == "grasp" and "close_gap_m" not in raw:
+                # Some jaws retain a measured gap at their closed limit.
+                params["close_gap_m"] = max(min(gaps), params["close_gap_m"])
             options = {key: _options(value, integer=key in ("steps", "dwell_steps")) for key, value in params.items()}
             checks = dict(task=task, arm_spec=arm_spec, joint_limits=joint_limits, names=names, arm_joints=arm_joints, gaps=gaps)
             nominal = _validated_params({key: default for key, (default, _) in options.items()}, skill.name, **checks)
