@@ -415,8 +415,8 @@ class ScriptedExpert:
                 desired[self._grip.index] = self._grip.open_rad
         return desired
 
-    def _reenter(self, obs, progress):
-        index = progress.stage_index + 1
+    def _reenter(self, obs, progress, stage=None):
+        index = progress.stage_index + 1 if stage is None else self._stages.index(stage)
         if index >= len(self._stages):
             return None
         resumed = self._stages[index]
@@ -458,9 +458,17 @@ class ScriptedExpert:
                 self._held = self._resolve(step.params["target"])
             elif step.skill == "release":
                 self._held = None
-            failed_stage = step.stage is not None and step.skill != "approach" and progress.stage_index < self._stages.index(step.stage)
-            if detect and (failed_stage or (self._wrong and step.skill == "grasp")):
-                resumed = self._reenter(obs, progress)
+            stage = step.stage
+            if stage is not None and step.skill != "approach":
+                failed_stage = progress.stage_index < self._stages.index(stage)
+                # An offset trajectory can cross the true target and latch
+                # the stage before it reaches the offset destination.
+                lost_target = (not failed_stage and self._affected and self._pert.type == "target_offset"
+                               and not progress.satisfied.get(stage, False))
+            else:
+                failed_stage = lost_target = False
+            if detect and (failed_stage or lost_target or (self._wrong and step.skill == "grasp")):
+                resumed = self._reenter(obs, progress, stage if lost_target else None)
             if resumed is None:
                 if self._index == len(self._program.steps) - 1:
                     self._done = True
