@@ -227,6 +227,8 @@ class ScriptedExpert:
                 point += self._offset()
             if state["sub"] == "up":
                 return _np.r_[state["start"][:2], state["up_z"]]
+            if self._program.grasp_closing_offset_m:
+                point += self._program.grasp_closing_offset_m * (self._orientation() @ self._closing)
             if state["sub"] == "over":
                 return _np.r_[point[:2], state["up_z"]]
             return point
@@ -299,6 +301,8 @@ class ScriptedExpert:
     def _close_gap(self):
         step = self._program.steps[self._index]
         gap = self._gap(step.params["close_gap_m"] if step.skill == "grasp" else step.params["gap_m"])
+        if "max_gap_m" in step.params:
+            gap = min(gap, step.params["max_gap_m"])
         if self._affected and self._pert.type == "partial_close":
             gap = min(self._dims(self._resolve(step.params["target"]))[:2]) + self._pert.params.get("extra_gap_m", 0)
         if self._affected and self._pert.type == "target_offset":
