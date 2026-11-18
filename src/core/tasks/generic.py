@@ -99,7 +99,10 @@ def _ee_near(state, ctx, params):
     else:
         target = _np.asarray(resolve_ref(params["point"], ctx), dtype=_np.float64)
     target = target + _np.asarray(params.get("offset_m", (0, 0, 0)))
-    return bool(_np.linalg.norm(_tcp(state) - target) <= params.get("tol_m", 0.02))
+    delta = _tcp(state) - target
+    if params.get("xy_only", False):
+        delta = delta[:2]
+    return bool(_np.linalg.norm(delta) <= params.get("tol_m", 0.02))
 
 
 @register_predicate("object_lifted")
@@ -159,6 +162,16 @@ def _object_on_object(state, ctx, params):
     offset = 0 if _bottom_origin(ctx.objects[name]) else _dims(ctx.objects[name])[2]/2
     return bool(_np.linalg.norm(position[:2] - support[:2]) <= params.get("xy_tol_m", 0.01)
                 and abs(position[2] - (support[2] + top + offset)) <= params.get("z_tol_m", 0.005))
+
+
+@register_predicate("wrong_object_stacked")
+def _wrong_object_stacked(state, ctx, params):
+    target, base = (resolve_ref(params[ref], ctx) for ref in ("object", "base"))
+    distractors = (name for name in ctx.active if name not in (target, base)
+                   and ctx.objects[name].params.get("set") == params["set"])
+    return any(_object_on_object(state, ctx, {**params, "object": name, "base": base})
+               or _object_on_object(state, ctx, {**params, "object": target, "base": name})
+               for name in distractors)
 
 
 @register_predicate("nested_in")
@@ -228,7 +241,8 @@ def _any(state, ctx, params):
 _REQUIRED = {
     "object_lifted": ("object",), "held": ("object",), "object_displaced": ("object", "min_m"),
     "object_in_region": ("object", "region"), "objects_in_region": ("set", "region"),
-    "object_on_object": ("object", "base"), "nested_in": ("object", "base", "max_rise_m"),
+    "object_on_object": ("object", "base"), "wrong_object_stacked": ("object", "base", "set"),
+    "nested_in": ("object", "base", "max_rise_m"),
     "joint_near": ("joint", "value_rad"), "gap_near": ("value_m",), "signal": ("name",),
     "all": ("of",), "any": ("of",),
 }
@@ -280,6 +294,8 @@ class GenericTask(_Task):
                     raise _ConfigError(f"Missing parameter for {name}")
                 if kind == "ee_near" and (("object" in table) == ("point" in table)):
                     raise _ConfigError("ee_near requires exactly one target")
+                if "xy_only" in table and (kind != "ee_near" or type(table["xy_only"]) is not bool):
+                    raise _ConfigError("xy_only must be a boolean on an ee_near check")
                 if "contact_signal" in table and (
                         kind not in ("ee_near", "held") or not isinstance(table["contact_signal"], str)
                         or not table["contact_signal"]):
@@ -294,7 +310,7 @@ class GenericTask(_Task):
                 for key in ("joint", "value_rad", "value_m"):
                     if isinstance(table.get(key), str) and table[key].startswith("@"):
                         _static_ref(table[key], spec)
-                if kind == "objects_in_region" and table["set"] not in spec.object_sets:
+                if kind in ("objects_in_region", "wrong_object_stacked") and table["set"] not in spec.object_sets:
                     raise _ConfigError("Unknown object set")
                 if kind == "object_displaced" and (not isinstance(table.get("axes", "xy"), str)
                                                      or set(table.get("axes", "xy")) - set("xyz")):

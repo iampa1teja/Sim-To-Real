@@ -1,0 +1,14 @@
+arm: so101
+scene: rpd_meeting_room
+tasks: [stack_two_cubes]
+master_seed: 0
+quotas: {success: 120, failure: 60, recovery: 60}
+shard: "0/1"
+dst_root: /data/v4-stack-colors
+repo_id: "local/{task}-colors"
+fps: 30
+max_attempt_factor: 20.0
+cameras: true
+dr:
+  copies: 2
+  camera_jitter: {position_m: 0.01, rotation_deg: 2.0}

@@ -5,6 +5,7 @@ from __future__ import annotations
 import math as _math
 import re as _re
 import string as _string
+from collections import Counter as _Counter
 from collections.abc import Mapping as _Mapping
 from dataclasses import dataclass as _dataclass, replace as _replace
 from types import MappingProxyType as _MappingProxyType
@@ -153,6 +154,10 @@ def _validate_start(spec):
     if not isinstance(start, dict):
         raise _ConfigError("task.start must be a table")
     target_set = spec.object_sets.get(spec.roles.get("target"))
+    role_counts = _Counter(spec.roles.values())
+    for name, obj_set in spec.object_sets.items():
+        if role_counts[name] > obj_set.count_max:
+            raise _ConfigError(f"Too many roles for object set {name}")
     if "count" in start and target_set is None:
         raise _ConfigError("start.count requires a target set")
     if any(color not in spec.palette for color in spec.holdout.colors):
@@ -166,8 +171,11 @@ def _validate_start(spec):
             raise _ConfigError("Invalid start.count range")
         if any(not count[0] <= c <= count[1] for c in spec.holdout.counts):
             raise _ConfigError("Holdout count outside start.count")
-        if not any(c not in spec.holdout.counts for c in range(count[0], count[1] + 1)):
+        allowed = [c for c in range(count[0], count[1] + 1) if c not in spec.holdout.counts]
+        if not allowed:
             raise _ConfigError("No allowed object count")
+        if allowed[0] < role_counts[target_set.name]:
+            raise _ConfigError(f"Not enough active slots for roles in {target_set.name}")
         palette = [c for c in spec.palette if c not in spec.holdout.colors]
         if spec.palette and (not palette or (start.get("distinct_colors", True) and len(palette) < target_set.count_max)
                              or (count[1] > 1 and len(palette) < 2)):
@@ -413,7 +421,7 @@ def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=Non
     target_set = task_spec.object_sets.get(task_spec.roles.get("target"))
     active = set(task_spec.objects)
     colors = {name: None for name in task_spec.objects}
-    target_slot = None
+    available_slots = {name: list(obj_set.slot_names()) for name, obj_set in task_spec.object_sets.items()}
     if target_set is not None:
         lo, hi = start.get("count", (target_set.count_max, target_set.count_max))
         allowed = [count for count in range(lo, hi + 1) if count not in task_spec.holdout.counts]
@@ -427,16 +435,23 @@ def sample_start(task_spec, rng, *, reach_fn=None, home_q=None, joint_limits=Non
         slots = rng.permutation(target_set.count_max)[:count]
         names = target_set.slot_names()
         chosen = [names[int(i)] for i in slots]
-        target_slot = chosen[0]
+        available_slots[target_set.name] = chosen.copy()
         active.difference_update(set(names) - set(chosen))
-        for name, color in zip(chosen, [target_color, *distractors]):
-            colors[name] = color
+    role_counts = _Counter(task_spec.roles.values())
     roles = {}
     for role, name in task_spec.roles.items():
-        if name in task_spec.object_sets:
-            roles[role] = target_slot if target_set is not None and name == target_set.name else task_spec.object_sets[name].slot_names()[0]
-        else:
+        if name not in available_slots:
             roles[role] = name
+        elif role_counts[name] == 1:
+            roles[role] = available_slots[name][0]
+        else:
+            slots = available_slots[name]
+            roles[role] = slots.pop(int(rng.integers(len(slots))))
+    if target_set is not None:
+        target_slot = roles["target"]
+        colors[target_slot] = target_color
+        for name, color in zip((slot for slot in chosen if slot != target_slot), distractors):
+            colors[name] = color
     drawn_sizes = {}
     definitions = dict(task_spec.objects)
     for name, obj in task_spec.objects.items():
