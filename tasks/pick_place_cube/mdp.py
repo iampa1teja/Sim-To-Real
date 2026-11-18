@@ -287,6 +287,19 @@ def _active_cube(env, object_name, sensor_name):
     return active, sensor_name
 
 
+def _jaw_contact_force(env, sensor_name):
+    sensor: ContactSensor = env.scene[sensor_name]
+    # The sole filter is the active cube.
+    force_matrix = as_torch(sensor.data.force_matrix_w)
+    return torch.linalg.vector_norm(force_matrix, dim=-1).sum(dim=1)[:, 0]
+
+
+def object_grasp_contact(env, contact_sensor_cfg, object_name, warmup_steps, force_threshold):
+    _, sensor_name = _active_cube(env, object_name, contact_sensor_cfg.name)
+    contact = _jaw_contact_force(env, sensor_name) > force_threshold
+    return (contact & (env.episode_length_buf >= warmup_steps)).float().unsqueeze(-1)
+
+
 def _grasp_state(
     env: ManagerBasedRLEnv,
     contact_sensor_cfg: SceneEntityCfg,
@@ -311,10 +324,7 @@ def _grasp_state(
     update = env._pick_place_grasp_step != env.common_step_counter
     env._pick_place_rest_z[update] = torch.minimum(env._pick_place_rest_z[update], z[update])
 
-    contact_sensor: ContactSensor = env.scene[sensor_name]
-    # force_matrix_w is (num_envs, num_bodies, num_filters) of vec3 -> torch (..., 3); the sole filter is the object.
-    force_matrix = as_torch(contact_sensor.data.force_matrix_w)
-    contact_force = torch.linalg.vector_norm(force_matrix, dim=-1).sum(dim=1)[:, 0]
+    contact_force = _jaw_contact_force(env, sensor_name)
     has_contact = contact_force > 0.0
     grasp_contact = contact_force > force_threshold
     is_lifted = (z - env._pick_place_rest_z) > min_lift

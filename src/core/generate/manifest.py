@@ -169,14 +169,18 @@ class Manifest:
     def lines(self) -> list[ManifestLine]:
         return self._scan()[0]
 
+    def _truncate_tail(self, offset):
+        if self.path.exists() and self.path.stat().st_size != offset:
+            with self.path.open("r+b") as stream:
+                stream.truncate(offset)
+                _os.fsync(stream.fileno())
+
     def append(self, line):
         line = ManifestLine.from_json(line.to_json() if isinstance(line, ManifestLine) else line)
         lines, offset = self._scan()
         _require(all(_key(line) != _key(old) for old in lines), "Duplicate attempt in manifest")
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        if self.path.exists() and self.path.stat().st_size != offset:
-            with self.path.open("r+b") as stream:
-                stream.truncate(offset)
+        self._truncate_tail(offset)
         with self.path.open("ab") as stream:
             stream.write((_canonical_json(line.to_json()) + "\n").encode("utf-8"))
             stream.flush()
@@ -197,7 +201,7 @@ class ReconcileResult:
 
 
 def reconcile(root, writer, manifest) -> ReconcileResult:
-    lines = manifest.lines()
+    lines, offset = manifest._scan()
     accepted = [line for line in lines if line.status is _AttemptStatus.ACCEPTED]
     count, recorded = writer.episode_count(), len(accepted)
     if [line.episode_index for line in accepted] != list(range(recorded)) or not recorded <= count <= recorded + 1:
@@ -227,6 +231,8 @@ def reconcile(root, writer, manifest) -> ReconcileResult:
     if rebuilt is not None:
         manifest.append(rebuilt)
         lines.append(rebuilt)
+    else:
+        manifest._truncate_tail(offset)
     for index in deleted:
         sidecars[index].unlink()
     position = max(((line.attempt_index, _KINDS.index(line.kind)) for line in lines), default=None)

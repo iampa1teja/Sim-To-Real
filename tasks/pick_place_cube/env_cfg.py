@@ -16,6 +16,7 @@ from isaaclab.utils import configclass
 from sim.envs.mdp import ROBOT_COLORS, park_object, randomize_robot_color, time_out
 from .mdp import (
     check_pick_place_eval_event_order,
+    object_grasp_contact,
     object_grasped,
     object_placed_in_container,
     object_placed_in_container_termination,
@@ -77,6 +78,7 @@ def _place_params(task):
 class SubtaskCfg(ObsGroup):
     cube_grasped: ObsTerm = None
     cube_placed: ObsTerm = None
+    cube_grasp_contact: ObsTerm = None
 
     def __post_init__(self):
         self.enable_corruption = False
@@ -161,6 +163,11 @@ def apply_generate(cfg, task):
         cfg.events.reset_tracking.params = {"object_name": default}
         for term in (cfg.observations.subtask_terms.cube_grasped, cfg.observations.subtask_terms.cube_placed):
             term.params.update(object_name=default, contact_sensor_cfg=SceneEntityCfg(f"contact_grasp_{default}"))
+    grasp_params = cfg.observations.subtask_terms.cube_grasped.params
+    cfg.observations.subtask_terms.cube_grasp_contact = ObsTerm(
+        func=object_grasp_contact,
+        params={key: grasp_params[key] for key in ("contact_sensor_cfg", "object_name", "warmup_steps", "force_threshold")},
+    )
     cfg.terminations = None
     max_steps = task.spec.raw["expert"]["max_steps"]
     cfg.episode_length_s = (max_steps + 1) * cfg.decimation * cfg.sim.dt

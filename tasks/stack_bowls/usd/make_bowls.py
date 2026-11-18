@@ -16,21 +16,15 @@ def _ring(radius, z):
     ]
 
 
-def _mesh(name, vertices, faces, *, collision=False, color=None):
-    schemas = ' (\n        prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]\n    )'
+def _mesh(name, vertices, faces, *, color):
     counts = [len(face) for face in faces]
     indices = [i for face in faces for i in face]
-    lines = [f'    def Mesh "{name}"' + (schemas if collision else ""), "    {",
+    lines = [f'    def Mesh "{name}"', "    {",
              '        uniform token subdivisionScheme = "none"',
              f"        point3f[] points = {vertices}",
              f"        int[] faceVertexCounts = {counts}",
              f"        int[] faceVertexIndices = {indices}"]
-    if collision:
-        lines.extend(['        token visibility = "invisible"',
-                      '        bool physics:collisionEnabled = true',
-                      '        uniform token physics:approximation = "convexHull"'])
-    if color is not None:
-        lines.append(f"        color3f[] primvars:displayColor = [{color}]")
+    lines.append(f"        color3f[] primvars:displayColor = [{color}]")
     return "\n".join([*lines, "    }"])
 
 
@@ -46,6 +40,39 @@ def _surface(rings):
     return vertices, faces
 
 
+def _floor_collider(radius, thickness):
+    return f'''    def Cylinder "FloorCollision" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {{
+        uniform token axis = "Z"
+        double height = {thickness}
+        double radius = {radius}
+        double3 xformOp:translate = (0, 0, {thickness / 2})
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+        token visibility = "invisible"
+        bool physics:collisionEnabled = true
+    }}'''
+
+
+def _wall_collider(index, *, radius, thickness, length, height, rise, tilt):
+    angle = (index + 0.5) * math.tau / _SEGMENTS
+    x, y = radius * math.cos(angle), radius * math.sin(angle)
+    return f'''    def Cube "WallCollision_{index:02d}" (
+        prepend apiSchemas = ["PhysicsCollisionAPI"]
+    )
+    {{
+        double size = 1
+        double3 xformOp:translate = ({x:.9f}, {y:.9f}, {height / 2:.9f})
+        float xformOp:rotateZ = {math.degrees(angle):.9f}
+        float xformOp:rotateY = {tilt:.9f}
+        float3 xformOp:scale = ({thickness:.9f}, {length:.9f}, {rise:.9f})
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateZ", "xformOp:rotateY", "xformOp:scale"]
+        token visibility = "invisible"
+        bool physics:collisionEnabled = true
+    }}'''
+
+
 def _bowl(name, radius, height, floor, inner_radius, mass, color):
     # The wall flares out from the floor. The interior stays wider than
     # the small bowl's rim, including near the large bowl's floor.
@@ -54,15 +81,17 @@ def _bowl(name, radius, height, floor, inner_radius, mass, color):
     rings = [_ring(base_radius, 0), _ring(radius, height),
              _ring(inner_radius, height), _ring(inner_base, floor)]
     vertices, faces = _surface(rings)
-    meshes = [_mesh("Surface", vertices, faces, color=color)]
-    vertices, faces = _surface([rings[0], _ring(base_radius, floor)])
-    meshes.append(_mesh("FloorCollision", vertices, faces, collision=True))
-    for i in range(_SEGMENTS):
-        j = (i + 1) % _SEGMENTS
-        vertices = [ring[k] for ring in rings for k in (i, j)]
-        faces = [(0, 1, 3, 2), (2, 3, 5, 4), (4, 5, 7, 6), (6, 7, 1, 0),
-                 (0, 2, 4, 6), (1, 7, 5, 3)]
-        meshes.append(_mesh(f"WallCollision_{i:02d}", vertices, faces, collision=True))
+    # A cylinder gives Newton an analytic contact against the triangulated table.
+    meshes = [_mesh("Surface", vertices, faces, color=color), _floor_collider(base_radius, floor)]
+    # Tilt the boxes along the bowl wall and overlap the ends slightly to close its seams.
+    top, bottom = (radius + inner_radius) / 2, (base_radius + inner_base) / 2
+    middle = (top + bottom) / 2
+    thickness = ((radius - inner_radius) + (base_radius - inner_base)) / 2
+    length = 2 * middle * math.tan(math.pi / _SEGMENTS) * 1.02
+    rise = math.hypot(height, top - bottom)
+    tilt = math.degrees(math.atan2(top - bottom, height))
+    meshes.extend(_wall_collider(i, radius=middle, thickness=thickness, length=length,
+                                 height=height, rise=rise, tilt=tilt) for i in range(_SEGMENTS))
     return f'''#usda 1.0
 (
     defaultPrim = "{name}"

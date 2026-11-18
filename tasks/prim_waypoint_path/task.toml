@@ -14,7 +14,7 @@ initial_q = { around = "home", spread = 0.12 }
 [task.start.goal.points]
 type = "points"
 count = 3
-z_m = [0.04, 0.14]
+z_m = [0.04, 0.12]
 min_separation_m = 0.06
 region = "workspace"
 

@@ -7,6 +7,7 @@ import numpy as _np
 
 from core.generate.errors import EnvError as _EnvError
 from core.generate.protocols import ExpertObs as _ExpertObs, ObjectState as _ObjectState
+from core.scenes import _generation_table_height
 from core.tasks.base import Pose as _Pose, episode_objects as _episode_objects
 
 
@@ -81,6 +82,8 @@ class FakeEnv:
         if set(spec.objects) - self._task.spec.objects.keys() or len(spec.initial_q) != len(self.joint_names):
             raise _EnvError("Spec has an unknown object or incorrect initial joint count")
         self._definitions = _episode_objects(self._task.spec, spec)
+        nominal_table = self._task.spec.raw.get("start", {}).get("table_z_m", 0.)
+        self._table_z = _generation_table_height(spec.scene, spec.arm, nominal_table)
         self._spec, self._frame = spec, 0
         self._q = _np.array(spec.initial_q, dtype=_np.float64)
         self._objects = {name: spec.objects.get(name, _ObjectState(_Pose((0., 0., 0.)), active=False))
@@ -116,7 +119,7 @@ class FakeEnv:
     def _drop(self, name):
         state = self._objects[name]
         x, y, _ = state.pose.position
-        support = self._task.spec.raw.get("start", {}).get("table_z_m", 0.)
+        support = self._table_z
         for other, other_state in self._objects.items():
             if other == name or not other_state.active:
                 continue

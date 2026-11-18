@@ -334,10 +334,14 @@ class Outcome:
 
 
 class StageTracker:
-    def __init__(self, stages: _Sequence[str], hold_until: _Mapping[str, str] = {}):
+    def __init__(self, stages: _Sequence[str], hold_until: _Mapping[str, str] = {}, *, hold_grace_steps: int = 0):
         self._stages, self._hold = tuple(stages), dict(hold_until)
         if any(s not in self._stages or h not in self._stages for s, h in self._hold.items()):
             raise ValueError("hold_until must name known stages")
+        if type(hold_grace_steps) is not int or hold_grace_steps < 0:
+            raise ValueError("hold_grace_steps must be a nonnegative integer")
+        self._hold_grace_steps = hold_grace_steps
+        self._hold_misses = dict.fromkeys(self._stages, 0)
         self._ever = dict.fromkeys(self._stages, False)
         self._current = dict(self._ever)
         self._frame = 0
@@ -354,12 +358,16 @@ class StageTracker:
         regressed = None
         for i, stage in enumerate(self._stages):
             hold = self._hold.get(stage)
-            if hold is not None and self._current[stage] and not checks.get(stage, False) and not self._current[hold]:
-                for later in self._stages[i:]:
-                    self._current[later] = False
-                self.regressions.append((self._frame, stage))
-                regressed = stage
-                break
+            if hold is None or not self._current[stage] or checks.get(stage, False) or self._current[hold]:
+                self._hold_misses[stage] = 0
+                continue
+            self._hold_misses[stage] += 1
+            if self._hold_misses[stage] <= self._hold_grace_steps:
+                continue
+            self._clear_from(i)
+            self.regressions.append((self._frame, stage))
+            regressed = stage
+            break
         self.stage_index = self._prefix(self._current)
         self.furthest_index = self._prefix(self._ever)
         result = StageProgress(self._frame, self.stage_index, self.furthest_index,
@@ -374,6 +382,17 @@ class StageTracker:
                 break
             index = i
         return index
+
+    def rewind_from(self, stage: str) -> None:
+        index = self._stages.index(stage)
+        if index <= self.stage_index:
+            self._clear_from(index)
+            self.stage_index = index - 1
+
+    def _clear_from(self, index: int) -> None:
+        for stage in self._stages[index:]:
+            self._current[stage] = False
+            self._hold_misses[stage] = 0
 
     def flags(self) -> dict[str, bool]:
         return dict(self._ever)
@@ -426,7 +445,8 @@ class Task(ABC):
         return self.observe(state)
 
     def make_tracker(self) -> StageTracker:
-        return StageTracker(self.stages, self.hold_until)
+        grace = self.spec.raw.get("stages", {}).get("hold_grace_steps", 0)
+        return StageTracker(self.stages, self.hold_until, hold_grace_steps=grace)
 
     @property
     def hold_until(self) -> dict[str, str]:
@@ -456,7 +476,7 @@ class Task(ABC):
         flags = tracker.flags()
         flags.update({key: bool(value) for key, value in final_checks.items() if key not in self.stages})
         holding = bool(final_checks.get("holding", final_state.signals.get("holding", False)))
-        success = bool(flags.get(self.stages[-1], False))
+        success = self.is_success(flags)
         if self.spec.raw.get("stages", {}).get("success_requires_final", True):
             success = success and bool(final_checks.get(self.stages[-1], False))
         return Outcome(success, self.failure_mode(flags, holding, success), tracker.furthest_stage)
@@ -474,7 +494,8 @@ class Task(ABC):
                 for name, value in objects.items()}
 
     def is_success(self, flags: dict[str, bool]) -> bool:
-        return bool(flags.get(self.stages[-1], False))
+        required = self.spec.raw.get("stages", {}).get("success_requires_stages", ())
+        return bool(flags.get(self.stages[-1], False)) and all(flags.get(stage, False) for stage in required)
 
     def furthest_stage(self, flags: dict[str, bool]) -> str | None:
         reached = None

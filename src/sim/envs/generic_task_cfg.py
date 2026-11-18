@@ -63,6 +63,20 @@ def _apply(cfg, task, assets):
 def apply_generate(cfg, task):
     from sim.envs.mdp.objects import generation_assets
 
-    _apply(cfg, task, generation_assets(task.spec))
+    assets = generation_assets(task.spec)
+    _apply(cfg, task, assets)
+    if task.spec.raw.get("checks", {}).get("holding", {}).get("contact_signal") == "target_held":
+        links = _load_arm_spec(_os.environ.get("S2R_ARM"))[0]["links"]
+        target = task.spec.roles["target"]
+        for name, variants in assets.items():
+            if name != target and task.spec.objects[name].params.get("set") != target:
+                continue
+            for asset in variants:
+                for side, link in (("fixed", links["ee"]), ("moving", links["moving_jaw"])):
+                    sensor = cfg.scene.contact_grasp.replace(
+                        prim_path="{ENV_REGEX_NS}/Robot/" + link,
+                        filter_prim_paths_expr=["{ENV_REGEX_NS}/" + asset],
+                    )
+                    setattr(cfg.scene, f"contact_{side}_{asset}", sensor)
     cfg.terminations = None
     cfg.episode_length_s = (task.spec.raw.get("expert", {}).get("max_steps", 600)+1)*cfg.decimation*cfg.sim.dt

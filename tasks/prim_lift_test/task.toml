@@ -9,7 +9,7 @@ generate = "env_cfg:apply_generate"
 
 [task.objects.cube]
 size = [0.02, 0.02, 0.02]
-size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.024, 0.024, 0.024], [0.026, 0.026, 0.026]]
+size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.025, 0.025, 0.025]]
 mass = 0.008
 
 [task.roles]
@@ -17,15 +17,19 @@ target = "cube"
 
 [task.start]
 table_z_m = 0.0
-initial_q = { around = "home", spread = 0.12 }
+initial_q = { around = "home", spread = 0.10 }
 reachable = ["@target"]
 
 [task.start.place.cube]
-region = "workspace"
+region = { workspace_inset_m = 0.012 }
 yaw_deg = [0.0, 90.0]
 
 [task.stages]
 order = ["reached", "grasped", "tested", "set_down", "success"]
+success_requires_stages = ["tested"]
+
+[task.stages.hold_until]
+grasped = "tested"
 
 [task.checks.reached]
 check = "ee_near"
@@ -78,15 +82,15 @@ negate = true
 rules = [{ name = "not_set_down", if = ["tested"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "slipped" }]
 
 [task.expert]
-speed_scale = { range = [0.6, 1.0] }
-max_steps = 900
-steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.09] }], stage = "reached" }, { skill = "grasp", target = "@target", stage = "grasped" }, { skill = "lift", height_m = { range = [0.008, 0.02] }, stage = "tested" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "set_down" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "success" }]
+speed_scale = { range = [0.60, 0.95] }
+max_steps = 1100
+steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.068] }], stage = "reached" }, { skill = "grasp", target = "@target", z_offset_m = { range = [0.002, 0.004] }, dwell_steps = { range = [12, 18] }, stage = "grasped" }, { skill = "lift", height_m = { range = [0.015, 0.020] }, stage = "tested" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "set_down" }, { skill = "retreat", dz_m = { range = [0.05, 0.1] }, stage = "success" }]
 
 [task.perturbations]
-failure = [{ type = "stall", stages = ["tested"], steps = [900, 900] }]
-recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }]
+failure = [{ type = "stall", stages = ["tested"], steps = [1100, 1100] }]
+recovery = [{ type = "grasp_offset", xy_m = [0.012, 0.017] }]
 
 [task.physics.cube]
-mass_kg = [0.005, 0.03]
-static_friction = [0.4, 1.0]
-dynamic_friction = [0.3, 0.9]
+mass_kg = [0.005, 0.014]
+static_friction = [0.75, 1.0]
+dynamic_friction = [0.65, 0.9]

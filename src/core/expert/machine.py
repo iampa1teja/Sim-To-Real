@@ -187,6 +187,13 @@ class ScriptedExpert:
                        "carrot": start.copy(), "sub": "up" if step.skill == "grasp" else "gap" if step.skill == "release" else "above",
                        "sub_count": 0, "last_gap": obs.gripper_gap_m, "blocked": 0, "sweep": 0}
         self._emitted = 0
+        if self._program.align_held and step.skill in ("transport", "place"):
+            held = obs.objects.get(self._held)
+            if held is not None and held.active:
+                offset = _np.asarray(held.pose.position) - start
+                # A distant object may have slipped out before the next skill starts.
+                if _np.linalg.norm(offset) < 0.055:
+                    self._state["held_offset_xy"] = offset[:2]
         if step.skill == "grasp":
             name = self._resolve(step.params["target"])
             point = self._centre(name) + [0, 0, step.params["z_offset_m"]]
@@ -220,6 +227,8 @@ class ScriptedExpert:
                 point += self._offset()
             if state["sub"] == "up":
                 return _np.r_[state["start"][:2], state["up_z"]]
+            if self._program.grasp_closing_offset_m:
+                point += self._program.grasp_closing_offset_m * (self._orientation() @ self._closing)
             if state["sub"] == "over":
                 return _np.r_[point[:2], state["up_z"]]
             return point
@@ -229,6 +238,8 @@ class ScriptedExpert:
                 goal = goal + [0, 0, params["height_m"]]
             else:
                 goal = goal + params["offset_m"] + _np.array([0, 0, (self._dims(self._held)[2]/2 if self._held else 0) + params["clearance_m"]])
+            if "held_offset_xy" in state:
+                goal[:2] -= state["held_offset_xy"]
         elif kind == "touch":
             goal, _ = self._destination(params["target"])
         elif kind == "push":
@@ -290,6 +301,8 @@ class ScriptedExpert:
     def _close_gap(self):
         step = self._program.steps[self._index]
         gap = self._gap(step.params["close_gap_m"] if step.skill == "grasp" else step.params["gap_m"])
+        if "max_gap_m" in step.params:
+            gap = min(gap, step.params["max_gap_m"])
         if self._affected and self._pert.type == "partial_close":
             gap = min(self._dims(self._resolve(step.params["target"]))[:2]) + self._pert.params.get("extra_gap_m", 0)
         if self._affected and self._pert.type == "target_offset":
@@ -317,7 +330,7 @@ class ScriptedExpert:
             return bool(_np.all(point >= value["xy_min"]) and _np.all(point <= value["xy_max"]))
         return float(_np.linalg.norm(point - _np.asarray(value)[:2])) <= 0.01
 
-    def _terminated(self, obs):
+    def _terminated(self, obs, progress):
         step, state = self._program.steps[self._index], self._state
         kind, p = step.skill, step.params
         if self._emitted >= step.budget:
@@ -333,6 +346,8 @@ class ScriptedExpert:
             return state["sweep"] == len(angles)
         if kind == "set_gripper":
             return self._gap_done(obs, self._close_gap(), p["tol_m"])
+        if kind == "touch" and obs.signals.get("touch_contact", False) and progress.satisfied.get(step.stage, False):
+            return True
         if kind in ("grasp", "release"):
             while True:
                 sub = state["sub"]
@@ -362,6 +377,9 @@ class ScriptedExpert:
     def _ik(self, point, rotation):
         q, weights = self._q.copy(), self._weights
         at, ct = rotation @ self._approach, rotation @ self._closing
+        indices = self._arm_indices
+        lower, upper = self._lower[indices], self._upper[indices]
+        damping = 1e-4 * _np.eye(7)
         for _ in range(12):
             transform = self._chain.fk(q)
             a, c = transform[:3, :3] @ self._approach, transform[:3, :3] @ self._closing
@@ -375,14 +393,21 @@ class ScriptedExpert:
             ds, dk = at @ _skew(ct) @ dc, ct @ dc
             jac = _np.vstack((weights.position*geometric[:3], weights.axis*_skew(at) @ _skew(a) @ geometric[3:],
                               weights.roll*(k*ds - s*dk)/max(s*s + k*k, 1e-20)))
-            delta = -jac.T @ _np.linalg.solve(jac @ jac.T + 1e-4*_np.eye(7), residual)
+            delta = -jac.T @ _np.linalg.solve(jac @ jac.T + damping, residual)
+            # Re-solve over the movable joints when the first direction
+            # pushes a joint farther into a bound.
+            angles = q[indices]
+            blocked = ((angles <= lower + 1e-10) & (delta < 0)) | ((angles >= upper - 1e-10) & (delta > 0))
+            if _np.any(blocked):
+                jac[:, blocked] = 0
+                delta = -jac.T @ _np.linalg.solve(jac @ jac.T + damping, residual)
             scale = float(_np.max(_np.abs(delta))) if len(delta) else 0
             if scale > 0.2:
                 delta *= 0.2/scale
-            new = _np.clip(q[self._arm_indices] + delta, self._lower[self._arm_indices], self._upper[self._arm_indices])
-            if _np.max(_np.abs(new - q[self._arm_indices]), initial=0) < 1e-10:
+            new = _np.clip(angles + delta, lower, upper)
+            if _np.max(_np.abs(new - angles), initial=0) < 1e-10:
                 break
-            q[self._arm_indices] = new
+            q[indices] = new
         return q
 
     def _desired(self, obs):
@@ -405,8 +430,8 @@ class ScriptedExpert:
                 desired[self._grip.index] = self._grip.open_rad
         return desired
 
-    def _reenter(self, obs, progress):
-        index = progress.stage_index + 1
+    def _reenter(self, obs, progress, stage=None):
+        index = progress.stage_index + 1 if stage is None else self._stages.index(stage)
         if index >= len(self._stages):
             return None
         resumed = self._stages[index]
@@ -442,15 +467,23 @@ class ScriptedExpert:
         resumed = self._reenter(obs, progress) if detect and progress.regressed_stage is not None else None
         if self._state is None:
             self._enter(obs)
-        if resumed is None and self._emitted > 0 and self._terminated(obs):
+        if resumed is None and self._emitted > 0 and self._terminated(obs, progress):
             step = self._program.steps[self._index]
             if step.skill == "grasp":
                 self._held = self._resolve(step.params["target"])
             elif step.skill == "release":
                 self._held = None
-            failed_stage = step.stage is not None and step.skill != "approach" and progress.stage_index < self._stages.index(step.stage)
-            if detect and (failed_stage or (self._wrong and step.skill == "grasp")):
-                resumed = self._reenter(obs, progress)
+            stage = step.stage
+            if stage is not None and step.skill != "approach":
+                failed_stage = progress.stage_index < self._stages.index(stage)
+                # An offset trajectory can cross the true target and latch
+                # the stage before it reaches the offset destination.
+                lost_target = (not failed_stage and self._affected and self._pert.type == "target_offset"
+                               and not progress.satisfied.get(stage, False))
+            else:
+                failed_stage = lost_target = False
+            if detect and (failed_stage or lost_target or (self._wrong and step.skill == "grasp")):
+                resumed = self._reenter(obs, progress, stage if lost_target else None)
             if resumed is None:
                 if self._index == len(self._program.steps) - 1:
                     self._done = True

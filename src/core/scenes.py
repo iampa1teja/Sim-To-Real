@@ -29,6 +29,10 @@ def load_scene_spec(name: str | None = None) -> dict[str, Any]:
         return tomllib.load(handle).get("scene", {})
 
 
+def _generation_table_height(scene, arm, fallback=None):
+    return load_scene_spec(scene).get("generation_table_z_m", {}).get(arm, fallback)
+
+
 def setup_path(name: str | None = None) -> Path:
     """The scene's measured setup JSON (scene.toml ``setup``, default real_setup.json)."""
     return scene_dir(name) / load_scene_spec(name).get("setup", "real_setup.json")

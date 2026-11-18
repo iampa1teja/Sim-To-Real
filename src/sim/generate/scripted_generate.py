@@ -93,10 +93,14 @@ def _current_summary(root):
 def _make_env(args, cfg, task):
     import gymnasium as gym
     from isaaclab_tasks.utils import parse_env_cfg
+    from core.scenes import load_scene_spec
     import sim.envs
     sim.envs.register_envs(scene=cfg.scene, task=task.name)
     env_id = task.gym_id("generate")
     env_cfg = parse_env_cfg(env_id, device=args.device, num_envs=1, use_fabric=not args.disable_fabric)
+    impratio = load_scene_spec(cfg.scene).get("generation_mjwarp_impratio")
+    if impratio is not None:
+        env_cfg.sim.physics.solver_cfg.impratio = impratio
     env_cfg.seed = cfg.master_seed
     env_cfg.decimation = round(1/(cfg.fps*env_cfg.sim.dt))
     env_cfg.sim.render_interval = env_cfg.decimation
@@ -104,12 +108,15 @@ def _make_env(args, cfg, task):
         raise ValueError("Requested fps is not a multiple of the physics timestep")
     env_cfg.terminations = None
     env_cfg.episode_length_s = (task.spec.raw.get("expert", {}).get("max_steps", 600)+1)/cfg.fps
+    env_cfg.observations.visual = None
     if not cfg.cameras:
-        env_cfg.observations.visual = None
         for name in dir(env_cfg.scene):
             if name.startswith("camera_"):
                 setattr(env_cfg.scene, name, None)
-    return gym.make(env_id, cfg=env_cfg)
+    env = gym.make(env_id, cfg=env_cfg)
+    # IsaacGenEnv renders the saved observation explicitly at the frame boundary.
+    env.unwrapped.render_enabled = False
+    return env
 
 
 def _run(args, cfg, tasks, parser, argv):
@@ -127,11 +134,13 @@ def _run(args, cfg, tasks, parser, argv):
         from core.arms.raw_mapping import RawMapping
         from core.arms.spec import load_arm_spec
         from core.datasets.task_meta import LABEL_FEATURES
+        from core.generate.errors import GenerationError
         from core.generate.loop import run_generation, make_expert_factory, make_spec_fn
         from core.tasks.loader import load_task
         from sim.generate.isaac_gen_env import IsaacGenEnv, RecorderEpisodeWriter
         from sim.recording.lerobot_recorder import LeRobotRecorder
         executed_total = 0
+        failed = False
         for name in tasks:
             if args.limit_attempts > 0 and executed_total >= args.limit_attempts:
                 break
@@ -170,6 +179,10 @@ def _run(args, cfg, tasks, parser, argv):
                                                    git_commit=git_commit())
                 except _AttemptLimit:
                     summary = _current_summary(writer.root)
+                except GenerationError as exc:
+                    print(f"{name}: {type(exc).__name__}: {exc}", file=_sys.stderr)
+                    summary = _current_summary(writer.root)
+                    failed = True
                 executed_total += limited._executed
                 print(f"{name}: {summary}")
             finally:
@@ -181,7 +194,7 @@ def _run(args, cfg, tasks, parser, argv):
                         env.close()
                     elif raw_env is not None:
                         raw_env.close()
-        return 0
+        return int(failed)
     finally:
         app.close()
 
