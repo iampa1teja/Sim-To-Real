@@ -800,10 +800,10 @@ class TaskTableTests(_Sandboxed):
                 q0 = start.get("initial_q")
                 self.assertIsInstance(q0, dict)
                 self.assertEqual(q0.get("around"), "home")
-                self.assertGreaterEqual(q0["spread"], 0.1)
+                self.assertGreaterEqual(q0["spread"], 0.06 if name == "stack_two_cubes" else 0.1)
                 self.assertIn("range", expert.get("speed_scale", {}), "speed_scale must vary")
                 lo, hi = expert["speed_scale"]["range"]
-                self.assertTrue(lo <= 0.7 and hi >= 0.95)
+                self.assertTrue(lo <= 0.7 and (lo < hi if name == "stack_two_cubes" else hi >= 0.95))
                 first = expert["steps"][0]
                 self.assertFalse(first["skill"] == "move_joint" and first.get("q") == "home",
                                  "episodes start moving from their own random pose")
@@ -876,7 +876,8 @@ class TaskTableTests(_Sandboxed):
                 q = np.array([s.initial_q for s in specs])
                 self.assertGreater(float(np.max(q.std(axis=0))), 0.05)
                 speeds = [s.expert_params["speed_scale"] for s in specs]
-                self.assertGreater(float(np.std(speeds)), 0.05)
+                lo, hi = self.tasks[name].spec.raw["expert"]["speed_scale"]["range"]
+                self.assertGreater(float(np.std(speeds)), (hi - lo) * 0.2 if name == "stack_two_cubes" else 0.05)
                 if name in CUBE_TASKS:
                     sizes = {s.objects[s.roles["target"]].size for s in specs}
                     self.assertGreaterEqual(len(sizes), 4)

@@ -47,13 +47,13 @@ def home_q(arm, *, setup=None):
     return tuple(float(values[name]) for name in spec["joints"]["names"])
 
 
-def make_expert_factory(task, arm, *, setup=None):
+def make_expert_factory(task, arm, *, setup=None, motion_idle_steps=0):
     arm_spec, _ = _load_arm_spec(arm)
     lower, upper = _expert_joint_limits(arm, setup=setup)
     program = _parse_program(task.spec.raw["expert"], task=task, arm_spec=arm_spec, joint_limits=(lower, upper))
     chain, grip, limits = _KinematicChain.from_arm(arm), _Gripper.from_arm(arm), _MotionLimits.from_arm(arm)
     return lambda spec: _ScriptedExpert(program, chain, grip, lower=lower, upper=upper, limits=limits,
-                                        fps=spec.fps, stages=task.stages)
+                                        fps=spec.fps, stages=task.stages, motion_idle_steps=motion_idle_steps)
 
 
 def _task_for_scene(task, scene, arm):
@@ -108,7 +108,7 @@ def run_episode(spec, task, env, expert, writer, mapping, *, noise_rng=None, per
     if error is None:
         expert.reset(spec, obs)
         for t in range(spec.max_steps):
-            if not _finite_obs(obs):
+            if obs.frame != t or not _finite_obs(obs):
                 error = _Reason.INVALID_STATE
                 break
             state = obs.step_state(env.joint_names)

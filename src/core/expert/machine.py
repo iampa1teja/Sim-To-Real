@@ -29,7 +29,8 @@ def _yaw(pose):
 
 
 class ScriptedExpert:
-    def __init__(self, program, chain, gripper, *, lower, upper, limits, fps, stages, weights=None):
+    def __init__(self, program, chain, gripper, *, lower, upper, limits, fps, stages, weights=None,
+                 motion_idle_steps=0):
         self._base_program = self._program = program
         self._chain, self._grip, self._limits = chain, gripper, limits
         self._lower, self._upper = _np.array(lower, dtype=float, copy=True), _np.array(upper, dtype=float, copy=True)
@@ -38,7 +39,10 @@ class ScriptedExpert:
                 or _np.any(_np.isnan(self._lower)) or _np.any(_np.isnan(self._upper))
                 or limits.max_joint_speed_rad_s.shape != size or type(fps) is not int or fps <= 0):
             raise ValueError("Invalid expert limits, speed shape or fps")
+        if type(motion_idle_steps) is not int or motion_idle_steps < 0:
+            raise ValueError("motion_idle_steps must be a nonnegative integer")
         self._fps, self._stages = fps, tuple(stages)
+        self._motion_idle_steps = motion_idle_steps
         self._weights = weights or _IKWeights()
         self._base_max_step = _np.array(limits.max_joint_speed_rad_s) / fps
         self._base_max_step[gripper.index] = limits.max_gripper_speed_rad_s / fps
@@ -187,6 +191,7 @@ class ScriptedExpert:
                        "carrot": start.copy(), "sub": "up" if step.skill == "grasp" else "gap" if step.skill == "release" else "above",
                        "sub_count": 0, "last_gap": obs.gripper_gap_m, "blocked": 0, "sweep": 0}
         self._emitted = 0
+        self._mark_motion(obs)
         if self._program.align_held and step.skill in ("transport", "place"):
             held = obs.objects.get(self._held)
             if held is not None and held.active:
@@ -210,6 +215,20 @@ class ScriptedExpert:
     def _subphase(self, sub, obs):
         self._state.update(sub=sub, sub_count=0, carrot=_np.array(obs.tcp.position, dtype=float),
                            last_gap=obs.gripper_gap_m, blocked=0)
+        self._mark_motion(obs)
+
+    def _mark_motion(self, obs):
+        self._motion_frame = obs.frame
+        self._motion_q = obs.q
+
+    def _motion_idle(self, obs):
+        if not self._motion_idle_steps:
+            return False
+        # Accumulate small increments from the last moving pose so gradual
+        # progress and a settled joint reading are treated differently.
+        if _np.max(_np.abs(obs.q - self._motion_q)) >= _math.radians(0.2):
+            self._mark_motion(obs)
+        return obs.frame - self._motion_frame >= self._motion_idle_steps
 
     def _goal(self):
         step, state = self._program.steps[self._index], self._state
@@ -338,11 +357,13 @@ class ScriptedExpert:
         if kind == "wait":
             return self._emitted >= p["steps"]
         if kind == "move_joint":
-            return all(abs(obs.q[i] - q) <= p["tol_rad"] for i, q in self._joint_targets().items())
+            return (all(abs(obs.q[i] - q) <= p["tol_rad"] for i, q in self._joint_targets().items())
+                    or self._motion_idle(obs))
         if kind == "sweep":
             index, angles = self._sweep()
-            if abs(obs.q[index] - angles[state["sweep"]]) <= p["tol_rad"]:
+            if abs(obs.q[index] - angles[state["sweep"]]) <= p["tol_rad"] or self._motion_idle(obs):
                 state["sweep"] += 1
+                self._mark_motion(obs)
             return state["sweep"] == len(angles)
         if kind == "set_gripper":
             return self._gap_done(obs, self._close_gap(), p["tol_m"])
@@ -352,8 +373,12 @@ class ScriptedExpert:
             while True:
                 sub = state["sub"]
                 if kind == "grasp" and sub in ("up", "over", "down"):
-                    if _np.linalg.norm(_np.asarray(obs.tcp.position) - self._goal()) > 0.005:
-                        return False
+                    distance = _np.linalg.norm(_np.asarray(obs.tcp.position) - self._goal())
+                    if distance > 0.005:
+                        if not self._motion_idle(obs):
+                            return False
+                        if distance > 0.008:
+                            return True
                     self._subphase({"up": "over", "over": "down", "down": "close"}[sub], obs)
                     if sub == "down":
                         return False
@@ -366,13 +391,14 @@ class ScriptedExpert:
                 else:
                     return state["sub_count"] >= p["dwell_steps"]
         if kind == "push":
-            if self._inside():
+            if self._inside() or self._motion_idle(obs):
                 return True
             if state["sub"] in ("above", "pre") and _np.linalg.norm(_np.asarray(obs.tcp.position) - self._goal()) <= 0.005:
                 self._subphase("pre" if state["sub"] == "above" else "push", obs)
             return False
         tolerance = p.get("tol_m", p.get("contact_tol_m", 0.003 if kind == "place" else 0.005))
-        return float(_np.linalg.norm(_np.asarray(obs.tcp.position) - self._goal())) <= tolerance
+        return (float(_np.linalg.norm(_np.asarray(obs.tcp.position) - self._goal())) <= tolerance
+                or self._motion_idle(obs))
 
     def _ik(self, point, rotation):
         q, weights = self._q.copy(), self._weights
@@ -460,6 +486,7 @@ class ScriptedExpert:
             if self._stall_onset is None and (stage is None or progress.furthest_index >= self._stages.index(stage)):
                 self._stall_onset = obs.frame + self._pert.delay_steps
             if self._stall_onset is not None and self._stall_onset <= obs.frame < self._stall_onset + self._pert.params["steps"]:
+                self._mark_motion(obs)
                 return self._action(True)
         if self._done:
             return self._action(self._wrong)

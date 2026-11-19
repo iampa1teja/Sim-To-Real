@@ -7,44 +7,50 @@ default_variant = "teleop"
 teleop = "env_cfg:apply_teleop"
 generate = "env_cfg:apply_generate"
 
-[task.objects.red_cube]
-color = [0.8, 0.05, 0.05]
+[task.object_sets.cubes]
+prefix = "cube"
+count_max = 3
 size = [0.02, 0.02, 0.02]
 size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.025, 0.025, 0.025]]
 mass = 0.008
 
-[task.objects.blue_cube]
-color = [0.05, 0.1, 0.8]
-size = [0.02, 0.02, 0.02]
-size_variants = [[0.018, 0.018, 0.018], [0.02, 0.02, 0.02], [0.022, 0.022, 0.022], [0.025, 0.025, 0.025]]
-mass = 0.008
+[task.palette]
+red = [0.8, 0.05, 0.05]
+blue = [0.05, 0.1, 0.8]
+yellow = [0.9, 0.8, 0.05]
 
 [task.roles]
-target = "red_cube"
-base = "blue_cube"
+target = "cubes"
+base = "cubes"
+
+[task.instruction_template]
+texts = [
+    "Stack the {target.color} cube on the {base.color} cube",
+    "Put the {target.color} cube on top of the {base.color} cube",
+    "Place the {target.color} cube onto the {base.color} cube",
+]
 
 [task.start]
 table_z_m = 0.0
-initial_q = { around = "home", spread = 0.10 }
+initial_q = { around = "home", spread = 0.06 }
+count = [2, 3]
 min_separation_m = 0.06
 clearance_m = 0.01
 reachable = ["@target", "@base"]
 
-[task.start.place.red_cube]
-region = { workspace_inset_m = 0.012 }
-yaw_deg = [0.0, 90.0]
-
-[task.start.place.blue_cube]
-region = { workspace_inset_m = 0.012 }
-yaw_deg = [0.0, 90.0]
+[task.start.place.cubes]
+region = { workspace_inset_m = 0.048 }
+yaw_deg = [15.0, 55.0]
 
 [task.stages]
 order = ["reached", "grasped", "lifted", "over_base", "stacked", "success"]
+hold_grace_steps = 7
 
 [task.stages.hold_until]
 reached = "grasped"
 grasped = "stacked"
 lifted = "stacked"
+over_base = "stacked"
 
 [task.checks.reached]
 check = "ee_near"
@@ -54,6 +60,7 @@ tol_m = 0.02
 [task.checks.holding]
 check = "held"
 object = "@target"
+contact_signal = "target_held"
 
 [task.checks.grasped]
 check = "all"
@@ -71,8 +78,8 @@ of = ["holding", "raised"]
 [task.checks.above_base]
 check = "ee_near"
 object = "@base"
-offset_m = [0.0, 0.0, 0.08]
-tol_m = 0.03
+xy_only = true
+tol_m = 0.024
 
 [task.checks.over_base]
 check = "all"
@@ -82,11 +89,12 @@ of = ["holding", "above_base"]
 check = "object_on_object"
 object = "@target"
 base = "@base"
-xy_tol_m = 0.008
+xy_tol_m = 0.009
 
 [task.checks.released]
 check = "held"
 object = "@target"
+contact_signal = "target_held"
 negate = true
 
 [task.checks.stacked]
@@ -103,25 +111,56 @@ negate = true
 check = "all"
 of = ["stacked", "ee_clear"]
 
+[task.checks.wrong_object_stacked]
+check = "wrong_object_stacked"
+set = "cubes"
+object = "@target"
+base = "@base"
+xy_tol_m = 0.009
+
 [task.failures]
-rules = [{ name = "stacked_not_confirmed", if = ["stacked"] }, { name = "never_reached", unless = ["reached"] }, { name = "missed_grasp", unless = ["grasped"] }, { name = "timeout_holding", if = ["holding"] }, { name = "dropped_before_base", unless = ["over_base"] }, { name = "fell_off_base" }]
+rules = [
+    { name = "wrong_object_stacked", if = ["wrong_object_stacked"] },
+    { name = "stacked_not_confirmed", if = ["stacked"] },
+    { name = "never_reached", unless = ["reached"] },
+    { name = "missed_grasp", unless = ["grasped"] },
+    { name = "timeout_holding", if = ["holding"] },
+    { name = "dropped_before_base", unless = ["over_base"] },
+    { name = "fell_off_base" },
+]
 
 [task.expert]
 align_held = true
-speed_scale = { range = [0.60, 0.95] }
+speed_scale = { range = [0.60, 0.70] }
 max_steps = 1120
-steps = [{ skill = "set_gripper", gap_m = "open" }, { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.07] }], stage = "reached" }, { skill = "grasp", target = "@target", z_offset_m = { range = [0.002, 0.004] }, stage = "grasped" }, { skill = "lift", height_m = { range = [0.06, 0.08] }, stage = "lifted" }, { skill = "transport", target = "@base", height_m = { range = [0.05, 0.065] }, stage = "over_base" }, { skill = "place", target = "@base" }, { skill = "release", dwell_steps = { range = [6, 14] }, stage = "stacked" }, { skill = "retreat", dz_m = { range = [0.05, 0.065] } }, { skill = "wait", steps = 30, stage = "success" }]
+steps = [
+    { skill = "set_gripper", gap_m = "open", max_gap_m = 0.050 },
+    { skill = "approach", target = "@target", offset_m = [0, 0, { range = [0.045, 0.055] }], stage = "reached" },
+    { skill = "grasp", target = "@target", z_offset_m = { range = [0.0012, 0.0019] }, dwell_steps = 12, stage = "grasped" },
+    { skill = "lift", height_m = { range = [0.043, 0.050] }, stage = "lifted" },
+    { skill = "transport", target = "@base", height_m = { range = [0.043, 0.049] }, stage = "over_base" },
+    { skill = "place", target = "@base", clearance_m = 0.0025 },
+    { skill = "release", gap_m = "open", max_gap_m = 0.050, dwell_steps = { range = [6, 14] }, stage = "stacked" },
+    { skill = "retreat", dz_m = { range = [0.050, 0.058] } },
+    { skill = "wait", steps = 30, stage = "success" },
+]
 
 [task.perturbations]
-failure = [{ type = "grasp_offset", weight = 2, xy_m = [0.008, 0.02] }, { type = "early_release", stages = ["lifted"], delay_steps = [5, 40] }, { type = "place_offset", xy_m = [0.02, 0.04] }, { type = "object_drop", stages = ["lifted", "over_base"], xy_jitter_m = [0.0, 0.02] }]
-recovery = [{ type = "grasp_offset", xy_m = [0.008, 0.02] }, { type = "object_shift", stages = ["reached"], xy_m = [0.02, 0.05], yaw_rad = [-0.5, 0.5] }, { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] }]
+failure = [
+    { type = "grasp_offset", xy_m = [0.008, 0.02] },
+    { type = "object_drop", stages = ["lifted"], delay_steps = [23, 31], xy_jitter_m = [0.0, 0.02] },
+    { type = "place_offset", xy_m = [0.02, 0.04] },
+    { type = "wrong_target" },
+    { type = "stall", stages = ["lifted"], steps = [950, 1050] },
+]
+recovery = [
+    { type = "object_drop", stages = ["lifted"], xy_jitter_m = [0.0, 0.02] },
+    { type = "place_offset", xy_m = [0.018, 0.022] },
+    { type = "container_shift", object = "@base", stages = ["over_base"], xy_m = [0.037, 0.049] },
+    { type = "grasp_offset", xy_m = [0.008, 0.02] },
+]
 
-[task.physics.red_cube]
-mass_kg = [0.005, 0.012]
-static_friction = [0.75, 1.0]
-dynamic_friction = [0.65, 0.9]
-
-[task.physics.blue_cube]
-mass_kg = [0.005, 0.012]
-static_friction = [0.75, 1.0]
-dynamic_friction = [0.65, 0.9]
+[task.physics.cubes]
+mass_kg = [0.005, 0.009]
+static_friction = [0.89, 1.0]
+dynamic_friction = [0.87, 0.9]

@@ -225,13 +225,13 @@ class StackTests(CubeTaskBase):
     def test_tables(self):
         task = load_task("stack_two_cubes")
         self.assertEqual(type(task).__name__, "GenericTask")
-        self.assertEqual(dict(task.spec.roles), {"target": "red_cube", "base": "blue_cube"})
+        self.assertEqual(dict(task.spec.roles), {"target": "cubes", "base": "cubes"})
         checks = task.spec.raw["checks"]
         stacked = checks[task.stages[-2]]
         names = stacked.get("of", [task.stages[-2]])
         self.assertTrue(any(checks[n]["check"] == "object_on_object" for n in names if n in checks))
         for s in self.specs("stack_two_cubes", n=30):
-            a, b = (np.array(s.objects[n].pose.position[:2]) for n in ("red_cube", "blue_cube"))
+            a, b = (np.array(s.objects[s.roles[role]].pose.position[:2]) for role in ("target", "base"))
             self.assertGreaterEqual(np.linalg.norm(a - b), 0.05)
 
 
